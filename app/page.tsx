@@ -35,7 +35,9 @@ export default async function Home() {
                     await signOut()
                   }}
                 >
-                  <Button type="submit" variant="outline">로그아웃</Button>
+                  <Button type="submit" variant="outline">
+                    로그아웃
+                  </Button>
                 </form>
               </div>
             </div>
