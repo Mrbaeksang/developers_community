@@ -7,19 +7,20 @@ import { redirect } from 'next/navigation'
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: { callbackUrl?: string }
+  searchParams: Promise<{ callbackUrl?: string }>
 }) {
   const session = await auth()
+  const params = await searchParams
   
   // If already logged in, redirect to callbackUrl or home
   if (session) {
-    redirect(searchParams.callbackUrl || '/')
+    redirect(params.callbackUrl || '/')
   }
 
   async function signInWithProvider(provider: string) {
     'use server'
     await signIn(provider, {
-      redirectTo: searchParams.callbackUrl || '/',
+      redirectTo: params.callbackUrl || '/',
     })
   }
 
