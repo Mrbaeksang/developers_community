@@ -12,19 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Home, 
-  Users, 
-  MessageSquare, 
-  Search, 
+import {
+  Home,
+  Users,
+  MessageSquare,
+  Search,
   Menu,
   LogOut,
   User,
   Settings,
-  BookMarked
+  BookMarked,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
 export function Header() {
@@ -70,7 +68,9 @@ export function Header() {
             <Button
               variant="outline"
               className="w-full justify-start text-muted-foreground"
-              onClick={() => {/* TODO: Open search modal */}}
+              onClick={() => {
+                /* TODO: Open search modal */
+              }}
             >
               <Search className="mr-2 h-4 w-4" />
               <span>검색...</span>
@@ -89,17 +89,21 @@ export function Header() {
             <>
               {/* Write button */}
               <Button asChild className="hidden sm:flex">
-                <Link href="/write">
-                  새 글 작성
-                </Link>
+                <Link href="/write">새 글 작성</Link>
               </Button>
 
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={session.user?.image || ''} alt={session.user?.name || ''} />
+                      <AvatarImage
+                        src={session.user?.image || ''}
+                        alt={session.user?.name || ''}
+                      />
                       <AvatarFallback>
                         {session.user?.name?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -109,7 +113,9 @@ export function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{session.user?.name}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {session.user?.name}
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {session.user?.email}
                       </p>
@@ -117,7 +123,10 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={`/profile/${session.user?.id}`} className="cursor-pointer">
+                    <Link
+                      href={`/profile/${session.user?.id}`}
+                      className="cursor-pointer"
+                    >
                       <User className="mr-2 h-4 w-4" />
                       프로필
                     </Link>
@@ -146,9 +155,7 @@ export function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <Button onClick={() => signIn()}>
-              로그인
-            </Button>
+            <Button onClick={() => signIn()}>로그인</Button>
           )}
 
           {/* Mobile menu button */}
