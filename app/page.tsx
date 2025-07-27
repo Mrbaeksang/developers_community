@@ -66,8 +66,14 @@ export default async function Home() {
         slug: 'frontend',
       },
       tags: [
-        { id: 'posttag3', tag: { id: 'tag3', name: 'typescript', slug: 'typescript' } },
-        { id: 'posttag4', tag: { id: 'tag4', name: 'javascript', slug: 'javascript' } },
+        {
+          id: 'posttag3',
+          tag: { id: 'tag3', name: 'typescript', slug: 'typescript' },
+        },
+        {
+          id: 'posttag4',
+          tag: { id: 'tag4', name: 'javascript', slug: 'javascript' },
+        },
       ],
       _count: {
         comments: 23,
