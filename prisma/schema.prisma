@@ -1,0 +1,705 @@
+// 개발자 커뮤니티 플랫폼 - 확장형 스키마 v2.0
+// 메인 사이트 + 사용자 생성 커뮤니티 지원
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS - 열거형 정의
+// ============================================================================
+
+// 사용자 역할 정의 (전역)
+enum GlobalRole {
+  USER     // 일반 사용자
+  MANAGER  // 매니저 (메인 사이트 게시글 승인 권한)
+  ADMIN    // 관리자 (전체 관리 권한)
+}
+
+// 커뮤니티 내 역할
+enum CommunityRole {
+  MEMBER      // 일반 멤버
+  MODERATOR   // 모더레이터 (게시글 삭제, 사용자 밴 권한)
+  ADMIN       // 커뮤니티 관리자 (모든 권한)
+  OWNER       // 커뮤니티 소유자 (소유권 이전, 삭제 권한)
+}
+
+// 게시글 상태
+enum PostStatus {
+  DRAFT     // 임시저장
+  PENDING   // 승인 대기 (메인 사이트용)
+  PUBLISHED // 게시됨
+  REJECTED  // 거부됨
+  ARCHIVED  // 보관됨
+  DELETED   // 삭제됨 (소프트 삭제)
+}
+
+// 커뮤니티 가입 상태
+enum MembershipStatus {
+  PENDING  // 가입 대기 (비공개 커뮤니티)
+  ACTIVE   // 활성 멤버
+  BANNED   // 밴된 사용자
+  LEFT     // 탈퇴한 사용자
+}
+
+// 커뮤니티 공개 설정
+enum CommunityVisibility {
+  PUBLIC    // 공개 (누구나 참여)
+  PRIVATE   // 비공개 (승인 필요)
+}
+
+// 파일 타입
+enum FileType {
+  IMAGE    // 이미지 파일
+  DOCUMENT // 문서 파일
+  VIDEO    // 비디오 파일
+  AUDIO    // 오디오 파일
+  ARCHIVE  // 압축 파일
+  OTHER    // 기타
+}
+
+// 알림 타입
+enum NotificationType {
+  // 게시글 관련
+  POST_LIKE        // 게시글 좋아요
+  POST_COMMENT     // 게시글 댓글
+  POST_MENTION     // 게시글 멘션
+  POST_APPROVED    // 게시글 승인
+  POST_REJECTED    // 게시글 거부
+  
+  // 댓글 관련
+  COMMENT_REPLY    // 댓글 답글
+  COMMENT_LIKE     // 댓글 좋아요
+  COMMENT_MENTION  // 댓글 멘션
+  
+  // 커뮤니티 관련
+  COMMUNITY_INVITE // 커뮤니티 초대
+  COMMUNITY_JOIN   // 커뮤니티 가입
+  COMMUNITY_ROLE   // 역할 변경
+  COMMUNITY_BAN    // 밴 알림
+  
+  // 채팅 관련
+  CHAT_MESSAGE     // 채팅 메시지
+  CHAT_MENTION     // 채팅 멘션
+  
+}
+
+// 채팅 메시지 타입
+enum MessageType {
+  TEXT     // 텍스트 메시지
+  IMAGE    // 이미지
+  FILE     // 파일
+  SYSTEM   // 시스템 메시지 (입장, 퇴장 등)
+}
+
+// ============================================================================
+// USER MODELS - 사용자 관련 모델
+// ============================================================================
+
+// 사용자 모델
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String?
+  username      String?    @unique // 사용자명 (선택사항)
+  image         String?    // DiceBear 아바타 URL 자동 생성
+  bio           String?    // 자기소개만 (간단히)
+  
+  // 전역 역할 및 상태
+  globalRole    GlobalRole @default(USER)
+  emailVerified DateTime?
+  isActive      Boolean    @default(true)
+  isBanned      Boolean    @default(false)
+  banReason     String?
+  banUntil      DateTime?
+  
+  // 프로필 설정
+  showEmail     Boolean    @default(false)
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // OAuth 계정 연동
+  accounts Account[]
+  sessions Session[]
+
+  // 메인 사이트 게시글 관련
+  mainPosts     MainPost[]
+  mainComments  MainComment[]
+  mainLikes     MainLike[]
+  mainBookmarks MainBookmark[]
+
+  // 커뮤니티 관련
+  ownedCommunities    Community[] @relation("CommunityOwner")
+  communityMemberships CommunityMember[]
+  communityPosts      CommunityPost[]
+  communityComments   CommunityComment[]
+  communityLikes      CommunityLike[]
+  communityBookmarks  CommunityBookmark[]
+
+  // 채팅 관련
+  chatMessages ChatMessage[]
+  chatChannelMembers ChatChannelMember[]
+
+  // 파일 업로드
+  uploadedFiles File[]
+
+  // 공지사항
+  communityAnnouncements CommunityAnnouncement[]
+
+  // 알림 시스템
+  notifications        Notification[] @relation("NotificationReceiver")
+  triggeredNotifications Notification[] @relation("NotificationSender")
+
+
+  @@map("users")
+}
+
+// NextAuth.js OAuth 계정 연동 (Google, GitHub, Kakao)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String  // OAuth 제공자: "google", "github", "kakao"
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth.js 세션
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+
+// ============================================================================
+// MAIN SITE MODELS - 메인 사이트 모델 (승인제 Q&A, 정보공유)
+// ============================================================================
+
+// 메인 사이트 게시판 카테고리 (자유게시판, Q&A, 기술별 카테고리)
+model MainCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique // "자유게시판", "Q&A", "React", "Next.js"
+  slug        String  @unique // "free", "qa", "react", "nextjs"
+  description String? // 게시판 설명
+  color       String  @default("#6366f1")
+  icon        String? // Lucide 아이콘 이름
+  order       Int     @default(0) // 정렬 순서
+  isActive    Boolean @default(true)
+  
+  // 승인 설정 (메인 사이트는 모든 게시글 승인제)
+  requiresApproval Boolean @default(true)
+
+  posts MainPost[]
+
+  @@map("main_categories")
+}
+
+// 메인 사이트 게시글 (승인제, 홈피드에 모든 승인된 게시글 표시)
+model MainPost {
+  id           String     @id @default(cuid())
+  title        String
+  content      String     @db.Text
+  excerpt      String?    // 요약 (자동 생성 또는 수동 입력)
+  slug         String     @unique // SEO용 URL 슬러그
+  status       PostStatus @default(DRAFT)
+  isPinned     Boolean    @default(false) // 상단 고정
+  viewCount    Int        @default(0)
+  likeCount    Int        @default(0)
+  commentCount Int        @default(0)
+  
+  // SEO 메타데이터
+  metaTitle       String?
+  metaDescription String?
+  
+  // 승인 관련
+  approvedAt    DateTime?
+  approvedById  String?
+  rejectedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  authorId   String
+  author     User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   MainCategory @relation(fields: [categoryId], references: [id])
+  
+  comments  MainComment[]
+  likes     MainLike[]
+  bookmarks MainBookmark[]
+  tags      MainPostTag[]
+
+  @@map("main_posts")
+}
+
+// 메인 사이트 댓글
+model MainComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  authorId String
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId   String
+  post     MainPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // 대댓글 시스템
+  parentId String?
+  parent   MainComment?  @relation("MainCommentReplies", fields: [parentId], references: [id])
+  replies  MainComment[] @relation("MainCommentReplies")
+
+  @@map("main_comments")
+}
+
+// 메인 사이트 좋아요
+model MainLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   MainPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("main_likes")
+}
+
+// 메인 사이트 북마크
+model MainBookmark {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   MainPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("main_bookmarks")
+}
+
+// 메인 사이트 태그
+model MainTag {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String @default("#64748b")
+  postCount   Int    @default(0) // 태그 사용 횟수
+
+  posts MainPostTag[]
+
+  @@map("main_tags")
+}
+
+// 메인 사이트 게시글-태그 연결
+model MainPostTag {
+  postId String
+  post   MainPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    MainTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("main_post_tags")
+}
+
+// ============================================================================
+// COMMUNITY MODELS - 사용자 생성 커뮤니티 모델
+// ============================================================================
+
+// 커뮤니티 모델 (디스코드 갤러리/서브레딧 스타일)
+model Community {
+  id          String              @id @default(cuid())
+  name        String              @unique // "React 개발자 모임"
+  slug        String              @unique // "react-developers"
+  description String?             // 커뮤니티 설명
+  rules       String?             @db.Text // 커뮤니티 규칙
+  avatar      String?             // 커뮤니티 아바타 이미지
+  banner      String?             // 커뮤니티 배너 이미지
+  
+  // 공개 설정 (HIDDEN 제거됨)
+  visibility  CommunityVisibility @default(PUBLIC)
+  
+  // 통계
+  memberCount Int                 @default(0)
+  postCount   Int                 @default(0)
+  
+  // 기능 설정
+  allowFileUpload Boolean         @default(true)  // 파일 업로드 허용
+  allowChat       Boolean         @default(true)  // 채팅 기능 허용
+  maxFileSize     Int             @default(10485760) // 최대 파일 크기 (10MB)
+  
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // 관계
+  ownerId String
+  owner   User   @relation("CommunityOwner", fields: [ownerId], references: [id])
+
+  // 커뮤니티 콘텐츠
+  members      CommunityMember[]
+  categories   CommunityCategory[]
+  posts        CommunityPost[]
+  tags         CommunityTag[]
+  announcements CommunityAnnouncement[]
+  chatChannels ChatChannel[]
+
+  @@map("communities")
+}
+
+// 커뮤니티 멤버십
+model CommunityMember {
+  id        String           @id @default(cuid())
+  role      CommunityRole    @default(MEMBER)
+  status    MembershipStatus @default(ACTIVE)
+  joinedAt  DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  
+  // 밴 관련
+  bannedAt     DateTime?
+  bannedReason String?
+  bannedUntil  DateTime?
+
+  // 관계
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("community_members")
+}
+
+// 커뮤니티 카테고리 (각 커뮤니티별)
+model CommunityCategory {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  color       String  @default("#6366f1")
+  icon        String? // Lucide 아이콘 이름
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+  
+  // 관계
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  posts CommunityPost[]
+
+  @@unique([communityId, slug])
+  @@map("community_categories")
+}
+
+// 커뮤니티 게시글 (즉시 게시, 승인 불필요)
+model CommunityPost {
+  id           String     @id @default(cuid())
+  title        String
+  content      String     @db.Text
+  status       PostStatus @default(PUBLISHED) // 즉시 게시
+  isPinned     Boolean    @default(false)
+  viewCount    Int        @default(0)
+  likeCount    Int        @default(0)
+  commentCount Int        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  authorId   String
+  author     User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  communityId String
+  community  Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   CommunityCategory? @relation(fields: [categoryId], references: [id])
+  
+  comments  CommunityComment[]
+  likes     CommunityLike[]
+  bookmarks CommunityBookmark[]
+  tags      CommunityPostTag[]
+  files     File[]
+
+  @@map("community_posts")
+}
+
+// 커뮤니티 댓글
+model CommunityComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  authorId String
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId   String
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // 대댓글 시스템
+  parentId String?
+  parent   CommunityComment?  @relation("CommunityCommentReplies", fields: [parentId], references: [id])
+  replies  CommunityComment[] @relation("CommunityCommentReplies")
+
+  @@map("community_comments")
+}
+
+// 커뮤니티 좋아요
+model CommunityLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("community_likes")
+}
+
+// 커뮤니티 북마크
+model CommunityBookmark {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("community_bookmarks")
+}
+
+// 커뮤니티 태그
+model CommunityTag {
+  id          String @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  color       String @default("#64748b")
+  postCount   Int    @default(0)
+  
+  // 관계 - 각 커뮤니티별로 태그 관리
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  posts CommunityPostTag[]
+
+  @@unique([communityId, slug])
+  @@map("community_tags")
+}
+
+// 커뮤니티 게시글-태그 연결
+model CommunityPostTag {
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    CommunityTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("community_post_tags")
+}
+
+// 커뮤니티 공지사항
+model CommunityAnnouncement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  isPinned  Boolean  @default(true) // 공지사항은 기본적으로 고정
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@map("community_announcements")
+}
+
+// ============================================================================
+// CHAT MODELS - 실시간 채팅 시스템
+// ============================================================================
+
+// 채팅 채널 (커뮤니티별)
+model ChatChannel {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean @default(false) // 기본 채널 여부
+  order       Int     @default(0)
+  createdAt   DateTime @default(now())
+
+  // 관계
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  messages ChatMessage[]
+  members  ChatChannelMember[]
+
+  @@unique([communityId, name])
+  @@map("chat_channels")
+}
+
+// 채팅 채널 멤버
+model ChatChannelMember {
+  id          String   @id @default(cuid())
+  lastReadAt  DateTime @default(now()) // 마지막 읽은 시간
+  isMuted     Boolean  @default(false)  // 알림 음소거
+  joinedAt    DateTime @default(now())
+
+  // 관계
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@map("chat_channel_members")
+}
+
+// 채팅 메시지
+model ChatMessage {
+  id        String      @id @default(cuid())
+  content   String      @db.Text
+  type      MessageType @default(TEXT)
+  isEdited  Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // 관계
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  // 파일 첨부 (이미지, 파일 등)
+  fileId String?
+  file   File?  @relation(fields: [fileId], references: [id])
+
+  // 답장 시스템
+  replyToId String?
+  replyTo   ChatMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   ChatMessage[] @relation("MessageReplies")
+
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// FILE MODELS - 파일 시스템
+// ============================================================================
+
+// 파일 모델 (Vercel Blob 스토리지 연동)
+model File {
+  id           String   @id @default(cuid())
+  filename     String   // 원본 파일명
+  storedName   String   @unique // 저장된 파일명 (UUID)
+  mimeType     String   // MIME 타입
+  size         Int      // 파일 크기 (bytes)
+  type         FileType // 파일 분류
+  url          String   // 파일 URL (Vercel Blob)
+  downloadUrl  String?  // 다운로드 URL
+  
+  // 이미지 전용 필드
+  width        Int?     // 이미지 너비
+  height       Int?     // 이미지 높이
+  
+  createdAt    DateTime @default(now())
+
+  // 관계
+  uploaderId String
+  uploader   User   @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  
+  // 게시글 첨부 (커뮤니티만)
+  postId String?
+  post   CommunityPost? @relation(fields: [postId], references: [id])
+  
+  // 채팅 메시지 첨부
+  chatMessages ChatMessage[]
+
+  @@map("files")
+}
+
+// ============================================================================
+// NOTIFICATION MODELS - 알림 시스템
+// ============================================================================
+
+// 알림 모델
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // 관계
+  userId   String
+  user     User   @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  senderId String?
+  sender   User?  @relation("NotificationSender", fields: [senderId], references: [id])
+
+  // 관련 리소스 ID (JSON으로 저장)
+  resourceIds String? @db.Text // JSON: {"postId": "xxx", "commentId": "yyy", "communityId": "zzz"}
+  
+  @@map("notifications")
+}
+
+// ============================================================================
+// SYSTEM MODELS - 시스템 설정
+// ============================================================================
+
+// 시스템 설정 (관리자용)
+model Setting {
+  id          String @id @default(cuid())
+  key         String @unique
+  value       String @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// 사이트 통계 (캐시용)
+model SiteStats {
+  id              String   @id @default(cuid())
+  date            DateTime @unique @default(now()) // 날짜별 통계
+  totalUsers      Int      @default(0)
+  totalPosts      Int      @default(0)
+  totalComments   Int      @default(0)
+  totalCommunities Int     @default(0)
+  dailyActiveUsers Int     @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("site_stats")
+}

@@ -13,21 +13,49 @@
     "type-check": "tsc --noEmit",
     "prepare": "husky",
     "test": "npm run lint && npm run type-check",
-    "verify": "npm run lint:fix && npm run format && npm run type-check"
+    "verify": "npm run lint:fix && npm run format && npm run type-check",
+    "db:generate": "prisma generate",
+    "db:push": "dotenv -e .env -- prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "dotenv -e .env -- tsx prisma/seed.ts",
+    "db:test": "dotenv -e .env -- tsx test-db.ts"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
-    "*.{json,css}": ["prettier --write"]
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
+    "@hookform/resolvers": "^5.2.0",
+    "@prisma/client": "^6.12.0",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@tanstack/react-query": "^5.83.0",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/blob": "^1.1.1",
+    "@vercel/kv": "^3.0.0",
+    "@vercel/speed-insights": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.23.9",
     "lucide-react": "^0.526.0",
     "next": "15.4.4",
+    "next-auth": "^5.0.0-beta.29",
+    "prisma": "^6.12.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^3.3.1"
+    "react-hook-form": "^7.61.1",
+    "react-icons": "^5.5.0",
+    "tailwind-merge": "^3.3.1",
+    "tsx": "^4.20.3",
+    "zod": "^4.0.10",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -37,6 +65,7 @@
     "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
+    "dotenv-cli": "^7.4.2",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "eslint-config-prettier": "^10.1.8",
