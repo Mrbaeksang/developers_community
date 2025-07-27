@@ -1,0 +1,98 @@
+# \ud504\ub85c\uc81d\ud2b8 \uad6c\uc870
+
+## \ud83d\udce1 \ub514\ub809\ud1a0\ub9ac \uad6c\uc870
+
+```
+my_project/
+\u251c\u2500\u2500 app/
+\u2502   \u251c\u2500\u2500 (auth)/              # \uc778\uc99d \ub808\uc774\uc544\uc6c3
+\u2502   \u2502   \u2514\u2500\u2500 signin/         \u2713 \ub85c\uadf8\uc778 \ud398\uc774\uc9c0
+\u2502   \u251c\u2500\u2500 (main)/              # \uba54\uc778 \uc0ac\uc774\ud2b8 \ub808\uc774\uc544\uc6c3
+\u2502   \u2502   \u251c\u2500\u2500 posts/          \u2717 \uac8c\uc2dc\uae00 \ubaa9\ub85d
+\u2502   \u2502   \u2514\u2500\u2500 posts/[id]/     \u2717 \uac8c\uc2dc\uae00 \uc0c1\uc138
+\u2502   \u251c\u2500\u2500 (community)/         # \ucee4\ubba4\ub2c8\ud2f0 \ub808\uc774\uc544\uc6c3
+\u2502   \u2502   \u251c\u2500\u2500 page.tsx        \u2717 \ucee4\ubba4\ub2c8\ud2f0 \ubaa9\ub85d
+\u2502   \u2502   \u2514\u2500\u2500 [id]/           \u2717 \ucee4\ubba4\ub2c8\ud2f0 \uc0c1\uc138
+\u2502   \u251c\u2500\u2500 (dashboard)/         # \ub300\uc2dc\ubcf4\ub4dc \ub808\uc774\uc544\uc6c3
+\u2502   \u2502   \u2514\u2500\u2500 page.tsx        \u2717 \ub300\uc2dc\ubcf4\ub4dc
+\u2502   \u251c\u2500\u2500 api/
+\u2502   \u2502   \u251c\u2500\u2500 auth/[...nextauth]/  \u2713 NextAuth \ub77c\uc6b0\ud2b8
+\u2502   \u2502   \u251c\u2500\u2500 main/               # \uba54\uc778 \uc0ac\uc774\ud2b8 API
+\u2502   \u2502   \u2502   \u251c\u2500\u2500 posts/          \u2717 CRUD
+\u2502   \u2502   \u2502   \u251c\u2500\u2500 categories/     \u2717 \uce74\ud14c\uace0\ub9ac
+\u2502   \u2502   \u2502   \u2514\u2500\u2500 tags/           \u2717 \ud0dc\uadf8
+\u2502   \u2502   \u251c\u2500\u2500 communities/        # \ucee4\ubba4\ub2c8\ud2f0 API
+\u2502   \u2502   \u2502   \u251c\u2500\u2500 route.ts        \u2717 \ubaa9\ub85d/\uc0dd\uc131
+\u2502   \u2502   \u2502   \u2514\u2500\u2500 [id]/           \u2717 \uc0c1\uc138/\uac00\uc785/\ud0c8\ud1f4
+\u2502   \u2502   \u2514\u2500\u2500 chat/               # \ucc44\ud305 API
+\u2502   \u2502       \u2514\u2500\u2500 rooms/          \u2717 \ucc44\ud305\ubc29/\uba54\uc2dc\uc9c0
+\u2502   \u2514\u2500\u2500 page.tsx             \u2713 \uba54\uc778 \ud398\uc774\uc9c0
+\u251c\u2500\u2500 components/
+\u2502   \u251c\u2500\u2500 ui/                  # shadcn/ui \ucef4\ud3ec\ub10c\ud2b8
+\u2502   \u251c\u2500\u2500 feature/             # \uae30\ub2a5\ubcc4 \ucef4\ud3ec\ub10c\ud2b8
+\u2502   \u2514\u2500\u2500 shared/              # \uacf5\ud1b5 \ucef4\ud3ec\ub10c\ud2b8
+\u251c\u2500\u2500 lib/
+\u2502   \u251c\u2500\u2500 prisma.ts            \u2713 Prisma \ud074\ub77c\uc774\uc5b8\ud2b8
+\u2502   \u2514\u2500\u2500 utils.ts             \u2713 \uc720\ud2f8\ub9ac\ud2f0
+\u251c\u2500\u2500 prisma/
+\u2502   \u251c\u2500\u2500 schema.prisma        \u2713 \ub370\uc774\ud130\ubca0\uc774\uc2a4 \uc2a4\ud0a4\ub9c8
+\u2502   \u2514\u2500\u2500 seed.ts              \u2713 \uc2dc\ub4dc \ub370\uc774\ud130
+\u2514\u2500\u2500 auth.ts                  \u2713 NextAuth \uc124\uc815
+```
+
+## \ud83c\udfaf API \ub77c\uc6b0\ud2b8 \ub9e4\ud551
+
+### \uba54\uc778 \uc0ac\uc774\ud2b8 API
+| \uacbd\ub85c | \uba54\uc11c\ub4dc | \uc124\uba85 | \uc0c1\ud0dc |
+|------|---------|------|------|
+| `/api/main/posts` | GET/POST | \uac8c\uc2dc\uae00 \ubaa9\ub85d/\uc791\uc131 | \u2717 |
+| `/api/main/posts/[id]` | GET/PUT/DELETE | \uac8c\uc2dc\uae00 \uc0c1\uc138/\uc218\uc815/\uc0ad\uc81c | \u2717 |
+| `/api/main/posts/[id]/approve` | POST | \uac8c\uc2dc\uae00 \uc2b9\uc778 | \u2717 |
+| `/api/main/posts/[id]/comments` | POST | \ub313\uae00 \uc791\uc131 | \u2717 |
+| `/api/main/comments/[id]` | DELETE | \ub313\uae00 \uc0ad\uc81c | \u2717 |
+| `/api/main/categories` | GET | \uce74\ud14c\uace0\ub9ac \ubaa9\ub85d | \u2717 |
+| `/api/main/tags` | GET | \ud0dc\uadf8 \ubaa9\ub85d | \u2717 |
+| `/api/main/tags/[id]/posts` | GET | \ud0dc\uadf8\ubcc4 \uac8c\uc2dc\uae00 | \u2717 |
+
+### \ucee4\ubba4\ub2c8\ud2f0 API
+| \uacbd\ub85c | \uba54\uc11c\ub4dc | \uc124\uba85 | \uc0c1\ud0dc |
+|------|---------|------|------|
+| `/api/communities` | GET/POST | \ucee4\ubba4\ub2c8\ud2f0 \ubaa9\ub85d/\uc0dd\uc131 | \u2717 |
+| `/api/communities/[id]` | GET | \ucee4\ubba4\ub2c8\ud2f0 \uc0c1\uc138 | \u2717 |
+| `/api/communities/[id]/join` | POST | \ucee4\ubba4\ub2c8\ud2f0 \uac00\uc785 | \u2717 |
+| `/api/communities/[id]/leave` | DELETE | \ucee4\ubba4\ub2c8\ud2f0 \ud0c8\ud1f4 | \u2717 |
+| `/api/communities/[id]/posts` | GET/POST | \ucee4\ubba4\ub2c8\ud2f0 \uac8c\uc2dc\uae00 | \u2717 |
+| `/api/community-posts/[id]` | PUT/DELETE | \uac8c\uc2dc\uae00 \uc218\uc815/\uc0ad\uc81c | \u2717 |
+| `/api/community-posts/[id]/comments` | POST | \ub313\uae00 \uc791\uc131 | \u2717 |
+
+### \ucc44\ud305 API
+| \uacbd\ub85c | \uba54\uc11c\ub4dc | \uc124\uba85 | \uc0c1\ud0dc |
+|------|---------|------|------|
+| `/api/chat/rooms` | GET/POST | \ucc44\ud305\ubc29 \ubaa9\ub85d/\uc0dd\uc131 | \u2717 |
+| `/api/chat/rooms/[id]/messages` | GET/POST | \uba54\uc2dc\uc9c0 \uc870\ud68c/\uc804\uc1a1 | \u2717 |
+
+## \ud83d\udcc4 \ud398\uc774\uc9c0 \uad6c\ud604 \ud604\ud669
+
+### \uc778\uc99d (\u2713 \uc644\ub8cc)
+- \u2713 `/` - \uba54\uc778 \ud398\uc774\uc9c0
+- \u2713 `/signin` - \ub85c\uadf8\uc778 \ud398\uc774\uc9c0
+
+### \uba54\uc778 \uc0ac\uc774\ud2b8 (\u2717 \ubbf8\uad6c\ud604)
+- \u2717 `/main/posts` - \uac8c\uc2dc\uae00 \ubaa9\ub85d
+- \u2717 `/main/posts/[id]` - \uac8c\uc2dc\uae00 \uc0c1\uc138
+
+### \ucee4\ubba4\ub2c8\ud2f0 (\u2717 \ubbf8\uad6c\ud604)
+- \u2717 `/communities` - \ucee4\ubba4\ub2c8\ud2f0 \ubaa9\ub85d
+- \u2717 `/communities/[id]` - \ucee4\ubba4\ub2c8\ud2f0 \uc0c1\uc138
+
+### \ub300\uc2dc\ubcf4\ub4dc (\u2717 \ubbf8\uad6c\ud604)
+- \u2717 `/dashboard` - \uc0ac\uc6a9\uc790 \ub300\uc2dc\ubcf4\ub4dc
+
+## \ud83d\udee0\ufe0f \uae30\uc220 \uc2a4\ud0dd
+
+- **Framework**: Next.js 15.4.4 (App Router)
+- **Auth**: NextAuth.js v5
+- **Database**: PostgreSQL + Prisma ORM
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **State**: Zustand
+- **API**: tRPC (planned)
