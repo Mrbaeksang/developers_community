@@ -190,7 +190,7 @@ Next.js 15에서 추가된 주요 기능들을 소개합니다.
       approvedAt: new Date(),
       approvedById: managerUser.id,
       authorId: sampleUser.id,
-      categoryId: categories.find(c => c.slug === 'nextjs')!.id,
+      categoryId: categories.find((c) => c.slug === 'nextjs')!.id,
     },
   })
 
@@ -214,7 +214,7 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
       excerpt: 'React 18의 동시성 기능을 이해해봅시다.',
       status: PostStatus.PENDING, // 승인 대기 중
       authorId: sampleUser.id,
-      categoryId: categories.find(c => c.slug === 'react')!.id,
+      categoryId: categories.find((c) => c.slug === 'react')!.id,
     },
   })
 

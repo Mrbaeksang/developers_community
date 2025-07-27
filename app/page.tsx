@@ -11,12 +11,16 @@ export default async function Home() {
         <h1 className="mb-8 text-center text-4xl font-bold">
           개발자 커뮤니티 플랫폼
         </h1>
-        
+
         <div className="mb-8 text-center">
           {session ? (
             <div className="space-y-4">
               <p className="text-lg">
-                환영합니다, <span className="font-semibold">{session.user?.name || session.user?.email}</span>님!
+                환영합니다,{' '}
+                <span className="font-semibold">
+                  {session.user?.name || session.user?.email}
+                </span>
+                님!
               </p>
               <p className="text-sm text-gray-600">
                 역할: {session.user?.role || 'USER'}
@@ -45,18 +49,16 @@ export default async function Home() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg border p-6">
             <h3 className="mb-2 text-xl font-semibold">자유게시판</h3>
-            <p className="text-gray-600">
-              자유롭게 이야기를 나누는 공간입니다
-            </p>
+            <p className="text-gray-600">자유롭게 이야기를 나누는 공간입니다</p>
           </div>
-          
+
           <div className="rounded-lg border p-6">
             <h3 className="mb-2 text-xl font-semibold">Q&A</h3>
             <p className="text-gray-600">
               개발 관련 질문과 답변을 주고받는 공간입니다
             </p>
           </div>
-          
+
           <div className="rounded-lg border p-6">
             <h3 className="mb-2 text-xl font-semibold">커뮤니티</h3>
             <p className="text-gray-600">

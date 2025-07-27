@@ -11,7 +11,7 @@ export default async function SignInPage({
 }) {
   const session = await auth()
   const params = await searchParams
-  
+
   // If already logged in, redirect to callbackUrl or home
   if (session) {
     redirect(params.callbackUrl || '/')
