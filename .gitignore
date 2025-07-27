@@ -42,6 +42,7 @@ next-env.d.ts
 
 # AI development documentation
 *.md
+!docs/*.md
 .claude/
 
 .vercel
