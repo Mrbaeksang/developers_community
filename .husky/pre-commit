@@ -1,1 +1,9 @@
+# 포맷팅 및 린트 자동 수정
+npm run lint:fix --silent || true
+npm run format --silent || true
+
+# 변경사항 자동 스테이징
+git add -A
+
+# lint-staged 실행 (추가 검사)
 npx lint-staged
