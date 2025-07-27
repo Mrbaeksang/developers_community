@@ -2,14 +2,22 @@
 export interface Post {
   id: string
   title: string
+  slug: string
   content: string
   excerpt?: string
+  published: boolean
   authorId: string
   author: {
     id: string
     name: string | null
     email: string
     image: string | null
+  }
+  categoryId: string
+  category?: {
+    id: string
+    name: string
+    slug: string
   }
   type: 'ARTICLE' | 'QUESTION' | 'DISCUSSION' | 'TUTORIAL' | 'NEWS'
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
