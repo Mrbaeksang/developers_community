@@ -97,7 +97,9 @@ export function PostCard({ post, className }: PostCardProps) {
               <span className="text-sm font-medium line-clamp-1">
                 {post.author.name || '익명'}
               </span>
-              <span className="text-xs text-muted-foreground">{formattedDate}</span>
+              <span className="text-xs text-muted-foreground">
+                {formattedDate}
+              </span>
             </div>
           </Link>
 
