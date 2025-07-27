@@ -1,4 +1,4 @@
-import { auth } from '@/auth'
+import { auth, signOut } from '@/auth'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -29,9 +29,14 @@ export default async function Home() {
                 <Link href="/dashboard">
                   <Button>대시보드로 이동</Button>
                 </Link>
-                <Link href="/api/auth/signout">
-                  <Button variant="outline">로그아웃</Button>
-                </Link>
+                <form
+                  action={async () => {
+                    'use server'
+                    await signOut()
+                  }}
+                >
+                  <Button type="submit" variant="outline">로그아웃</Button>
+                </form>
               </div>
             </div>
           ) : (
