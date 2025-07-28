@@ -143,6 +143,19 @@ export function Header() {
                       북마크
                     </Link>
                   </DropdownMenuItem>
+                  {/* 관리자 메뉴 */}
+                  {(session.user as any)?.role === 'ADMIN' ||
+                  (session.user as any)?.role === 'MANAGER' ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/pending" className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          게시글 승인
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"

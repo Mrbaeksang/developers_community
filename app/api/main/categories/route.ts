@@ -16,15 +16,15 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json({
-      categories: categories.map((category) => ({
+    return NextResponse.json(
+      categories.map((category) => ({
         id: category.id,
         name: category.name,
         slug: category.slug,
         description: category.description,
         postCount: category._count.posts,
-      })),
-    })
+      }))
+    )
   } catch (error) {
     console.error('카테고리 목록 조회 실패:', error)
     return NextResponse.json(

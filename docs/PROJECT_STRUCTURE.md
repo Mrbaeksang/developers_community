@@ -294,6 +294,7 @@ my_project/
 | `/main/posts` | 게시글 목록 | (main) | ✅ |
 | `/main/posts/[id]` | 게시글 상세 | (main) | ✅ |
 | `/main/write` | 게시글 작성 | (main) | ✅ |
+| `/admin/pending` | 게시글 승인 관리 | (admin) | ✅ |
 | `/communities` | 커뮤니티 목록 | (community) | ❌ |
 | `/communities/[id]` | 커뮤니티 상세 | (community) | ❌ |
 | `/communities/[id]/chat` | 커뮤니티 채팅 | (community) | ❌ |
@@ -301,9 +302,9 @@ my_project/
 
 ## 🧩 컴포넌트 구현 현황
 
-### 📊 컴포넌트 현황: 총 86개
-- ✅ 구현 완료: 32개 (37.2%)
-- ❌ 미구현: 54개 (62.8%)
+### 📊 컴포넌트 현황: 총 87개
+- ✅ 구현 완료: 33개 (37.9%)
+- ❌ 미구현: 54개 (62.1%)
 
 ### 카테고리별 현황
 | 카테고리 | 전체 | 구현 | 구현율 |
@@ -319,6 +320,7 @@ my_project/
 | Chat | 4개 | 0개 | 0% |
 | Auth | 4개 | 0개 | 0% |
 | Providers | 1개 | 1개 | 100% |
+| Admin | 1개 | 1개 | 100% |
 | Others | 13개 | 0개 | 0% |
 
 ## 🛠️ 기술 스택
@@ -329,3 +331,21 @@ my_project/
 - **Styling**: Tailwind CSS v4 + shadcn/ui
 - **State**: Zustand
 - **API**: tRPC (planned)
+
+## 🔐 관리자 승인 시스템
+
+### 승인 프로세스
+1. **게시글 작성**: 사용자가 게시글 작성 시 `PENDING` 상태로 저장
+2. **관리자 승인**: 관리자/매니저가 `/admin/pending`에서 승인/거부 처리
+3. **게시**: 승인된 게시글만 메인 페이지에 표시
+
+### 권한 관리
+- **USER**: 일반 사용자 (게시글 작성만 가능)
+- **MANAGER**: 매니저 (게시글 승인 권한)
+- **ADMIN**: 관리자 (전체 관리 권한)
+
+### 구현된 기능
+- ✅ 게시글 승인/거부 API (`POST /api/main/posts/[id]/approve`)  
+- ✅ 승인 대기 목록 API (`GET /api/main/posts/pending`)
+- ✅ 관리자 승인 페이지 (`/admin/pending`)
+- ✅ 권한별 메뉴 표시 (Header 통합)
