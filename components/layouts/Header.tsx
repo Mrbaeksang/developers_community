@@ -19,6 +19,7 @@ import {
   Menu,
   LogOut,
   Settings,
+  Users,
 } from 'lucide-react'
 import { useState } from 'react'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -31,6 +32,7 @@ export function Header() {
   const navigation = [
     { name: '홈', href: '/', icon: Home },
     { name: '게시글', href: '/main/posts', icon: MessageSquare },
+    { name: '커뮤니티', href: '/communities', icon: Users },
   ]
 
   // 관리자 전용 네비게이션 메뉴

@@ -8,7 +8,7 @@ my_project/
 │   ├── (auth)/                    # 인증 레이아웃
 │   │   ├── signin/
 │   │   │   └── page.tsx          ✓ 로그인 페이지
-│   │   └── signup/               ✗ 회원가입 페이지
+│   │   └── signup/               ✗ OAuth만 사용 (미구현)
 │   ├── (main)/                    # 메인 사이트 레이아웃
 │   │   ├── posts/                
 │   │   │   └── page.tsx          ✓ 게시글 목록
@@ -154,9 +154,9 @@ my_project/
 │   │   ├── MessageInput.tsx ✗ 메시지 입력
 │   │   └── ChatSkeleton.tsx ✗ 채팅 스켈레톤
 │   └── auth/                # 인증 관련
-│       ├── LoginForm.tsx    ✗ 로그인 폼
-│       ├── SignupForm.tsx   ✗ 회원가입 폼
-│       ├── SocialLogin.tsx  ✗ 소셜 로그인 버튼
+│       ├── LoginForm.tsx    ✗ OAuth 로그인 폼
+│       ├── SignupForm.tsx   ✗ OAuth만 사용 (미구현)
+│       ├── SocialLogin.tsx  ✗ OAuth 로그인 버튼
 │       └── UserMenu.tsx     ✗ 사용자 메뉴
 │   ├── search/              # 검색 관련
 │   │   ├── SearchModal.tsx  ✓ 검색 모달
@@ -309,10 +309,9 @@ my_project/
 | 경로 | 설명 | 레이아웃 | 상태 |
 |------|------|----------|------|
 | `/` | 메인 페이지 | 루트 | ✅ |
-| `/signin` | 로그인 페이지 | (auth) | ✅ |
-| `/signup` | 회원가입 페이지 | (auth) | ❌ |
+| `/signin` | 로그인 페이지 | (auth) | ✅ | (OAUTH 단일사용 회원가입 페이지 X)
 | `/dashboard` | 사용자 대시보드 | 루트 | ✅ |
-| `/profile/[id]` | 사용자 프로필 | (main) | ❌ |
+| `/profile/[id]` | 사용자 프로필 | (main) | ✅ |
 | `/main/posts` | 게시글 목록 | (main) | ✅ |
 | `/main/posts/[id]` | 게시글 상세 | (main) | ✅ |
 | `/main/write` | 게시글 작성 | (main) | ✅ |
@@ -348,64 +347,3 @@ my_project/
 | Admin | 1개 | 1개 | 100% |
 | Others | 13개 | 1개 | 7.7% |
 
-## 🛠️ 기술 스택
-
-- **Framework**: Next.js 15.4.4 (App Router)
-- **Auth**: NextAuth.js v5 (JWT Session)
-- **Database**: PostgreSQL + Prisma ORM
-- **Styling**: Tailwind CSS v4 + shadcn/ui (Neobrutalism Design)
-- **State Management**: React Context + Hooks
-- **Validation**: Zod v3+
-- **Date**: date-fns
-- **Icons**: Lucide React
-- **Toast**: Sonner
-
-## 🔐 관리자 승인 시스템
-
-### 승인 프로세스
-1. **게시글 작성**: 사용자가 게시글 작성 시 `PENDING` 상태로 저장
-2. **관리자 승인**: 관리자/매니저가 `/admin/pending`에서 승인/거부 처리
-3. **게시**: 승인된 게시글만 메인 페이지에 표시
-
-### 권한 관리
-- **USER**: 일반 사용자 (게시글 작성만 가능)
-- **MANAGER**: 매니저 (게시글 승인 권한)
-- **ADMIN**: 관리자 (전체 관리 권한)
-
-### 구현된 기능
-- ✅ 게시글 승인/거부 API (`POST /api/main/posts/[id]/approve`)  
-- ✅ 승인 대기 목록 API (`GET /api/main/posts/pending`)
-- ✅ 관리자 승인 페이지 (`/admin/pending`)
-- ✅ 권한별 메뉴 표시 (Header 통합)
-- ✅ 관리자 대시보드 (`/admin`)
-
-## 🎨 디자인 시스템
-
-### Neobrutalism 디자인
-- **Bold Borders**: 2-4px 검은색 테두리
-- **Box Shadows**: 실선 그림자 효과 (4px offset)
-- **Bright Colors**: 선명한 색상 팔레트
-- **Interactive Effects**: hover 시 translate 애니메이션
-
-### 구현된 기능들
-- ✅ 메인 사이트 게시글 CRUD (승인 시스템 포함)
-- ✅ 댓글 시스템 (대댓글 지원)
-- ✅ 좋아요/북마크 기능
-- ✅ 태그 시스템 및 태그별 게시글 조회
-- ✅ 카테고리 분류
-- ✅ 검색 기능 (제목/내용/태그)
-- ✅ 사용자 대시보드
-- ✅ 관리자 권한 시스템
-- ✅ 활발한 사용자 표시
-- ✅ 인기 태그 표시
-- ✅ Prisma 시드 데이터
-
-### 미구현 기능들
-- ❌ 회원가입 페이지
-- ❌ 사용자 프로필 페이지
-- ❌ 커뮤니티 시스템 전체
-- ❌ 실시간 채팅
-- ❌ 파일 업로드
-- ❌ 알림 시스템
-- ❌ 통합 검색 (사용자/커뮤니티)
-- ❌ 사이트 통계
