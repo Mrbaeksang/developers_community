@@ -27,7 +27,9 @@ interface CommunityAnnouncementsProps {
   announcements: Announcement[]
 }
 
-export default function CommunityAnnouncements({ announcements }: CommunityAnnouncementsProps) {
+export default function CommunityAnnouncements({
+  announcements,
+}: CommunityAnnouncementsProps) {
   if (announcements.length === 0) {
     return (
       <div className="bg-white border-2 border-black rounded-lg p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -45,8 +47,8 @@ export default function CommunityAnnouncements({ announcements }: CommunityAnnou
         <div
           key={announcement.id}
           className={cn(
-            "bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-            announcement.isPinned && "border-yellow-500"
+            'bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+            announcement.isPinned && 'border-yellow-500'
           )}
         >
           <div className="space-y-4">
@@ -55,8 +57,8 @@ export default function CommunityAnnouncements({ announcements }: CommunityAnnou
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   {announcement.isPinned && (
-                    <Badge 
-                      variant="secondary" 
+                    <Badge
+                      variant="secondary"
                       className="bg-yellow-500 text-white border-2 border-black"
                     >
                       <Pin className="h-3 w-3 mr-1" />
@@ -83,19 +85,25 @@ export default function CommunityAnnouncements({ announcements }: CommunityAnnou
                 <Avatar className="h-8 w-8 border-2 border-black">
                   <AvatarImage src={announcement.author.image || undefined} />
                   <AvatarFallback className="font-bold">
-                    {announcement.author.name?.[0] || announcement.author.username?.[0] || 'A'}
+                    {announcement.author.name?.[0] ||
+                      announcement.author.username?.[0] ||
+                      'A'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-sm">
                   <p className="font-medium">
-                    {announcement.author.name || announcement.author.username || 'Admin'}
+                    {announcement.author.name ||
+                      announcement.author.username ||
+                      'Admin'}
                   </p>
                   {announcement.author.username && announcement.author.name && (
-                    <p className="text-muted-foreground">@{announcement.author.username}</p>
+                    <p className="text-muted-foreground">
+                      @{announcement.author.username}
+                    </p>
                   )}
                 </div>
               </div>
-              
+
               <time className="text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(announcement.createdAt), {
                   addSuffix: true,

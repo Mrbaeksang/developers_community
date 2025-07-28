@@ -14,7 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Upload, X, FileText, Image as ImageIcon, Archive, Film, Music } from 'lucide-react'
+import {
+  Upload,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Archive,
+  Film,
+  Music,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {

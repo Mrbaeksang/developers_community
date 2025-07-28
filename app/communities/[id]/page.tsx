@@ -192,7 +192,9 @@ export default async function CommunityDetailPage({
 
       {/* Content Tabs */}
       <Tabs defaultValue="posts" className="space-y-6">
-        <TabsList className={`grid w-full ${community.announcements.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+        <TabsList
+          className={`grid w-full ${community.announcements.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
+        >
           <TabsTrigger value="posts" className="font-bold">
             게시글
           </TabsTrigger>
@@ -218,9 +220,9 @@ export default async function CommunityDetailPage({
                   variant="outline"
                   size="sm"
                   className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                  style={{ 
+                  style={{
                     backgroundColor: category.color || undefined,
-                    color: category.color ? 'white' : undefined
+                    color: category.color ? 'white' : undefined,
                   }}
                 >
                   {category.name}

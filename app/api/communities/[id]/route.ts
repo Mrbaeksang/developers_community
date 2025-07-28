@@ -169,7 +169,9 @@ export async function GET(
       announcements,
       isOwner: session?.user?.id === community.ownerId,
       isMember: currentMembership?.status === 'ACTIVE',
-      canPost: currentMembership?.status === 'ACTIVE' || session?.user?.id === community.ownerId,
+      canPost:
+        currentMembership?.status === 'ACTIVE' ||
+        session?.user?.id === community.ownerId,
     })
   } catch (error) {
     console.error('Failed to fetch community:', error)
