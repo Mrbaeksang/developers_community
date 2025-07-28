@@ -135,7 +135,7 @@ export default function CommunityMemberList({ communityId }: CommunityMemberList
     setPage(1)
     setHasMore(true)
     fetchMembers(1, true)
-  }, [debouncedSearch, roleFilter])
+  }, [debouncedSearch, roleFilter, fetchMembers])
 
   // 무한 스크롤
   useEffect(() => {

@@ -21,7 +21,7 @@ my_project/
 │   ├── profile/[id]/              ✓ 사용자 프로필
 │   ├── communities/               # 커뮤니티 페이지
 │   │   ├── page.tsx              ✓ 커뮤니티 목록
-│   │   ├── [id]/                 ✗ 커뮤니티 상세
+│   │   ├── [id]/                 ✓ 커뮤니티 상세
 │   │   └── [id]/chat/            ✗ 커뮤니티 채팅
 │   ├── admin/                     # 관리자 페이지
 │   │   ├── page.tsx              ✓ 관리자 대시보드
@@ -63,7 +63,10 @@ my_project/
 │   │   │       └── active/       ✓ 활발한 사용자 목록
 │   │   ├── communities/          # 커뮤니티 API
 │   │   │   ├── route.ts          ✓ 목록/생성
-│   │   │   └── [id]/             ✗ 상세/수정/삭제/가입/탈퇴/멤버/카테고리/공지/게시글
+│   │   │   └── [id]/             
+│   │   │       ├── route.ts      ✓ 상세 조회/수정/삭제
+│   │   │       └── members/      
+│   │   │           └── route.ts  ✓ 멤버 목록 조회
 │   │   ├── community-posts/      # 커뮤니티 게시글 API
 │   │   │   └── [id]/             ✗ 상세/수정/삭제/좋아요/북마크
 │   │   ├── chat/                 # 채팅 API
@@ -146,6 +149,10 @@ my_project/
 │   │   ├── CommunityCard.tsx ✗ 커뮤니티 카드
 │   │   ├── CommunityList.tsx ✗ 커뮤니티 목록
 │   │   ├── CommunityHeader.tsx ✗ 커뮤니티 헤더
+│   │   ├── CommunityPostList.tsx ✓ 커뮤니티 게시글 목록
+│   │   ├── CommunityMemberList.tsx ✓ 커뮤니티 멤버 목록
+│   │   ├── CommunityAnnouncements.tsx ✓ 커뮤니티 공지사항
+│   │   ├── CommunityActions.tsx ✓ 커뮤니티 액션 버튼
 │   │   ├── MemberList.tsx   ✗ 멤버 목록
 │   │   └── JoinButton.tsx   ✗ 가입 버튼
 │   ├── chat/                # 채팅 관련
@@ -183,10 +190,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 65개 중 33개 구현 (50.8%)
-- **페이지**: 14개 중 12개 구현 (85.7%)
-- **컴포넌트**: 89개 중 36개 구현 (40.4%)
-- **전체**: 168개 중 81개 구현 (48.2%)
+- **API**: 65개 중 36개 구현 (55.4%)
+- **페이지**: 14개 중 13개 구현 (92.9%)
+- **컴포넌트**: 93개 중 40개 구현 (43.0%)
+- **전체**: 172개 중 89개 구현 (51.7%)
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 87.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
