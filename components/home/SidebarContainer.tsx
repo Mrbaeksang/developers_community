@@ -9,7 +9,9 @@ async function getSidebarData() {
       prisma.mainTag.findMany({
         take: 5,
         orderBy: {
-          postCount: 'desc',
+          posts: {
+            _count: 'desc',
+          },
         },
         include: {
           _count: {
@@ -45,7 +47,7 @@ async function getSidebarData() {
       trendingTags: tags.map((tag) => ({
         id: tag.id,
         name: tag.name,
-        count: tag.postCount, // SidebarProps 타입에 맞게 수정
+        count: tag._count.posts, // 실제 관계 카운트 사용
       })),
       activeUsers: activeUsers.map((user) => ({
         id: user.id,
