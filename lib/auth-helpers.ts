@@ -47,9 +47,9 @@ export function checkAuth(session: Session | null) {
 export async function checkMembership(userId: string, communityId: string) {
   const membership = await prisma.communityMember.findUnique({
     where: {
-      userId_communityId: { userId, communityId }
+      userId_communityId: { userId, communityId },
     },
-    select: { status: true }
+    select: { status: true },
   })
 
   if (!membership || membership.status !== MembershipStatus.ACTIVE) {
@@ -63,16 +63,19 @@ export async function checkMembership(userId: string, communityId: string) {
 export async function canManageCommunity(userId: string, communityId: string) {
   const membership = await prisma.communityMember.findUnique({
     where: {
-      userId_communityId: { userId, communityId }
+      userId_communityId: { userId, communityId },
     },
-    select: { role: true, status: true }
+    select: { role: true, status: true },
   })
 
   if (!membership || membership.status !== MembershipStatus.ACTIVE) {
     return false
   }
 
-  return membership.role === CommunityRole.ADMIN || membership.role === CommunityRole.OWNER
+  return (
+    membership.role === CommunityRole.ADMIN ||
+    membership.role === CommunityRole.OWNER
+  )
 }
 
 // 커뮤니티 역할 확인 헬퍼
@@ -83,9 +86,9 @@ export async function checkCommunityRole(
 ) {
   const membership = await prisma.communityMember.findUnique({
     where: {
-      userId_communityId: { userId, communityId }
+      userId_communityId: { userId, communityId },
     },
-    select: { role: true, status: true }
+    select: { role: true, status: true },
   })
 
   if (!membership || membership.status !== MembershipStatus.ACTIVE) {
@@ -96,7 +99,7 @@ export async function checkCommunityRole(
     [CommunityRole.MEMBER]: 0,
     [CommunityRole.MODERATOR]: 1,
     [CommunityRole.ADMIN]: 2,
-    [CommunityRole.OWNER]: 3
+    [CommunityRole.OWNER]: 3,
   }
 
   if (roleHierarchy[membership.role] < roleHierarchy[requiredRole]) {
@@ -110,31 +113,33 @@ export async function checkCommunityRole(
 export async function checkCommunityBan(userId: string, communityId: string) {
   const membership = await prisma.communityMember.findUnique({
     where: {
-      userId_communityId: { userId, communityId }
+      userId_communityId: { userId, communityId },
     },
-    select: { 
+    select: {
       status: true,
       bannedUntil: true,
-      bannedReason: true
-    }
+      bannedReason: true,
+    },
   })
 
   if (membership?.status === MembershipStatus.BANNED) {
     if (!membership.bannedUntil || membership.bannedUntil > new Date()) {
-      const reason = membership.bannedReason ? ` (사유: ${membership.bannedReason})` : ''
+      const reason = membership.bannedReason
+        ? ` (사유: ${membership.bannedReason})`
+        : ''
       return forbidden(`커뮤니티에서 차단되었습니다${reason}`)
     }
-    
+
     // 차단 기간이 지났으면 자동 해제
     await prisma.communityMember.update({
       where: {
-        userId_communityId: { userId, communityId }
+        userId_communityId: { userId, communityId },
       },
       data: {
         status: MembershipStatus.ACTIVE,
         bannedUntil: null,
-        bannedReason: null
-      }
+        bannedReason: null,
+      },
     })
   }
 
