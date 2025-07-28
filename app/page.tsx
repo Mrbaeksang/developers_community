@@ -1,7 +1,8 @@
 import { MainLayout } from '@/components/layouts/MainLayout'
 import { HeroSection } from '@/components/home/HeroSection'
 import { PostList } from '@/components/home/PostList'
-import { Sidebar } from '@/components/home/Sidebar'
+import { SidebarContainer } from '@/components/home/SidebarContainer'
+import { getApiUrl } from '@/lib/api'
 
 async function getPosts() {
   try {
@@ -57,12 +58,9 @@ async function getPosts() {
     }
 
     // 프로덕션에서는 API 호출
-    const res = await fetch(
-      `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/main/posts?limit=10`,
-      {
-        cache: 'no-store',
-      }
-    )
+    const res = await fetch(`${getApiUrl()}/api/main/posts?limit=10`, {
+      cache: 'no-store',
+    })
 
     if (!res.ok) {
       throw new Error('Failed to fetch posts')
@@ -93,7 +91,7 @@ export default async function Home() {
           </main>
 
           {/* Sidebar */}
-          <Sidebar />
+          <SidebarContainer />
         </div>
       </div>
     </MainLayout>
