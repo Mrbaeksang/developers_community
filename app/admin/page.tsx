@@ -226,7 +226,13 @@ export default async function AdminPage() {
                   <CardTitle className="text-xl">{menu.title}</CardTitle>
                 </div>
                 {menu.badge && (
-                  <Badge variant={menu.color as any}>{menu.badge}</Badge>
+                  <Badge
+                    variant={
+                      menu.color === 'destructive' ? 'destructive' : 'secondary'
+                    }
+                  >
+                    {menu.badge}
+                  </Badge>
                 )}
               </div>
               <CardDescription>{menu.description}</CardDescription>

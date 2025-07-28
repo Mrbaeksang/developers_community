@@ -125,8 +125,8 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   {/* 관리자 메뉴 */}
-                  {(session.user as any)?.role === 'ADMIN' ||
-                  (session.user as any)?.role === 'MANAGER' ? (
+                  {session.user?.role === 'ADMIN' ||
+                  session.user?.role === 'MANAGER' ? (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
