@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 검색 조건 구성
-    const where: any = {
+    const where: Prisma.MainPostWhereInput = {
       status: 'PUBLISHED',
     }
 

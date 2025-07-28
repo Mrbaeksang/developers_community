@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useDebounce } from '@/hooks/use-debounce'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface SearchResult {
   id: string
@@ -103,8 +103,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }, [debouncedQuery, performSearch])
 
   // 검색 결과 클릭 처리
-  const handleResultClick = (slug: string) => {
-    router.push(`/main/posts/${slug}`)
+  const handleResultClick = (id: string) => {
+    router.push(`/main/posts/${id}`)
     onClose()
     setQuery('')
     setResults([])
@@ -197,7 +197,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {results.map((result) => (
                 <button
                   key={result.id}
-                  onClick={() => handleResultClick(result.slug)}
+                  onClick={() => handleResultClick(result.id)}
                   className="w-full rounded-lg p-3 text-left hover:bg-accent focus:bg-accent focus:outline-none"
                 >
                   <div className="flex items-start gap-3">

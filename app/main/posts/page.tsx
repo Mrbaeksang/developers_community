@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { PostListServer } from '@/components/posts/PostListServer'
-import { Sidebar } from '@/components/home/Sidebar'
+import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata = {
@@ -49,7 +49,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           {/* 사이드바 */}
           <aside className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96" />}>
-              <Sidebar />
+              <SidebarContainer />
             </Suspense>
           </aside>
         </div>
