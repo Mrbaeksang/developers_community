@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Globe, Lock, Users, MessageSquare, Calendar } from 'lucide-react'
+import { Globe, Lock, Users, MessageSquare, Calendar, Megaphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,6 +9,32 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { auth } from '@/auth'
 import { CommunityActions } from '@/components/communities/CommunityActions'
+import { CommunityPostList } from '@/components/communities/CommunityPostList'
+import CommunityMemberList from '@/components/communities/CommunityMemberList'
+import CommunityAnnouncements from '@/components/communities/CommunityAnnouncements'
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  color: string | null
+  icon: string | null
+}
+
+interface Announcement {
+  id: string
+  title: string
+  content: string
+  isPinned: boolean
+  createdAt: string
+  author: {
+    id: string
+    name: string | null
+    username: string | null
+    image: string | null
+  }
+}
 
 interface Community {
   id: string
@@ -38,6 +64,8 @@ interface Community {
     role: 'MEMBER' | 'MODERATOR' | 'ADMIN' | 'OWNER'
     status: 'PENDING' | 'ACTIVE' | 'BANNED' | 'LEFT'
   } | null
+  categories: Category[]
+  announcements: Announcement[]
 }
 
 async function getCommunity(idOrSlug: string) {
@@ -164,64 +192,68 @@ export default async function CommunityDetailPage({
 
       {/* Content Tabs */}
       <Tabs defaultValue="posts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <TabsList className={`grid w-full ${community.announcements.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
           <TabsTrigger value="posts" className="font-bold">
             게시글
           </TabsTrigger>
           <TabsTrigger value="members" className="font-bold">
             멤버
           </TabsTrigger>
+          {community.announcements.length > 0 && (
+            <TabsTrigger value="announcements" className="font-bold">
+              공지사항
+            </TabsTrigger>
+          )}
           <TabsTrigger value="rules" className="font-bold">
             규칙
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="space-y-4">
-          <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <CardContent className="py-12 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-bold text-lg mb-2">아직 게시글이 없습니다</h3>
-              <p className="text-muted-foreground mb-4">
-                첫 번째 게시글을 작성해보세요!
-              </p>
-              {isMember && (
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex gap-2">
+              {community.categories.map((category) => (
                 <Button
-                  asChild
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+                  key={category.id}
+                  variant="outline"
+                  size="sm"
+                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                  style={{ 
+                    backgroundColor: category.color || undefined,
+                    color: category.color ? 'white' : undefined
+                  }}
                 >
-                  <Link href={`/communities/${community.slug}/write`}>
-                    게시글 작성
-                  </Link>
+                  {category.name}
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+            {isMember && (
+              <Button
+                asChild
+                className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+              >
+                <Link href={`/communities/${community.slug}/write`}>
+                  게시글 작성
+                </Link>
+              </Button>
+            )}
+          </div>
+          <CommunityPostList
+            communityId={community.id}
+            communitySlug={community.slug}
+            page={1}
+          />
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
-          <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <CardHeader>
-              <h3 className="font-bold text-lg">운영진</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <AvatarImage src={community.owner.image || undefined} />
-                  <AvatarFallback className="font-bold">
-                    {community.owner.name?.[0] ||
-                      community.owner.email[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-bold">
-                    {community.owner.name || 'Unknown'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">소유자</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <CommunityMemberList communityId={community.id} />
         </TabsContent>
+
+        {community.announcements.length > 0 && (
+          <TabsContent value="announcements" className="space-y-4">
+            <CommunityAnnouncements announcements={community.announcements} />
+          </TabsContent>
+        )}
 
         <TabsContent value="rules" className="space-y-4">
           <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">

@@ -18,6 +18,37 @@ export async function GET(
         owner: {
           select: { id: true, name: true, email: true, image: true },
         },
+        categories: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            color: true,
+            icon: true,
+          },
+        },
+        announcements: {
+          orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+          take: 10,
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            isPinned: true,
+            createdAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+          },
+        },
         _count: {
           select: { members: true, posts: true },
         },
@@ -41,6 +72,37 @@ export async function GET(
           },
           _count: {
             select: { members: true, posts: true },
+          },
+          categories: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              color: true,
+              icon: true,
+            },
+          },
+          announcements: {
+            orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+            take: 10,
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              isPinned: true,
+              createdAt: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: true,
+                },
+              },
+            },
           },
           // 현재 사용자의 멤버십 상태 확인
           members: session?.user?.id
@@ -81,9 +143,33 @@ export async function GET(
         : null
     const { ...communityData } = community
 
+    // 공지사항 가져오기 (고정된 것들만)
+    const announcements = await prisma.communityAnnouncement.findMany({
+      where: {
+        communityId: community.id,
+        isPinned: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+          },
+        },
+      },
+    })
+
     return NextResponse.json({
       ...communityData,
       currentMembership,
+      announcements,
+      isOwner: session?.user?.id === community.ownerId,
+      isMember: currentMembership?.status === 'ACTIVE',
+      canPost: currentMembership?.status === 'ACTIVE' || session?.user?.id === community.ownerId,
     })
   } catch (error) {
     console.error('Failed to fetch community:', error)
@@ -146,8 +232,20 @@ export async function PUT(
         owner: {
           select: { id: true, name: true, email: true, image: true },
         },
+        categories: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            color: true,
+            icon: true,
+          },
+        },
         _count: {
-          select: { members: true, posts: true },
+          select: { members: true, posts: true, announcements: true },
         },
       },
     })
