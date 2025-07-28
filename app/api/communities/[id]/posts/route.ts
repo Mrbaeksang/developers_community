@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import {
+  checkBanStatus,
+  checkCommunityMembership,
+  unauthorized,
+} from '@/lib/auth-helpers'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -163,13 +168,16 @@ export async function POST(
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
 
-    // 멤버십 확인
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
+
+    // 커뮤니티 멤버십 확인
+    await checkCommunityMembership(session.user.id, id)
+
+    // 멤버십 상세 정보 조회 (파일 업로드 권한 확인용)
     const membership = await prisma.communityMember.findUnique({
       where: {
         userId_communityId: {
@@ -184,12 +192,7 @@ export async function POST(
       },
     })
 
-    if (!membership || membership.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: '커뮤니티 멤버만 게시글을 작성할 수 있습니다.' },
-        { status: 403 }
-      )
-    }
+    // checkCommunityMembership에서 이미 확인했으므로 membership는 존재함
 
     const body = await req.json()
     const validation = createPostSchema.safeParse(body)
@@ -207,6 +210,7 @@ export async function POST(
     if (
       fileIds &&
       fileIds.length > 0 &&
+      membership &&
       !membership.community.allowFileUpload
     ) {
       return NextResponse.json(

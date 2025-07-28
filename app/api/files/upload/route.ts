@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { FileType } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
+import {
+  checkBanStatus,
+  checkCommunityMembership,
+  unauthorized,
+} from '@/lib/auth-helpers'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -38,11 +43,11 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -75,6 +80,9 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         )
       }
+
+      // 커뮤니티 멤버십 확인
+      await checkCommunityMembership(session.user.id, communityId)
 
       if (!community.allowFileUpload) {
         return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   createPostCommentNotification,
   createCommentReplyNotification,
 } from '@/lib/notifications'
+import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -76,10 +77,12 @@ export async function POST(
 ) {
   try {
     const session = await auth()
-
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     const { id } = await params
     const { content, parentId } = await request.json()

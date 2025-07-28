@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
 
 // POST: 커뮤니티 게시글 북마크
 export async function POST(
@@ -12,11 +13,11 @@ export async function POST(
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     // 게시글 존재 확인
     const post = await prisma.communityPost.findUnique({
@@ -75,11 +76,11 @@ export async function DELETE(
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     // 북마크 삭제
     const result = await prisma.communityBookmark.deleteMany({

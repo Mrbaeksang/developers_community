@@ -183,7 +183,8 @@ my_project/
 │   ├── utils.ts             ✓ 유틸리티
 │   ├── types.ts             ✓ 타입 정의 파일
 │   ├── api.ts               ✓ API 유틸리티
-│   └── notifications.ts     ✓ 알림 헬퍼 함수
+│   ├── notifications.ts     ✓ 알림 헬퍼 함수
+│   └── auth-helpers.ts      ✓ 인증/권한 헬퍼 함수 (Stage 1 완료)
 ├── hooks/
 │   ├── use-toast.tsx        ✓ 토스트 훅
 │   └── use-debounce.ts      ✓ 디바운스 훅
@@ -312,6 +313,29 @@ my_project/
 | `/prisma/seed.ts` | - | 시드 데이터 | ✅ |
 | `/auth.ts` | - | NextAuth 설정 | ✅ |
 | `/lib/prisma.ts` | - | Prisma 클라이언트 | ✅ |
+
+## 🔐 권한 시스템 구현 현황 (Stage 1 완료)
+
+### Stage 1: 기본 권한 체크 - ✅ 100% 완료
+- **전역 Ban 체크**: 모든 API에 자동 적용
+- **인증 체크**: 로그인 필수 API 보호
+- **GlobalRole.ADMIN 슈퍼 권한**: 모든 커뮤니티에서 ADMIN 권한 자동 부여
+
+### 구현된 헬퍼 함수
+| 함수명 | 설명 | 상태 |
+|--------|------|------|
+| `checkAuth()` | 인증 확인 | ✅ |
+| `checkGlobalRole()` | 전역 역할 확인 | ✅ |
+| `checkCommunityRole()` | 커뮤니티 역할 확인 | ✅ |
+| `checkPermission()` | 통합 권한 체크 | ✅ |
+| `checkMembership()` | 커뮤니티 멤버십 확인 | ✅ |
+| `checkCommunityBan()` | 커뮤니티 Ban 확인 | ✅ |
+| `canManageCommunity()` | 커뮤니티 관리 권한 확인 | ✅ |
+
+### 권한 적용 현황
+- **전역 Ban**: 모든 API에 미들웨어로 자동 적용
+- **커뮤니티 Ban**: 커뮤니티 관련 API에 수동 적용 필요 (Stage 2)
+- **리소스 소유권**: 게시글/댓글 수정/삭제 시 확인 필요 (Stage 4)
 
 ## 📄 페이지 구현 현황
 

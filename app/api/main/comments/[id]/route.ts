@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -19,11 +20,11 @@ export async function PUT(
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     const resolvedParams = await params
     const commentId = resolvedParams.id
@@ -116,11 +117,11 @@ export async function DELETE(
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return unauthorized()
     }
+
+    // Ban 상태 체크
+    await checkBanStatus(session.user.id)
 
     const resolvedParams = await params
     const commentId = resolvedParams.id
