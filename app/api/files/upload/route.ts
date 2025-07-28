@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
 import { FileType } from '@prisma/client'
 import { v4 as uuidv4 } from 'uuid'
 
