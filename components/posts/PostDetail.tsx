@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -55,7 +54,7 @@ export default function PostDetail({ post }: PostDetailProps) {
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [likeCount, setLikeCount] = useState(post._count.likes)
   const { toast } = useToast()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
 
   // 로그인한 경우 좋아요/북마크 상태 확인

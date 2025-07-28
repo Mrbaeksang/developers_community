@@ -58,7 +58,6 @@ export default function CommentSection({
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
@@ -69,7 +68,6 @@ export default function CommentSection({
   // 댓글 목록 가져오기
   useEffect(() => {
     const fetchComments = async () => {
-      setIsLoading(true)
       try {
         const res = await fetch(`/api/main/posts/${postId}/comments`)
         if (res.ok) {
@@ -78,8 +76,6 @@ export default function CommentSection({
         }
       } catch (error) {
         console.error('Failed to fetch comments:', error)
-      } finally {
-        setIsLoading(false)
       }
     }
 

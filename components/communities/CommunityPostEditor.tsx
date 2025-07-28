@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Upload, X, FileText, Image, Archive, Film, Music } from 'lucide-react'
+import { Upload, X, FileText, Image as ImageIcon, Archive, Film, Music } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {
@@ -94,7 +94,7 @@ export function CommunityPostEditor({
   }
 
   const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return <Image className="h-4 w-4" />
+    if (type.startsWith('image/')) return <ImageIcon className="h-4 w-4" />
     if (type.startsWith('video/')) return <Film className="h-4 w-4" />
     if (type.startsWith('audio/')) return <Music className="h-4 w-4" />
     if (type.includes('zip') || type.includes('rar'))

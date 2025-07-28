@@ -42,7 +42,6 @@ export function PostEditor() {
   const [categoryId, setCategoryId] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [status, setStatus] = useState<'DRAFT' | 'PENDING'>('DRAFT')
 
   // 카테고리와 태그 로드
   useEffect(() => {
@@ -101,7 +100,6 @@ export function PostEditor() {
     }
 
     setIsSubmitting(true)
-    setStatus(submitStatus)
 
     try {
       // slug 생성 (제목 기반)
