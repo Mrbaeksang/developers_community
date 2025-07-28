@@ -251,7 +251,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             </div>
           ) : query.trim() ? (
             <div className="py-8 text-center text-muted-foreground">
-              "{query}"에 대한 검색 결과가 없습니다.
+              &quot;{query}&quot;에 대한 검색 결과가 없습니다.
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
