@@ -4,12 +4,14 @@ import { prisma } from '@/lib/prisma'
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     const post = await prisma.mainPost.findFirst({
       where: {
-        id: params.id,
+        id,
         status: 'PUBLISHED',
       },
       include: {
@@ -50,7 +52,7 @@ export async function GET(
 
     // 조회수 증가
     await prisma.mainPost.update({
-      where: { id: params.id },
+      where: { id },
       data: { viewCount: { increment: 1 } },
     })
 

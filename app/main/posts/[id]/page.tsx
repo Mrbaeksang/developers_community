@@ -4,9 +4,9 @@ import PostDetail from '@/components/posts/PostDetail'
 import CommentSection from '@/components/posts/CommentSection'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 async function getPost(id: string) {
@@ -33,7 +33,8 @@ async function getPost(id: string) {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const post = await getPost(params.id)
+  const { id } = await params
+  const post = await getPost(id)
 
   if (!post) {
     return {
@@ -56,7 +57,8 @@ export async function generateMetadata({
 }
 
 export default async function PostDetailPage({ params }: PageProps) {
-  const post = await getPost(params.id)
+  const { id } = await params
+  const post = await getPost(id)
 
   if (!post) {
     notFound()
