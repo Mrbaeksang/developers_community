@@ -82,7 +82,7 @@ export default async function CommunityDetailPage({
   const isOwner = session?.user?.id === community.owner.id
   const isMember = community.currentMembership?.status === 'ACTIVE'
   const isPending = community.currentMembership?.status === 'PENDING'
-  const canJoin = !community.currentMembership && session?.user
+  const canJoin = !community.currentMembership && !!session?.user?.id
 
   return (
     <div className="container max-w-7xl py-8">
@@ -152,7 +152,7 @@ export default async function CommunityDetailPage({
               isMember={isMember}
               isPending={isPending}
               canJoin={canJoin}
-              isAuthenticated={!!session?.user}
+              isAuthenticated={!!session?.user?.id}
             />
           </div>
         </div>

@@ -17,7 +17,6 @@ export async function GET(
       where: {
         id: postId,
         communityId: id,
-        isDeleted: false,
       },
       include: {
         author: {
@@ -54,8 +53,8 @@ export async function GET(
         files: {
           select: {
             id: true,
-            fileName: true,
-            fileSize: true,
+            filename: true,
+            size: true,
             mimeType: true,
             url: true,
           },
@@ -281,10 +280,9 @@ export async function DELETE(
       )
     }
 
-    // 게시글 소프트 삭제
-    await prisma.communityPost.update({
+    // 게시글 하드 삭제
+    await prisma.communityPost.delete({
       where: { id: postId },
-      data: { isDeleted: true },
     })
 
     // 커뮤니티 게시글 수 감소

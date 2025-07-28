@@ -9,7 +9,6 @@ interface Post {
   content: string
   viewCount: number
   createdAt: string
-  isDeleted: boolean
   author: {
     id: string
     name: string | null
@@ -37,8 +36,8 @@ interface Post {
   isBookmarked: boolean
   files: {
     id: string
-    fileName: string
-    fileSize: number
+    filename: string
+    size: number
     mimeType: string
     url: string
   }[]

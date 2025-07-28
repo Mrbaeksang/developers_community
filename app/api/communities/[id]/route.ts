@@ -11,11 +11,9 @@ export async function GET(
     const { id } = await context.params
     const session = await auth()
 
-    // 커뮤니티 조회
-    const community = await prisma.community.findUnique({
-      where: {
-        OR: [{ id }, { slug: id }],
-      },
+    // 커뮤니티 조회 - id로 먼저 찾고, 없으면 slug로 찾기
+    let community = await prisma.community.findUnique({
+      where: { id },
       include: {
         owner: {
           select: { id: true, name: true, email: true, image: true },
@@ -34,15 +32,40 @@ export async function GET(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      // slug로 다시 시도
+      community = await prisma.community.findUnique({
+        where: { slug: id },
+        include: {
+          owner: {
+            select: { id: true, name: true, email: true, image: true },
+          },
+          _count: {
+            select: { members: true, posts: true },
+          },
+          // 현재 사용자의 멤버십 상태 확인
+          members: session?.user?.id
+            ? {
+                where: { userId: session.user.id },
+                select: { role: true, status: true },
+              }
+            : false,
+        },
+      })
+
+      if (!community) {
+        return NextResponse.json(
+          { error: '커뮤니티를 찾을 수 없습니다.' },
+          { status: 404 }
+        )
+      }
     }
 
     // 비공개 커뮤니티 접근 제한
     if (community.visibility === 'PRIVATE') {
-      const isMember = community.members && community.members.length > 0
+      const isMember =
+        'members' in community &&
+        Array.isArray(community.members) &&
+        community.members.length > 0
       if (!isMember && (!session || community.ownerId !== session.user?.id)) {
         return NextResponse.json(
           { error: '비공개 커뮤니티입니다.' },
@@ -52,8 +75,11 @@ export async function GET(
     }
 
     // 현재 사용자의 멤버십 정보 추출
-    const currentMembership = community.members?.[0] || null
-    const { members, ...communityData } = community
+    const currentMembership =
+      'members' in community && Array.isArray(community.members)
+        ? community.members[0] || null
+        : null
+    const { members, ...communityData } = community as any
 
     return NextResponse.json({
       ...communityData,

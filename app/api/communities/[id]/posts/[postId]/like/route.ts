@@ -20,7 +20,7 @@ export async function POST(
 
     // 게시글 존재 확인
     const post = await prisma.communityPost.findUnique({
-      where: { id: postId, communityId: id, isDeleted: false },
+      where: { id: postId, communityId: id },
     })
 
     if (!post) {

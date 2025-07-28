@@ -52,7 +52,6 @@ export async function GET(
     // 검색 조건 설정
     const where: any = {
       communityId: id,
-      isDeleted: false,
     }
 
     if (category) {
@@ -177,13 +176,6 @@ export async function POST(
     if (!membership || membership.status !== 'ACTIVE') {
       return NextResponse.json(
         { error: '커뮤니티 멤버만 게시글을 작성할 수 있습니다.' },
-        { status: 403 }
-      )
-    }
-
-    if (membership.status === 'BANNED') {
-      return NextResponse.json(
-        { error: '차단된 사용자는 게시글을 작성할 수 없습니다.' },
         { status: 403 }
       )
     }

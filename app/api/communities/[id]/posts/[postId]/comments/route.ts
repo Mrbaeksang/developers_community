@@ -16,7 +16,6 @@ export async function GET(
       where: {
         id: postId,
         communityId: id,
-        isDeleted: false,
       },
     })
 
@@ -103,19 +102,11 @@ export async function POST(
       )
     }
 
-    if (membership.status === 'BANNED') {
-      return NextResponse.json(
-        { error: '차단된 사용자는 댓글을 작성할 수 없습니다.' },
-        { status: 403 }
-      )
-    }
-
     // 게시글 존재 확인
     const post = await prisma.communityPost.findUnique({
       where: {
         id: postId,
         communityId: id,
-        isDeleted: false,
       },
     })
 

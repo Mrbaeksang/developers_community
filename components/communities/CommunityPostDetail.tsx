@@ -62,8 +62,8 @@ interface Post {
   isBookmarked: boolean
   files: {
     id: string
-    fileName: string
-    fileSize: number
+    filename: string
+    size: number
     mimeType: string
     url: string
   }[]
@@ -305,9 +305,9 @@ export function CommunityPostDetail({
                   >
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{file.fileName}</p>
+                      <p className="font-medium truncate">{file.filename}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatFileSize(file.fileSize)}
+                        {formatFileSize(file.size)}
                       </p>
                     </div>
                     <Download className="h-4 w-4 text-muted-foreground" />
