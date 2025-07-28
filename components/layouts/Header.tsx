@@ -24,10 +24,12 @@ import {
   BookMarked,
 } from 'lucide-react'
 import { useState } from 'react'
+import { SearchModal } from '@/components/search/SearchModal'
 
 export function Header() {
   const { data: session, status } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const navigation = [
     { name: '홈', href: '/', icon: Home },
@@ -68,9 +70,7 @@ export function Header() {
             <Button
               variant="outline"
               className="w-full justify-start text-muted-foreground"
-              onClick={() => {
-                /* TODO: Open search modal */
-              }}
+              onClick={() => setIsSearchOpen(true)}
             >
               <Search className="mr-2 h-4 w-4" />
               <span>검색...</span>
@@ -197,6 +197,12 @@ export function Header() {
           </nav>
         </div>
       )}
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </header>
   )
 }

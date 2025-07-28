@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +84,132 @@ export async function GET(request: NextRequest) {
     console.error('게시글 목록 조회 실패:', error)
     return NextResponse.json(
       { error: '게시글 목록을 불러오는데 실패했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const {
+      title,
+      content,
+      excerpt,
+      slug,
+      categoryId,
+      status = 'DRAFT',
+      tags = [],
+    } = body
+
+    // 필수 필드 검증
+    if (!title || !content || !categoryId || !slug) {
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 상태 검증
+    if (!['DRAFT', 'PENDING'].includes(status)) {
+      return NextResponse.json(
+        { error: '잘못된 상태값입니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 카테고리 존재 여부 확인
+    const category = await prisma.mainCategory.findUnique({
+      where: { id: categoryId },
+    })
+
+    if (!category) {
+      return NextResponse.json(
+        { error: '존재하지 않는 카테고리입니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 태그 처리 - slug 기반으로 기존 태그 찾거나 새로 생성
+    const tagConnections = []
+    for (const tagSlug of tags) {
+      let tag = await prisma.mainTag.findUnique({
+        where: { slug: tagSlug },
+      })
+
+      if (!tag) {
+        // 태그가 없으면 생성
+        tag = await prisma.mainTag.create({
+          data: {
+            name: tagSlug.replace(/-/g, ' '), // slug를 name으로 변환
+            slug: tagSlug,
+            color: '#64748b', // 기본 색상
+          },
+        })
+      }
+
+      tagConnections.push({
+        tag: { connect: { id: tag.id } },
+      })
+    }
+
+    // 게시글 생성
+    const post = await prisma.mainPost.create({
+      data: {
+        title,
+        content,
+        excerpt: excerpt || content.substring(0, 200),
+        slug,
+        status,
+        author: { connect: { id: session.user.id } },
+        category: { connect: { id: categoryId } },
+        tags: {
+          create: tagConnections,
+        },
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    })
+
+    // 태그 사용 횟수 업데이트
+    if (tagConnections.length > 0) {
+      await prisma.mainTag.updateMany({
+        where: {
+          slug: { in: tags },
+        },
+        data: {
+          postCount: { increment: 1 },
+        },
+      })
+    }
+
+    return NextResponse.json(post, { status: 201 })
+  } catch (error) {
+    console.error('게시글 생성 실패:', error)
+    return NextResponse.json(
+      { error: '게시글 생성에 실패했습니다.' },
       { status: 500 }
     )
   }
