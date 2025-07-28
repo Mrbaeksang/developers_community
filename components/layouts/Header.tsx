@@ -31,7 +31,7 @@ export function Header() {
 
   const navigation = [
     { name: '홈', href: '/', icon: Home },
-    { name: '게시글', href: '/posts', icon: MessageSquare },
+    { name: '게시글', href: '/main/posts', icon: MessageSquare },
     { name: '커뮤니티', href: '/communities', icon: Users },
   ]
 
@@ -89,7 +89,7 @@ export function Header() {
             <>
               {/* Write button */}
               <Button asChild className="hidden sm:flex">
-                <Link href="/write">새 글 작성</Link>
+                <Link href="/main/write">새 글 작성</Link>
               </Button>
 
               {/* User menu */}
@@ -187,7 +187,7 @@ export function Header() {
             ))}
             {session && (
               <Link
-                href="/write"
+                href="/main/write"
                 className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-accent text-foreground/60 hover:text-foreground"
                 onClick={() => setIsMobileMenuOpen(false)}
               >

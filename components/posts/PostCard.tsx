@@ -47,7 +47,7 @@ export function PostCard({ post, className }: PostCardProps) {
           </div>
         </div>
 
-        <Link href={`/posts/${post.id}`} className="group">
+        <Link href={`/main/posts/${post.id}`} className="group">
           <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {post.title}
           </h3>
@@ -66,7 +66,7 @@ export function PostCard({ post, className }: PostCardProps) {
             {post.tags.slice(0, 3).map((postTag) => (
               <Link
                 key={postTag.tag.id}
-                href={`/tags/${postTag.tag.slug}`}
+                href={`/main/tags/${encodeURIComponent(postTag.tag.name)}`}
                 className="text-xs px-2 py-0.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
               >
                 #{postTag.tag.name}
@@ -84,7 +84,7 @@ export function PostCard({ post, className }: PostCardProps) {
       <CardFooter className="pt-3 border-t">
         <div className="flex items-center justify-between w-full">
           <Link
-            href={`/users/${post.authorId}`}
+            href={`/profile/${post.authorId}`}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <Avatar className="size-6">

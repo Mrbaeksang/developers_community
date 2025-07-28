@@ -56,7 +56,7 @@ export function Sidebar({
           {trendingTags.map((tag) => (
             <Link
               key={tag.id}
-              href={`/tags/${tag.name}`}
+              href={`/main/tags/${encodeURIComponent(tag.name)}`}
               className="flex items-center justify-between rounded-md p-2 hover:bg-muted"
             >
               <span className="text-sm font-medium">#{tag.name}</span>
