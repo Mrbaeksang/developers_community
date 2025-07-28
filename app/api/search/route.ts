@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       id: string
       title: string
       content: string
-      excerpt: string | null
+      excerpt?: string | null
       createdAt: Date
       type: 'main' | 'community'
       url: string
@@ -168,12 +168,12 @@ export async function GET(req: NextRequest) {
       results.posts = [
         ...mainPosts.map((post) => ({
           ...post,
-          type: 'main',
+          type: 'main' as const,
           url: `/main/posts/${post.id}`,
         })),
         ...communityPosts.map((post) => ({
           ...post,
-          type: 'community',
+          type: 'community' as const,
           url: `/communities/${post.community.id}/posts/${post.id}`,
         })),
       ]
