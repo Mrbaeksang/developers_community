@@ -58,9 +58,10 @@ async function getCommunities(searchParams: {
 export default async function CommunitiesPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string }
+  searchParams: Promise<{ page?: string; search?: string }>
 }) {
-  const { communities, pagination } = await getCommunities(searchParams)
+  const resolvedSearchParams = await searchParams
+  const { communities, pagination } = await getCommunities(resolvedSearchParams)
 
   return (
     <div className="container max-w-7xl py-8">
