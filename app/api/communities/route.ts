@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import prisma from '@/lib/prisma'
+import { z } from 'zod'
+
+// GET: 커뮤니티 목록 조회
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '12')
+    const search = searchParams.get('search') || ''
+    const visibility = searchParams.get('visibility') as
+      | 'PUBLIC'
+      | 'PRIVATE'
+      | null
+
+    const skip = (page - 1) * limit
+
+    // 검색 조건 구성
+    const where: {
+      name?: { contains: string; mode: 'insensitive' }
+      visibility?: 'PUBLIC' | 'PRIVATE'
+    } = {}
+
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' }
+    }
+
+    if (visibility) {
+      where.visibility = visibility
+    }
+
+    // 커뮤니티 목록 조회
+    const [communities, total] = await Promise.all([
+      prisma.community.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              posts: true,
+            },
+          },
+        },
+      }),
+      prisma.community.count({ where }),
+    ])
+
+    return NextResponse.json({
+      communities,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    })
+  } catch (error) {
+    console.error('Failed to fetch communities:', error)
+    return NextResponse.json(
+      { error: '커뮤니티 목록을 불러오는데 실패했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST: 커뮤니티 생성
+const createCommunitySchema = z.object({
+  name: z.string().min(2, '커뮤니티 이름은 2자 이상이어야 합니다.').max(50),
+  slug: z
+    .string()
+    .min(2, 'URL 슬러그는 2자 이상이어야 합니다.')
+    .max(50)
+    .regex(
+      /^[a-z0-9-]+$/,
+      'URL 슬러그는 소문자, 숫자, 하이픈만 사용할 수 있습니다.'
+    ),
+  description: z.string().max(500).optional(),
+  rules: z.string().max(5000).optional(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PUBLIC'),
+  allowFileUpload: z.boolean().default(true),
+  allowChat: z.boolean().default(true),
+})
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth()
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
+
+    const body = await req.json()
+    const validation = createCommunitySchema.safeParse(body)
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const {
+      name,
+      slug,
+      description,
+      rules,
+      visibility,
+      allowFileUpload,
+      allowChat,
+    } = validation.data
+
+    // 중복 체크
+    const existingCommunity = await prisma.community.findFirst({
+      where: {
+        OR: [{ name }, { slug }],
+      },
+    })
+
+    if (existingCommunity) {
+      return NextResponse.json(
+        { error: '이미 존재하는 커뮤니티 이름 또는 URL입니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 커뮤니티 생성
+    const community = await prisma.community.create({
+      data: {
+        name,
+        slug,
+        description,
+        rules,
+        visibility,
+        allowFileUpload,
+        allowChat,
+        ownerId: session.user.id,
+        // 생성자를 자동으로 OWNER 멤버로 추가
+        members: {
+          create: {
+            userId: session.user.id,
+            role: 'OWNER',
+            status: 'ACTIVE',
+          },
+        },
+        // 기본 카테고리 생성
+        categories: {
+          create: [
+            {
+              name: '일반',
+              slug: 'general',
+              order: 0,
+              isActive: true,
+            },
+            {
+              name: '공지사항',
+              slug: 'announcements',
+              order: 1,
+              isActive: true,
+            },
+          ],
+        },
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        _count: {
+          select: {
+            members: true,
+            posts: true,
+          },
+        },
+      },
+    })
+
+    // memberCount 업데이트
+    await prisma.community.update({
+      where: { id: community.id },
+      data: { memberCount: 1 },
+    })
+
+    return NextResponse.json({ community }, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create community:', error)
+    return NextResponse.json(
+      { error: '커뮤니티 생성에 실패했습니다.' },
+      { status: 500 }
+    )
+  }
+}
