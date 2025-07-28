@@ -1,31 +1,63 @@
 import { Sidebar } from './Sidebar'
-import { getApiUrl } from '@/lib/api'
+import { prisma } from '@/lib/prisma'
 
 async function getSidebarData() {
   try {
-    const baseUrl = getApiUrl()
-
-    // 병렬로 모든 데이터 조회
-    const [tagsRes, usersRes, statsRes] = await Promise.all([
-      fetch(`${baseUrl}/api/main/tags?limit=5`, { cache: 'no-store' }),
-      fetch(`${baseUrl}/api/main/users/active?limit=5`, { cache: 'no-store' }),
-      fetch(`${baseUrl}/api/main/stats`, { cache: 'no-store' }),
+    // 서버 컴포넌트에서는 직접 데이터베이스 조회
+    const [tags, activeUsers, stats] = await Promise.all([
+      // 인기 태그 조회
+      prisma.mainTag.findMany({
+        take: 5,
+        orderBy: {
+          postCount: 'desc',
+        },
+        include: {
+          _count: {
+            select: { posts: true },
+          },
+        },
+      }),
+      // 활발한 사용자 조회
+      prisma.user.findMany({
+        take: 5,
+        orderBy: {
+          mainPosts: {
+            _count: 'desc',
+          },
+        },
+        include: {
+          _count: {
+            select: { mainPosts: true },
+          },
+        },
+      }),
+      // 통계 조회
+      Promise.all([
+        prisma.mainPost.count(),
+        prisma.communityPost.count(),
+        prisma.user.count(),
+      ]),
     ])
 
-    const [tagsData, usersData, statsData] = await Promise.all([
-      tagsRes.json(),
-      usersRes.json(),
-      statsRes.json(),
-    ])
+    const [totalPosts, totalCommunityPosts, totalUsers] = stats
 
     return {
-      trendingTags: tagsData.tags || [],
-      activeUsers: usersData.users || [],
-      stats: statsData.stats || {
-        totalUsers: 0,
-        weeklyPosts: 0,
-        weeklyComments: 0,
-        activeDiscussions: 0,
+      trendingTags: tags.map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+        count: tag.postCount, // SidebarProps 타입에 맞게 수정
+      })),
+      activeUsers: activeUsers.map((user) => ({
+        id: user.id,
+        name: user.name || 'Unknown',
+        image: user.image || undefined, // null을 undefined로 변환
+        postCount: user._count.mainPosts,
+      })),
+      stats: {
+        totalUsers,
+        weeklyPosts: totalPosts, // 임시로 전체 포스트 수 사용
+        weeklyComments: 0, // 추후 구현
+        activeDiscussions: totalCommunityPosts,
       },
     }
   } catch (error) {

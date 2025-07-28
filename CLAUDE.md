@@ -1,30 +1,46 @@
-# Project-Specific Instructions for Claude Code
+# AI Code Generation Rules - DO NOT MAKE MISTAKES
 
-## 🔍 MANDATORY: Always Check Schema First
-- **BEFORE writing any Prisma queries**, ALWAYS read `prisma/schema.prisma`
-- **NEVER assume** model names or relationships
-- This project uses prefixed models: `MainPost`, `MainCategory`, `MainTag`, `MainComment` (not `Post`, `Category`, etc.)
+## CRITICAL: Prisma null vs TypeScript undefined
+```typescript
+// Prisma returns: string | null
+// TypeScript expects: string | undefined
+// ALWAYS CONVERT: value || undefined
+```
 
-## 📁 Project Structure
-- Main site models: `Main*` prefix (MainPost, MainCategory, etc.)
-- Community models: `Community*` prefix (CommunityPost, CommunityCategory, etc.)
-- User relationships: `mainPosts`, `mainComments` (not `posts`, `comments`)
+## Schema Facts (NEVER ASSUME)
+### Models use Main* prefix
+- MainPost, MainCategory, MainTag, MainComment (NOT Post, Category)
+- CommunityPost, CommunityCategory (NOT Post, Category)
 
-## ✅ Code Review Checklist
-1. Read schema.prisma before any database operations
-2. Verify model names match exactly
-3. Check relationship names in the schema
-4. Run `npm run type-check` before committing
+### User Relations
+- user.mainPosts (NOT user.posts)
+- user.mainComments (NOT user.comments)
+- user.image returns null, components expect undefined
 
-## 🛠️ Development Commands
-- `npm run type-check` - Run TypeScript checks
-- `npm run lint` - Run ESLint
-- `npm run db:studio` - Open Prisma Studio
-- `npm run db:push` - Push schema changes
-- `npm run db:seed` - Seed database
+### MainTag
+- Relation field: `posts` (through MainPostTag join table)
+- Count field: `postCount` (Int field, not computed)
+- When mapping to UI: tag.postCount → count
 
-## 🎯 Project Context
-- Next.js 15 with App Router
-- Prisma ORM with PostgreSQL
-- TypeScript strict mode
-- Separate models for main site vs community features
+### Common Type Conversions
+```typescript
+// User → ActiveUser
+{
+  name: user.name || 'Unknown',      // null → default
+  image: user.image || undefined,    // null → undefined
+  postCount: user._count.mainPosts   // rename field
+}
+
+// MainTag → TrendingTag  
+{
+  count: tag.postCount  // rename: postCount → count
+}
+```
+
+## PostStatus Rules
+- Main site: PENDING → PUBLISHED (approval required)
+- Community: instant PUBLISHED (no approval)
+
+## File Upload Rules
+- Community posts: ✅ Can upload files
+- Main posts: ❌ Cannot upload files

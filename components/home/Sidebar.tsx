@@ -2,8 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { TrendingUp, Hash, Users, Calendar } from 'lucide-react'
+import { TrendingUp, Hash, Users } from 'lucide-react'
 import Link from 'next/link'
 
 interface TrendingTag {
@@ -112,22 +111,6 @@ export function Sidebar({
             label="활성 토론"
             value={stats.activeDiscussions.toLocaleString()}
           />
-        </CardContent>
-      </Card>
-
-      {/* 이벤트/공지 */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center text-base font-medium">
-            <Calendar className="mr-2 h-4 w-4" />
-            이번 주 이벤트
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-sm">🎉 첫 게시물 작성 이벤트 진행 중!</p>
-          <Button className="w-full" size="sm" asChild>
-            <Link href="/events">자세히 보기</Link>
-          </Button>
         </CardContent>
       </Card>
     </aside>
