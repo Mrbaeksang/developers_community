@@ -18,10 +18,10 @@ my_project/
 │   │   │   └── page.tsx          ✓ 게시글 작성
 │   │   ├── tags/[name]/          
 │   │   │   └── page.tsx          ✓ 태그별 게시글
-│   │   ├── profile/[id]/         ✗ 사용자 프로필
+│   │   ├── profile/[id]/         ✓ 사용자 프로필
 │   │   └── search/               ✓ 검색 모달 (Header 통합)
 │   ├── (community)/               # 커뮤니티 레이아웃
-│   │   ├── page.tsx              ✗ 커뮤니티 목록
+│   │   ├── page.tsx              ✓ 커뮤니티 목록
 │   │   ├── [id]/                 ✗ 커뮤니티 상세
 │   │   └── [id]/chat/            ✗ 커뮤니티 채팅
 │   ├── (admin)/                   # 관리자 레이아웃
@@ -63,7 +63,7 @@ my_project/
 │   │   │   └── users/
 │   │   │       └── active/       ✓ 활발한 사용자 목록
 │   │   ├── communities/          # 커뮤니티 API
-│   │   │   ├── route.ts          ✗ 목록/생성
+│   │   │   ├── route.ts          ✓ 목록/생성
 │   │   │   └── [id]/             ✗ 상세/수정/삭제/가입/탈퇴/멤버/카테고리/공지/게시글
 │   │   ├── community-posts/      # 커뮤니티 게시글 API
 │   │   │   └── [id]/             ✗ 상세/수정/삭제/좋아요/북마크
@@ -183,10 +183,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 65개 중 31개 구현 (47.7%)
-- **페이지**: 14개 중 10개 구현 (71.4%)
+- **API**: 65개 중 33개 구현 (50.8%)
+- **페이지**: 14개 중 12개 구현 (85.7%)
 - **컴포넌트**: 89개 중 36개 구현 (40.4%)
-- **전체**: 168개 중 77개 구현 (45.8%)
+- **전체**: 168개 중 81개 구현 (48.2%)
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 87.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -227,11 +227,11 @@ my_project/
 | `/api/main/stats` | GET | 커뮤니티 통계 | ✅ |
 | `/api/main/users/active` | GET | 활발한 사용자 | ✅ |
 
-### 3️⃣ 커뮤니티 API (21개) - ❌ 0% 완료
+### 3️⃣ 커뮤니티 API (21개) - ✅ 9.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
-| `/api/communities` | GET | 커뮤니티 목록 조회 | ❌ |
-| `/api/communities` | POST | 커뮤니티 생성 | ❌ |
+| `/api/communities` | GET | 커뮤니티 목록 조회 | ✅ |
+| `/api/communities` | POST | 커뮤니티 생성 | ✅ |
 | `/api/communities/[id]` | GET | 커뮤니티 상세 조회 | ❌ |
 | `/api/communities/[id]` | PUT | 커뮤니티 수정 | ❌ |
 | `/api/communities/[id]` | DELETE | 커뮤니티 삭제 | ❌ |
@@ -302,8 +302,8 @@ my_project/
 ## 📄 페이지 구현 현황
 
 ### 📊 페이지 현황: 총 14개
-- ✅ 구현 완료: 10개 (71.4%)
-- ❌ 미구현: 4개 (28.6%)
+- ✅ 구현 완료: 12개 (85.7%)
+- ❌ 미구현: 2개 (14.3%)
 
 ### 페이지 목록
 | 경로 | 설명 | 레이아웃 | 상태 |
@@ -320,7 +320,7 @@ my_project/
 | `/admin/pending` | 게시글 승인 관리 | (admin) | ✅ |
 | `/admin/users` | 사용자 관리 | (admin) | ❌ |
 | `/admin/categories` | 카테고리 관리 | (admin) | ❌ |
-| `/communities` | 커뮤니티 목록 | (community) | ❌ |
+| `/communities` | 커뮤니티 목록 | (community) | ✅ |
 | `/communities/[id]` | 커뮤니티 상세 | (community) | ❌ |
 | `/search` | 검색 모달 (Header 통합) | - | ✅ |
 
