@@ -19,14 +19,28 @@ interface ActiveUser {
   postCount: number
 }
 
+interface SiteStats {
+  totalUsers: number
+  weeklyPosts: number
+  weeklyComments: number
+  activeDiscussions: number
+}
+
 interface SidebarProps {
   trendingTags?: TrendingTag[]
   activeUsers?: ActiveUser[]
+  stats?: SiteStats
 }
 
 export function Sidebar({
-  trendingTags = mockTrendingTags,
-  activeUsers = mockActiveUsers,
+  trendingTags = [],
+  activeUsers = [],
+  stats = {
+    totalUsers: 0,
+    weeklyPosts: 0,
+    weeklyComments: 0,
+    activeDiscussions: 0,
+  },
 }: SidebarProps) {
   return (
     <aside className="space-y-6">
@@ -82,10 +96,22 @@ export function Sidebar({
           <CardTitle className="text-base font-medium">커뮤니티 통계</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <StatItem label="전체 회원" value="1,234" />
-          <StatItem label="이번 주 게시물" value="89" />
-          <StatItem label="이번 주 댓글" value="456" />
-          <StatItem label="활성 토론" value="23" />
+          <StatItem
+            label="전체 회원"
+            value={stats.totalUsers.toLocaleString()}
+          />
+          <StatItem
+            label="이번 주 게시물"
+            value={stats.weeklyPosts.toLocaleString()}
+          />
+          <StatItem
+            label="이번 주 댓글"
+            value={stats.weeklyComments.toLocaleString()}
+          />
+          <StatItem
+            label="활성 토론"
+            value={stats.activeDiscussions.toLocaleString()}
+          />
         </CardContent>
       </Card>
 
@@ -116,19 +142,3 @@ function StatItem({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-
-// 임시 데이터
-const mockTrendingTags: TrendingTag[] = [
-  { id: '1', name: 'react', count: 156 },
-  { id: '2', name: 'nextjs', count: 142 },
-  { id: '3', name: 'typescript', count: 98 },
-  { id: '4', name: 'tailwindcss', count: 87 },
-  { id: '5', name: 'prisma', count: 65 },
-]
-
-const mockActiveUsers: ActiveUser[] = [
-  { id: '1', name: '김개발', postCount: 12 },
-  { id: '2', name: '이코딩', postCount: 9 },
-  { id: '3', name: '박프로', postCount: 7 },
-  { id: '4', name: '최해커', postCount: 6 },
-]

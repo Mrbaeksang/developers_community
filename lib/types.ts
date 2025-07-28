@@ -5,7 +5,6 @@ export interface Post {
   slug: string
   content: string
   excerpt?: string
-  published: boolean
   authorId: string
   author: {
     id: string
@@ -19,16 +18,15 @@ export interface Post {
     name: string
     slug: string
   }
-  type: 'ARTICLE' | 'QUESTION' | 'DISCUSSION' | 'TUTORIAL' | 'NEWS'
+  type?: 'ARTICLE' | 'QUESTION' | 'DISCUSSION' | 'TUTORIAL' | 'NEWS'
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   viewCount: number
   createdAt: Date | string
   updatedAt: Date | string
-  publishedAt?: Date | string | null
   tags: PostTag[]
   _count?: {
     comments: number
-    postLikes: number
+    likes: number
   }
 }
 

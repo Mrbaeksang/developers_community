@@ -41,7 +41,7 @@ export function PostList({
 
   // 탭별 필터링
   const trendingPosts = sortedPosts.filter(
-    (post) => post.viewCount > 100 || (post._count?.postLikes || 0) > 10
+    (post) => post.viewCount > 100 || (post._count?.likes || 0) > 10
   )
   const recentPosts = sortedPosts.filter((post) => {
     const dayAgo = new Date()

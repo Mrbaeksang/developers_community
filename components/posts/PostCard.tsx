@@ -24,8 +24,8 @@ const postTypeMap = {
 }
 
 export function PostCard({ post, className }: PostCardProps) {
-  const postType = postTypeMap[post.type]
-  const publishedDate = post.publishedAt || post.createdAt
+  const postType = post.type ? postTypeMap[post.type] : postTypeMap.ARTICLE
+  const publishedDate = post.createdAt
   const formattedDate = formatDistanceToNow(new Date(publishedDate), {
     addSuffix: true,
     locale: ko,
@@ -110,7 +110,7 @@ export function PostCard({ post, className }: PostCardProps) {
             </div>
             <div className="flex items-center gap-1">
               <Heart className="size-4" />
-              <span>{post._count?.postLikes || 0}</span>
+              <span>{post._count?.likes || 0}</span>
             </div>
             <div className="flex items-center gap-1">
               <MessageSquare className="size-4" />
