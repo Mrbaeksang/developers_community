@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { MessageSquare, Send } from 'lucide-react'
@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 interface Comment {
   id: string
@@ -16,7 +18,7 @@ interface Comment {
   author: {
     id: string
     name: string | null
-    username: string | null
+    email: string | null
     image: string | null
   }
   replies?: Comment[]
@@ -34,10 +36,44 @@ export default function CommentSection({
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  // 댓글 목록 가져오기
+  useEffect(() => {
+    const fetchComments = async () => {
+      setIsLoading(true)
+      try {
+        const res = await fetch(`/api/main/posts/${postId}/comments`)
+        if (res.ok) {
+          const data = await res.json()
+          setComments(data.comments)
+        }
+      } catch (error) {
+        console.error('Failed to fetch comments:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchComments()
+  }, [postId])
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // 로그인 체크
+    if (status === 'unauthenticated') {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '댓글을 작성하려면 로그인해주세요.',
+        variant: 'destructive',
+      })
+      router.push('/signin')
+      return
+    }
 
     if (!newComment.trim()) {
       toast({
@@ -50,14 +86,32 @@ export default function CommentSection({
     setIsSubmitting(true)
 
     try {
-      // TODO: Implement comment submission
-      toast({
-        title: '댓글이 작성되었습니다',
+      const res = await fetch(`/api/main/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newComment.trim(),
+        }),
       })
-      setNewComment('')
+
+      if (res.ok) {
+        const data = await res.json()
+        setComments([data.comment, ...comments])
+        toast({
+          title: '댓글이 작성되었습니다',
+        })
+        setNewComment('')
+      } else {
+        const error = await res.json()
+        throw new Error(error.error || '댓글 작성에 실패했습니다')
+      }
     } catch (error) {
       toast({
         title: '댓글 작성에 실패했습니다',
+        description:
+          error instanceof Error ? error.message : '다시 시도해주세요.',
         variant: 'destructive',
       })
     } finally {
@@ -77,14 +131,14 @@ export default function CommentSection({
         <Avatar className="h-8 w-8 flex-shrink-0">
           <AvatarImage src={comment.author.image || undefined} />
           <AvatarFallback>
-            {comment.author.name?.[0] || comment.author.username?.[0] || 'U'}
+            {comment.author.name?.[0] || comment.author.email?.[0] || 'U'}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="bg-muted rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">
-                {comment.author.name || comment.author.username || 'Unknown'}
+                {comment.author.name || 'Unknown'}
               </span>
               <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(comment.createdAt), {
