@@ -10,8 +10,10 @@ my_project/
 │   │   │   └── page.tsx          ✓ 로그인 페이지
 │   │   └── signup/               ✗ 회원가입 페이지
 │   ├── (main)/                    # 메인 사이트 레이아웃
-│   │   ├── posts/                ✗ 게시글 목록
-│   │   ├── posts/[id]/           ✗ 게시글 상세
+│   │   ├── posts/                
+│   │   │   └── page.tsx          ✓ 게시글 목록 (리다이렉트)
+│   │   ├── posts/[id]/           
+│   │   │   └── page.tsx          ✓ 게시글 상세
 │   │   ├── write/                ✗ 게시글 작성
 │   │   ├── profile/[id]/         ✗ 사용자 프로필
 │   │   └── search/               ✗ 검색 결과
@@ -29,7 +31,10 @@ my_project/
 │   │   │   ├── bookmarks/       ✗ 북마크 목록
 │   │   │   └── stats/           ✗ 활동 통계
 │   │   ├── main/                 # 메인 사이트 API
-│   │   │   ├── posts/            ✓ GET 구현 (목록 조회)
+│   │   │   ├── posts/            
+│   │   │   │   ├── route.ts      ✓ GET 구현 (목록 조회)
+│   │   │   │   └── [id]/         
+│   │   │   │       └── route.ts  ✓ GET 구현 (상세 조회)
 │   │   │   ├── comments/         ✗ 댓글 CRUD
 │   │   │   ├── categories/       ✓ 카테고리 목록
 │   │   │   └── tags/             ✓ 태그 목록
@@ -58,6 +63,7 @@ my_project/
 │   │   ├── badge.tsx        ✓ 뱃지/태그
 │   │   ├── avatar.tsx       ✓ 사용자 아바타
 │   │   ├── skeleton.tsx     ✓ 로딩 스켈레톤
+│   │   ├── separator.tsx    ✓ 구분선
 │   │   ├── dialog.tsx       ✓ 모달 다이얼로그
 │   │   ├── dropdown-menu.tsx ✓ 드롭다운 메뉴
 │   │   ├── sonner.tsx       ✓ 토스트 알림 (Sonner)
@@ -104,7 +110,8 @@ my_project/
 │   ├── posts/               # 게시글 관련
 │   │   ├── PostCard.tsx     ✓ 게시글 카드
 │   │   ├── index.ts         ✓ 내보내기 파일
-│   │   ├── PostDetail.tsx   ✗ 게시글 상세
+│   │   ├── PostDetail.tsx   ✓ 게시글 상세
+│   │   ├── CommentSection.tsx ✓ 댓글 섹션
 │   │   ├── PostEditor.tsx   ✗ 게시글 에디터
 │   │   ├── PostFilters.tsx  ✗ 필터/정렬
 │   │   └── QACard.tsx       ✗ Q&A 전용 카드
@@ -129,7 +136,10 @@ my_project/
 ├── lib/
 │   ├── prisma.ts            ✓ Prisma 클라이언트
 │   ├── utils.ts             ✓ 유틸리티
-│   └── types.ts             ✓ 타입 정의 파일
+│   ├── types.ts             ✓ 타입 정의 파일
+│   └── api.ts               ✓ API 유틸리티
+├── hooks/
+│   └── use-toast.tsx        ✓ 토스트 훅
 ├── prisma/
 │   ├── schema.prisma        ✓ 데이터베이스 스키마
 │   └── seed.ts              ✓ 시드 데이터
@@ -140,10 +150,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 60개 중 8개 구현 (13.3%)
-- **페이지**: 12개 중 3개 구현 (25%)
-- **컴포넌트**: 81개 중 21개 구현 (25.9%)
-- **전체**: 151개 중 30개 구현 (19.9%)
+- **API**: 60개 중 9개 구현 (15%)
+- **페이지**: 12개 중 5개 구현 (41.7%)
+- **컴포넌트**: 83개 중 26개 구현 (31.3%)
+- **전체**: 155개 중 40개 구현 (25.8%)
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 12.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -157,12 +167,12 @@ my_project/
 | `/api/users/bookmarks` | GET | 내 북마크 목록 | ❌ |
 | `/api/users/stats` | GET | 내 활동 통계 | ❌ |
 
-### 2️⃣ 메인 사이트 API (19개) - ✅ 26.3% 완료
+### 2️⃣ 메인 사이트 API (19개) - ✅ 31.6% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/main/posts` | GET | 게시글 목록 조회 | ✅ |
 | `/api/main/posts` | POST | 게시글 작성 | ❌ |
-| `/api/main/posts/[id]` | GET | 게시글 상세 조회 | ❌ |
+| `/api/main/posts/[id]` | GET | 게시글 상세 조회 | ✅ |
 | `/api/main/posts/[id]` | PUT | 게시글 수정 | ❌ |
 | `/api/main/posts/[id]` | DELETE | 게시글 삭제 | ❌ |
 | `/api/main/posts/[id]/approve` | POST | 게시글 승인 (매니저) | ❌ |
@@ -258,8 +268,8 @@ my_project/
 ## 📄 페이지 구현 현황
 
 ### 📊 페이지 현황: 총 12개
-- ✅ 구현 완료: 3개 (25%)
-- ❌ 미구현: 9개 (75%)
+- ✅ 구현 완료: 5개 (41.7%)
+- ❌ 미구현: 7개 (58.3%)
 
 ### 페이지 목록
 | 경로 | 설명 | 레이아웃 | 상태 |
@@ -269,8 +279,8 @@ my_project/
 | `/signup` | 회원가입 페이지 | (auth) | ❌ |
 | `/dashboard` | 사용자 대시보드 | (dashboard) | ✅ |
 | `/profile/[id]` | 사용자 프로필 | (main) | ❌ |
-| `/main/posts` | 게시글 목록 | (main) | ❌ |
-| `/main/posts/[id]` | 게시글 상세 | (main) | ❌ |
+| `/main/posts` | 게시글 목록 | (main) | ✅ |
+| `/main/posts/[id]` | 게시글 상세 | (main) | ✅ |
 | `/main/write` | 게시글 작성 | (main) | ❌ |
 | `/communities` | 커뮤니티 목록 | (community) | ❌ |
 | `/communities/[id]` | 커뮤니티 상세 | (community) | ❌ |
@@ -279,17 +289,18 @@ my_project/
 
 ## 🧩 컴포넌트 구현 현황
 
-### 📊 컴포넌트 현황: 총 81개
-- ✅ 구현 완료: 21개 (25.9%)
-- ❌ 미구현: 60개 (74.1%)
+### 📊 컴포넌트 현황: 총 83개
+- ✅ 구현 완료: 26개 (31.3%)
+- ❌ 미구현: 57개 (68.7%)
 
 ### 카테고리별 현황
 | 카테고리 | 전체 | 구현 | 구현율 |
 |----------|------|------|---------|
-| UI (shadcn) | 13개 | 13개 | 100% |
+| UI (shadcn) | 14개 | 14개 | 100% |
 | Layouts | 6개 | 2개 | 33.3% |
 | Home | 11개 | 3개 | 27.3% |
-| Posts | 6개 | 2개 | 33.3% |
+| Posts | 7개 | 4개 | 57.1% |
+| Hooks | 1개 | 1개 | 100% |
 | Shared | 18개 | 0개 | 0% |
 | Communities | 5개 | 0개 | 0% |
 | Chat | 4개 | 0개 | 0% |

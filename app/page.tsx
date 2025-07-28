@@ -119,6 +119,8 @@ async function getCategories() {
   }
 }
 
+export const revalidate = 0 // 캐싱 비활성화
+
 export default async function Home() {
   const [posts, categories] = await Promise.all([getPosts(), getCategories()])
 
