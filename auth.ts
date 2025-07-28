@@ -14,7 +14,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     signIn: '/signin',
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger }) {
       console.log(
         'JWT Callback - trigger:',
         trigger,

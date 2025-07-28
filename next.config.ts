@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     serverMinification: false,
   },
   // webpack 설정 추가
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // webpack 호환성 설정
     config.resolve.fallback = {
       ...config.resolve.fallback,

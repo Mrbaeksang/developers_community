@@ -77,6 +77,31 @@ const session = await auth()
 ## File Upload Rules
 - Community posts: ✅ Can upload files
 - Main posts: ❌ Cannot upload files
+
+## Next.js 15 Dynamic Routes
+```typescript
+// ❌ OLD (Next.js 14)
+{ params }: { params: { id: string } }
+const id = params.id
+
+// ✅ NEW (Next.js 15) 
+{ params }: { params: Promise<{ id: string }> }
+const resolvedParams = await params
+const id = resolvedParams.id
+```
+
+## Zod Error Handling
+```typescript
+// ❌ OLD (Zod v2)
+if (error instanceof z.ZodError) {
+  return { error: error.errors[0].message }
+}
+
+// ✅ NEW (Zod v3+)
+if (error instanceof z.ZodError) {
+  return { error: error.issues[0].message }
+}
+```
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

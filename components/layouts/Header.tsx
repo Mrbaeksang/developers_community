@@ -50,25 +50,28 @@ export function Header() {
     (session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER')
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b-4 border-black bg-white shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="container flex h-16 items-center">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 mr-6">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
+        <Link
+          href="/"
+          className="flex items-center space-x-2 mr-6 hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform"
+        >
+          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             D
           </div>
-          <span className="hidden font-bold sm:inline-block">
+          <span className="hidden font-black text-xl sm:inline-block">
             Dev Community
           </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-4 text-sm font-bold">
           {navigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              className="flex items-center gap-2 transition-colors hover:text-foreground/80 text-foreground/60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:bg-secondary border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
             >
               <item.icon className="h-4 w-4" />
               {item.name}
@@ -80,7 +83,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center gap-2 transition-colors hover:text-foreground/80 text-foreground/60"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 hover:bg-secondary border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
                 >
                   <item.icon className="h-4 w-4" />
                   {item.name}
@@ -94,12 +97,12 @@ export function Header() {
           <div className="w-full max-w-sm">
             <Button
               variant="outline"
-              className="w-full justify-start text-muted-foreground"
+              className="w-full justify-start font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px]"
               onClick={() => setIsSearchOpen(true)}
             >
               <Search className="mr-2 h-4 w-4" />
               <span>검색...</span>
-              <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border-2 border-black bg-secondary px-1.5 font-mono text-[10px] font-bold opacity-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <span className="text-xs">⌘</span>K
               </kbd>
             </Button>
@@ -122,26 +125,26 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
+                    className="relative h-10 w-10 rounded-full p-0 hover:scale-105 transition-transform"
                   >
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-10 w-10 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                       <AvatarImage
                         src={session.user?.image || ''}
                         alt={session.user?.name || ''}
                       />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-primary/20 font-bold">
                         {session.user?.name?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
+                  <DropdownMenuLabel className="font-bold">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
+                      <p className="text-sm font-bold leading-none">
                         {session.user?.name}
                       </p>
-                      <p className="text-xs leading-none text-muted-foreground">
+                      <p className="text-xs font-medium leading-none text-muted-foreground">
                         {session.user?.email}
                       </p>
                     </div>
@@ -195,13 +198,13 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t">
-          <nav className="container py-4 space-y-1">
+        <div className="md:hidden border-t-4 border-black bg-white">
+          <nav className="container py-4 space-y-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-accent text-foreground/60 hover:text-foreground"
+                className="flex items-center gap-2 px-4 py-3 rounded-lg font-bold transition-all duration-200 hover:bg-secondary border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <item.icon className="h-4 w-4" />
@@ -214,7 +217,7 @@ export function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-accent text-foreground/60 hover:text-foreground"
+                    className="flex items-center gap-2 px-4 py-3 rounded-lg font-bold transition-all duration-200 hover:bg-secondary border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <item.icon className="h-4 w-4" />
@@ -225,7 +228,7 @@ export function Header() {
             {session && (
               <Link
                 href="/main/write"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-accent text-foreground/60 hover:text-foreground"
+                className="flex items-center gap-2 px-4 py-3 rounded-lg font-bold transition-all duration-200 hover:bg-secondary border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 새 글 작성

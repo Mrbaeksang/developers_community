@@ -119,3 +119,105 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Neobrutalism Design System */
+.shadow-brutal-sm {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+.shadow-brutal {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+.shadow-brutal-lg {
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+}
+.shadow-brutal-xl {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Hover States */
+.hover\:shadow-brutal-sm:hover {
+  box-shadow: 1px 1px 0px 0px rgba(0, 0, 0, 1);
+}
+.hover\:shadow-brutal:hover {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+.hover\:shadow-brutal-lg:hover {
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Active States */
+.active\:shadow-none:active {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Neobrutalism Component Styles */
+.neo-brutal {
+  border-width: 2px;
+  border-color: black;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  transition-property: all;
+  transition-duration: 200ms;
+}
+
+.neo-brutal:hover {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-brutal:active {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-brutal-lg {
+  border-width: 2px;
+  border-color: black;
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  transition-property: all;
+  transition-duration: 200ms;
+}
+
+.neo-brutal-lg:hover {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Card Styles */
+.neo-card {
+  background-color: white;
+  border-width: 2px;
+  border-color: black;
+  border-radius: 0.5rem;
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-card:hover {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Button Styles */
+.neo-btn {
+  font-weight: bold;
+  border-width: 2px;
+  border-color: black;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  transition-property: all;
+  transition-duration: 200ms;
+}
+
+.neo-btn:hover {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.neo-btn:active {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Input Styles */
+.neo-input {
+  border-width: 2px;
+  border-color: black;
+  transition-property: all;
+  transition-duration: 200ms;
+}
+
+.neo-input:focus {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
