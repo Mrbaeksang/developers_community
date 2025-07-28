@@ -1,4 +1,3 @@
-import { MainLayout } from '@/components/layouts/MainLayout'
 import { HeroSection } from '@/components/home/HeroSection'
 import { PostList } from '@/components/home/PostList'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
@@ -125,7 +124,7 @@ export default async function Home() {
   const [posts, categories] = await Promise.all([getPosts(), getCategories()])
 
   return (
-    <MainLayout>
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <HeroSection />
 
@@ -141,7 +140,7 @@ export default async function Home() {
           <SidebarContainer />
         </div>
       </div>
-    </MainLayout>
+    </div>
   )
 }
 // test

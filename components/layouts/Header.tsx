@@ -33,6 +33,22 @@ export function Header() {
     { name: '게시글', href: '/main/posts', icon: MessageSquare },
   ]
 
+  // 관리자 전용 네비게이션 메뉴
+  const adminNavigation = [{ name: '관리자', href: '/admin', icon: Settings }]
+
+  // 디버깅: 세션 정보 확인
+  console.log('Header - Session:', session)
+  console.log('Header - User Role:', session?.user?.role)
+  console.log(
+    'Header - Is Admin/Manager:',
+    session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER'
+  )
+
+  // 관리자 여부 확인
+  const isAdmin =
+    session?.user &&
+    (session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER')
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -58,6 +74,19 @@ export function Header() {
               {item.name}
             </Link>
           ))}
+          {/* 관리자 전용 네비게이션 */}
+          {isAdmin
+            ? adminNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center gap-2 transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))
+            : null}
         </nav>
 
         {/* Search */}
@@ -179,6 +208,20 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
+            {/* 관리자 전용 모바일 네비게이션 */}
+            {isAdmin
+              ? adminNavigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-accent text-foreground/60 hover:text-foreground"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+                ))
+              : null}
             {session && (
               <Link
                 href="/main/write"
