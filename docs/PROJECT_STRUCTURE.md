@@ -202,12 +202,12 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 65개 중 59개 구현 (90.8%)
+- **API**: 65개 중 62개 구현 (95.4%)
 - **페이지**: 14개 중 13개 구현 (92.9%)
 - **컴포넌트**: 93개 중 40개 구현 (43.0%)
-- **전체**: 172개 중 112개 구현 (65.1%)
+- **전체**: 172개 중 115개 구현 (66.9%)
 
-### 1️⃣ 인증 & 사용자 API (8개) - ✅ 87.5% 완료
+### 1️⃣ 인증 & 사용자 API (8개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/auth/[...nextauth]` | * | NextAuth 핸들러 | ✅ |
@@ -215,18 +215,18 @@ my_project/
 | `/api/users/me` | PUT | 내 정보 수정 | ✅ |
 | `/api/users/[id]` | GET | 사용자 프로필 조회 | ✅ |
 | `/api/users/[id]/posts` | GET | 사용자 게시글 목록 | ✅ |
-| `/api/users/[id]/communities` | GET | 사용자 가입 커뮤니티 | ❌ |
+| `/api/users/[id]/communities` | GET | 사용자 가입 커뮤니티 | ✅ |
 | `/api/users/bookmarks` | GET | 내 북마크 목록 | ✅ |
 | `/api/users/stats` | GET | 내 활동 통계 | ✅ |
 
-### 2️⃣ 메인 사이트 API (22개) - ✅ 81.8% 완료
+### 2️⃣ 메인 사이트 API (22개) - ✅ 90.9% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/main/posts` | GET | 게시글 목록 조회 | ✅ |
 | `/api/main/posts` | POST | 게시글 작성 | ✅ |
 | `/api/main/posts/[id]` | GET | 게시글 상세 조회 | ✅ |
-| `/api/main/posts/[id]` | PUT | 게시글 수정 | ❌ |
-| `/api/main/posts/[id]` | DELETE | 게시글 삭제 | ❌ |
+| `/api/main/posts/[id]` | PUT | 게시글 수정 | ✅ |
+| `/api/main/posts/[id]` | DELETE | 게시글 삭제 | ✅ |
 | `/api/main/posts/[id]/approve` | POST | 게시글 승인/거부 (알림 포함) | ✅ |
 | `/api/main/posts/[id]/reject` | POST | 게시글 거부 (매니저) | ❌ |
 | `/api/main/posts/[id]/like` | POST/GET | 좋아요 토글/상태 | ✅ |
@@ -355,8 +355,8 @@ my_project/
 ## 📄 페이지 구현 현황
 
 ### 📊 페이지 현황: 총 14개
-- ✅ 구현 완료: 12개 (85.7%)
-- ❌ 미구현: 2개 (14.3%)
+- ✅ 구현 완료: 13개 (92.9%)
+- ❌ 미구현: 1개 (7.1%)
 
 ### 페이지 목록
 | 경로 | 설명 | 레이아웃 | 상태 |
@@ -374,7 +374,7 @@ my_project/
 | `/admin/users` | 사용자 관리 | 루트 | ❌ |
 | `/admin/categories` | 카테고리 관리 | 루트 | ❌ |
 | `/communities` | 커뮤니티 목록 | 루트 | ✅ |
-| `/communities/[id]` | 커뮤니티 상세 | 루트 | ❌ |
+| `/communities/[id]` | 커뮤니티 상세 | 루트 | ✅ |
 | `/search` | 검색 모달 (Header 통합) | - | ✅ |
 
 ## 🧩 컴포넌트 구현 현황
