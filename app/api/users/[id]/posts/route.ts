@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = params.id
+    const resolvedParams = await params
+    const userId = resolvedParams.id
     const { searchParams } = new URL(request.url)
 
     // 쿼리 파라미터

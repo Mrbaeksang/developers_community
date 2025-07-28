@@ -14,7 +14,7 @@ const updateCommentSchema = z.object({
 // 댓글 수정 - PUT /api/main/comments/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -25,7 +25,8 @@ export async function PUT(
       )
     }
 
-    const commentId = params.id
+    const resolvedParams = await params
+    const commentId = resolvedParams.id
 
     // 기존 댓글 조회
     const existingComment = await prisma.mainComment.findUnique({
@@ -95,7 +96,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }
@@ -110,7 +111,7 @@ export async function PUT(
 // 댓글 삭제 - DELETE /api/main/comments/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -121,7 +122,8 @@ export async function DELETE(
       )
     }
 
-    const commentId = params.id
+    const resolvedParams = await params
+    const commentId = resolvedParams.id
 
     // 기존 댓글 조회
     const existingComment = await prisma.mainComment.findUnique({

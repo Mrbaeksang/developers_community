@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 // 사용자 프로필 조회 - GET /api/users/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = params.id
+    const resolvedParams = await params
+    const userId = resolvedParams.id
 
     // 사용자 정보 조회
     const user = await prisma.user.findUnique({
