@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  createPostApprovedNotification,
+  createPostRejectedNotification,
+} from '@/lib/notifications'
 
 export async function POST(
   request: Request,
@@ -51,7 +55,23 @@ export async function POST(
       },
     })
 
-    // TODO: 알림 발송 (추후 구현)
+    // 알림 발송
+    if (action === 'approve') {
+      await createPostApprovedNotification(
+        post.id,
+        post.author.id,
+        post.title,
+        session.user.id
+      )
+    } else {
+      await createPostRejectedNotification(
+        post.id,
+        post.author.id,
+        post.title,
+        reason || '기준에 맞지 않음',
+        session.user.id
+      )
+    }
 
     return NextResponse.json({
       message:

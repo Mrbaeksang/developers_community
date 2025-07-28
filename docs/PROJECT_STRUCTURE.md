@@ -76,9 +76,14 @@ my_project/
 │   │   │   │   └── route.ts      ✓ POST 구현 (파일 업로드)
 │   │   │   └── [id]/             ✗ 파일 조회/삭제
 │   │   ├── notifications/        # 알림 API
-│   │   │   └── route.ts          ✗ 목록/읽음처리
+│   │   │   ├── route.ts          ✓ GET 구현 (목록 조회/SSE)
+│   │   │   ├── [id]/
+│   │   │   │   └── read/
+│   │   │   │       └── route.ts  ✓ PUT 구현 (개별 읽음 처리)
+│   │   │   └── read-all/
+│   │   │       └── route.ts      ✓ PUT 구현 (전체 읽음 처리)
 │   │   ├── search/               # 검색 API
-│   │   │   └── route.ts          ✗ 통합 검색
+│   │   │   └── route.ts          ✓ GET 구현 (통합 검색)
 │   │   └── stats/                # 통계 API
 │   │       ├── site/             ✗ 사이트 전체 통계
 │   │       └── trending/         ✗ 인기 콘텐츠
@@ -177,7 +182,8 @@ my_project/
 │   ├── prisma.ts            ✓ Prisma 클라이언트
 │   ├── utils.ts             ✓ 유틸리티
 │   ├── types.ts             ✓ 타입 정의 파일
-│   └── api.ts               ✓ API 유틸리티
+│   ├── api.ts               ✓ API 유틸리티
+│   └── notifications.ts     ✓ 알림 헬퍼 함수
 ├── hooks/
 │   ├── use-toast.tsx        ✓ 토스트 훅
 │   └── use-debounce.ts      ✓ 디바운스 훅
@@ -191,10 +197,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 65개 중 38개 구현 (58.5%)
+- **API**: 65개 중 41개 구현 (63.1%)
 - **페이지**: 14개 중 13개 구현 (92.9%)
 - **컴포넌트**: 93개 중 40개 구현 (43.0%)
-- **전체**: 172개 중 91개 구현 (52.9%)
+- **전체**: 172개 중 94개 구현 (54.7%)
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 87.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -216,7 +222,7 @@ my_project/
 | `/api/main/posts/[id]` | GET | 게시글 상세 조회 | ✅ |
 | `/api/main/posts/[id]` | PUT | 게시글 수정 | ❌ |
 | `/api/main/posts/[id]` | DELETE | 게시글 삭제 | ❌ |
-| `/api/main/posts/[id]/approve` | POST | 게시글 승인 (매니저) | ✅ |
+| `/api/main/posts/[id]/approve` | POST | 게시글 승인/거부 (알림 포함) | ✅ |
 | `/api/main/posts/[id]/reject` | POST | 게시글 거부 (매니저) | ❌ |
 | `/api/main/posts/[id]/like` | POST/GET | 좋아요 토글/상태 | ✅ |
 | `/api/main/posts/[id]/bookmark` | POST/GET | 북마크 토글/상태 | ✅ |
@@ -279,12 +285,12 @@ my_project/
 | `/api/files/[id]` | GET | 파일 정보 조회 | ❌ |
 | `/api/files/[id]` | DELETE | 파일 삭제 | ❌ |
 
-### 6️⃣ 알림 API (3개) - ❌ 0% 완료
+### 6️⃣ 알림 API (3개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
-| `/api/notifications` | GET | 알림 목록 조회 | ❌ |
-| `/api/notifications/[id]/read` | PUT | 알림 읽음 처리 | ❌ |
-| `/api/notifications/read-all` | PUT | 모든 알림 읽음 처리 | ❌ |
+| `/api/notifications` | GET | 알림 목록 조회 | ✅ |
+| `/api/notifications/[id]/read` | PUT | 알림 읽음 처리 | ✅ |
+| `/api/notifications/read-all` | PUT | 모든 알림 읽음 처리 | ✅ |
 
 ### 7️⃣ 검색 API (3개) - ✅ 33.3% 완료
 | 경로 | 메서드 | 설명 | 상태 |

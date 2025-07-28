@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { createPostLikeNotification } from '@/lib/notifications'
 
 // POST /api/main/posts/[id]/like - 좋아요 토글
 export async function POST(
@@ -61,10 +62,25 @@ export async function POST(
       })
 
       // 좋아요 수 증가
-      await prisma.mainPost.update({
+      const updatedPost = await prisma.mainPost.update({
         where: { id },
         data: { likeCount: { increment: 1 } },
+        include: {
+          author: {
+            select: { id: true },
+          },
+        },
       })
+
+      // 알림 생성 (작성자가 자신이 아닌 경우)
+      if (updatedPost.author.id !== userId) {
+        await createPostLikeNotification(
+          id,
+          updatedPost.author.id,
+          userId,
+          updatedPost.title
+        )
+      }
 
       return NextResponse.json({ liked: true })
     }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  createPostCommentNotification,
+  createCommentReplyNotification,
+} from '@/lib/notifications'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -98,9 +102,15 @@ export async function POST(
     }
 
     // 대댓글인 경우 부모 댓글 확인
+    let parentComment = null
     if (parentId) {
-      const parentComment = await prisma.mainComment.findUnique({
+      parentComment = await prisma.mainComment.findUnique({
         where: { id: parentId },
+        include: {
+          author: {
+            select: { id: true },
+          },
+        },
       })
 
       if (!parentComment || parentComment.postId !== id) {
@@ -132,10 +142,40 @@ export async function POST(
     })
 
     // 댓글 수 증가
-    await prisma.mainPost.update({
+    const updatedPost = await prisma.mainPost.update({
       where: { id },
       data: { commentCount: { increment: 1 } },
+      include: {
+        author: {
+          select: { id: true },
+        },
+      },
     })
+
+    // 알림 생성
+    if (parentComment) {
+      // 대댓글인 경우 - 부모 댓글 작성자에게 알림
+      if (parentComment.author.id !== session.user.id) {
+        await createCommentReplyNotification(
+          id,
+          parentComment.author.id,
+          session.user.id,
+          content.trim(),
+          comment.id
+        )
+      }
+    } else {
+      // 일반 댓글인 경우 - 게시글 작성자에게 알림
+      if (updatedPost.author.id !== session.user.id) {
+        await createPostCommentNotification(
+          id,
+          updatedPost.author.id,
+          session.user.id,
+          updatedPost.title,
+          content.trim()
+        )
+      }
+    }
 
     return NextResponse.json({ comment }, { status: 201 })
   } catch (error) {
