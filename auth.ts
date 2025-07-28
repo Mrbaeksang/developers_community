@@ -14,10 +14,25 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     signIn: '/signin',
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.role = user.role
+        // 첫 로그인 시 DB에서 사용자 정보 가져오기
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { globalRole: true },
+        })
+        token.role = dbUser?.globalRole || 'USER'
       }
+
+      // 세션 업데이트 시 DB에서 최신 역할 정보 가져오기
+      if (trigger === 'update' && token.sub) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { globalRole: true },
+        })
+        token.role = dbUser?.globalRole || 'USER'
+      }
+
       return token
     },
     session({ session, token }) {

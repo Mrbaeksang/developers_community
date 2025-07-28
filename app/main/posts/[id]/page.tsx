@@ -50,9 +50,8 @@ export async function generateMetadata({
       description: post.excerpt || post.metaDescription,
       type: 'article',
       publishedTime: post.createdAt,
-      authors: [post.author.name || post.author.username],
-      tags:
-        post.tags?.map((tag: { tag: { name: string } }) => tag.tag.name) || [],
+      authors: [post.author?.name || 'Unknown'],
+      tags: post.tags?.map((tag: { name: string }) => tag.name) || [],
     },
   }
 }

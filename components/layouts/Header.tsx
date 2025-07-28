@@ -14,14 +14,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Home,
-  Users,
   MessageSquare,
   Search,
   Menu,
   LogOut,
-  User,
   Settings,
-  BookMarked,
 } from 'lucide-react'
 import { useState } from 'react'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -34,7 +31,6 @@ export function Header() {
   const navigation = [
     { name: '홈', href: '/', icon: Home },
     { name: '게시글', href: '/main/posts', icon: MessageSquare },
-    { name: '커뮤니티', href: '/communities', icon: Users },
   ]
 
   return (
@@ -123,24 +119,9 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/profile/${session.user?.id}`}
-                      className="cursor-pointer"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      프로필
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       대시보드
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/bookmarks" className="cursor-pointer">
-                      <BookMarked className="mr-2 h-4 w-4" />
-                      북마크
                     </Link>
                   </DropdownMenuItem>
                   {/* 관리자 메뉴 */}

@@ -4,9 +4,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
 
     if (!session?.user) {
@@ -36,7 +37,7 @@ export async function POST(
 
     // 게시글 상태 업데이트
     const post = await prisma.mainPost.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: action === 'approve' ? 'PUBLISHED' : 'REJECTED',
         approvedAt: action === 'approve' ? new Date() : null,

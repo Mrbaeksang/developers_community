@@ -146,13 +146,38 @@ export default function PostDetail({ post }: PostDetailProps) {
 
   const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href)
-      toast({
-        title: '링크가 복사되었습니다',
-      })
+      // 먼저 navigator.clipboard 시도
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(window.location.href)
+        toast({
+          title: '링크가 복사되었습니다',
+        })
+      } else {
+        // fallback: input 요소를 이용한 복사
+        const textArea = document.createElement('textarea')
+        textArea.value = window.location.href
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+
+        if (successful) {
+          toast({
+            title: '링크가 복사되었습니다',
+          })
+        } else {
+          throw new Error('복사 실패')
+        }
+      }
     } catch (error) {
       toast({
         title: '링크 복사에 실패했습니다',
+        description: 'URL을 수동으로 복사해주세요',
         variant: 'destructive',
       })
     }
@@ -163,25 +188,20 @@ export default function PostDetail({ post }: PostDetailProps) {
       {/* Header */}
       <header className="mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Link href={`/main/categories/${post.category.slug}`}>
-            <Badge
-              variant="secondary"
-              style={{ backgroundColor: post.category.color }}
-              className="text-white hover:opacity-80"
-            >
-              {post.category.name}
-            </Badge>
-          </Link>
+          <Badge
+            variant="secondary"
+            style={{ backgroundColor: post.category.color }}
+            className="text-white"
+          >
+            {post.category.name}
+          </Badge>
         </div>
 
         <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
 
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <Link
-              href={`/profile/${post.author.id}`}
-              className="flex items-center gap-2 hover:opacity-80"
-            >
+            <div className="flex items-center gap-2">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={post.author.image || undefined} />
                 <AvatarFallback>
@@ -199,7 +219,7 @@ export default function PostDetail({ post }: PostDetailProps) {
                   })}
                 </p>
               </div>
-            </Link>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -222,18 +242,13 @@ export default function PostDetail({ post }: PostDetailProps) {
         {post.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
             {post.tags.map((tag) => (
-              <Link
+              <Badge
                 key={tag.id}
-                href={`/main/tags/${encodeURIComponent(tag.name)}`}
+                variant="outline"
+                style={{ borderColor: tag.color, color: tag.color }}
               >
-                <Badge
-                  variant="outline"
-                  style={{ borderColor: tag.color, color: tag.color }}
-                  className="hover:opacity-80"
-                >
-                  #{tag.name}
-                </Badge>
-              </Link>
+                #{tag.name}
+              </Badge>
             ))}
           </div>
         )}

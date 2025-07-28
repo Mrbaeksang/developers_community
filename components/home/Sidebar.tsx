@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TrendingUp, Hash, Users } from 'lucide-react'
 import Link from 'next/link'
 
@@ -76,8 +77,16 @@ export function Sidebar({
         </CardHeader>
         <CardContent className="space-y-3">
           {activeUsers.map((user) => (
-            <div key={user.id} className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-full bg-primary/10" />
+            <div
+              key={user.id}
+              className="flex items-center space-x-3 rounded-lg p-2"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.image || ''} alt={user.name} />
+                <AvatarFallback className="text-xs">
+                  {user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1">
                 <p className="text-sm font-medium leading-none">{user.name}</p>
                 <p className="text-xs text-muted-foreground">

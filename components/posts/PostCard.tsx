@@ -64,13 +64,12 @@ export function PostCard({ post, className }: PostCardProps) {
         {post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {post.tags.slice(0, 3).map((postTag) => (
-              <Link
+              <span
                 key={postTag.tag.id}
-                href={`/main/tags/${encodeURIComponent(postTag.tag.name)}`}
-                className="text-xs px-2 py-0.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
+                className="text-xs px-2 py-0.5 rounded-md bg-secondary"
               >
                 #{postTag.tag.name}
-              </Link>
+              </span>
             ))}
             {post.tags.length > 3 && (
               <span className="text-xs text-muted-foreground px-1">
@@ -83,10 +82,7 @@ export function PostCard({ post, className }: PostCardProps) {
 
       <CardFooter className="pt-3 border-t">
         <div className="flex items-center justify-between w-full">
-          <Link
-            href={`/profile/${post.authorId}`}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
+          <div className="flex items-center gap-2">
             <Avatar className="size-6">
               <AvatarImage src={post.author.image || undefined} />
               <AvatarFallback>
@@ -101,7 +97,7 @@ export function PostCard({ post, className }: PostCardProps) {
                 {formattedDate}
               </span>
             </div>
-          </Link>
+          </div>
 
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
