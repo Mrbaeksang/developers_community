@@ -13,20 +13,36 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Post } from '@/lib/types'
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  postCount: number
+}
+
 interface PostListProps {
   initialPosts?: Post[]
+  categories?: Category[]
   isLoading?: boolean
 }
 
 export function PostList({
   initialPosts = [],
+  categories = [],
   isLoading = false,
 }: PostListProps) {
   const [sortBy, setSortBy] = useState('latest')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [posts] = useState<Post[]>(initialPosts)
 
+  // 카테고리로 필터링된 게시물
+  const filteredPosts =
+    selectedCategory === 'all'
+      ? posts
+      : posts.filter((post) => post.category?.id === selectedCategory)
+
   // 정렬된 게시물 목록
-  const sortedPosts = [...posts].sort((a, b) => {
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
     switch (sortBy) {
       case 'latest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -55,18 +71,33 @@ export function PostList({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold">게시물</h2>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="latest">최신순</SelectItem>
-            <SelectItem value="popular">인기순</SelectItem>
-            <SelectItem value="discussed">토론 많은 순</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-4">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">모든 카테고리</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name} ({category.postCount})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="latest">최신순</SelectItem>
+              <SelectItem value="popular">인기순</SelectItem>
+              <SelectItem value="discussed">토론 많은 순</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
