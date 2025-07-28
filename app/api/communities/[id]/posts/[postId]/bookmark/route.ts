@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
+import { checkAuth, checkMembership } from '@/lib/auth-helpers'
 
 // POST: 커뮤니티 게시글 북마크
 export async function POST(
@@ -12,12 +12,13 @@ export async function POST(
     const { id, postId } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return unauthorized()
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
-    // Ban 상태 체크
-    await checkBanStatus(session.user.id)
+    // 커뮤니티 멤버십 확인
+    const membershipError = await checkMembership(session!.user.id, id)
+    if (membershipError) return membershipError
 
     // 게시글 존재 확인
     const post = await prisma.communityPost.findUnique({
@@ -35,7 +36,7 @@ export async function POST(
     const existingBookmark = await prisma.communityBookmark.findUnique({
       where: {
         userId_postId: {
-          userId: session.user.id,
+          userId: session!.user.id,
           postId: postId,
         },
       },
@@ -51,7 +52,7 @@ export async function POST(
     // 북마크 생성
     await prisma.communityBookmark.create({
       data: {
-        userId: session.user.id,
+        userId: session!.user.id,
         postId: postId,
       },
     })
@@ -72,20 +73,21 @@ export async function DELETE(
   context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const { postId } = await context.params
+    const { id, postId } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return unauthorized()
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
-    // Ban 상태 체크
-    await checkBanStatus(session.user.id)
+    // 커뮤니티 멤버십 확인
+    const membershipError = await checkMembership(session!.user.id, id)
+    if (membershipError) return membershipError
 
     // 북마크 삭제
     const result = await prisma.communityBookmark.deleteMany({
       where: {
-        userId: session.user.id,
+        userId: session!.user.id,
         postId: postId,
       },
     })

@@ -2,6 +2,10 @@
 
 ## 📡 디렉토리 구조
 
+### 🚀 최근 업데이트
+- **Stage 1 완료**: 기본 권한 체크 시스템 구현 (auth-helpers.ts)
+- **Stage 2 완료**: 커뮤니티 API 권한 시스템 적용 (18/26 endpoints 완료)
+
 ```
 my_project/
 ├── app/
@@ -198,10 +202,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 65개 중 41개 구현 (63.1%)
+- **API**: 65개 중 59개 구현 (90.8%)
 - **페이지**: 14개 중 13개 구현 (92.9%)
 - **컴포넌트**: 93개 중 40개 구현 (43.0%)
-- **전체**: 172개 중 94개 구현 (54.7%)
+- **전체**: 172개 중 112개 구현 (65.1%)
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 87.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -242,30 +246,35 @@ my_project/
 | `/api/main/stats` | GET | 커뮤니티 통계 | ✅ |
 | `/api/main/users/active` | GET | 활발한 사용자 | ✅ |
 
-### 3️⃣ 커뮤니티 API (21개) - ✅ 9.5% 완료
+### 3️⃣ 커뮤니티 API (26개) - ✅ 69.2% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/communities` | GET | 커뮤니티 목록 조회 | ✅ |
 | `/api/communities` | POST | 커뮤니티 생성 | ✅ |
-| `/api/communities/[id]` | GET | 커뮤니티 상세 조회 | ❌ |
-| `/api/communities/[id]` | PUT | 커뮤니티 수정 | ❌ |
-| `/api/communities/[id]` | DELETE | 커뮤니티 삭제 | ❌ |
-| `/api/communities/[id]/join` | POST | 커뮤니티 가입 | ❌ |
-| `/api/communities/[id]/leave` | DELETE | 커뮤니티 탈퇴 | ❌ |
-| `/api/communities/[id]/members` | GET | 멤버 목록 | ❌ |
-| `/api/communities/[id]/members/[userId]` | PUT | 멤버 역할 변경 | ❌ |
-| `/api/communities/[id]/members/[userId]/ban` | POST | 멤버 밴 | ❌ |
+| `/api/communities/[id]` | GET | 커뮤니티 상세 조회 | ✅ |
+| `/api/communities/[id]` | PUT | 커뮤니티 수정 | ✅ |
+| `/api/communities/[id]` | DELETE | 커뮤니티 삭제 | ✅ |
+| `/api/communities/[id]/join` | POST/DELETE | 커뮤니티 가입/탈퇴 | ✅ |
+| `/api/communities/[id]/members` | GET | 멤버 목록 | ✅ |
+| `/api/communities/[id]/members/approve` | POST | 멤버 가입 승인 | ✅ |
+| `/api/communities/[id]/members/[userId]` | PUT | 멤버 역할 변경 | ✅ |
+| `/api/communities/[id]/members/[userId]` | DELETE | 멤버 추방 | ✅ |
+| `/api/communities/[id]/members/[userId]/ban` | POST/DELETE | 멤버 밴/언밴 | ✅ |
 | `/api/communities/[id]/categories` | GET | 카테고리 목록 | ❌ |
 | `/api/communities/[id]/categories` | POST | 카테고리 생성 | ❌ |
 | `/api/communities/[id]/announcements` | GET | 공지사항 목록 | ❌ |
 | `/api/communities/[id]/announcements` | POST | 공지사항 작성 | ❌ |
-| `/api/communities/[id]/posts` | GET | 게시글 목록 | ❌ |
-| `/api/communities/[id]/posts` | POST | 게시글 작성 | ❌ |
-| `/api/community-posts/[id]` | GET | 게시글 상세 | ❌ |
-| `/api/community-posts/[id]` | PUT | 게시글 수정 | ❌ |
-| `/api/community-posts/[id]` | DELETE | 게시글 삭제 | ❌ |
-| `/api/community-posts/[id]/like` | POST | 좋아요 토글 | ❌ |
-| `/api/community-posts/[id]/bookmark` | POST | 북마크 토글 | ❌ |
+| `/api/communities/[id]/posts` | GET | 게시글 목록 | ✅ |
+| `/api/communities/[id]/posts` | POST | 게시글 작성 | ✅ |
+| `/api/communities/[id]/posts/[postId]` | GET | 게시글 상세 | ✅ |
+| `/api/communities/[id]/posts/[postId]` | PUT | 게시글 수정 | ❌ |
+| `/api/communities/[id]/posts/[postId]` | DELETE | 게시글 삭제 | ✅ |
+| `/api/communities/[id]/posts/[postId]/like` | POST/DELETE | 좋아요 토글 | ✅ |
+| `/api/communities/[id]/posts/[postId]/bookmark` | POST/DELETE | 북마크 토글 | ✅ |
+| `/api/communities/[id]/posts/[postId]/comments` | GET | 댓글 목록 | ✅ |
+| `/api/communities/[id]/posts/[postId]/comments` | POST | 댓글 작성 | ✅ |
+| `/api/communities/[id]/posts/[postId]/comments/[commentId]` | PUT | 댓글 수정 | ❌ |
+| `/api/communities/[id]/posts/[postId]/comments/[commentId]` | DELETE | 댓글 삭제 | ❌ |
 
 ### 4️⃣ 채팅 API (8개) - ❌ 0% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -321,6 +330,12 @@ my_project/
 - **인증 체크**: 로그인 필수 API 보호
 - **GlobalRole.ADMIN 슈퍼 권한**: 모든 커뮤니티에서 ADMIN 권한 자동 부여
 
+### Stage 2: 커뮤니티 권한 적용 - ✅ 100% 완료
+- **커뮤니티 멤버십 체크**: 모든 커뮤니티 API에 적용
+- **커뮤니티 Ban 체크**: checkMembership()에 통합
+- **역할 기반 권한**: OWNER > ADMIN > MODERATOR > MEMBER 계층 구조
+- **18개 커뮤니티 API 엔드포인트에 권한 시스템 적용 완료**
+
 ### 구현된 헬퍼 함수
 | 함수명 | 설명 | 상태 |
 |--------|------|------|
@@ -333,9 +348,9 @@ my_project/
 | `canManageCommunity()` | 커뮤니티 관리 권한 확인 | ✅ |
 
 ### 권한 적용 현황
-- **전역 Ban**: 모든 API에 미들웨어로 자동 적용
-- **커뮤니티 Ban**: 커뮤니티 관련 API에 수동 적용 필요 (Stage 2)
-- **리소스 소유권**: 게시글/댓글 수정/삭제 시 확인 필요 (Stage 4)
+- **전역 Ban**: 모든 API에 미들웨어로 자동 적용 ✅
+- **커뮤니티 Ban**: 커뮤니티 관련 API에 적용 완료 (Stage 2) ✅
+- **리소스 소유권**: 게시글/댓글 수정/삭제 시 확인 필요 (Stage 4) ⏳
 
 ## 📄 페이지 구현 현황
 

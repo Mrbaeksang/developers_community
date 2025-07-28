@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { MembershipStatus } from '@prisma/client'
+import { MembershipStatus, CommunityRole } from '@prisma/client'
+import { Session } from 'next-auth'
 
 // 커스텀 에러 클래스
 export class AuthError extends Error {
@@ -30,6 +31,114 @@ export function unauthorized(message: string = '로그인이 필요합니다.') 
 
 export function forbidden(message: string = '권한이 없습니다.') {
   return NextResponse.json({ error: message }, { status: 403 })
+}
+
+// Stage 1 Auth Helpers
+
+// 인증 확인 헬퍼
+export function checkAuth(session: Session | null) {
+  if (!session?.user?.id) {
+    return unauthorized()
+  }
+  return null
+}
+
+// 커뮤니티 멤버십 확인 헬퍼
+export async function checkMembership(userId: string, communityId: string) {
+  const membership = await prisma.communityMember.findUnique({
+    where: {
+      userId_communityId: { userId, communityId }
+    },
+    select: { status: true }
+  })
+
+  if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+    return forbidden('커뮤니티 멤버만 접근 가능합니다.')
+  }
+
+  return null
+}
+
+// 커뮤니티 관리 권한 확인 헬퍼
+export async function canManageCommunity(userId: string, communityId: string) {
+  const membership = await prisma.communityMember.findUnique({
+    where: {
+      userId_communityId: { userId, communityId }
+    },
+    select: { role: true, status: true }
+  })
+
+  if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+    return false
+  }
+
+  return membership.role === CommunityRole.ADMIN || membership.role === CommunityRole.OWNER
+}
+
+// 커뮤니티 역할 확인 헬퍼
+export async function checkCommunityRole(
+  userId: string,
+  communityId: string,
+  requiredRole: CommunityRole
+) {
+  const membership = await prisma.communityMember.findUnique({
+    where: {
+      userId_communityId: { userId, communityId }
+    },
+    select: { role: true, status: true }
+  })
+
+  if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+    return forbidden('커뮤니티 멤버가 아닙니다.')
+  }
+
+  const roleHierarchy = {
+    [CommunityRole.MEMBER]: 0,
+    [CommunityRole.MODERATOR]: 1,
+    [CommunityRole.ADMIN]: 2,
+    [CommunityRole.OWNER]: 3
+  }
+
+  if (roleHierarchy[membership.role] < roleHierarchy[requiredRole]) {
+    return forbidden('권한이 없습니다.')
+  }
+
+  return null
+}
+
+// 커뮤니티 차단 상태 확인 헬퍼
+export async function checkCommunityBan(userId: string, communityId: string) {
+  const membership = await prisma.communityMember.findUnique({
+    where: {
+      userId_communityId: { userId, communityId }
+    },
+    select: { 
+      status: true,
+      bannedUntil: true,
+      bannedReason: true
+    }
+  })
+
+  if (membership?.status === MembershipStatus.BANNED) {
+    if (!membership.bannedUntil || membership.bannedUntil > new Date()) {
+      const reason = membership.bannedReason ? ` (사유: ${membership.bannedReason})` : ''
+      return forbidden(`커뮤니티에서 차단되었습니다${reason}`)
+    }
+    
+    // 차단 기간이 지났으면 자동 해제
+    await prisma.communityMember.update({
+      where: {
+        userId_communityId: { userId, communityId }
+      },
+      data: {
+        status: MembershipStatus.ACTIVE,
+        bannedUntil: null,
+        bannedReason: null
+      }
+    })
+  }
+
+  return null
 }
 
 // Ban 상태 체크 함수

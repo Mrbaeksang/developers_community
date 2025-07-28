@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  checkAuth,
+  checkMembership,
+  canManageCommunity,
+} from '@/lib/auth-helpers'
+import { CommunityVisibility, MembershipStatus } from '@prisma/client'
 
 // GET: 커뮤니티 상세 조회
 export async function GET(
@@ -123,12 +129,22 @@ export async function GET(
     }
 
     // 비공개 커뮤니티 접근 제한
-    if (community.visibility === 'PRIVATE') {
-      const isMember =
-        'members' in community &&
-        Array.isArray(community.members) &&
-        community.members.length > 0
-      if (!isMember && (!session || community.ownerId !== session.user?.id)) {
+    if (community.visibility === CommunityVisibility.PRIVATE) {
+      if (session?.user?.id) {
+        // 로그인한 경우, 멤버십 확인
+        const membershipError = await checkMembership(
+          session.user.id,
+          community.id
+        )
+        // 멤버가 아니고 오너도 아닌 경우
+        if (membershipError && community.ownerId !== session.user.id) {
+          return NextResponse.json(
+            { error: '비공개 커뮤니티입니다.' },
+            { status: 403 }
+          )
+        }
+      } else {
+        // 로그인하지 않은 경우
         return NextResponse.json(
           { error: '비공개 커뮤니티입니다.' },
           { status: 403 }
@@ -168,9 +184,9 @@ export async function GET(
       currentMembership,
       announcements,
       isOwner: session?.user?.id === community.ownerId,
-      isMember: currentMembership?.status === 'ACTIVE',
+      isMember: currentMembership?.status === MembershipStatus.ACTIVE,
       canPost:
-        currentMembership?.status === 'ACTIVE' ||
+        currentMembership?.status === MembershipStatus.ACTIVE ||
         session?.user?.id === community.ownerId,
     })
   } catch (error) {
@@ -191,29 +207,15 @@ export async function PUT(
     const { id } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
-    // 커뮤니티 확인
-    const community = await prisma.community.findUnique({
-      where: { id },
-      select: { ownerId: true },
-    })
-
-    if (!community) {
+    // 커뮤니티 관리 권한 확인
+    const canManage = await canManageCommunity(session!.user.id, id)
+    if (!canManage) {
       return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
-    }
-
-    if (community.ownerId !== session.user.id) {
-      return NextResponse.json(
-        { error: '커뮤니티 소유자만 수정할 수 있습니다.' },
+        { error: '커뮤니티를 수정할 권한이 없습니다.' },
         { status: 403 }
       )
     }
@@ -271,14 +273,11 @@ export async function DELETE(
     const { id } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
-    // 커뮤니티 확인
+    // 커뮤니티 소유자 확인
     const community = await prisma.community.findUnique({
       where: { id },
       select: { ownerId: true },
@@ -291,7 +290,7 @@ export async function DELETE(
       )
     }
 
-    if (community.ownerId !== session.user.id) {
+    if (community.ownerId !== session!.user.id) {
       return NextResponse.json(
         { error: '커뮤니티 소유자만 삭제할 수 있습니다.' },
         { status: 403 }

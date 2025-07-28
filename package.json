@@ -89,7 +89,6 @@
     "lint-staged": "^16.1.2",
     "micromatch": "^4.0.8",
     "prettier": "^3.6.2",
-    "prisma-erd-generator": "^2.0.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

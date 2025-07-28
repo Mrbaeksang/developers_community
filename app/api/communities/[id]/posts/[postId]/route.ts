@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { CommunityVisibility, CommunityRole } from '@prisma/client'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(
@@ -70,10 +72,16 @@ export async function GET(
     }
 
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
-    if (post.community.visibility === 'PRIVATE') {
-      const isMember =
-        post.community.members && post.community.members.length > 0
-      if (!isMember && post.community.ownerId !== session?.user?.id) {
+    if (post.community.visibility === CommunityVisibility.PRIVATE) {
+      if (session?.user?.id) {
+        const membershipError = await checkMembership(session.user.id, id)
+        if (membershipError && post.community.ownerId !== session.user.id) {
+          return NextResponse.json(
+            { error: '비공개 커뮤니티의 게시글입니다.' },
+            { status: 403 }
+          )
+        }
+      } else {
         return NextResponse.json(
           { error: '비공개 커뮤니티의 게시글입니다.' },
           { status: 403 }
@@ -125,12 +133,9 @@ export async function PATCH(
     const { id, postId } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
     // 게시글 확인
     const post = await prisma.communityPost.findUnique({
@@ -150,7 +155,7 @@ export async function PATCH(
     }
 
     // 권한 확인 (작성자 본인만 수정 가능)
-    if (post.authorId !== session.user.id) {
+    if (post.authorId !== session!.user.id) {
       return NextResponse.json(
         { error: '게시글을 수정할 권한이 없습니다.' },
         { status: 403 }
@@ -236,12 +241,9 @@ export async function DELETE(
     const { id, postId } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
     // 게시글 및 멤버십 확인
     const [post, membership] = await Promise.all([
@@ -252,7 +254,7 @@ export async function DELETE(
       prisma.communityMember.findUnique({
         where: {
           userId_communityId: {
-            userId: session.user.id,
+            userId: session!.user.id,
             communityId: id,
           },
         },
@@ -269,9 +271,9 @@ export async function DELETE(
 
     // 권한 확인 (작성자 본인 또는 ADMIN/OWNER만 삭제 가능)
     const canDelete =
-      post.authorId === session.user.id ||
-      membership?.role === 'ADMIN' ||
-      membership?.role === 'OWNER'
+      post.authorId === session!.user.id ||
+      membership?.role === CommunityRole.ADMIN ||
+      membership?.role === CommunityRole.OWNER
 
     if (!canDelete) {
       return NextResponse.json(

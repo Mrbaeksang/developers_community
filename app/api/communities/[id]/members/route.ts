@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { checkMembership } from '@/lib/auth-helpers'
+import {
+  CommunityVisibility,
+  MembershipStatus,
+  CommunityRole,
+} from '@prisma/client'
 
 // GET: 커뮤니티 멤버 목록 조회
 export async function GET(
@@ -30,19 +36,16 @@ export async function GET(
     }
 
     // 비공개 커뮤니티 접근 확인
-    if (community.visibility === 'PRIVATE') {
-      const membership = session?.user?.id
-        ? await prisma.communityMember.findUnique({
-            where: {
-              userId_communityId: {
-                userId: session.user.id,
-                communityId: id,
-              },
-            },
-          })
-        : null
-
-      if (!membership || membership.status !== 'ACTIVE') {
+    if (community.visibility === CommunityVisibility.PRIVATE) {
+      if (session?.user?.id) {
+        const membershipError = await checkMembership(session.user.id, id)
+        if (membershipError) {
+          return NextResponse.json(
+            { error: '비공개 커뮤니티입니다.' },
+            { status: 403 }
+          )
+        }
+      } else {
         return NextResponse.json(
           { error: '비공개 커뮤니티입니다.' },
           { status: 403 }
@@ -53,8 +56,8 @@ export async function GET(
     // 멤버 필터 조건
     const where: {
       communityId: string
-      status: 'ACTIVE'
-      role?: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER'
+      status: MembershipStatus
+      role?: CommunityRole
       user?: {
         OR: Array<{
           name?: { contains: string; mode: 'insensitive' }
@@ -63,11 +66,11 @@ export async function GET(
       }
     } = {
       communityId: id,
-      status: 'ACTIVE',
+      status: MembershipStatus.ACTIVE,
     }
 
-    if (role) {
-      where.role = role as 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER'
+    if (role && Object.values(CommunityRole).includes(role as CommunityRole)) {
+      where.role = role as CommunityRole
     }
 
     if (search) {

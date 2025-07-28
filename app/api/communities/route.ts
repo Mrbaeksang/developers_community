@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { checkAuth } from '@/lib/auth-helpers'
+import {
+  CommunityVisibility,
+  CommunityRole,
+  MembershipStatus,
+} from '@prisma/client'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -20,15 +26,20 @@ export async function GET(req: NextRequest) {
     // 검색 조건 구성
     const where: {
       name?: { contains: string; mode: 'insensitive' }
-      visibility?: 'PUBLIC' | 'PRIVATE'
+      visibility?: CommunityVisibility
     } = {}
 
     if (search) {
       where.name = { contains: search, mode: 'insensitive' }
     }
 
-    if (visibility) {
-      where.visibility = visibility
+    if (
+      visibility &&
+      Object.values(CommunityVisibility).includes(
+        visibility as CommunityVisibility
+      )
+    ) {
+      where.visibility = visibility as CommunityVisibility
     }
 
     // 커뮤니티 목록 조회
@@ -98,12 +109,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
     const body = await req.json()
     const validation = createCommunitySchema.safeParse(body)
@@ -149,13 +157,13 @@ export async function POST(req: NextRequest) {
         visibility,
         allowFileUpload,
         allowChat,
-        ownerId: session.user.id,
+        ownerId: session!.user.id,
         // 생성자를 자동으로 OWNER 멤버로 추가
         members: {
           create: {
-            userId: session.user.id,
-            role: 'OWNER',
-            status: 'ACTIVE',
+            userId: session!.user.id,
+            role: CommunityRole.OWNER,
+            status: MembershipStatus.ACTIVE,
           },
         },
         // 기본 카테고리 생성

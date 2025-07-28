@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import {
-  checkBanStatus,
-  checkCommunityMembership,
-  unauthorized,
-} from '@/lib/auth-helpers'
+import { checkAuth, checkMembership } from '@/lib/auth-helpers'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(
@@ -83,15 +79,13 @@ export async function POST(
     const { id, postId } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return unauthorized()
-    }
-
-    // Ban 상태 체크
-    await checkBanStatus(session.user.id)
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
     // 커뮤니티 멤버십 확인
-    await checkCommunityMembership(session.user.id, id)
+    const membershipError = await checkMembership(session!.user.id, id)
+    if (membershipError) return membershipError
 
     const post = await prisma.communityPost.findUnique({
       where: {
@@ -150,7 +144,7 @@ export async function POST(
     const comment = await prisma.communityComment.create({
       data: {
         content,
-        authorId: session.user.id,
+        authorId: session!.user.id,
         postId: postId,
         parentId,
       },

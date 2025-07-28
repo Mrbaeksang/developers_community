@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import {
-  checkBanStatus,
-  checkCommunityMembership,
-  unauthorized,
-} from '@/lib/auth-helpers'
+import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { CommunityVisibility } from '@prisma/client'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -27,13 +24,7 @@ export async function GET(
     // 커뮤니티 확인
     const community = await prisma.community.findUnique({
       where: { id },
-      include: {
-        members: session?.user?.id
-          ? {
-              where: { userId: session.user.id, status: 'ACTIVE' },
-            }
-          : false,
-      },
+      select: { id: true, visibility: true, ownerId: true },
     })
 
     if (!community) {
@@ -44,9 +35,16 @@ export async function GET(
     }
 
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
-    if (community.visibility === 'PRIVATE') {
-      const isMember = community.members && community.members.length > 0
-      if (!isMember && community.ownerId !== session?.user?.id) {
+    if (community.visibility === CommunityVisibility.PRIVATE) {
+      if (session?.user?.id) {
+        const membershipError = await checkMembership(session.user.id, id)
+        if (membershipError && community.ownerId !== session.user.id) {
+          return NextResponse.json(
+            { error: '비공개 커뮤니티입니다.' },
+            { status: 403 }
+          )
+        }
+      } else {
         return NextResponse.json(
           { error: '비공개 커뮤니티입니다.' },
           { status: 403 }
@@ -167,21 +165,19 @@ export async function POST(
     const { id } = await context.params
     const session = await auth()
 
-    if (!session?.user?.id) {
-      return unauthorized()
-    }
-
-    // Ban 상태 체크
-    await checkBanStatus(session.user.id)
+    // 인증 확인
+    const authError = checkAuth(session)
+    if (authError) return authError
 
     // 커뮤니티 멤버십 확인
-    await checkCommunityMembership(session.user.id, id)
+    const membershipError = await checkMembership(session!.user.id, id)
+    if (membershipError) return membershipError
 
     // 멤버십 상세 정보 조회 (파일 업로드 권한 확인용)
     const membership = await prisma.communityMember.findUnique({
       where: {
         userId_communityId: {
-          userId: session.user.id,
+          userId: session!.user.id,
           communityId: id,
         },
       },
@@ -238,7 +234,7 @@ export async function POST(
       data: {
         title,
         content,
-        authorId: session.user.id,
+        authorId: session!.user.id,
         communityId: id,
         categoryId,
         files: fileIds
