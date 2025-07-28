@@ -56,7 +56,7 @@ export function CommunityCommentSection({
 
   useEffect(() => {
     fetchComments()
-  }, [postId])
+  }, [postId, communityId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchComments = async () => {
     try {
@@ -104,6 +104,7 @@ export function CommunityCommentSection({
       setNewComment('')
       toast.success('댓글이 작성되었습니다.')
     } catch (error) {
+      console.error('Failed to create comment:', error)
       toast.error('댓글 작성에 실패했습니다.')
     } finally {
       setIsSubmitting(false)
@@ -142,6 +143,7 @@ export function CommunityCommentSection({
       setReplyContent('')
       toast.success('답글이 작성되었습니다.')
     } catch (error) {
+      console.error('Failed to create reply:', error)
       toast.error('답글 작성에 실패했습니다.')
     } finally {
       setIsSubmitting(false)
@@ -172,6 +174,7 @@ export function CommunityCommentSection({
       setEditContent('')
       toast.success('댓글이 수정되었습니다.')
     } catch (error) {
+      console.error('Failed to update comment:', error)
       toast.error('댓글 수정에 실패했습니다.')
     } finally {
       setIsSubmitting(false)
@@ -196,6 +199,7 @@ export function CommunityCommentSection({
       await fetchComments()
       toast.success('댓글이 삭제되었습니다.')
     } catch (error) {
+      console.error('Failed to delete comment:', error)
       toast.error('댓글 삭제에 실패했습니다.')
     }
   }

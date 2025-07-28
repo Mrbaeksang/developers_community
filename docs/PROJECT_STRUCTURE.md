@@ -131,7 +131,8 @@ my_project/
 │   │   ├── StatsSection.tsx ✗ 통계 섹션
 │   │   ├── FooterCTA.tsx    ✗ 하단 CTA
 │   │   ├── TypeWriter.tsx   ✗ 타이핑 애니메이션
-│   │   └── ParticleBackground.tsx ✗ 파티클 배경
+│   │   ├── ParticleBackground.tsx ✗ 파티클 배경
+│   │   └── InfinitePostList.tsx ✓ 무한 스크롤 게시글 목록
 │   ├── posts/               # 게시글 관련
 │   │   ├── PostCard.tsx     ✓ 게시글 카드
 │   │   ├── index.ts         ✓ 내보내기 파일
@@ -334,12 +335,12 @@ my_project/
 |----------|------|------|---------|
 | UI (shadcn) | 14개 | 14개 | 100% |
 | Layouts | 6개 | 2개 | 33.3% |
-| Home | 11개 | 4개 | 36.4% |
+| Home | 11개 | 5개 | 45.5% |
 | Posts | 8개 | 7개 | 87.5% |
 | Search | 2개 | 2개 | 100% |
 | Hooks | 2개 | 2개 | 100% |
 | Shared | 18개 | 0개 | 0% |
-| Communities | 5개 | 0개 | 0% |
+| Communities | 11개 | 10개 | 90.9% |
 | Chat | 4개 | 0개 | 0% |
 | Auth | 4개 | 0개 | 0% |
 | Providers | 1개 | 1개 | 100% |

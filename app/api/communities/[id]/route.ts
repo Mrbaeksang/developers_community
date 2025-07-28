@@ -79,7 +79,7 @@ export async function GET(
       'members' in community && Array.isArray(community.members)
         ? community.members[0] || null
         : null
-    const { members, ...communityData } = community as any
+    const { ...communityData } = community
 
     return NextResponse.json({
       ...communityData,

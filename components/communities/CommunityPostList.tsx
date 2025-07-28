@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { MessageSquare, Heart, Eye, Calendar, User } from 'lucide-react'
+import { MessageSquare, Heart, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -68,7 +68,7 @@ export function CommunityPostList({
 
   useEffect(() => {
     fetchPosts()
-  }, [communityId, page, category, search, sort])
+  }, [communityId, page, category, search, sort]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchPosts = async () => {
     setIsLoading(true)

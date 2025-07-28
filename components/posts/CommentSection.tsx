@@ -133,6 +133,7 @@ export default function CommentSection({
         throw new Error(error.error || '댓글 작성에 실패했습니다')
       }
     } catch (error) {
+      console.error('Failed to create comment:', error)
       toast({
         title: '댓글 작성에 실패했습니다',
         description:
@@ -183,6 +184,7 @@ export default function CommentSection({
         throw new Error(error.error || '댓글 수정에 실패했습니다')
       }
     } catch (error) {
+      console.error('Failed to update comment:', error)
       toast({
         title: '댓글 수정에 실패했습니다',
         description:
@@ -208,6 +210,7 @@ export default function CommentSection({
         throw new Error(error.error || '댓글 삭제에 실패했습니다')
       }
     } catch (error) {
+      console.error('Failed to delete comment:', error)
       toast({
         title: '댓글 삭제에 실패했습니다',
         description:

@@ -101,6 +101,7 @@ export default function PostDetail({ post }: PostDetailProps) {
         title: data.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
       })
     } catch (error) {
+      console.error('Failed to toggle like:', error)
       toast({
         title: '오류가 발생했습니다',
         description: '잠시 후 다시 시도해주세요.',
@@ -136,6 +137,7 @@ export default function PostDetail({ post }: PostDetailProps) {
           : '북마크를 취소했습니다',
       })
     } catch (error) {
+      console.error('Failed to toggle bookmark:', error)
       toast({
         title: '오류가 발생했습니다',
         description: '잠시 후 다시 시도해주세요.',
@@ -175,6 +177,7 @@ export default function PostDetail({ post }: PostDetailProps) {
         }
       }
     } catch (error) {
+      console.error('Failed to copy link:', error)
       toast({
         title: '링크 복사에 실패했습니다',
         description: 'URL을 수동으로 복사해주세요',

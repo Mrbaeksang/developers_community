@@ -26,7 +26,10 @@ interface Post {
     slug: string
     visibility: 'PUBLIC' | 'PRIVATE'
     ownerId: string
-    members: any[]
+    members: Array<{
+      role: string
+      status: string
+    }>
   }
   _count: {
     comments: number

@@ -1,13 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Globe,
-  Lock,
-  Users,
-  MessageSquare,
-  Calendar,
-  Settings,
-} from 'lucide-react'
+import Image from 'next/image'
+import { Globe, Lock, Users, MessageSquare, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -90,10 +84,11 @@ export default async function CommunityDetailPage({
       <div className="relative h-48 md:h-64 -mx-4 sm:-mx-6 lg:-mx-8 mb-8">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
         {community.banner && (
-          <img
+          <Image
             src={community.banner}
             alt={`${community.name} banner`}
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         )}
       </div>

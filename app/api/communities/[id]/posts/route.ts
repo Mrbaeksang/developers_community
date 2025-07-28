@@ -50,7 +50,14 @@ export async function GET(
     }
 
     // 검색 조건 설정
-    const where: any = {
+    const where: {
+      communityId: string
+      categoryId?: string
+      OR?: Array<{
+        title?: { contains: string; mode: 'insensitive' }
+        content?: { contains: string; mode: 'insensitive' }
+      }>
+    } = {
       communityId: id,
     }
 
@@ -66,7 +73,11 @@ export async function GET(
     }
 
     // 정렬 옵션
-    const orderBy: any = {}
+    const orderBy: {
+      createdAt?: 'desc' | 'asc'
+      viewCount?: 'desc' | 'asc'
+      comments?: { _count: 'desc' | 'asc' }
+    } = {}
     switch (sort) {
       case 'popular':
         orderBy.viewCount = 'desc'

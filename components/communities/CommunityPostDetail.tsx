@@ -110,6 +110,7 @@ export function CommunityPostDetail({
       setIsLiked(!isLiked)
       setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1))
     } catch (error) {
+      console.error('Failed to like post:', error)
       toast.error('좋아요 처리에 실패했습니다.')
     } finally {
       setIsLikeLoading(false)
@@ -140,6 +141,7 @@ export function CommunityPostDetail({
         isBookmarked ? '북마크가 해제되었습니다.' : '북마크에 저장되었습니다.'
       )
     } catch (error) {
+      console.error('Failed to bookmark post:', error)
       toast.error('북마크 처리에 실패했습니다.')
     } finally {
       setIsBookmarkLoading(false)
@@ -167,6 +169,7 @@ export function CommunityPostDetail({
       toast.success('게시글이 삭제되었습니다.')
       router.push(`/communities/${post.community.slug}/posts`)
     } catch (error) {
+      console.error('Failed to delete post:', error)
       toast.error('게시글 삭제에 실패했습니다.')
     } finally {
       setIsDeleting(false)
@@ -178,6 +181,7 @@ export function CommunityPostDetail({
       await navigator.clipboard.writeText(window.location.href)
       toast.success('링크가 복사되었습니다.')
     } catch (error) {
+      console.error('Failed to share post:', error)
       toast.error('링크 복사에 실패했습니다.')
     }
   }

@@ -77,7 +77,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    const { id, postId } = await context.params
+    const { postId } = await context.params
     const session = await auth()
 
     if (!session?.user?.id) {
