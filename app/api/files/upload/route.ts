@@ -32,6 +32,8 @@ async function getImageDimensions(): Promise<{
 }
 
 // POST: 파일 업로드
+// TODO: 실제 파일 저장 구현 필요 (Vercel Blob, S3, Cloudinary 등)
+// 현재는 메타데이터만 DB에 저장하고 실제 파일은 저장하지 않음
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
