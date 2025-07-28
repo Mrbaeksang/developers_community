@@ -1,22 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import {
-  Calendar,
-  Eye,
-  Heart,
-  MessageSquare,
-  Bookmark,
-  Share2,
-} from 'lucide-react'
+import { Eye, Heart, MessageSquare, Bookmark, Share2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { useSession } from 'next-auth/react'
 
 interface PostDetailProps {
   post: {
@@ -58,22 +53,95 @@ interface PostDetailProps {
 export default function PostDetail({ post }: PostDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
+  const [likeCount, setLikeCount] = useState(post._count.likes)
   const { toast } = useToast()
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  // 로그인한 경우 좋아요/북마크 상태 확인
+  useEffect(() => {
+    if (status === 'authenticated') {
+      // 좋아요 상태 확인
+      fetch(`/api/main/posts/${post.id}/like`)
+        .then((res) => res.json())
+        .then((data) => setIsLiked(data.liked))
+        .catch(console.error)
+
+      // 북마크 상태 확인
+      fetch(`/api/main/posts/${post.id}/bookmark`)
+        .then((res) => res.json())
+        .then((data) => setIsBookmarked(data.bookmarked))
+        .catch(console.error)
+    }
+  }, [status, post.id])
 
   const handleLike = async () => {
-    // TODO: Implement like functionality
-    setIsLiked(!isLiked)
-    toast({
-      title: isLiked ? '좋아요를 취소했습니다' : '좋아요를 눌렀습니다',
-    })
+    if (status === 'unauthenticated') {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '좋아요를 누르려면 로그인해주세요.',
+        variant: 'destructive',
+      })
+      router.push('/signin')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/main/posts/${post.id}/like`, {
+        method: 'POST',
+      })
+
+      if (!res.ok) throw new Error('Failed to toggle like')
+
+      const data = await res.json()
+      setIsLiked(data.liked)
+      setLikeCount((prev) => (data.liked ? prev + 1 : prev - 1))
+
+      toast({
+        title: data.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
+      })
+    } catch (error) {
+      toast({
+        title: '오류가 발생했습니다',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleBookmark = async () => {
-    // TODO: Implement bookmark functionality
-    setIsBookmarked(!isBookmarked)
-    toast({
-      title: isBookmarked ? '북마크를 취소했습니다' : '북마크에 저장했습니다',
-    })
+    if (status === 'unauthenticated') {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '북마크에 저장하려면 로그인해주세요.',
+        variant: 'destructive',
+      })
+      router.push('/signin')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/main/posts/${post.id}/bookmark`, {
+        method: 'POST',
+      })
+
+      if (!res.ok) throw new Error('Failed to toggle bookmark')
+
+      const data = await res.json()
+      setIsBookmarked(data.bookmarked)
+
+      toast({
+        title: data.bookmarked
+          ? '북마크에 저장했습니다'
+          : '북마크를 취소했습니다',
+      })
+    } catch (error) {
+      toast({
+        title: '오류가 발생했습니다',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleShare = async () => {
@@ -141,7 +209,7 @@ export default function PostDetail({ post }: PostDetailProps) {
             </div>
             <div className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              <span>{post._count.likes.toLocaleString()}</span>
+              <span>{likeCount.toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-1">
               <MessageSquare className="h-4 w-4" />
@@ -188,7 +256,7 @@ export default function PostDetail({ post }: PostDetailProps) {
           onClick={handleLike}
         >
           <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-          좋아요 {post._count.likes > 0 && `(${post._count.likes})`}
+          좋아요 {likeCount > 0 && `(${likeCount})`}
         </Button>
         <Button
           variant={isBookmarked ? 'default' : 'outline'}

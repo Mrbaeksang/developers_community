@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context-7__resolve-library-id",
+      "mcp__context-7__get-library-docs",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "mcp__github__get_pull_request_files",
+      "mcp__github__get_file_contents",
+      "mcp__github__list_commits",
+      "mcp__github__search_code",
+      "mcp__github__get_pull_request_status"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"📋 CLAUDE.md 확인: Prisma 스키마 기반 코드 작성!\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "Get-Content $env:CLAUDE_PROJECT_DIR\\CLAUDE.md"
+          }
+        ]
+      }
+    ]
+  }
+}
