@@ -16,16 +16,37 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"📋 CLAUDE.md 확인: Prisma 스키마 기반 코드 작성!\""
+            "command": "echo \"🚨 PRISMA 체크: 스키마 먼저 확인!\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"📌 MainPost, MainCategory, MainTag 사용 (Post X)\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"⚠️ null → undefined 변환 필수!\""
           }
         ]
       }
     ],
     "UserPromptSubmit": [
+      {
+        "matcher": "prisma|post|comment|like|bookmark|tag|category",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"📋 Prisma 관련 작업 감지됨!\""
+          },
+          {
+            "type": "command",
+            "command": "Get-Content $env:CLAUDE_PROJECT_DIR\\prisma\\schema.prisma | Select-String -Pattern \"model Main\" -Context 0,20"
+          }
+        ]
+      },
       {
         "matcher": "",
         "hooks": [

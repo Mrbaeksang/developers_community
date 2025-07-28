@@ -51,7 +51,7 @@ export async function generateMetadata({
       type: 'article',
       publishedTime: post.createdAt,
       authors: [post.author.name || post.author.username],
-      tags: post.tags.map((tag: any) => tag.name),
+      tags: post.tags.map((tag: { tag: { name: string } }) => tag.tag.name),
     },
   }
 }
