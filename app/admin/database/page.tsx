@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -331,27 +332,28 @@ export default function DatabaseViewerPage() {
       // Date로 변환 가능한 값인지 확인
       if (typeof value === 'string' || typeof value === 'number') {
         const date = new Date(value)
-        const now = new Date()
-        const diffTime = Math.abs(now.getTime() - date.getTime())
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        // const now = new Date()
+        // const diffTime = Math.abs(now.getTime() - date.getTime())
+        // const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-        let relativeTime = ''
-        if (diffDays === 0) {
-          relativeTime = '오늘'
-        } else if (diffDays === 1) {
-          relativeTime = date > now ? '내일' : '어제'
-        } else if (diffDays < 7) {
-          relativeTime = date > now ? `${diffDays}일 후` : `${diffDays}일 전`
-        } else if (diffDays < 30) {
-          const weeks = Math.floor(diffDays / 7)
-          relativeTime = date > now ? `${weeks}주 후` : `${weeks}주 전`
-        } else if (diffDays < 365) {
-          const months = Math.floor(diffDays / 30)
-          relativeTime = date > now ? `${months}개월 후` : `${months}개월 전`
-        } else {
-          const years = Math.floor(diffDays / 365)
-          relativeTime = date > now ? `${years}년 후` : `${years}년 전`
-        }
+        // 상대 시간 계산 (현재는 사용하지 않음)
+        // let relativeTime = ''
+        // if (diffDays === 0) {
+        //   relativeTime = '오늘'
+        // } else if (diffDays === 1) {
+        //   relativeTime = date > now ? '내일' : '어제'
+        // } else if (diffDays < 7) {
+        //   relativeTime = date > now ? `${diffDays}일 후` : `${diffDays}일 전`
+        // } else if (diffDays < 30) {
+        //   const weeks = Math.floor(diffDays / 7)
+        //   relativeTime = date > now ? `${weeks}주 후` : `${weeks}주 전`
+        // } else if (diffDays < 365) {
+        //   const months = Math.floor(diffDays / 30)
+        //   relativeTime = date > now ? `${months}개월 후` : `${months}개월 전`
+        // } else {
+        //   const years = Math.floor(diffDays / 365)
+        //   relativeTime = date > now ? `${years}년 후` : `${years}년 전`
+        // }
 
         return (
           <div className="text-xs whitespace-nowrap">
@@ -391,10 +393,12 @@ export default function DatabaseViewerPage() {
     ) {
       return (
         <div className="flex items-center gap-2">
-          <img
+          <Image
             src={value}
             alt=""
-            className="w-8 h-8 rounded-full object-cover border"
+            width={32}
+            height={32}
+            className="rounded-full object-cover border"
             onError={(e) => {
               const target = e.target as HTMLImageElement
               target.style.display = 'none'

@@ -17,7 +17,11 @@ export async function GET(
     const session = await auth()
 
     // 기본적으로 PUBLISHED만 조회 가능
-    let whereClause: any = {
+    let whereClause: {
+      id: string
+      status?: string
+      OR?: Array<{ status: string } | { authorId: string }>
+    } = {
       id,
       status: 'PUBLISHED',
     }
