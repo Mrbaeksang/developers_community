@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
 import { checkAuth } from '@/lib/auth-helpers'
-import { PostStatus } from '@prisma/client'
+import { PostStatus, Prisma } from '@prisma/client'
 import { canModifyMainContent } from '@/lib/role-hierarchy'
 import { markdownToHtml } from '@/lib/markdown'
 
@@ -17,11 +17,7 @@ export async function GET(
     const session = await auth()
 
     // 기본적으로 PUBLISHED만 조회 가능
-    let whereClause: {
-      id: string
-      status?: string
-      OR?: Array<{ status: string } | { authorId: string }>
-    } = {
+    let whereClause: Prisma.MainPostWhereInput = {
       id,
       status: 'PUBLISHED',
     }
@@ -92,7 +88,7 @@ export async function GET(
     const formattedPost = {
       ...post,
       content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
-      tags: post.tags.map((postTag) => postTag.tag),
+      tags: post.tags.map((postTag: any) => postTag.tag),
       status: post.status, // 상태 정보 포함
     }
 
