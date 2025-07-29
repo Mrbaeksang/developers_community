@@ -8,29 +8,34 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    // 태그별 게시글 수를 집계하여 인기 태그 조회
+    // 태그별 PUBLISHED 게시글 수를 집계하여 인기 태그 조회
     const tags = await prisma.mainTag.findMany({
       include: {
-        _count: {
-          select: {
-            posts: true,
-          },
-        },
-      },
-      orderBy: {
         posts: {
-          _count: 'desc',
+          where: {
+            post: {
+              status: 'PUBLISHED',
+            },
+          },
         },
       },
       take: limit,
     })
 
+    // PUBLISHED 게시글 수로 정렬
+    const sortedTags = tags
+      .map((tag) => ({
+        ...tag,
+        publishedCount: tag.posts.length,
+      }))
+      .sort((a, b) => b.publishedCount - a.publishedCount)
+
     return NextResponse.json({
-      tags: tags.map((tag) => ({
+      tags: sortedTags.map((tag) => ({
         id: tag.id,
         name: tag.name,
         slug: tag.slug,
-        count: tag._count.posts,
+        count: tag.publishedCount,
       })),
     })
   } catch {

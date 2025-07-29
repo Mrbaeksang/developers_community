@@ -6,6 +6,21 @@ const nextConfig: NextConfig = {
     // Node.js 24 호환성을 위한 설정
     serverMinification: false,
   },
+  // 이미지 도메인 설정
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
   // webpack 설정 추가
   webpack: (config) => {
     // webpack 호환성 설정

@@ -39,6 +39,25 @@ export async function POST(
 
     const { action, reason } = await request.json()
 
+    // 현재 게시글 정보 조회 (태그 포함)
+    const currentPost = await prisma.mainPost.findUnique({
+      where: { id },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    })
+
+    if (!currentPost) {
+      return NextResponse.json(
+        { error: '게시글을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
     // 게시글 상태 업데이트
     const post = await prisma.mainPost.update({
       where: { id },
@@ -54,6 +73,19 @@ export async function POST(
         },
       },
     })
+
+    // 태그 카운트 업데이트 (승인 시에만)
+    if (action === 'approve' && currentPost.tags.length > 0) {
+      const tagIds = currentPost.tags.map((t) => t.tagId)
+      await prisma.mainTag.updateMany({
+        where: {
+          id: { in: tagIds },
+        },
+        data: {
+          postCount: { increment: 1 },
+        },
+      })
+    }
 
     // 알림 발송
     if (action === 'approve') {

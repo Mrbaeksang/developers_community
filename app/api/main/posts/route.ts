@@ -183,21 +183,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 게시글 생성
-    const post = await prisma.mainPost.create({
-      data: {
-        title,
-        content,
-        excerpt: excerpt || content.substring(0, 200),
-        slug,
-        status,
-        authorRole: user.globalRole, // 작성 시점의 역할 저장
-        author: { connect: { id: session.user.id } },
-        category: { connect: { id: categoryId } },
-        tags: {
-          create: tagConnections,
-        },
+    // 디버깅 로그 (필요시 활성화)
+    // console.log('게시글 생성 요청:', {
+    //   userId: session.user.id,
+    //   userRole: user.globalRole,
+    //   requestedStatus: status,
+    //   isAdmin: user.globalRole === 'ADMIN',
+    // })
+
+    // 게시글 생성 (ADMIN은 자동으로 PUBLISHED 상태로)
+    const finalStatus = user.globalRole === 'ADMIN' ? 'PUBLISHED' : status
+    const postData = {
+      title,
+      content,
+      excerpt: excerpt || content.substring(0, 200),
+      slug,
+      status: finalStatus,
+      authorRole: user.globalRole, // 작성 시점의 역할 저장
+      author: { connect: { id: session.user.id } },
+      category: { connect: { id: categoryId } },
+      tags: {
+        create: tagConnections,
       },
+      // ADMIN이 작성한 경우 승인 정보 자동 설정
+      ...(user.globalRole === 'ADMIN' && {
+        approvedAt: new Date(),
+        approvedById: session.user.id,
+      }),
+    }
+
+    // console.log('게시글 생성 데이터:', {
+    //   status: postData.status,
+    //   approvedAt: postData.approvedAt,
+    //   approvedById: postData.approvedById,
+    // })
+
+    const post = await prisma.mainPost.create({
+      data: postData,
       include: {
         author: {
           select: {
@@ -216,8 +238,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // 태그 사용 횟수 업데이트
-    if (tagConnections.length > 0) {
+    // 태그 사용 횟수 업데이트 (PUBLISHED 게시글만)
+    if (tagConnections.length > 0 && finalStatus === 'PUBLISHED') {
       await prisma.mainTag.updateMany({
         where: {
           slug: { in: tags },
