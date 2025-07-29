@@ -1,11 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  MessageSquare,
-  Send,
-  AlertCircle,
-} from 'lucide-react'
+import { MessageSquare, Send, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
@@ -189,7 +185,7 @@ export default function CommentSection({
           title: '답글이 작성되었습니다',
         })
         setReplyingToId(null)
-        setReplyContents(prev => {
+        setReplyContents((prev) => {
           const newContents = { ...prev }
           delete newContents[parentId]
           return newContents
@@ -237,10 +233,17 @@ export default function CommentSection({
         const updateCommentInTree = (comments: Comment[]): Comment[] => {
           return comments.map((comment) => {
             if (comment.id === commentId) {
-              return { ...comment, content: data.comment.content, isEdited: true }
+              return {
+                ...comment,
+                content: data.comment.content,
+                isEdited: true,
+              }
             }
             if (comment.replies && comment.replies.length > 0) {
-              return { ...comment, replies: updateCommentInTree(comment.replies) }
+              return {
+                ...comment,
+                replies: updateCommentInTree(comment.replies),
+              }
             }
             return comment
           })
@@ -276,10 +279,13 @@ export default function CommentSection({
         // 재귀적으로 댓글을 삭제하는 함수
         const deleteCommentFromTree = (comments: Comment[]): Comment[] => {
           return comments
-            .filter(comment => comment.id !== commentId)
-            .map(comment => {
+            .filter((comment) => comment.id !== commentId)
+            .map((comment) => {
               if (comment.replies && comment.replies.length > 0) {
-                return { ...comment, replies: deleteCommentFromTree(comment.replies) }
+                return {
+                  ...comment,
+                  replies: deleteCommentFromTree(comment.replies),
+                }
               }
               return comment
             })
@@ -315,12 +321,12 @@ export default function CommentSection({
   }
 
   const handleReplyChange = (commentId: string, content: string) => {
-    setReplyContents(prev => ({ ...prev, [commentId]: content }))
+    setReplyContents((prev) => ({ ...prev, [commentId]: content }))
   }
 
   const handleReplyCancel = (commentId: string) => {
     setReplyingToId(null)
-    setReplyContents(prev => {
+    setReplyContents((prev) => {
       const newContents = { ...prev }
       delete newContents[commentId]
       return newContents

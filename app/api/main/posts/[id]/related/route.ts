@@ -98,7 +98,8 @@ export async function GET(
     const scoredPosts = uniquePosts
       .map((post) => {
         const daysSinceCreated = Math.floor(
-          (Date.now() - new Date(post.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+          (Date.now() - new Date(post.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24)
         )
         const recencyScore = Math.max(0, 30 - daysSinceCreated) // 30일 이내 게시글에 가산점
         const score = post.viewCount + post.likeCount * 2 + recencyScore * 0.5
