@@ -21,7 +21,7 @@ import {
   CheckCircle,
   Clock,
   Shield,
-  TestTube2,
+  Database,
 } from 'lucide-react'
 
 async function getAdminStats() {
@@ -102,10 +102,10 @@ export default async function AdminPage() {
       color: stats.pendingPosts > 0 ? 'destructive' : 'secondary',
     },
     {
-      title: '테스트 센터',
-      description: '개발 및 테스트를 위한 데이터 생성과 관리',
-      href: '/admin/test-center',
-      icon: TestTube2,
+      title: '데이터베이스 뷰어',
+      description: '모든 테이블의 데이터를 조회하고 검색',
+      href: '/admin/database',
+      icon: Database,
       badge: null,
       color: 'secondary',
     },

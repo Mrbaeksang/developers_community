@@ -140,11 +140,27 @@ export async function POST(
       }
     }
 
+    // 현재 사용자의 커뮤니티 역할 확인 (authorRole 저장을 위해)
+    const userMembership = await prisma.communityMember.findUnique({
+      where: {
+        userId_communityId: { userId: session!.user.id, communityId: post.communityId }
+      },
+      select: { role: true }
+    })
+
+    if (!userMembership) {
+      return NextResponse.json(
+        { error: '커뮤니티 멤버가 아닙니다.' },
+        { status: 403 }
+      )
+    }
+
     // 댓글 생성
     const comment = await prisma.communityComment.create({
       data: {
         content,
         authorId: session!.user.id,
+        authorRole: userMembership.role, // 작성 시점의 역할 저장
         postId: postId,
         parentId,
       },

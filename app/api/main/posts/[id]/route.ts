@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { z } from 'zod'
 import { checkAuth } from '@/lib/auth-helpers'
 import { PostStatus } from '@prisma/client'
+import { canModifyMainContent } from '@/lib/role-hierarchy'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -97,6 +98,7 @@ export async function PUT(
       where: { id },
       select: {
         authorId: true,
+        authorRole: true,
         status: true,
       },
     })
@@ -108,13 +110,24 @@ export async function PUT(
       )
     }
 
-    // 작성자 또는 관리자만 수정 가능
+    // 현재 사용자의 전역 역할 확인
     const user = await prisma.user.findUnique({
       where: { id: session!.user.id },
       select: { globalRole: true },
     })
 
-    if (post.authorId !== session!.user.id && user?.globalRole !== 'ADMIN') {
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 권한 확인 (역할 계층 기반)
+    const isAuthor = post.authorId === session!.user.id
+    const canModify = canModifyMainContent(user.globalRole, isAuthor, post.authorRole)
+
+    if (!canModify) {
       return NextResponse.json(
         { error: '게시글을 수정할 권한이 없습니다.' },
         { status: 403 }
@@ -173,9 +186,11 @@ export async function PUT(
           title,
           content,
           categoryId,
-          // 수정 시 다시 PENDING 상태로 변경 (관리자가 아닌 경우)
+          // 수정 시 다시 PENDING 상태로 변경 (ADMIN 이상만 상태 유지)
           status:
-            user?.globalRole === 'ADMIN' ? post.status : PostStatus.PENDING,
+            user.globalRole === 'ADMIN' || user.globalRole === 'SUPER_ADMIN' 
+              ? post.status 
+              : PostStatus.PENDING,
         },
         include: {
           author: {
@@ -251,7 +266,10 @@ export async function DELETE(
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
       where: { id },
-      select: { authorId: true },
+      select: { 
+        authorId: true,
+        authorRole: true,
+      },
     })
 
     if (!post) {
@@ -261,13 +279,24 @@ export async function DELETE(
       )
     }
 
-    // 작성자 또는 관리자만 삭제 가능
+    // 현재 사용자의 전역 역할 확인
     const user = await prisma.user.findUnique({
       where: { id: session!.user.id },
       select: { globalRole: true },
     })
 
-    if (post.authorId !== session!.user.id && user?.globalRole !== 'ADMIN') {
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 권한 확인 (역할 계층 기반)
+    const isAuthor = post.authorId === session!.user.id
+    const canDelete = canModifyMainContent(user.globalRole, isAuthor, post.authorRole)
+
+    if (!canDelete) {
       return NextResponse.json(
         { error: '게시글을 삭제할 권한이 없습니다.' },
         { status: 403 }

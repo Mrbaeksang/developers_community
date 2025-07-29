@@ -22,7 +22,8 @@
       "Bash(npx husky add:*)",
       "Bash(chmod:*)",
       "Bash(ls:*)",
-      "Bash(git update-index:*)"
+      "Bash(git update-index:*)",
+      "Bash(npx husky:*)"
     ],
     "deny": []
   },

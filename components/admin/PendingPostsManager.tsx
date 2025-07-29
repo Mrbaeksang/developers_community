@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -17,6 +25,7 @@ import {
   MessageSquare,
   Heart,
   Tag,
+  FileText,
 } from 'lucide-react'
 
 interface PostAuthor {
@@ -63,6 +72,7 @@ export function PendingPostsManager({
   const [selectedPost, setSelectedPost] = useState<PendingPost | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [previewPost, setPreviewPost] = useState<PendingPost | null>(null)
 
   const handleApprove = async (postId: string) => {
     setIsProcessing(true)
@@ -227,6 +237,14 @@ export function PendingPostsManager({
               {/* 액션 버튼 */}
               <div className="flex justify-end gap-3">
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewPost(post)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  미리보기
+                </Button>
+                <Button
                   variant="destructive"
                   size="sm"
                   onClick={() => {
@@ -255,6 +273,51 @@ export function PendingPostsManager({
           </Card>
         ))}
       </div>
+
+      {/* 미리보기 다이얼로그 */}
+      <Dialog open={!!previewPost} onOpenChange={() => setPreviewPost(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{previewPost?.title}</DialogTitle>
+            <DialogDescription>
+              <div className="flex items-center gap-4 mt-2">
+                <span>{previewPost?.author.name}</span>
+                <span>•</span>
+                <span>
+                  {previewPost &&
+                    formatDistanceToNow(new Date(previewPost.createdAt), {
+                      addSuffix: true,
+                      locale: ko,
+                    })}
+                </span>
+                <span>•</span>
+                <Badge variant="secondary">{previewPost?.category.name}</Badge>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] mt-4">
+            <div className="prose prose-lg max-w-none">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: previewPost?.content || '',
+                }}
+              />
+            </div>
+            {previewPost?.tags && previewPost.tags.length > 0 && (
+              <div className="flex items-center gap-2 mt-6">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-wrap gap-1">
+                  {previewPost.tags.map((tag) => (
+                    <Badge key={tag.id} variant="outline">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

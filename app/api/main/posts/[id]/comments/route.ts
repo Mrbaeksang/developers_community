@@ -124,11 +124,25 @@ export async function POST(
       }
     }
 
+    // 현재 사용자의 전역 역할 확인 (authorRole 저장을 위해)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { globalRole: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
     // 댓글 생성
     const comment = await prisma.mainComment.create({
       data: {
         content: content.trim(),
         authorId: session.user.id,
+        authorRole: user.globalRole, // 작성 시점의 역할 저장
         postId: id,
         parentId: parentId || null,
       },

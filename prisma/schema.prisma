@@ -249,6 +249,9 @@ model MainPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 권한 계층을 위한 작성자 역할 저장
+  authorRole GlobalRole
+
   // 관계
   authorId   String
   author     User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -270,6 +273,9 @@ model MainComment {
   isEdited  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // 권한 계층을 위한 작성자 역할 저장
+  authorRole GlobalRole
 
   // 관계
   authorId String
@@ -440,6 +446,9 @@ model CommunityPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 권한 계층을 위한 작성자 역할 저장
+  authorRole CommunityRole
+
   // 관계
   authorId   String
   author     User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -464,6 +473,9 @@ model CommunityComment {
   isEdited  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // 권한 계층을 위한 작성자 역할 저장
+  authorRole CommunityRole
 
   // 관계
   authorId String
@@ -545,6 +557,9 @@ model CommunityAnnouncement {
   isPinned  Boolean  @default(true) // 공지사항은 기본적으로 고정
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // 권한 계층을 위한 작성자 역할 저장
+  authorRole CommunityRole
 
   // 관계
   communityId String

@@ -162,6 +162,19 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // 현재 사용자의 전역 역할 확인 (authorRole 저장을 위해)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { globalRole: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: '사용자를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
     // 게시글 생성
     const post = await prisma.mainPost.create({
       data: {
@@ -170,6 +183,7 @@ export async function POST(request: NextRequest) {
         excerpt: excerpt || content.substring(0, 200),
         slug,
         status,
+        authorRole: user.globalRole, // 작성 시점의 역할 저장
         author: { connect: { id: session.user.id } },
         category: { connect: { id: categoryId } },
         tags: {
