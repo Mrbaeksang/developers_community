@@ -209,7 +209,7 @@ const COLUMN_TRANSLATIONS: Record<string, string> = {
   commentId: '댓글',
   color: '색상',
   icon: '아이콘',
-  order: '순서',
+  order: '표시 순서',
 
   // Session 관련
   sessionToken: '세션 토큰',
@@ -299,7 +299,11 @@ export default function DatabaseViewerPage() {
     }
   }
 
-  const formatCellValue = (value: unknown, column: string) => {
+  const formatCellValue = (
+    value: unknown,
+    column: string,
+    row?: Record<string, unknown>
+  ) => {
     if (value === null)
       return (
         <span className="text-gray-400 italic text-xs font-light">
@@ -402,6 +406,45 @@ export default function DatabaseViewerPage() {
         <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
           {JSON.stringify(obj)}
         </code>
+      )
+    }
+
+    // communityId 컬럼 특별 처리 (CommunityCategory 테이블에서)
+    if (
+      column === 'communityId' &&
+      row &&
+      'community' in row &&
+      row.community
+    ) {
+      const community = row.community as Record<string, unknown>
+      if ('name' in community && 'slug' in community) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">
+              {String(community.name)}
+            </span>
+            <span className="text-xs text-gray-500">
+              /{String(community.slug)}
+            </span>
+          </div>
+        )
+      }
+    }
+
+    // 색상 필드 처리
+    if (
+      column === 'color' &&
+      typeof value === 'string' &&
+      value.startsWith('#')
+    ) {
+      return (
+        <div className="flex items-center gap-2">
+          <div
+            className="w-6 h-6 rounded border-2 border-gray-300"
+            style={{ backgroundColor: value }}
+          />
+          <code className="text-xs font-mono">{value}</code>
+        </div>
       )
     }
 
@@ -949,7 +992,7 @@ export default function DatabaseViewerPage() {
                                 key={column}
                                 className="py-3 px-3 align-middle"
                               >
-                                {formatCellValue(row[column], column)}
+                                {formatCellValue(row[column], column, row)}
                               </TableCell>
                             ))}
                           </TableRow>

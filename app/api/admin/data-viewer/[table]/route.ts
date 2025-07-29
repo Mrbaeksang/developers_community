@@ -286,6 +286,18 @@ export async function GET(
         },
       }
     }
+    // CommunityCategory인 경우 커뮤니티 정보 포함
+    else if (modelName === 'communityCategory') {
+      includeRelations = {
+        community: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      }
+    }
 
     // @ts-expect-error Prisma dynamic model access
     const data = await prisma[modelName].findMany({
