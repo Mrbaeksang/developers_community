@@ -34,6 +34,7 @@ interface Category {
 
 interface CommunityPostEditorProps {
   communityId: string
+  communitySlug?: string
   categories: Category[]
   allowFileUpload: boolean
   maxFileSize: number
@@ -49,6 +50,7 @@ interface UploadedFile {
 
 export function CommunityPostEditor({
   communityId,
+  communitySlug,
   categories,
   allowFileUpload,
   maxFileSize,
@@ -143,7 +145,9 @@ export function CommunityPostEditor({
 
       const data = await res.json()
       toast.success('게시글이 작성되었습니다.')
-      router.push(`/communities/${communityId}/posts/${data.id}`)
+      router.push(
+        `/communities/${communitySlug || communityId}/posts/${data.id}`
+      )
     } catch (error) {
       console.error('Failed to create post:', error)
       toast.error(
