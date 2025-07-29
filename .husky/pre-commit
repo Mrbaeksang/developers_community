@@ -1,2 +1,4 @@
-# lint-staged만 실행 (lint-staged가 알아서 처리)
+#\!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
 npx lint-staged

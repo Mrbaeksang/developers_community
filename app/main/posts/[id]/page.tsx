@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PostDetail from '@/components/posts/PostDetail'
 import CommentSection from '@/components/posts/CommentSection'
+import RelatedPosts from '@/components/posts/RelatedPosts'
 
 interface PageProps {
   params: Promise<{
@@ -85,12 +86,17 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="max-w-4xl mx-auto">
-        <PostDetail post={post} />
-        <CommentSection
-          postId={post.id}
-          initialComments={post.comments || []}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto">
+        <div className="space-y-8">
+          <PostDetail post={post} />
+          <CommentSection
+            postId={post.id}
+            initialComments={post.comments || []}
+          />
+        </div>
+        <aside className="space-y-6">
+          <RelatedPosts postId={post.id} />
+        </aside>
       </div>
     </div>
   )

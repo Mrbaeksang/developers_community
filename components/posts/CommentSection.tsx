@@ -1,28 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import {
   MessageSquare,
   Send,
-  Edit,
-  Trash2,
-  MoreVertical,
   AlertCircle,
 } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -31,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import CommentItem from './CommentItem'
 
 interface Comment {
   id: string
@@ -62,7 +51,7 @@ export default function CommentSection({
   const [editContent, setEditContent] = useState('')
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
-  const [replyContent, setReplyContent] = useState('')
+  const [replyContents, setReplyContents] = useState<Record<string, string>>({})
   const { toast } = useToast()
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -159,7 +148,8 @@ export default function CommentSection({
       return
     }
 
-    if (!replyContent.trim()) {
+    const content = replyContents[parentId] || ''
+    if (!content.trim()) {
       toast({
         title: '답글 내용을 입력해주세요',
         variant: 'destructive',
@@ -176,7 +166,7 @@ export default function CommentSection({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: replyContent.trim(),
+          content: content.trim(),
           parentId: parentId,
         }),
       })
@@ -199,7 +189,11 @@ export default function CommentSection({
           title: '답글이 작성되었습니다',
         })
         setReplyingToId(null)
-        setReplyContent('')
+        setReplyContents(prev => {
+          const newContents = { ...prev }
+          delete newContents[parentId]
+          return newContents
+        })
       } else {
         const error = await res.json()
         throw new Error(error.error || '답글 작성에 실패했습니다')
@@ -239,13 +233,19 @@ export default function CommentSection({
 
       if (res.ok) {
         const data = await res.json()
-        setComments(
-          comments.map((comment) =>
-            comment.id === commentId
-              ? { ...comment, content: data.comment.content, isEdited: true }
-              : comment
-          )
-        )
+        // 재귀적으로 댓글 트리를 업데이트하는 함수
+        const updateCommentInTree = (comments: Comment[]): Comment[] => {
+          return comments.map((comment) => {
+            if (comment.id === commentId) {
+              return { ...comment, content: data.comment.content, isEdited: true }
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              return { ...comment, replies: updateCommentInTree(comment.replies) }
+            }
+            return comment
+          })
+        }
+        setComments(updateCommentInTree(comments))
         toast({
           title: '댓글이 수정되었습니다',
         })
@@ -273,7 +273,18 @@ export default function CommentSection({
       })
 
       if (res.ok) {
-        setComments(comments.filter((comment) => comment.id !== commentId))
+        // 재귀적으로 댓글을 삭제하는 함수
+        const deleteCommentFromTree = (comments: Comment[]): Comment[] => {
+          return comments
+            .filter(comment => comment.id !== commentId)
+            .map(comment => {
+              if (comment.replies && comment.replies.length > 0) {
+                return { ...comment, replies: deleteCommentFromTree(comment.replies) }
+              }
+              return comment
+            })
+        }
+        setComments(deleteCommentFromTree(comments))
         toast({
           title: '댓글이 삭제되었습니다',
         })
@@ -294,178 +305,48 @@ export default function CommentSection({
     }
   }
 
-  const CommentItem = ({
-    comment,
-    depth = 0,
-  }: {
-    comment: Comment
-    depth?: number
-  }) => {
-    const isAuthor = session?.user?.id === comment.author.id
-    const isEditing = editingCommentId === comment.id
+  // Handler functions for CommentItem
+  const handleReplyClick = (commentId: string) => {
+    if (replyingToId === commentId) {
+      setReplyingToId(null)
+    } else {
+      setReplyingToId(commentId)
+    }
+  }
 
-    return (
-      <div className={`${depth > 0 ? 'ml-12' : ''}`}>
-        <div className="flex gap-3 mb-4">
-          <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-black">
-            <AvatarImage src={comment.author.image || undefined} />
-            <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-              {comment.author.name?.[0] || comment.author.email?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm">
-                    {comment.author.name || 'Unknown'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(comment.createdAt), {
-                      addSuffix: true,
-                      locale: ko,
-                    })}
-                  </span>
-                  {comment.isEdited && (
-                    <span className="text-xs text-muted-foreground">
-                      (수정됨)
-                    </span>
-                  )}
-                </div>
-                {isAuthor && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditingCommentId(comment.id)
-                          setEditContent(comment.content)
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        수정
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setDeleteCommentId(comment.id)}
-                        className="text-destructive cursor-pointer"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        삭제
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="border-2 border-black"
-                    rows={3}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleEditComment(comment.id)}
-                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-                    >
-                      수정 완료
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingCommentId(null)
-                        setEditContent('')
-                      }}
-                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-                    >
-                      취소
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
-              )}
-            </div>
+  const handleReplyChange = (commentId: string, content: string) => {
+    setReplyContents(prev => ({ ...prev, [commentId]: content }))
+  }
 
-            {/* 답글 버튼 */}
-            {depth === 0 && (
-              <div className="mt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs font-bold hover:bg-gray-100"
-                  onClick={() => {
-                    if (replyingToId === comment.id) {
-                      setReplyingToId(null)
-                      setReplyContent('')
-                    } else {
-                      setReplyingToId(comment.id)
-                      setReplyContent('')
-                    }
-                  }}
-                >
-                  {replyingToId === comment.id ? '취소' : '답글 달기'}
-                </Button>
-              </div>
-            )}
+  const handleReplyCancel = (commentId: string) => {
+    setReplyingToId(null)
+    setReplyContents(prev => {
+      const newContents = { ...prev }
+      delete newContents[commentId]
+      return newContents
+    })
+  }
 
-            {/* 답글 작성 폼 */}
-            {replyingToId === comment.id && (
-              <div className="mt-3 ml-12">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="답글을 작성해주세요..."
-                    className="flex-1 min-h-[80px] border-2 border-black focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                    rows={2}
-                  />
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleReplySubmit(comment.id)}
-                      disabled={isSubmitting || !replyContent.trim()}
-                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-                    >
-                      답글 작성
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setReplyingToId(null)
-                        setReplyContent('')
-                      }}
-                      className="border-2 border-black"
-                    >
-                      취소
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {comment.replies?.map((reply) => (
-          <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
-        ))}
-      </div>
-    )
+  const handleEditClick = (commentId: string, content: string) => {
+    setEditingCommentId(commentId)
+    setEditContent(content)
+  }
+
+  const handleEditChange = (content: string) => {
+    setEditContent(content)
+  }
+
+  const handleEditSubmit = (commentId: string) => {
+    handleEditComment(commentId)
+  }
+
+  const handleEditCancel = () => {
+    setEditingCommentId(null)
+    setEditContent('')
+  }
+
+  const handleDeleteClick = (commentId: string) => {
+    setDeleteCommentId(commentId)
   }
 
   return (
@@ -505,7 +386,25 @@ export default function CommentSection({
         ) : (
           <div className="space-y-4">
             {comments.map((comment) => (
-              <CommentItem key={comment.id} comment={comment} />
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                currentUserId={session?.user?.id}
+                isSubmitting={isSubmitting}
+                replyingToId={replyingToId}
+                replyContent={replyContents[comment.id] || ''}
+                editingCommentId={editingCommentId}
+                editContent={editContent}
+                onReplyClick={handleReplyClick}
+                onReplyChange={handleReplyChange}
+                onReplySubmit={handleReplySubmit}
+                onReplyCancel={handleReplyCancel}
+                onEditClick={handleEditClick}
+                onEditChange={handleEditChange}
+                onEditSubmit={handleEditSubmit}
+                onEditCancel={handleEditCancel}
+                onDeleteClick={handleDeleteClick}
+              />
             ))}
           </div>
         )}
