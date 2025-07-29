@@ -102,6 +102,20 @@ if (error instanceof z.ZodError) {
   return { error: error.issues[0].message }
 }
 ```
+
+## 🚨 CRITICAL: Code Quality Checks
+### Before EVERY Commit:
+1. **ALWAYS** run `npm run format:check` before committing
+2. **ALWAYS** run `npm run type-check` before pushing
+3. **NEVER** bypass format checks with --no-verify
+
+### Quality Check Commands:
+```bash
+npm run format:check  # Check formatting issues
+npm run format        # Fix formatting issues
+npm run type-check    # Check TypeScript types
+npm run lint          # Check ESLint rules
+```
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

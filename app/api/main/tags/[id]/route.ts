@@ -42,7 +42,12 @@ export async function PUT(
     }
 
     // 업데이트할 데이터 준비
-    const updateData: any = {}
+    const updateData: {
+      name?: string
+      slug?: string
+      description?: string | null
+      color?: string
+    } = {}
 
     if (name && name !== existingTag.name) {
       updateData.name = name.trim()

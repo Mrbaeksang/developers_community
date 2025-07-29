@@ -10,7 +10,7 @@ export default {
       return [
         `prettier --check ${filesStr}`, // 먼저 포맷 체크
         `prettier --write ${filesStr}`, // 포맷 수정
-        `eslint --fix ${filesStr}`,     // ESLint 수정
+        `eslint --fix ${filesStr}`, // ESLint 수정
         `prettier --check ${filesStr}`, // 최종 포맷 확인
       ]
     }

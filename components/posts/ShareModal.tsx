@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Copy, Check } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import Image from 'next/image'
 
 interface ShareModalProps {
   isOpen: boolean
@@ -38,7 +37,7 @@ export default function ShareModal({
         title: '링크가 복사되었습니다',
         description: '원하는 곳에 붙여넣기 하세요',
       })
-    } catch (error) {
+    } catch {
       toast({
         title: '복사 실패',
         description: 'URL을 수동으로 복사해주세요',

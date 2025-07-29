@@ -20,7 +20,9 @@
       "Bash(npm run type-check:*)",
       "mcp__filesystem__edit_file",
       "Bash(npx husky add:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(git update-index:*)"
     ],
     "deny": []
   },

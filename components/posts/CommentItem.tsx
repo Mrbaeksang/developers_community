@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Edit, Trash2, MoreVertical } from 'lucide-react'

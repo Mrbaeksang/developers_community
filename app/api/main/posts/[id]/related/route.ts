@@ -108,7 +108,8 @@ export async function GET(
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((post) => {
-        const { score: _, ...postWithoutScore } = post
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { score, ...postWithoutScore } = post
         return postWithoutScore
       }) // score 필드 제거
 
