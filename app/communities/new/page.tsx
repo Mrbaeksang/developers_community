@@ -199,7 +199,7 @@ export default function CreateCommunityPage() {
                 <Switch
                   id="file-upload"
                   checked={formData.allowFileUpload}
-                  onCheckedChange={(checked) => setFormData({ ...formData, allowFileUpload: checked })}
+                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, allowFileUpload: checked })}
                 />
               </div>
               
@@ -213,7 +213,7 @@ export default function CreateCommunityPage() {
                 <Switch
                   id="chat"
                   checked={formData.allowChat}
-                  onCheckedChange={(checked) => setFormData({ ...formData, allowChat: checked })}
+                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, allowChat: checked })}
                 />
               </div>
             </div>
