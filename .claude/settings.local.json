@@ -18,7 +18,9 @@
       "Bash(git push:*)",
       "Bash(npm install:*)",
       "Bash(npm run type-check:*)",
-      "mcp__filesystem__edit_file"
+      "mcp__filesystem__edit_file",
+      "Bash(npx husky add:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   },

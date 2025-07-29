@@ -16,7 +16,10 @@ export async function PUT(
     }
 
     // 관리자 또는 모더레이터만 태그 수정 가능
-    const roleCheck = await checkGlobalRole(session!.user!.id, ['ADMIN', 'MANAGER'])
+    const roleCheck = await checkGlobalRole(session!.user!.id, [
+      'ADMIN',
+      'MANAGER',
+    ])
     if (roleCheck) {
       return roleCheck
     }
@@ -43,7 +46,7 @@ export async function PUT(
 
     if (name && name !== existingTag.name) {
       updateData.name = name.trim()
-      
+
       // 슬러그 재생성
       updateData.slug = name
         .trim()
@@ -57,10 +60,7 @@ export async function PUT(
           AND: [
             { id: { not: id } },
             {
-              OR: [
-                { name: updateData.name },
-                { slug: updateData.slug },
-              ],
+              OR: [{ name: updateData.name }, { slug: updateData.slug }],
             },
           ],
         },

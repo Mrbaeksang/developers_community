@@ -52,7 +52,10 @@ export async function POST(request: Request) {
     }
 
     // 관리자 또는 모더레이터만 태그 생성 가능
-    const roleCheck = await checkGlobalRole(session!.user!.id, ['ADMIN', 'MANAGER'])
+    const roleCheck = await checkGlobalRole(session!.user!.id, [
+      'ADMIN',
+      'MANAGER',
+    ])
     if (roleCheck) {
       return roleCheck
     }
