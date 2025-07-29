@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user || !['ADMIN', 'MANAGER'].includes(user.globalRole)) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      )
     }
 
     const { count = 20 } = await request.json()
@@ -50,7 +53,9 @@ export async function POST(request: NextRequest) {
       const userId = faker.helpers.arrayElement(users).id
 
       // 이미 멤버인지 확인
-      const isAlreadyMember = community.members.some((m: { userId: string }) => m.userId === userId)
+      const isAlreadyMember = community.members.some(
+        (m: { userId: string }) => m.userId === userId
+      )
       if (isAlreadyMember) continue
 
       const member = await prisma.communityMember.create({

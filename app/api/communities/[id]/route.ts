@@ -286,7 +286,7 @@ export async function DELETE(
       prisma.user.findUnique({
         where: { id: session!.user.id },
         select: { globalRole: true },
-      })
+      }),
     ])
 
     if (!community) {

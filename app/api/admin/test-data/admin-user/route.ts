@@ -17,7 +17,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!currentUser || !['ADMIN'].includes(currentUser.globalRole)) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      )
     }
 
     const body = await request.json()
