@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
-import {
-  checkAuth,
-  checkCommunityRole,
-  checkCommunityMembership,
-} from '@/lib/auth-helpers'
-import { CommunityRole } from '@prisma/client'
+import { checkAuth, checkCommunityMembership } from '@/lib/auth-helpers'
 import { canCreateAnnouncement } from '@/lib/permission-helpers'
 
 // GET /api/communities/[id]/announcements - 공지사항 목록 조회
@@ -79,24 +74,14 @@ export async function POST(
     const userId = session!.user!.id
 
     // 커뮤니티 멤버십 확인
-    const membershipCheck = await checkCommunityMembership(userId, communityId)
-    if (membershipCheck) {
-      return membershipCheck
-    }
-
-    // 현재 사용자의 커뮤니티 역할 확인
-    const membership = await prisma.communityMember.findUnique({
-      where: {
-        userId_communityId: { userId, communityId },
-      },
-      select: { role: true },
-    })
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: '커뮤니티 멤버가 아닙니다.' },
-        { status: 403 }
-      )
+    let membership
+    try {
+      membership = await checkCommunityMembership(userId, communityId)
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message }, { status: 403 })
+      }
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 관리자 권한 확인 (OWNER, ADMIN, MODERATOR 가능)

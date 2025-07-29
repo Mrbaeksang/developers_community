@@ -86,9 +86,13 @@ export async function POST(
     const userId = session!.user!.id
 
     // 커뮤니티 멤버십 확인
-    const membershipCheck = await checkCommunityMembership(userId, communityId)
-    if (membershipCheck) {
-      return membershipCheck
+    try {
+      await checkCommunityMembership(userId, communityId)
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message }, { status: 403 })
+      }
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 관리자 권한 확인 (OWNER, ADMIN만 가능)
