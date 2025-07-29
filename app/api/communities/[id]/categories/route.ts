@@ -76,14 +76,16 @@ export async function POST(
 ) {
   try {
     const session = await auth()
-    const authCheck = checkAuth(session)
-    if (authCheck) {
-      return authCheck
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
     }
 
     const resolvedParams = await params
     const communityId = resolvedParams.id
-    const userId = session!.user!.id
+    const userId = session.user.id
 
     // 커뮤니티 멤버십 확인
     try {

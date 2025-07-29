@@ -108,8 +108,7 @@ export async function GET(
     }
 
     return NextResponse.json(formattedPost)
-  } catch (error) {
-    console.error('Failed to fetch community post:', error)
+  } catch {
     return NextResponse.json(
       { error: '게시글을 불러오는데 실패했습니다.' },
       { status: 500 }
@@ -134,8 +133,12 @@ export async function PATCH(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 게시글 확인
     const post = await prisma.communityPost.findUnique({
@@ -155,7 +158,7 @@ export async function PATCH(
     }
 
     // 권한 확인 (작성자 본인만 수정 가능)
-    if (post.authorId !== session!.user.id) {
+    if (post.authorId !== session.user.id) {
       return NextResponse.json(
         { error: '게시글을 수정할 권한이 없습니다.' },
         { status: 403 }
@@ -223,8 +226,7 @@ export async function PATCH(
     })
 
     return NextResponse.json(updatedPost)
-  } catch (error) {
-    console.error('Failed to update community post:', error)
+  } catch {
     return NextResponse.json(
       { error: '게시글 수정에 실패했습니다.' },
       { status: 500 }
@@ -242,8 +244,12 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 게시글 및 멤버십 확인
     const [post, membership] = await Promise.all([
@@ -254,7 +260,7 @@ export async function DELETE(
       prisma.communityMember.findUnique({
         where: {
           userId_communityId: {
-            userId: session!.user.id,
+            userId: session.user.id,
             communityId: id,
           },
         },
@@ -271,7 +277,7 @@ export async function DELETE(
 
     // 권한 확인 (작성자 본인 또는 ADMIN/OWNER만 삭제 가능)
     const canDelete =
-      post.authorId === session!.user.id ||
+      post.authorId === session.user.id ||
       membership?.role === CommunityRole.ADMIN ||
       membership?.role === CommunityRole.OWNER
 
@@ -294,8 +300,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: '게시글이 삭제되었습니다.' })
-  } catch (error) {
-    console.error('Failed to delete community post:', error)
+  } catch {
     return NextResponse.json(
       { error: '게시글 삭제에 실패했습니다.' },
       { status: 500 }

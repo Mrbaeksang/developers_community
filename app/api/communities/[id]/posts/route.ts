@@ -166,18 +166,22 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     // 멤버십 상세 정보 조회 (파일 업로드 권한 확인용)
     const membership = await prisma.communityMember.findUnique({
       where: {
         userId_communityId: {
-          userId: session!.user.id,
+          userId: session.user.id,
           communityId: id,
         },
       },
@@ -232,7 +236,7 @@ export async function POST(
     // 현재 사용자의 커뮤니티 역할 확인 (authorRole 저장을 위해)
     const userMembership = await prisma.communityMember.findUnique({
       where: {
-        userId_communityId: { userId: session!.user.id, communityId: id },
+        userId_communityId: { userId: session.user.id, communityId: id },
       },
       select: { role: true },
     })
@@ -249,7 +253,7 @@ export async function POST(
       data: {
         title,
         content,
-        authorId: session!.user.id,
+        authorId: session.user.id,
         authorRole: userMembership.role, // 작성 시점의 역할 저장
         communityId: id,
         categoryId,

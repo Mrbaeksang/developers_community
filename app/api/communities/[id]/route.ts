@@ -189,8 +189,7 @@ export async function GET(
         currentMembership?.status === MembershipStatus.ACTIVE ||
         session?.user?.id === community.ownerId,
     })
-  } catch (error) {
-    console.error('Failed to fetch community:', error)
+  } catch {
     return NextResponse.json(
       { error: '커뮤니티 정보를 불러오는데 실패했습니다.' },
       { status: 500 }
@@ -208,11 +207,16 @@ export async function PUT(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 관리 권한 확인
-    const canManage = await canManageCommunity(session!.user.id, id)
+    const userId = session.user.id
+    const canManage = await canManageCommunity(userId, id)
     if (!canManage) {
       return NextResponse.json(
         { error: '커뮤니티를 수정할 권한이 없습니다.' },
@@ -255,8 +259,7 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedCommunity)
-  } catch (error) {
-    console.error('Failed to update community:', error)
+  } catch {
     return NextResponse.json(
       { error: '커뮤니티 수정에 실패했습니다.' },
       { status: 500 }
@@ -274,8 +277,12 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 및 사용자 정보 조회
     const [community, user] = await Promise.all([
@@ -284,7 +291,7 @@ export async function DELETE(
         select: { ownerId: true },
       }),
       prisma.user.findUnique({
-        where: { id: session!.user.id },
+        where: { id: session.user.id },
         select: { globalRole: true },
       }),
     ])
@@ -297,7 +304,7 @@ export async function DELETE(
     }
 
     // 커뮤니티 소유자 또는 사이트 관리자만 삭제 가능
-    const isOwner = community.ownerId === session!.user.id
+    const isOwner = community.ownerId === session.user.id
     const isGlobalAdmin = user?.globalRole === 'ADMIN'
 
     if (!isOwner && !isGlobalAdmin) {
@@ -313,8 +320,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: '커뮤니티가 삭제되었습니다.' })
-  } catch (error) {
-    console.error('Failed to delete community:', error)
+  } catch {
     return NextResponse.json(
       { error: '커뮤니티 삭제에 실패했습니다.' },
       { status: 500 }

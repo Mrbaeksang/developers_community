@@ -13,11 +13,15 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     // 게시글 존재 확인
@@ -36,7 +40,7 @@ export async function POST(
     const existingLike = await prisma.communityLike.findUnique({
       where: {
         userId_postId: {
-          userId: session!.user.id,
+          userId: session.user.id,
           postId: postId,
         },
       },
@@ -52,7 +56,7 @@ export async function POST(
     // 좋아요 생성
     await prisma.communityLike.create({
       data: {
-        userId: session!.user.id,
+        userId: session.user.id,
         postId: postId,
       },
     })
@@ -64,8 +68,7 @@ export async function POST(
     })
 
     return NextResponse.json({ message: '좋아요를 눌렀습니다.' })
-  } catch (error) {
-    console.error('Failed to like post:', error)
+  } catch {
     return NextResponse.json(
       { error: '좋아요 처리에 실패했습니다.' },
       { status: 500 }
@@ -83,17 +86,21 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     // 좋아요 삭제
     const result = await prisma.communityLike.deleteMany({
       where: {
-        userId: session!.user.id,
+        userId: session.user.id,
         postId: postId,
       },
     })
@@ -112,8 +119,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: '좋아요가 취소되었습니다.' })
-  } catch (error) {
-    console.error('Failed to unlike post:', error)
+  } catch {
     return NextResponse.json(
       { error: '좋아요 취소에 실패했습니다.' },
       { status: 500 }

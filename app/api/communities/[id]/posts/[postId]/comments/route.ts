@@ -56,8 +56,7 @@ export async function GET(
     })
 
     return NextResponse.json({ comments })
-  } catch (error) {
-    console.error('Failed to fetch comments:', error)
+  } catch {
     return NextResponse.json(
       { error: '댓글을 불러오는데 실패했습니다.' },
       { status: 500 }
@@ -80,11 +79,15 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     const post = await prisma.communityPost.findUnique({
@@ -144,7 +147,7 @@ export async function POST(
     const userMembership = await prisma.communityMember.findUnique({
       where: {
         userId_communityId: {
-          userId: session!.user.id,
+          userId: session.user.id,
           communityId: post.communityId,
         },
       },
@@ -162,7 +165,7 @@ export async function POST(
     const comment = await prisma.communityComment.create({
       data: {
         content,
-        authorId: session!.user.id,
+        authorId: session.user.id,
         authorRole: userMembership.role, // 작성 시점의 역할 저장
         postId: postId,
         parentId,
@@ -181,8 +184,7 @@ export async function POST(
     })
 
     return NextResponse.json(comment, { status: 201 })
-  } catch (error) {
-    console.error('Failed to create comment:', error)
+  } catch {
     return NextResponse.json(
       { error: '댓글 작성에 실패했습니다.' },
       { status: 500 }

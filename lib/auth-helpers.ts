@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { MembershipStatus, CommunityRole } from '@prisma/client'
 import { Session } from 'next-auth'
 
+// AuthenticatedSession 제거 - NextAuth 타입 정의 사용
+
 // 커스텀 에러 클래스
 export class AuthError extends Error {
   constructor(
@@ -35,12 +37,34 @@ export function forbidden(message: string = '권한이 없습니다.') {
 
 // Stage 1 Auth Helpers
 
-// 인증 확인 헬퍼
-export function checkAuth(session: Session | null) {
+// 인증 확인 헬퍼 - Type Guard로 변경
+export function checkAuth(session: Session | null): session is Session {
+  return !!session?.user?.id
+}
+
+// session에서 userId를 안전하게 추출하는 헬퍼
+export function getUserId(session: Session): string {
+  return session.user.id
+}
+
+// 인증 확인 후 session을 안전하게 사용하는 헬퍼
+export function requireAuth(session: Session | null): Session {
   if (!session?.user?.id) {
-    return unauthorized()
+    throw new AuthError('인증이 필요합니다.')
   }
-  return null
+  return session
+}
+
+// Type Guard 헬퍼
+export function isAuthenticatedSession(
+  session: Session | null
+): session is Session {
+  return !!session?.user?.id
+}
+
+// Type Guard 헬퍼 (session이 존재하는지 확인)
+export function isAuthenticated(session: Session | null): session is Session {
+  return !!session?.user?.id
 }
 
 // 전역 역할 확인 헬퍼

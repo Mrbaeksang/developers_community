@@ -110,8 +110,12 @@ export async function POST(req: NextRequest) {
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     const body = await req.json()
     const validation = createCommunitySchema.safeParse(body)
@@ -147,6 +151,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // session.user.id는 checkAuth에서 이미 확인됨
+    const userId = session.user.id
+
     // 커뮤니티 생성
     const community = await prisma.community.create({
       data: {
@@ -157,11 +164,11 @@ export async function POST(req: NextRequest) {
         visibility,
         allowFileUpload,
         allowChat,
-        ownerId: session!.user.id,
+        ownerId: userId,
         // 생성자를 자동으로 OWNER 멤버로 추가
         members: {
           create: {
-            userId: session!.user.id,
+            userId: userId,
             role: CommunityRole.OWNER,
             status: MembershipStatus.ACTIVE,
           },

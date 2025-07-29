@@ -13,11 +13,15 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     // 게시글 존재 확인
@@ -36,7 +40,7 @@ export async function POST(
     const existingBookmark = await prisma.communityBookmark.findUnique({
       where: {
         userId_postId: {
-          userId: session!.user.id,
+          userId: session.user.id,
           postId: postId,
         },
       },
@@ -52,14 +56,13 @@ export async function POST(
     // 북마크 생성
     await prisma.communityBookmark.create({
       data: {
-        userId: session!.user.id,
+        userId: session.user.id,
         postId: postId,
       },
     })
 
     return NextResponse.json({ message: '북마크에 저장되었습니다.' })
-  } catch (error) {
-    console.error('Failed to bookmark post:', error)
+  } catch {
     return NextResponse.json(
       { error: '북마크 처리에 실패했습니다.' },
       { status: 500 }
@@ -77,17 +80,21 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session!.user.id, id)
+    const membershipError = await checkMembership(session.user.id, id)
     if (membershipError) return membershipError
 
     // 북마크 삭제
     const result = await prisma.communityBookmark.deleteMany({
       where: {
-        userId: session!.user.id,
+        userId: session.user.id,
         postId: postId,
       },
     })
@@ -100,8 +107,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ message: '북마크가 해제되었습니다.' })
-  } catch (error) {
-    console.error('Failed to unbookmark post:', error)
+  } catch {
     return NextResponse.json(
       { error: '북마크 해제에 실패했습니다.' },
       { status: 500 }

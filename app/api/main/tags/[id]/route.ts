@@ -10,16 +10,16 @@ export async function PUT(
 ) {
   try {
     const session = await auth()
-    const authCheck = checkAuth(session)
-    if (authCheck) {
-      return authCheck
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
     }
 
     // 관리자 또는 모더레이터만 태그 수정 가능
-    const roleCheck = await checkGlobalRole(session!.user!.id, [
-      'ADMIN',
-      'MANAGER',
-    ])
+    const userId = session.user.id
+    const roleCheck = await checkGlobalRole(userId, ['ADMIN', 'MANAGER'])
     if (roleCheck) {
       return roleCheck
     }
@@ -93,8 +93,7 @@ export async function PUT(
     })
 
     return NextResponse.json({ tag: updatedTag })
-  } catch (error) {
-    console.error('태그 수정 실패:', error)
+  } catch {
     return NextResponse.json(
       { error: '태그 수정에 실패했습니다.' },
       { status: 500 }
@@ -109,13 +108,16 @@ export async function DELETE(
 ) {
   try {
     const session = await auth()
-    const authCheck = checkAuth(session)
-    if (authCheck) {
-      return authCheck
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
     }
 
     // 관리자만 태그 삭제 가능
-    const roleCheck = await checkGlobalRole(session!.user!.id, ['ADMIN'])
+    const userId = session.user.id
+    const roleCheck = await checkGlobalRole(userId, ['ADMIN'])
     if (roleCheck) {
       return roleCheck
     }
@@ -155,8 +157,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: '태그가 삭제되었습니다.' })
-  } catch (error) {
-    console.error('태그 삭제 실패:', error)
+  } catch {
     return NextResponse.json(
       { error: '태그 삭제에 실패했습니다.' },
       { status: 500 }

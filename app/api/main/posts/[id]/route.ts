@@ -90,8 +90,12 @@ export async function PUT(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
@@ -111,8 +115,9 @@ export async function PUT(
     }
 
     // 현재 사용자의 전역 역할 확인
+    const userId = session.user.id
     const user = await prisma.user.findUnique({
-      where: { id: session!.user.id },
+      where: { id: userId },
       select: { globalRole: true },
     })
 
@@ -124,7 +129,7 @@ export async function PUT(
     }
 
     // 권한 확인 (역할 계층 기반)
-    const isAuthor = post.authorId === session!.user.id
+    const isAuthor = post.authorId === userId
     const canModify = canModifyMainContent(
       user.globalRole,
       isAuthor,
@@ -262,8 +267,12 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
@@ -282,8 +291,9 @@ export async function DELETE(
     }
 
     // 현재 사용자의 전역 역할 확인
+    const userId = session.user.id
     const user = await prisma.user.findUnique({
-      where: { id: session!.user.id },
+      where: { id: userId },
       select: { globalRole: true },
     })
 
@@ -295,7 +305,7 @@ export async function DELETE(
     }
 
     // 권한 확인 (역할 계층 기반)
-    const isAuthor = post.authorId === session!.user.id
+    const isAuthor = post.authorId === userId
     const canDelete = canModifyMainContent(
       user.globalRole,
       isAuthor,

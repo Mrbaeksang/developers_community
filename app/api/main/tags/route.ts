@@ -33,8 +33,7 @@ export async function GET(request: Request) {
         count: tag._count.posts,
       })),
     })
-  } catch (error) {
-    console.error('태그 목록 조회 실패:', error)
+  } catch {
     return NextResponse.json(
       { error: '태그 목록 조회에 실패했습니다.' },
       { status: 500 }
@@ -46,16 +45,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await auth()
-    const authCheck = checkAuth(session)
-    if (authCheck) {
-      return authCheck
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
     }
 
     // 관리자 또는 모더레이터만 태그 생성 가능
-    const roleCheck = await checkGlobalRole(session!.user!.id, [
-      'ADMIN',
-      'MANAGER',
-    ])
+    const userId = session.user.id
+    const roleCheck = await checkGlobalRole(userId, ['ADMIN', 'MANAGER'])
     if (roleCheck) {
       return roleCheck
     }
@@ -101,8 +100,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ tag }, { status: 201 })
-  } catch (error) {
-    console.error('태그 생성 실패:', error)
+  } catch {
     return NextResponse.json(
       { error: '태그 생성에 실패했습니다.' },
       { status: 500 }

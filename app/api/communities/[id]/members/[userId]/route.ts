@@ -15,10 +15,14 @@ export async function PUT(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
-    const currentUserId = session!.user.id
+    const currentUserId = session.user.id
     const { role } = await req.json()
 
     // 역할 유효성 확인
@@ -214,10 +218,14 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
-    const currentUserId = session!.user.id
+    const currentUserId = session.user.id
 
     // 자기 자신을 추방할 수 없음
     if (currentUserId === targetUserId) {

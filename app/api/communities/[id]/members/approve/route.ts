@@ -15,13 +15,17 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
     const { userIds } = await req.json()
 
     // 커뮤니티 관리 권한 확인
-    const canManage = await canManageCommunity(session!.user.id, id)
+    const canManage = await canManageCommunity(session.user.id, id)
     if (!canManage) {
       return NextResponse.json(
         { error: '가입 승인 권한이 없습니다.' },
@@ -88,7 +92,7 @@ export async function POST(
         createNotification({
           userId: member.userId,
           type: 'COMMUNITY_JOIN',
-          senderId: session!.user.id,
+          senderId: session.user.id,
           title: '커뮤니티 가입 승인',
           message: `${community.name} 커뮤니티 가입이 승인되었습니다.`,
           resourceIds: { communityId: id },

@@ -19,10 +19,15 @@ export async function POST(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
-    const userId = session!.user.id
+    // checkAuth 통과 후 session은 확실히 존재
+    const userId = session.user.id
 
     // 커뮤니티 확인
     const community = await prisma.community.findUnique({
@@ -135,7 +140,7 @@ export async function POST(
           type: 'COMMUNITY_JOIN',
           senderId: userId,
           title: '커뮤니티 가입 요청',
-          message: `${session!.user.name || '사용자'}님이 ${community.name} 커뮤니티 가입을 요청했습니다.`,
+          message: `${session.user.name || '사용자'}님이 ${community.name} 커뮤니티 가입을 요청했습니다.`,
           resourceIds: { communityId: id },
         })
       }
@@ -183,10 +188,15 @@ export async function DELETE(
     const session = await auth()
 
     // 인증 확인
-    const authError = checkAuth(session)
-    if (authError) return authError
+    if (!checkAuth(session)) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      )
+    }
 
-    const userId = session!.user.id
+    // checkAuth 통과 후 session은 확실히 존재
+    const userId = session.user.id
 
     // 멤버십 확인
     const membership = await prisma.communityMember.findUnique({
