@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TestActionCard } from '@/components/admin/TestActionCard'
+import { TestResultsPanel } from '@/components/admin/TestResultsPanel'
 import {
   ChevronLeft,
   Database,
@@ -27,9 +28,23 @@ interface TestCenterContentProps {
   }
 }
 
+interface TestResult {
+  id: string
+  type: 'user' | 'post' | 'community' | 'comment' | 'like' | 'bookmark' | 'tag'
+  title: string
+  subtitle?: string
+  createdAt: Date
+  data: {
+    message?: string
+    created?: unknown
+    [key: string]: unknown
+  }
+}
+
 export function TestCenterContent({ initialStats }: TestCenterContentProps) {
   const [stats, setStats] = useState(initialStats)
   const [loading, setLoading] = useState(false)
+  const [testResults, setTestResults] = useState<TestResult[]>([])
 
   const refreshStats = async () => {
     setLoading(true)
@@ -51,6 +66,50 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleActionResult = (result: {
+    action: string
+    endpoint: string
+    params: Record<string, unknown>
+    response: {
+      message?: string
+      created?: unknown
+      [key: string]: unknown
+    }
+  }) => {
+    // API 응답을 결과 패널용 형식으로 변환
+    const { action, response } = result
+    
+    // 생성된 데이터 타입 판별
+    let type: TestResult['type'] = 'user'
+    const title = action
+    let subtitle = response.message || '작업 완료'
+    
+    if (action.includes('사용자')) type = 'user'
+    else if (action.includes('게시글')) type = 'post'
+    else if (action.includes('커뮤니티')) type = 'community'
+    else if (action.includes('댓글')) type = 'comment'
+    else if (action.includes('좋아요')) type = 'like'
+    else if (action.includes('북마크')) type = 'bookmark'
+    else if (action.includes('태그')) type = 'tag'
+    
+    // 생성된 데이터 정보 추출
+    if (response.created) {
+      const count = Array.isArray(response.created) ? response.created.length : 1
+      subtitle = `${count}개 항목 생성됨`
+    }
+    
+    const newResult: TestResult = {
+      id: Date.now().toString(),
+      type,
+      title,
+      subtitle,
+      createdAt: new Date(),
+      data: response,
+    }
+    
+    setTestResults((prev) => [newResult, ...prev])
   }
 
   const testActions = [
@@ -238,12 +297,19 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
                   key={index}
                   {...action}
                   onSuccess={refreshStats}
+                  onResult={handleActionResult}
                 />
               ))}
             </div>
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* 결과 패널 */}
+      <TestResultsPanel
+        results={testResults}
+        onClear={() => setTestResults([])}
+      />
     </div>
   )
 }
