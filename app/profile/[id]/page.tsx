@@ -1,10 +1,5 @@
 import { notFound } from 'next/navigation'
-import {
-  Calendar,
-  FileText,
-  MessageSquare,
-  Heart,
-} from 'lucide-react'
+import { Calendar, FileText, MessageSquare, Heart } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -64,7 +59,7 @@ async function getProfile(userId: string, isOwnProfile: boolean) {
 
       const data = await res.json()
       const myProfile = data.user as MyProfile
-      
+
       // MyProfile을 UserProfile 형식으로 변환
       return {
         id: myProfile.id,
@@ -80,10 +75,10 @@ async function getProfile(userId: string, isOwnProfile: boolean) {
           mainComments: myProfile.stats.commentCount,
           mainLikes: myProfile.stats.likeCount,
           mainBookmarks: 0, // API에서 제공하지 않음
-        }
+        },
       } as UserProfile
     }
-    
+
     // 다른 사용자의 프로필인 경우 /api/users/[id] 사용
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/users/${userId}`,
@@ -112,7 +107,7 @@ export default async function ProfilePage({
 }) {
   const { id } = await params
   const session = await auth()
-  
+
   const isOwnProfile = session?.user?.id === id
   const profile = await getProfile(id, isOwnProfile)
 
