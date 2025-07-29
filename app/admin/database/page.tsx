@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,55 +49,55 @@ const TABLES = [
 
 export default function DatabaseViewerPage() {
   const [selectedTable, setSelectedTable] = useState<string>('')
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] = useState<Record<string, unknown>[]>([])
   const [columns, setColumns] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const { toast } = useToast()
-  const router = useRouter()
 
-  const fetchTableData = async (
-    table: string,
-    searchTerm = '',
-    pageNum = 1
-  ) => {
-    if (!table) return
+  const fetchTableData = useCallback(
+    async (table: string, searchTerm = '', pageNum = 1) => {
+      if (!table) return
 
-    setLoading(true)
-    try {
-      const params = new URLSearchParams({
-        page: pageNum.toString(),
-        search: searchTerm,
-      })
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({
+          page: pageNum.toString(),
+          search: searchTerm,
+        })
 
-      const response = await fetch(`/api/admin/data-viewer/${table}?${params}`)
-      if (!response.ok) {
-        throw new Error('데이터를 불러오는데 실패했습니다.')
+        const response = await fetch(
+          `/api/admin/data-viewer/${table}?${params}`
+        )
+        if (!response.ok) {
+          throw new Error('데이터를 불러오는데 실패했습니다.')
+        }
+
+        const result = await response.json()
+        setData(result.data)
+        setColumns(result.columns)
+        setTotalPages(result.totalPages)
+        setPage(pageNum)
+      } catch {
+        toast({
+          title: '오류',
+          description: '데이터를 불러오는데 실패했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
       }
-
-      const result = await response.json()
-      setData(result.data)
-      setColumns(result.columns)
-      setTotalPages(result.totalPages)
-      setPage(pageNum)
-    } catch (error) {
-      toast({
-        title: '오류',
-        description: '데이터를 불러오는데 실패했습니다.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    [toast]
+  )
 
   useEffect(() => {
     if (selectedTable) {
       fetchTableData(selectedTable, search, page)
     }
-  }, [selectedTable, page])
+  }, [selectedTable, page, search, fetchTableData])
 
   const handleSearch = () => {
     if (selectedTable) {
@@ -106,7 +105,7 @@ export default function DatabaseViewerPage() {
     }
   }
 
-  const formatCellValue = (value: any, column: string) => {
+  const formatCellValue = (value: unknown, column: string) => {
     if (value === null)
       return <span className="text-muted-foreground">null</span>
     if (value === undefined)
@@ -123,7 +122,11 @@ export default function DatabaseViewerPage() {
 
     // Date 값
     if (column.toLowerCase().includes('at') && value) {
-      return new Date(value).toLocaleString('ko-KR')
+      // Date로 변환 가능한 값인지 확인
+      if (typeof value === 'string' || typeof value === 'number') {
+        return new Date(value).toLocaleString('ko-KR')
+      }
+      return String(value)
     }
 
     // 긴 텍스트는 줄임
@@ -133,7 +136,7 @@ export default function DatabaseViewerPage() {
 
     // Enum 값들은 Badge로 표시
     if (column === 'status' || column === 'role' || column === 'globalRole') {
-      return <Badge variant="outline">{value}</Badge>
+      return <Badge variant="outline">{String(value)}</Badge>
     }
 
     return String(value)

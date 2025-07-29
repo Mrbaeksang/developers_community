@@ -5,25 +5,26 @@
       "mcp__context-7__get-library-docs",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:nextjs.org)",
+      "WebFetch(domain:react.dev)",
+      "WebFetch(domain:prisma.io)",
       "mcp__github__get_pull_request_files",
       "mcp__github__get_file_contents",
       "mcp__github__list_commits",
       "mcp__github__search_code",
       "mcp__github__get_pull_request_status",
-      "Bash(mv:*)",
-      "Bash(npm run lint)",
-      "Bash(npm run format:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run type-check:*)",
-      "mcp__filesystem__edit_file",
-      "Bash(npx husky add:*)",
-      "Bash(chmod:*)",
+      "Bash(npm run:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
       "Bash(ls:*)",
-      "Bash(git update-index:*)",
-      "Bash(npx husky:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "mcp__filesystem__edit_file"
     ],
     "deny": []
   },
@@ -34,39 +35,80 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"🚨 PRISMA 체크: 스키마 먼저 확인!\""
+            "command": "echo \"📋 코드 작성/수정 전 체크리스트:\""
           },
           {
             "type": "command",
-            "command": "echo \"📌 MainPost, MainCategory, MainTag 사용 (Post X)\""
+            "command": "echo \"1️⃣ Prisma 스키마 확인 (MainPost, MainCategory 등)\""
           },
           {
             "type": "command",
-            "command": "echo \"⚠️ null → undefined 변환 필수!\""
+            "command": "echo \"2️⃣ TypeScript 타입 안전성 (any 금지, unknown 사용)\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"3️⃣ null → undefined 변환 필수\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"4️⃣ Next.js 15 패턴 준수 (async params)\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"5️⃣ 기존 코드 패턴 따르기\""
           }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "prisma|post|comment|like|bookmark|tag|category",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo \"📋 Prisma 관련 작업 감지됨!\""
-          },
-          {
-            "type": "command",
-            "command": "Get-Content $env:CLAUDE_PROJECT_DIR\\prisma\\schema.prisma | Select-String -Pattern \"model Main\" -Context 0,20"
-          }
-        ]
-      },
-      {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "Get-Content $env:CLAUDE_PROJECT_DIR\\CLAUDE.md"
+            "command": "echo \"🔍 프로젝트 규칙 로드 중...\""
+          },
+          {
+            "type": "command",
+            "command": "type $env:CLAUDE_PROJECT_DIR\\CLAUDE.md 2>nul || echo \"CLAUDE.md 파일을 찾을 수 없습니다\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"✅ 코드 수정 완료. 다음 단계:\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"- npm run type-check (타입 검사)\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"- npm run lint (린트 검사)\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"- npm run format:check (포맷 검사)\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash(git add|git commit)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"🔍 커밋 전 검사 시작...\""
+          },
+          {
+            "type": "command",
+            "command": "echo \"실행: npm run format:check && npm run lint && npm run type-check\""
           }
         ]
       }

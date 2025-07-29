@@ -12,6 +12,7 @@ export default {
         `prettier --write ${filesStr}`, // 포맷 수정
         `eslint --fix ${filesStr}`, // ESLint 수정
         `prettier --check ${filesStr}`, // 최종 포맷 확인
+        'npm run type-check', // TypeScript 타입 체크 추가
       ]
     }
     return []
