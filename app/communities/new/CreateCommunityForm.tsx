@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Card,
@@ -15,13 +15,15 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Globe, Lock } from 'lucide-react'
+import { Loader2, Globe, Lock, Check, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function CreateCommunityForm() {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false)
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -89,9 +91,40 @@ export default function CreateCommunityForm() {
       .replace(/^-+|-+$/g, '')
   }
 
+  // 슬러그 중복 체크
+  useEffect(() => {
+    const checkSlug = async () => {
+      if (!formData.slug || formData.slug.length < 2) {
+        setSlugAvailable(null)
+        return
+      }
+
+      setIsCheckingSlug(true)
+      try {
+        const res = await fetch('/api/communities/check-slug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: formData.slug }),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          setSlugAvailable(data.available)
+        }
+      } catch (error) {
+        console.error('Failed to check slug:', error)
+      } finally {
+        setIsCheckingSlug(false)
+      }
+    }
+
+    const timer = setTimeout(checkSlug, 500) // 디바운스
+    return () => clearTimeout(timer)
+  }, [formData.slug])
+
   return (
-    <div className="container max-w-3xl py-8">
-      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader>
           <CardTitle className="text-2xl font-black">
             새 커뮤니티 만들기
@@ -104,7 +137,9 @@ export default function CreateCommunityForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 커뮤니티 이름 */}
             <div className="space-y-2">
-              <Label htmlFor="name">커뮤니티 이름 *</Label>
+              <Label htmlFor="name">
+                커뮤니티 이름 <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="name"
                 placeholder="예: React 개발자 모임"
@@ -121,31 +156,53 @@ export default function CreateCommunityForm() {
                     }))
                   }
                 }}
-                className="border-2 border-black"
+                className="border-2 border-black focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
                 required
               />
             </div>
 
             {/* URL 슬러그 */}
             <div className="space-y-2">
-              <Label htmlFor="slug">커뮤니티 URL *</Label>
+              <Label htmlFor="slug">
+                커뮤니티 URL <span className="text-red-500">*</span>
+              </Label>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">/communities/</span>
-                <Input
-                  id="slug"
-                  placeholder="react-developers"
-                  value={formData.slug}
-                  onChange={(e) =>
-                    setFormData({ ...formData, slug: e.target.value })
-                  }
-                  className="border-2 border-black"
-                  pattern="[a-z0-9\-]*"
-                  required
-                />
+                <div className="relative flex-1">
+                  <Input
+                    id="slug"
+                    placeholder="react-developers"
+                    value={formData.slug}
+                    onChange={(e) =>
+                      setFormData({ ...formData, slug: e.target.value })
+                    }
+                    className="border-2 border-black pr-10 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
+                    pattern="[a-z0-9\-]*"
+                    required
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {isCheckingSlug && (
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    )}
+                    {!isCheckingSlug && slugAvailable === true && (
+                      <Check className="h-4 w-4 text-green-600" />
+                    )}
+                    {!isCheckingSlug && slugAvailable === false && (
+                      <X className="h-4 w-4 text-red-600" />
+                    )}
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                영문 소문자, 숫자, 하이픈(-)만 사용 가능합니다.
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  영문 소문자, 숫자, 하이픈(-)만 사용 가능합니다.
+                </p>
+                {!isCheckingSlug && slugAvailable === false && (
+                  <p className="text-sm text-red-600">
+                    이미 사용 중인 URL입니다. 다른 URL을 선택해주세요.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 설명 */}
@@ -158,8 +215,11 @@ export default function CreateCommunityForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className="border-2 border-black min-h-[100px]"
+                className="border-2 border-black min-h-[100px] focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
               />
+              <p className="text-sm text-muted-foreground">
+                어떤 주제를 다루나요? 누구를 위한 커뮤니티인가요?
+              </p>
             </div>
 
             {/* 규칙 */}
@@ -172,7 +232,7 @@ export default function CreateCommunityForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, rules: e.target.value })
                 }
-                className="border-2 border-black min-h-[100px]"
+                className="border-2 border-black min-h-[100px] focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
               />
             </div>
 
@@ -262,8 +322,13 @@ export default function CreateCommunityForm() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                disabled={
+                  isSubmitting ||
+                  !formData.name ||
+                  !formData.slug ||
+                  slugAvailable === false
+                }
+                className="flex-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
