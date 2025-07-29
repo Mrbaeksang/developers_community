@@ -77,6 +77,10 @@ export async function GET(
         searchFields.push({ name: { contains: search, mode: 'insensitive' } })
       } else if (['community'].includes(modelName)) {
         searchFields.push({ name: { contains: search, mode: 'insensitive' } })
+      } else if (['mainComment', 'communityComment'].includes(modelName)) {
+        searchFields.push({
+          content: { contains: search, mode: 'insensitive' },
+        })
       }
 
       if (searchFields.length > 0) {
@@ -104,11 +108,12 @@ export async function GET(
       orderBy = { userId: 'desc' }
     } else if (['mainPostTag'].includes(modelName)) {
       orderBy = { postId: 'desc' }
-    } else if (
-      ['mainCategory', 'communityCategory', 'mainTag'].includes(modelName)
-    ) {
-      // 카테고리와 태그는 order 필드로 정렬
+    } else if (['mainCategory', 'communityCategory'].includes(modelName)) {
+      // 카테고리는 order 필드로 정렬
       orderBy = { order: 'asc' }
+    } else if (modelName === 'mainTag') {
+      // MainTag는 postCount로 정렬 (인기순)
+      orderBy = { postCount: 'desc' }
     } else if (['communityMember'].includes(modelName)) {
       // 커뮤니티 멤버는 joinedAt으로 정렬
       orderBy = { joinedAt: 'desc' }
@@ -117,17 +122,247 @@ export async function GET(
       orderBy = { createdAt: 'desc' }
     }
 
-    // 데이터 조회
+    // 데이터 조회 - 관계 데이터 포함
+    let includeRelations = {}
+
+    // MainPost인 경우 카테고리 정보 포함
+    if (modelName === 'mainPost') {
+      includeRelations = {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      }
+    }
+    // CommunityPost인 경우 커뮤니티와 카테고리 정보 포함
+    else if (modelName === 'communityPost') {
+      includeRelations = {
+        community: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      }
+    }
+    // MainComment인 경우 작성자와 게시글 정보 포함
+    else if (modelName === 'mainComment') {
+      includeRelations = {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+        parent: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      }
+    }
+    // CommunityComment인 경우 작성자와 게시글 정보 포함
+    else if (modelName === 'communityComment') {
+      includeRelations = {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        parent: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      }
+    }
+    // MainTag인 경우 게시글 수 정보만 포함
+    else if (modelName === 'mainTag') {
+      includeRelations = {
+        _count: {
+          select: {
+            posts: true,
+          },
+        },
+      }
+    }
+    // MainPostTag인 경우 게시글과 태그 정보 포함
+    else if (modelName === 'mainPostTag') {
+      includeRelations = {
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+        tag: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      }
+    }
+    // MainLike인 경우 사용자와 게시글 정보 포함
+    else if (modelName === 'mainLike') {
+      includeRelations = {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      }
+    }
+    // MainBookmark인 경우 사용자와 게시글 정보 포함
+    else if (modelName === 'mainBookmark') {
+      includeRelations = {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      }
+    }
+
     // @ts-expect-error Prisma dynamic model access
     const data = await prisma[modelName].findMany({
       where,
       take: limit,
       skip: (page - 1) * limit,
       orderBy,
+      ...(Object.keys(includeRelations).length > 0 && {
+        include: includeRelations,
+      }),
     })
 
-    // 컬럼 추출 (첫 번째 데이터로부터)
-    const columns = data.length > 0 ? Object.keys(data[0]) : []
+    // 컬럼 추출 및 재정렬
+    let columns = data.length > 0 ? Object.keys(data[0]) : []
+
+    // 컬럼 순서 재정렬
+    const columnOrder = [
+      'id',
+      'title',
+      'name',
+      'email',
+      'content',
+      'excerpt',
+      'slug',
+      'status',
+      'author',
+      'authorId',
+      'post',
+      'postId',
+      'parent',
+      'parentId',
+      'category',
+      'categoryId',
+      'community',
+      'communityId',
+      'isPinned',
+      'viewCount',
+      'likeCount',
+      'commentCount',
+      'authorRole',
+      'globalRole',
+      'role',
+      'metaTitle',
+      'metaDescription',
+      'approvedAt',
+      'approvedById',
+      'rejectedReason',
+      'isEdited',
+      // 날짜 필드는 맨 뒤로
+      'createdAt',
+      'updatedAt',
+      'joinedAt',
+      'leftAt',
+      'bannedAt',
+      'bannedUntil',
+      'emailVerified',
+      'expires',
+    ]
+
+    // 정렬된 컬럼 배열 생성
+    const sortedColumns = []
+
+    // 먼저 정렬 순서에 있는 컬럼들 추가
+    for (const col of columnOrder) {
+      if (columns.includes(col)) {
+        sortedColumns.push(col)
+      }
+    }
+
+    // 정렬 순서에 없는 나머지 컬럼들 추가
+    for (const col of columns) {
+      if (!sortedColumns.includes(col)) {
+        sortedColumns.push(col)
+      }
+    }
+
+    columns = sortedColumns
 
     return NextResponse.json({
       data,

@@ -159,6 +159,9 @@ const COLUMN_TRANSLATIONS: Record<string, string> = {
   authorId: '작성자',
   authorRole: '작성자 권한',
   categoryId: '카테고리',
+  category: '카테고리',
+  author: '작성자',
+  community: '커뮤니티',
 
   // Community 관련
   description: '설명',
@@ -181,7 +184,10 @@ const COLUMN_TRANSLATIONS: Record<string, string> = {
 
   // Comment 관련
   postId: '게시글',
+  post: '게시글',
   parentId: '부모 댓글',
+  parent: '부모 댓글',
+  isEdited: '수정됨',
 
   // Notification 관련
   type: '알림 유형',
@@ -303,6 +309,102 @@ export default function DatabaseViewerPage() {
     if (value === undefined)
       return <span className="text-gray-400 text-xs">-</span>
 
+    // 관계 객체 처리 (category, author, community 등)
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      const obj = value as Record<string, unknown>
+
+      // 카테고리 객체인 경우
+      if (column === 'category' && 'name' in obj) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{String(obj.name)}</span>
+            <code className="text-xs text-gray-500">{String(obj.id)}</code>
+          </div>
+        )
+      }
+
+      // 작성자 객체인 경우
+      if (column === 'author' && 'name' in obj) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">
+              {String(obj.name || obj.email)}
+            </span>
+            <span className="text-xs text-gray-500">{String(obj.email)}</span>
+          </div>
+        )
+      }
+
+      // 커뮤니티 객체인 경우
+      if (column === 'community' && 'name' in obj) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{String(obj.name)}</span>
+            <span className="text-xs text-gray-500">/{String(obj.slug)}</span>
+          </div>
+        )
+      }
+
+      // 게시글 객체인 경우 (댓글의 post, 좋아요/북마크의 post)
+      if (column === 'post' && 'title' in obj) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">{String(obj.title)}</span>
+            <code className="text-xs text-gray-500">
+              {String(obj.id).substring(0, 8)}...
+            </code>
+          </div>
+        )
+      }
+
+      // 태그 객체인 경우 (MainPostTag의 tag)
+      if (column === 'tag' && 'name' in obj && 'color' in obj) {
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-full"
+              style={{ backgroundColor: String(obj.color) }}
+            />
+            <span className="text-sm font-medium">{String(obj.name)}</span>
+          </div>
+        )
+      }
+
+      // 사용자 객체인 경우 (좋아요/북마크의 user)
+      if (column === 'user' && 'email' in obj) {
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium">
+              {(obj as { name?: string | null }).name || 'Unknown'}
+            </span>
+            <span className="text-xs text-gray-500">{String(obj.email)}</span>
+          </div>
+        )
+      }
+
+      // 부모 댓글 객체인 경우
+      if (column === 'parent' && 'content' in obj) {
+        const content = String(obj.content)
+        const truncated =
+          content.length > 30 ? content.substring(0, 30) + '...' : content
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm text-gray-600">{truncated}</span>
+            <code className="text-xs text-gray-500">
+              {String(obj.id).substring(0, 8)}...
+            </code>
+          </div>
+        )
+      }
+
+      // 기타 객체는 JSON으로 표시
+      return (
+        <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+          {JSON.stringify(obj)}
+        </code>
+      )
+    }
+
     // Boolean 값
     if (typeof value === 'boolean') {
       return value ? (
@@ -324,10 +426,11 @@ export default function DatabaseViewerPage() {
 
     // Date 값
     if (
-      (column.toLowerCase().includes('at') ||
+      (column.toLowerCase().endsWith('at') ||
         column === 'expires' ||
         column === 'emailVerified') &&
-      value
+      value &&
+      column !== 'status'
     ) {
       // Date로 변환 가능한 값인지 확인
       if (typeof value === 'string' || typeof value === 'number') {

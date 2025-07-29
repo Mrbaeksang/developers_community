@@ -56,7 +56,14 @@ export async function GET(
           },
         },
         _count: {
-          select: { members: true, posts: true },
+          select: {
+            members: {
+              where: {
+                status: MembershipStatus.ACTIVE,
+              },
+            },
+            posts: true,
+          },
         },
         // 현재 사용자의 멤버십 상태 확인
         members: session?.user?.id
@@ -75,9 +82,6 @@ export async function GET(
         include: {
           owner: {
             select: { id: true, name: true, email: true, image: true },
-          },
-          _count: {
-            select: { members: true, posts: true },
           },
           categories: {
             where: { isActive: true },
@@ -108,6 +112,16 @@ export async function GET(
                   image: true,
                 },
               },
+            },
+          },
+          _count: {
+            select: {
+              members: {
+                where: {
+                  status: MembershipStatus.ACTIVE,
+                },
+              },
+              posts: true,
             },
           },
           // 현재 사용자의 멤버십 상태 확인
@@ -157,7 +171,9 @@ export async function GET(
       'members' in community && Array.isArray(community.members)
         ? community.members[0] || null
         : null
-    const { ...communityData } = community
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { members, ...communityData } = community
 
     // 공지사항 가져오기 (고정된 것들만)
     const announcements = await prisma.communityAnnouncement.findMany({

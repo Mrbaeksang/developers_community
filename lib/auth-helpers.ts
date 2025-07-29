@@ -94,6 +94,7 @@ export async function checkMembership(userId: string, communityId: string) {
     select: { status: true },
   })
 
+  // ACTIVE 상태인 멤버만 true를 반환
   if (!membership || membership.status !== MembershipStatus.ACTIVE) {
     return forbidden('커뮤니티 멤버만 접근 가능합니다.')
   }

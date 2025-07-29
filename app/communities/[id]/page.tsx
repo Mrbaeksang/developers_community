@@ -70,9 +70,18 @@ interface Community {
 
 async function getCommunity(idOrSlug: string) {
   try {
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
-      { cache: 'no-store' }
+      {
+        cache: 'no-store',
+        next: { revalidate: 0 },
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+      }
     )
 
     if (!res.ok) {
@@ -104,7 +113,10 @@ export default async function CommunityDetailPage({
   const isOwner = session?.user?.id === community.owner.id
   const isMember = community.currentMembership?.status === 'ACTIVE'
   const isPending = community.currentMembership?.status === 'PENDING'
-  const canJoin = !community.currentMembership && !!session?.user?.id
+  const canJoin =
+    (!community.currentMembership ||
+      community.currentMembership?.status === 'LEFT') &&
+    !!session?.user?.id
 
   return (
     <div className="container max-w-7xl py-8">

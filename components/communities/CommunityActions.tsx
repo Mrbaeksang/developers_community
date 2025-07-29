@@ -45,7 +45,13 @@ export function CommunityActions({
 
       const data = await res.json()
       toast.success(data.message)
+
+      // 강제로 라우터 리프레시
       router.refresh()
+      // 약간의 지연 후 다시 리프레시 (Next.js 15 캐시 문제 해결)
+      setTimeout(() => {
+        router.refresh()
+      }, 100)
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : '가입에 실패했습니다'
@@ -73,7 +79,13 @@ export function CommunityActions({
 
       const data = await res.json()
       toast.success(data.message)
+
+      // 강제로 라우터 리프레시
       router.refresh()
+      // 약간의 지연 후 다시 리프레시 (Next.js 15 캐시 문제 해결)
+      setTimeout(() => {
+        router.refresh()
+      }, 100)
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : '탈퇴에 실패했습니다'

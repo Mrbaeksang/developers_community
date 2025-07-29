@@ -149,18 +149,35 @@ export async function POST(request: NextRequest) {
 
     // 태그 처리 - slug 기반으로 기존 태그 찾거나 새로 생성
     const tagConnections = []
+
+    // 노션 스타일 태그 색상 팔레트 (10개)
+    const tagColors = [
+      '#ef4444', // red
+      '#f97316', // orange
+      '#f59e0b', // amber
+      '#eab308', // yellow
+      '#84cc16', // lime
+      '#22c55e', // green
+      '#06b6d4', // cyan
+      '#3b82f6', // blue
+      '#8b5cf6', // violet
+      '#ec4899', // pink
+    ]
+
     for (const tagSlug of tags) {
       let tag = await prisma.mainTag.findUnique({
         where: { slug: tagSlug },
       })
 
       if (!tag) {
-        // 태그가 없으면 생성
+        // 태그가 없으면 생성 - 랜덤 색상 적용
+        const randomColor =
+          tagColors[Math.floor(Math.random() * tagColors.length)]
         tag = await prisma.mainTag.create({
           data: {
             name: tagSlug.replace(/-/g, ' '), // slug를 name으로 변환
             slug: tagSlug,
-            color: '#64748b', // 기본 색상
+            color: randomColor,
           },
         })
       }

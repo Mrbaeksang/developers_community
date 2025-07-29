@@ -60,7 +60,11 @@ export async function GET(req: NextRequest) {
           },
           _count: {
             select: {
-              members: true,
+              members: {
+                where: {
+                  status: MembershipStatus.ACTIVE,
+                },
+              },
               posts: true,
             },
           },
