@@ -1,9 +1,6 @@
 import { notFound } from 'next/navigation'
 import {
   Calendar,
-  MapPin,
-  Link as LinkIcon,
-  Github,
   FileText,
   MessageSquare,
   Heart,
@@ -22,9 +19,6 @@ interface UserProfile {
   email: string
   image: string | null
   bio: string | null
-  website: string | null
-  github: string | null
-  location: string | null
   createdAt: string
   _count: {
     mainPosts: number
@@ -35,8 +29,62 @@ interface UserProfile {
   }
 }
 
-async function getProfile(userId: string) {
+interface MyProfile {
+  id: string
+  name: string
+  username: string | null
+  email: string
+  image: string | undefined
+  bio: string | null
+  role: string
+  showEmail: boolean
+  joinedAt: string
+  stats: {
+    postCount: number
+    commentCount: number
+    likeCount: number
+  }
+}
+
+async function getProfile(userId: string, isOwnProfile: boolean) {
   try {
+    // 자신의 프로필인 경우 /api/users/me 사용
+    if (isOwnProfile) {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/users/me`,
+        { cache: 'no-store' }
+      )
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          notFound()
+        }
+        throw new Error('Failed to fetch profile')
+      }
+
+      const data = await res.json()
+      const myProfile = data.user as MyProfile
+      
+      // MyProfile을 UserProfile 형식으로 변환
+      return {
+        id: myProfile.id,
+        name: myProfile.name || null,
+        username: myProfile.username,
+        email: myProfile.email,
+        image: myProfile.image || null,
+        bio: myProfile.bio,
+        createdAt: myProfile.joinedAt,
+        _count: {
+          mainPosts: myProfile.stats.postCount,
+          communityPosts: 0, // API에서 제공하지 않음
+          mainComments: myProfile.stats.commentCount,
+          mainLikes: myProfile.stats.likeCount,
+          mainBookmarks: 0, // API에서 제공하지 않음
+        }
+      } as UserProfile
+    }
+    
+    // 다른 사용자의 프로필인 경우 /api/users/[id] 사용
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/users/${userId}`,
       { cache: 'no-store' }
@@ -64,9 +112,9 @@ export default async function ProfilePage({
 }) {
   const { id } = await params
   const session = await auth()
-  const profile = await getProfile(id)
-
-  const isOwnProfile = session?.user?.id === profile.id
+  
+  const isOwnProfile = session?.user?.id === id
+  const profile = await getProfile(id, isOwnProfile)
 
   return (
     <div className="container max-w-4xl py-8">
@@ -77,7 +125,7 @@ export default async function ProfilePage({
             <Avatar className="h-24 w-24 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <AvatarImage src={profile.image || undefined} />
               <AvatarFallback className="text-2xl font-black bg-primary/20">
-                {profile.name?.[0] || profile.email[0].toUpperCase()}
+                {profile.name?.[0] || profile.email?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
 
@@ -111,34 +159,6 @@ export default async function ProfilePage({
                   <Calendar className="h-4 w-4" />
                   {new Date(profile.createdAt).toLocaleDateString('ko-KR')} 가입
                 </div>
-                {profile.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {profile.location}
-                  </div>
-                )}
-                {profile.website && (
-                  <a
-                    href={profile.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary"
-                  >
-                    <LinkIcon className="h-4 w-4" />
-                    웹사이트
-                  </a>
-                )}
-                {profile.github && (
-                  <a
-                    href={`https://github.com/${profile.github}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary"
-                  >
-                    <Github className="h-4 w-4" />
-                    {profile.github}
-                  </a>
-                )}
               </div>
             </div>
           </div>

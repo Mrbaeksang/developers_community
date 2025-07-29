@@ -20,6 +20,9 @@ import {
   LogOut,
   Settings,
   Users,
+  User,
+  CheckCircle,
+  Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { SearchModal } from '@/components/search/SearchModal'
@@ -153,6 +156,12 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
+                    <Link href={`/profile/${session.user?.id}`} className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      내 프로필
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
                       대시보드
@@ -165,8 +174,14 @@ export function Header() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/admin/pending" className="cursor-pointer">
-                          <Settings className="mr-2 h-4 w-4" />
+                          <CheckCircle className="mr-2 h-4 w-4" />
                           게시글 승인
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="cursor-pointer">
+                          <Shield className="mr-2 h-4 w-4" />
+                          관리자 페이지
                         </Link>
                       </DropdownMenuItem>
                     </>
