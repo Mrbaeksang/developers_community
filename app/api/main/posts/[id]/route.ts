@@ -88,7 +88,7 @@ export async function GET(
     const formattedPost = {
       ...post,
       content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
-      tags: post.tags.map((postTag: any) => postTag.tag),
+      tags: post.tags.map((postTag) => postTag.tag),
       status: post.status, // 상태 정보 포함
     }
 
