@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { checkAuth, checkCommunityMembership } from '@/lib/auth-helpers'
-import { canModifyCommunityContent } from '@/lib/permission-helpers'
+import { canModifyCommunityContent } from '@/lib/role-hierarchy'
 
 // GET /api/communities/[id]/announcements/[announcementId] - 공지사항 상세 조회
 export async function GET(
@@ -16,17 +16,17 @@ export async function GET(
     const announcement = await prisma.communityAnnouncement.findFirst({
       where: {
         id: announcementId,
-        communityId
+        communityId,
       },
       include: {
         author: {
           select: {
             id: true,
             name: true,
-            image: true
-          }
-        }
-      }
+            image: true,
+          },
+        },
+      },
     })
 
     if (!announcement) {
@@ -63,32 +63,33 @@ export async function PUT(
     const userId = session!.user!.id
 
     // 커뮤니티 멤버십 확인
-    const membershipCheck = await checkCommunityMembership(userId, communityId)
-    if (membershipCheck) {
-      return membershipCheck
+    try {
+      await checkCommunityMembership(userId, communityId)
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message }, { status: 403 })
+      }
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 현재 사용자의 커뮤니티 역할 확인
     const membership = await prisma.communityMember.findUnique({
       where: {
-        userId_communityId: { userId, communityId }
+        userId_communityId: { userId, communityId },
       },
-      select: { role: true }
+      select: { role: true },
     })
 
     if (!membership) {
-      return NextResponse.json(
-        { error: '권한이 없습니다.' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 공지사항 조회
     const announcement = await prisma.communityAnnouncement.findFirst({
       where: {
         id: announcementId,
-        communityId
-      }
+        communityId,
+      },
     })
 
     if (!announcement) {
@@ -99,11 +100,11 @@ export async function PUT(
     }
 
     // 수정 권한 확인
+    const isAuthor = announcement.authorId === userId
     const canModify = canModifyCommunityContent(
       membership.role,
-      announcement.authorId,
-      announcement.authorRole,
-      userId
+      isAuthor,
+      announcement.authorRole
     )
 
     if (!canModify) {
@@ -121,17 +122,17 @@ export async function PUT(
       data: {
         title: title?.trim() || announcement.title,
         content: content?.trim() || announcement.content,
-        isPinned: isPinned !== undefined ? isPinned : announcement.isPinned
+        isPinned: isPinned !== undefined ? isPinned : announcement.isPinned,
       },
       include: {
         author: {
           select: {
             id: true,
             name: true,
-            image: true
-          }
-        }
-      }
+            image: true,
+          },
+        },
+      },
     })
 
     return NextResponse.json({ announcement: updated })
@@ -161,32 +162,33 @@ export async function DELETE(
     const userId = session!.user!.id
 
     // 커뮤니티 멤버십 확인
-    const membershipCheck = await checkCommunityMembership(userId, communityId)
-    if (membershipCheck) {
-      return membershipCheck
+    try {
+      await checkCommunityMembership(userId, communityId)
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message }, { status: 403 })
+      }
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 현재 사용자의 커뮤니티 역할 확인
     const membership = await prisma.communityMember.findUnique({
       where: {
-        userId_communityId: { userId, communityId }
+        userId_communityId: { userId, communityId },
       },
-      select: { role: true }
+      select: { role: true },
     })
 
     if (!membership) {
-      return NextResponse.json(
-        { error: '권한이 없습니다.' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 공지사항 조회
     const announcement = await prisma.communityAnnouncement.findFirst({
       where: {
         id: announcementId,
-        communityId
-      }
+        communityId,
+      },
     })
 
     if (!announcement) {
@@ -197,11 +199,11 @@ export async function DELETE(
     }
 
     // 삭제 권한 확인
+    const isAuthor = announcement.authorId === userId
     const canDelete = canModifyCommunityContent(
       membership.role,
-      announcement.authorId,
-      announcement.authorRole,
-      userId
+      isAuthor,
+      announcement.authorRole
     )
 
     if (!canDelete) {
@@ -212,7 +214,7 @@ export async function DELETE(
     }
 
     await prisma.communityAnnouncement.delete({
-      where: { id: announcementId }
+      where: { id: announcementId },
     })
 
     return NextResponse.json({ success: true })

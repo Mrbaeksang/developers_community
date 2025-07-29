@@ -59,7 +59,11 @@ export default function DatabaseViewerPage() {
   const { toast } = useToast()
   const router = useRouter()
 
-  const fetchTableData = async (table: string, searchTerm = '', pageNum = 1) => {
+  const fetchTableData = async (
+    table: string,
+    searchTerm = '',
+    pageNum = 1
+  ) => {
     if (!table) return
 
     setLoading(true)
@@ -68,7 +72,7 @@ export default function DatabaseViewerPage() {
         page: pageNum.toString(),
         search: searchTerm,
       })
-      
+
       const response = await fetch(`/api/admin/data-viewer/${table}?${params}`)
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다.')
@@ -103,9 +107,11 @@ export default function DatabaseViewerPage() {
   }
 
   const formatCellValue = (value: any, column: string) => {
-    if (value === null) return <span className="text-muted-foreground">null</span>
-    if (value === undefined) return <span className="text-muted-foreground">-</span>
-    
+    if (value === null)
+      return <span className="text-muted-foreground">null</span>
+    if (value === undefined)
+      return <span className="text-muted-foreground">-</span>
+
     // Boolean 값
     if (typeof value === 'boolean') {
       return value ? (
@@ -114,22 +120,22 @@ export default function DatabaseViewerPage() {
         <Badge variant="secondary">false</Badge>
       )
     }
-    
+
     // Date 값
     if (column.toLowerCase().includes('at') && value) {
       return new Date(value).toLocaleString('ko-KR')
     }
-    
+
     // 긴 텍스트는 줄임
     if (typeof value === 'string' && value.length > 50) {
       return value.substring(0, 50) + '...'
     }
-    
+
     // Enum 값들은 Badge로 표시
     if (column === 'status' || column === 'role' || column === 'globalRole') {
       return <Badge variant="outline">{value}</Badge>
     }
-    
+
     return String(value)
   }
 
@@ -156,7 +162,7 @@ export default function DatabaseViewerPage() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <div className="flex-1 flex gap-2">
               <Input
                 placeholder="검색..."

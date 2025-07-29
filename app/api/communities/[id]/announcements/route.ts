@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
-import { checkAuth, checkCommunityRole, checkCommunityMembership } from '@/lib/auth-helpers'
+import {
+  checkAuth,
+  checkCommunityRole,
+  checkCommunityMembership,
+} from '@/lib/auth-helpers'
 import { CommunityRole } from '@prisma/client'
+import { canCreateAnnouncement } from '@/lib/permission-helpers'
 
 // GET /api/communities/[id]/announcements - 공지사항 목록 조회
 export async function GET(
@@ -26,20 +31,17 @@ export async function GET(
             select: {
               id: true,
               name: true,
-              image: true
-            }
-          }
+              image: true,
+            },
+          },
         },
-        orderBy: [
-          { isPinned: 'desc' },
-          { createdAt: 'desc' }
-        ],
+        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
         skip,
-        take: limit
+        take: limit,
       }),
       prisma.communityAnnouncement.count({
-        where: { communityId }
-      })
+        where: { communityId },
+      }),
     ])
 
     return NextResponse.json({
@@ -48,8 +50,8 @@ export async function GET(
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     })
   } catch (error) {
     console.error('공지사항 목록 조회 실패:', error)
@@ -85,9 +87,9 @@ export async function POST(
     // 현재 사용자의 커뮤니티 역할 확인
     const membership = await prisma.communityMember.findUnique({
       where: {
-        userId_communityId: { userId, communityId }
+        userId_communityId: { userId, communityId },
       },
-      select: { role: true }
+      select: { role: true },
     })
 
     if (!membership) {
@@ -98,7 +100,7 @@ export async function POST(
     }
 
     // 관리자 권한 확인 (OWNER, ADMIN, MODERATOR 가능)
-    if (![CommunityRole.OWNER, CommunityRole.ADMIN, CommunityRole.MODERATOR].includes(membership.role)) {
+    if (!canCreateAnnouncement(membership.role)) {
       return NextResponse.json(
         { error: '공지사항 작성 권한이 없습니다.' },
         { status: 403 }
@@ -122,17 +124,17 @@ export async function POST(
         isPinned,
         communityId,
         authorId: userId,
-        authorRole: membership.role // 작성 시점의 역할 저장
+        authorRole: membership.role, // 작성 시점의 역할 저장
       },
       include: {
         author: {
           select: {
             id: true,
             name: true,
-            image: true
-          }
-        }
-      }
+            image: true,
+          },
+        },
+      },
     })
 
     return NextResponse.json({ announcement }, { status: 201 })

@@ -1,4 +1,4 @@
-import { PrismaClient, PostStatus } from '@prisma/client'
+import { PrismaClient, PostStatus, GlobalRole } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -158,6 +158,7 @@ async function main() {
       approvedAt: new Date(),
       approvedById: adminUser.id,
       authorId: adminUser.id,
+      authorRole: GlobalRole.ADMIN,
       categoryId: categories[0].id, // 자유게시판
     },
   })
@@ -190,6 +191,7 @@ Next.js 15에서 추가된 주요 기능들을 소개합니다.
       approvedAt: new Date(),
       approvedById: managerUser.id,
       authorId: sampleUser.id,
+      authorRole: GlobalRole.USER,
       categoryId: categories.find((c) => c.slug === 'nextjs')!.id,
     },
   })
@@ -214,6 +216,7 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
       excerpt: 'React 18의 동시성 기능을 이해해봅시다.',
       status: PostStatus.PENDING, // 승인 대기 중
       authorId: sampleUser.id,
+      authorRole: GlobalRole.USER,
       categoryId: categories.find((c) => c.slug === 'react')!.id,
     },
   })
@@ -240,6 +243,7 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
     data: {
       content: '정말 유용한 정보네요! Next.js 15 업데이트가 기대됩니다.',
       authorId: sampleUser.id,
+      authorRole: GlobalRole.USER,
       postId: post2.id,
     },
   })
@@ -248,6 +252,7 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
     data: {
       content: '환영합니다! 좋은 커뮤니티가 되길 바랍니다.',
       authorId: managerUser.id,
+      authorRole: GlobalRole.MANAGER,
       postId: post1.id,
     },
   })

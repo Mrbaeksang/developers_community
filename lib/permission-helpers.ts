@@ -34,7 +34,9 @@ export function canModifyCommunityContent(
   }
 
   // 2. 작성자보다 높은 권한이어야 수정 가능
-  return COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[authorRole]
+  return (
+    COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[authorRole]
+  )
 }
 
 /**
@@ -74,7 +76,9 @@ export function canBanCommunityMember(
   targetRole: CommunityRole
 ): boolean {
   // 자기보다 낮은 권한만 Ban 가능
-  return COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[targetRole]
+  return (
+    COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[targetRole]
+  )
 }
 
 /**
@@ -109,19 +113,16 @@ export function canChangeRole(
  * 공지사항 작성 권한 확인
  */
 export function canCreateAnnouncement(role: CommunityRole): boolean {
-  return [
-    CommunityRole.OWNER,
-    CommunityRole.ADMIN,
-    CommunityRole.MODERATOR
-  ].includes(role)
+  return (
+    role === CommunityRole.OWNER ||
+    role === CommunityRole.ADMIN ||
+    role === CommunityRole.MODERATOR
+  )
 }
 
 /**
  * 카테고리 관리 권한 확인
  */
 export function canManageCategories(role: CommunityRole): boolean {
-  return [
-    CommunityRole.OWNER,
-    CommunityRole.ADMIN
-  ].includes(role)
+  return role === CommunityRole.OWNER || role === CommunityRole.ADMIN
 }

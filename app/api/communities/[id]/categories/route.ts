@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
-import { checkAuth, checkCommunityRole, checkCommunityMembership } from '@/lib/auth-helpers'
+import {
+  checkAuth,
+  checkCommunityRole,
+  checkCommunityMembership,
+} from '@/lib/auth-helpers'
 import { CommunityRole } from '@prisma/client'
 
 // GET /api/communities/[id]/categories - 카테고리 목록 조회
@@ -16,7 +20,7 @@ export async function GET(
     // 커뮤니티 존재 여부 확인
     const community = await prisma.community.findUnique({
       where: { id: communityId },
-      select: { id: true }
+      select: { id: true },
     })
 
     if (!community) {
@@ -30,34 +34,31 @@ export async function GET(
     const categories = await prisma.communityCategory.findMany({
       where: {
         communityId,
-        isActive: true
+        isActive: true,
       },
       include: {
         _count: {
           select: {
             posts: {
               where: {
-                status: 'PUBLISHED'
-              }
-            }
-          }
-        }
+                status: 'PUBLISHED',
+              },
+            },
+          },
+        },
       },
-      orderBy: [
-        { order: 'asc' },
-        { name: 'asc' }
-      ]
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
     })
 
     return NextResponse.json({
-      categories: categories.map(cat => ({
+      categories: categories.map((cat) => ({
         id: cat.id,
         name: cat.name,
         slug: cat.slug,
         description: cat.description,
         order: cat.order,
-        postCount: cat._count.posts
-      }))
+        postCount: cat._count.posts,
+      })),
     })
   } catch (error) {
     console.error('카테고리 목록 조회 실패:', error)
@@ -121,11 +122,8 @@ export async function POST(
     const existing = await prisma.communityCategory.findFirst({
       where: {
         communityId,
-        OR: [
-          { name: name.trim() },
-          { slug }
-        ]
-      }
+        OR: [{ name: name.trim() }, { slug }],
+      },
     })
 
     if (existing) {
@@ -141,8 +139,8 @@ export async function POST(
         slug,
         description: description?.trim(),
         order,
-        communityId
-      }
+        communityId,
+      },
     })
 
     return NextResponse.json({ category }, { status: 201 })

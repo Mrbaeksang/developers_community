@@ -125,7 +125,11 @@ export async function PUT(
 
     // 권한 확인 (역할 계층 기반)
     const isAuthor = post.authorId === session!.user.id
-    const canModify = canModifyMainContent(user.globalRole, isAuthor, post.authorRole)
+    const canModify = canModifyMainContent(
+      user.globalRole,
+      isAuthor,
+      post.authorRole
+    )
 
     if (!canModify) {
       return NextResponse.json(
@@ -186,11 +190,9 @@ export async function PUT(
           title,
           content,
           categoryId,
-          // 수정 시 다시 PENDING 상태로 변경 (ADMIN 이상만 상태 유지)
+          // 수정 시 다시 PENDING 상태로 변경 (ADMIN만 상태 유지)
           status:
-            user.globalRole === 'ADMIN' || user.globalRole === 'SUPER_ADMIN' 
-              ? post.status 
-              : PostStatus.PENDING,
+            user.globalRole === 'ADMIN' ? post.status : PostStatus.PENDING,
         },
         include: {
           author: {
@@ -266,7 +268,7 @@ export async function DELETE(
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
       where: { id },
-      select: { 
+      select: {
         authorId: true,
         authorRole: true,
       },
@@ -294,7 +296,11 @@ export async function DELETE(
 
     // 권한 확인 (역할 계층 기반)
     const isAuthor = post.authorId === session!.user.id
-    const canDelete = canModifyMainContent(user.globalRole, isAuthor, post.authorRole)
+    const canDelete = canModifyMainContent(
+      user.globalRole,
+      isAuthor,
+      post.authorRole
+    )
 
     if (!canDelete) {
       return NextResponse.json(

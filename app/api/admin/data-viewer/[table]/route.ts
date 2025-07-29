@@ -64,24 +64,27 @@ export async function GET(
     if (search) {
       // 간단한 검색 구현 (id, name, email, title 등 일반적인 필드)
       const searchFields = []
-      
+
       // 각 모델별 검색 가능한 필드 정의
       if (['user'].includes(modelName)) {
         searchFields.push({ email: { contains: search, mode: 'insensitive' } })
         searchFields.push({ name: { contains: search, mode: 'insensitive' } })
       } else if (['mainPost', 'communityPost'].includes(modelName)) {
         searchFields.push({ title: { contains: search, mode: 'insensitive' } })
-      } else if (['mainCategory', 'communityCategory', 'mainTag'].includes(modelName)) {
+      } else if (
+        ['mainCategory', 'communityCategory', 'mainTag'].includes(modelName)
+      ) {
         searchFields.push({ name: { contains: search, mode: 'insensitive' } })
       } else if (['community'].includes(modelName)) {
         searchFields.push({ name: { contains: search, mode: 'insensitive' } })
       }
-      
+
       if (searchFields.length > 0) {
         where = { OR: searchFields }
       } else {
         // ID로 검색 시도
-        if (search.length === 24 || search.length === 36) { // MongoDB ObjectId or UUID
+        if (search.length === 24 || search.length === 36) {
+          // MongoDB ObjectId or UUID
           where = { id: search }
         }
       }
@@ -103,12 +106,12 @@ export async function GET(
     // 컬럼 추출 (첫 번째 데이터로부터)
     const columns = data.length > 0 ? Object.keys(data[0]) : []
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data,
       columns,
       page,
       totalPages: Math.ceil(total / limit),
-      total
+      total,
     })
   } catch (error) {
     console.error('Data viewer error:', error)

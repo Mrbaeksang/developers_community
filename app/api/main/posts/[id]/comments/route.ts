@@ -127,7 +127,7 @@ export async function POST(
     // 현재 사용자의 전역 역할 확인 (authorRole 저장을 위해)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { globalRole: true }
+      select: { globalRole: true },
     })
 
     if (!user) {

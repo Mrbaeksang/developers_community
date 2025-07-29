@@ -1,20 +1,14 @@
 import { GlobalRole, CommunityRole } from '@prisma/client'
 
 // 전역 역할 계층 (높은 순서대로)
-export const GLOBAL_ROLE_HIERARCHY: GlobalRole[] = [
-  'SUPER_ADMIN',
-  'ADMIN',
-  'MANAGER',
-  'PREMIUM_USER',
-  'USER'
-]
+export const GLOBAL_ROLE_HIERARCHY: GlobalRole[] = ['ADMIN', 'MANAGER', 'USER']
 
 // 커뮤니티 역할 계층 (높은 순서대로)
 export const COMMUNITY_ROLE_HIERARCHY: CommunityRole[] = [
   'OWNER',
   'ADMIN',
   'MODERATOR',
-  'MEMBER'
+  'MEMBER',
 ]
 
 /**
@@ -26,7 +20,7 @@ export function hasHigherGlobalRole(
 ): boolean {
   const currentIndex = GLOBAL_ROLE_HIERARCHY.indexOf(currentRole)
   const targetIndex = GLOBAL_ROLE_HIERARCHY.indexOf(targetRole)
-  
+
   // 인덱스가 작을수록 높은 권한
   return currentIndex !== -1 && targetIndex !== -1 && currentIndex < targetIndex
 }
@@ -40,9 +34,11 @@ export function hasEqualOrHigherGlobalRole(
 ): boolean {
   const currentIndex = GLOBAL_ROLE_HIERARCHY.indexOf(currentRole)
   const targetIndex = GLOBAL_ROLE_HIERARCHY.indexOf(targetRole)
-  
+
   // 인덱스가 작거나 같을수록 높은 권한
-  return currentIndex !== -1 && targetIndex !== -1 && currentIndex <= targetIndex
+  return (
+    currentIndex !== -1 && targetIndex !== -1 && currentIndex <= targetIndex
+  )
 }
 
 /**
@@ -54,7 +50,7 @@ export function hasHigherCommunityRole(
 ): boolean {
   const currentIndex = COMMUNITY_ROLE_HIERARCHY.indexOf(currentRole)
   const targetIndex = COMMUNITY_ROLE_HIERARCHY.indexOf(targetRole)
-  
+
   // 인덱스가 작을수록 높은 권한
   return currentIndex !== -1 && targetIndex !== -1 && currentIndex < targetIndex
 }
@@ -68,9 +64,11 @@ export function hasEqualOrHigherCommunityRole(
 ): boolean {
   const currentIndex = COMMUNITY_ROLE_HIERARCHY.indexOf(currentRole)
   const targetIndex = COMMUNITY_ROLE_HIERARCHY.indexOf(targetRole)
-  
+
   // 인덱스가 작거나 같을수록 높은 권한
-  return currentIndex !== -1 && targetIndex !== -1 && currentIndex <= targetIndex
+  return (
+    currentIndex !== -1 && targetIndex !== -1 && currentIndex <= targetIndex
+  )
 }
 
 /**
@@ -89,12 +87,12 @@ export function canModifyMainContent(
   if (isAuthor) {
     return true
   }
-  
-  // SUPER_ADMIN은 모든 콘텐츠 수정/삭제 가능
-  if (userRole === 'SUPER_ADMIN') {
+
+  // ADMIN은 모든 콘텐츠 수정/삭제 가능
+  if (userRole === 'ADMIN') {
     return true
   }
-  
+
   // 작성자보다 높은 권한을 가진 경우만 수정/삭제 가능
   return hasHigherGlobalRole(userRole, contentAuthorRole)
 }
@@ -115,12 +113,12 @@ export function canModifyCommunityContent(
   if (isAuthor) {
     return true
   }
-  
+
   // OWNER는 모든 콘텐츠 수정/삭제 가능
   if (userRole === 'OWNER') {
     return true
   }
-  
+
   // 작성자보다 높은 권한을 가진 경우만 수정/삭제 가능
   return hasHigherCommunityRole(userRole, contentAuthorRole)
 }

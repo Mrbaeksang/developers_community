@@ -232,9 +232,9 @@ export async function POST(
     // 현재 사용자의 커뮤니티 역할 확인 (authorRole 저장을 위해)
     const userMembership = await prisma.communityMember.findUnique({
       where: {
-        userId_communityId: { userId: session!.user.id, communityId: id }
+        userId_communityId: { userId: session!.user.id, communityId: id },
       },
-      select: { role: true }
+      select: { role: true },
     })
 
     if (!userMembership) {
