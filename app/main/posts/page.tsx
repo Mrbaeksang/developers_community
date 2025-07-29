@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { PostListServer } from '@/components/posts/PostListServer'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getApiUrl } from '@/lib/api'
 
 export const metadata = {
   title: '게시글 목록 | Dev Community',
@@ -13,11 +14,52 @@ interface PostsPageProps {
   searchParams: Promise<{ category?: string; sort?: string; page?: string }>
 }
 
+async function getSidebarData() {
+  try {
+    const [tagsRes, usersRes, statsRes] = await Promise.all([
+      fetch(`${getApiUrl()}/api/main/tags?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/stats`, { cache: 'no-store' }),
+    ])
+
+    const [tagsData, usersData, statsData] = await Promise.all([
+      tagsRes.ok ? tagsRes.json() : { tags: [] },
+      usersRes.ok ? usersRes.json() : { users: [] },
+      statsRes.ok ? statsRes.json() : { stats: {} },
+    ])
+
+    return {
+      trendingTags: tagsData.tags || [],
+      activeUsers: usersData.users || [],
+      stats: statsData.stats || {
+        totalUsers: 0,
+        weeklyPosts: 0,
+        weeklyComments: 0,
+        activeDiscussions: 0,
+      },
+    }
+  } catch (error) {
+    console.error('사이드바 데이터 조회 실패:', error)
+    return {
+      trendingTags: [],
+      activeUsers: [],
+      stats: {
+        totalUsers: 0,
+        weeklyPosts: 0,
+        weeklyComments: 0,
+        activeDiscussions: 0,
+      },
+    }
+  }
+}
+
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = await searchParams
   const category = params.category
   const sort = params.sort || 'latest'
   const page = params.page || '1'
+  
+  const sidebarData = await getSidebarData()
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -49,7 +91,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           {/* 사이드바 */}
           <aside className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96" />}>
-              <SidebarContainer />
+              <SidebarContainer sidebarData={sidebarData} />
             </Suspense>
           </aside>
         </div>
