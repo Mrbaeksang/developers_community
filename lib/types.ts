@@ -23,17 +23,15 @@ export interface Post {
   viewCount: number
   createdAt: Date | string
   updatedAt: Date | string
-  tags: PostTag[]
+  tags: Tag[]
   _count?: {
     comments: number
     likes: number
   }
 }
 
-export interface PostTag {
-  id: string
-  tag: Tag
-}
+// PostTag 인터페이스는 더 이상 사용되지 않습니다
+// API에서 tags를 Tag[] 형태로 직접 반환합니다
 
 export interface Tag {
   id: string

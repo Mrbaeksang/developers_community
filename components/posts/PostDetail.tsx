@@ -19,6 +19,7 @@ interface PostDetailProps {
     title: string
     content: string
     excerpt?: string | null
+    status?: string
     viewCount: number
     likeCount: number
     commentCount: number
@@ -163,6 +164,18 @@ export default function PostDetail({ post }: PostDetailProps) {
           >
             {post.category.name}
           </Badge>
+          {post.status && post.status !== 'PUBLISHED' && (
+            <Badge
+              variant={post.status === 'DRAFT' ? 'outline' : 'default'}
+              className={
+                post.status === 'DRAFT'
+                  ? 'border-gray-500'
+                  : 'bg-yellow-500 text-white'
+              }
+            >
+              {post.status === 'DRAFT' ? '📝 초안' : '⏳ 검토 대기중'}
+            </Badge>
+          )}
         </div>
 
         <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
@@ -225,9 +238,10 @@ export default function PostDetail({ post }: PostDetailProps) {
       <Separator className="my-6" />
 
       {/* Content */}
-      <div className="prose prose-sm dark:prose-invert max-w-none mb-8">
-        <div dangerouslySetInnerHTML={{ __html: post.content }} />
-      </div>
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none mb-8"
+        dangerouslySetInnerHTML={{ __html: post.content }}
+      />
 
       <Separator className="my-6" />
 

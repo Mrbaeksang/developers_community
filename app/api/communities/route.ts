@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
       data: { memberCount: 1 },
     })
 
-    return NextResponse.json({ community }, { status: 201 })
+    return NextResponse.json(community, { status: 201 })
   } catch (error) {
     console.error('Failed to create community:', error)
     return NextResponse.json(

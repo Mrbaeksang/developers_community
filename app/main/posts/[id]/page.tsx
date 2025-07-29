@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import PostDetail from '@/components/posts/PostDetail'
 import CommentSection from '@/components/posts/CommentSection'
 import RelatedPosts from '@/components/posts/RelatedPosts'
+import { markdownToHtml } from '@/lib/markdown'
 
 interface PageProps {
   params: Promise<{
@@ -25,6 +26,11 @@ async function getPost(id: string) {
     }
 
     const data = await res.json()
+
+    // 마크다운이 아직 변환되지 않았다면 변환
+    if (data && data.content && !data.content.includes('<')) {
+      data.content = markdownToHtml(data.content)
+    }
 
     // 댓글도 함께 조회
     try {

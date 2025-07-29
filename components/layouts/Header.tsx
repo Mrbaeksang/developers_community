@@ -41,14 +41,6 @@ export function Header() {
   // 관리자 전용 네비게이션 메뉴
   const adminNavigation = [{ name: '관리자', href: '/admin', icon: Settings }]
 
-  // 디버깅: 세션 정보 확인
-  console.log('Header - Session:', session)
-  console.log('Header - User Role:', session?.user?.role)
-  console.log(
-    'Header - Is Admin/Manager:',
-    session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER'
-  )
-
   // 관리자 여부 확인
   const isAdmin =
     session?.user &&

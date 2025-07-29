@@ -116,8 +116,11 @@ async function getTagWithPosts(tagName: string) {
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString(),
         tags: post.tags.map((t) => ({
-          id: `${post.id}-${t.tag.id}`,
-          tag: t.tag,
+          id: t.tag.id,
+          name: t.tag.name,
+          slug: t.tag.slug,
+          color: '#64748b', // 기본 색상
+          postCount: 0,
         })),
         _count: {
           comments: post._count.comments,

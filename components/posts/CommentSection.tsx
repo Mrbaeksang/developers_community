@@ -440,7 +440,9 @@ export default function CommentSection({
               취소
             </Button>
             <Button
-              onClick={() => handleDeleteComment(deleteCommentId!)}
+              onClick={() =>
+                deleteCommentId && handleDeleteComment(deleteCommentId)
+              }
               className="bg-destructive text-destructive-foreground border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
             >
               삭제

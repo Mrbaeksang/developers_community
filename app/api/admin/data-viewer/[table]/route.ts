@@ -94,13 +94,36 @@ export async function GET(
     // @ts-expect-error Prisma dynamic model access
     const total = await prisma[modelName].count({ where })
 
+    // 정렬 필드 결정
+    let orderBy: Record<string, 'desc' | 'asc'> = {}
+
+    // createdAt이 없는 테이블들
+    if (['session'].includes(modelName)) {
+      orderBy = { expires: 'desc' }
+    } else if (['account'].includes(modelName)) {
+      orderBy = { userId: 'desc' }
+    } else if (['mainPostTag'].includes(modelName)) {
+      orderBy = { postId: 'desc' }
+    } else if (
+      ['mainCategory', 'communityCategory', 'mainTag'].includes(modelName)
+    ) {
+      // 카테고리와 태그는 order 필드로 정렬
+      orderBy = { order: 'asc' }
+    } else if (['communityMember'].includes(modelName)) {
+      // 커뮤니티 멤버는 joinedAt으로 정렬
+      orderBy = { joinedAt: 'desc' }
+    } else {
+      // 대부분의 테이블은 createdAt 필드가 있음
+      orderBy = { createdAt: 'desc' }
+    }
+
     // 데이터 조회
     // @ts-expect-error Prisma dynamic model access
     const data = await prisma[modelName].findMany({
       where,
       take: limit,
       skip: (page - 1) * limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
     })
 
     // 컬럼 추출 (첫 번째 데이터로부터)

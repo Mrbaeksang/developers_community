@@ -42,7 +42,6 @@ export function KakaoProvider({ children }: { children: React.ReactNode }) {
       window.Kakao.init(
         process.env.NEXT_PUBLIC_KAKAO_APP_KEY || 'YOUR_KAKAO_APP_KEY'
       )
-      console.log('Kakao SDK initialized:', window.Kakao.isInitialized())
     }
   }, [])
 

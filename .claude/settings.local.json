@@ -24,7 +24,10 @@
       "Bash(mv:*)",
       "Bash(cp:*)",
       "Bash(rm:*)",
-      "mcp__filesystem__edit_file"
+      "mcp__filesystem__edit_file",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)"
     ],
     "deny": []
   },
@@ -35,27 +38,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"📋 코드 작성/수정 전 체크리스트:\""
+            "command": "echo \"🚨 STOP! Check before writing code:\""
           },
           {
             "type": "command",
-            "command": "echo \"1️⃣ Prisma 스키마 확인 (MainPost, MainCategory 등)\""
+            "command": "echo \"1️⃣ Did you read prisma/schema.prisma?\""
           },
           {
             "type": "command",
-            "command": "echo \"2️⃣ TypeScript 타입 안전성 (any 금지, unknown 사용)\""
+            "command": "echo \"2️⃣ No any types, No non-null assertions (!)\""
           },
           {
             "type": "command",
-            "command": "echo \"3️⃣ null → undefined 변환 필수\""
+            "command": "echo \"3️⃣ null → undefined conversions\""
           },
           {
             "type": "command",
-            "command": "echo \"4️⃣ Next.js 15 패턴 준수 (async params)\""
+            "command": "echo \"4️⃣ Next.js 15 async params\""
           },
           {
             "type": "command",
-            "command": "echo \"5️⃣ 기존 코드 패턴 따르기\""
+            "command": "echo \"5️⃣ console.error/warn only (no console.log)\""
           }
         ]
       }
@@ -96,9 +99,7 @@
             "command": "echo \"- npm run format:check (포맷 검사)\""
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
         "matcher": "Bash(git add|git commit)",
         "hooks": [

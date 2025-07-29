@@ -1,123 +1,116 @@
-# AI Code Generation Rules - DO NOT MAKE MISTAKES
+# 🚨 MUST FOLLOW RULES - NO EXCEPTIONS
 
-## 🚨 CRITICAL: Schema-First Development (From PRISMA_RULES.md)
-### Before ANY Prisma Code:
-1. **ALWAYS** read `prisma/schema.prisma` first
-2. **NEVER** assume model names or field names
-3. **VERIFY** relationship names in the schema
-4. **CHECK** enum values and their exact spelling
-
-### Workflow:
-```
-1. Read schema.prisma
-2. Note exact model names
-3. Note exact relationship names
-4. Write code with verified names
-5. Run type-check before proceeding
+## 1️⃣ BEFORE ANY CODE CHANGES
+```bash
+# MANDATORY: Check these files first
+1. cat prisma/schema.prisma  # Read ENTIRE schema
+2. npm run lint              # Check current warnings
+3. npm run type-check        # Check current errors
 ```
 
-## CRITICAL: Prisma null vs TypeScript undefined
+## 2️⃣ PRISMA RULES (NEVER ASSUME)
+### ✅ CORRECT Model Names
 ```typescript
-// Prisma returns: string | null
-// TypeScript expects: string | undefined
-// ALWAYS CONVERT: value || undefined
+// Main site models
+MainPost, MainCategory, MainTag, MainComment
+MainLike, MainBookmark
+
+// Community models  
+CommunityPost, CommunityCategory, CommunityComment
+CommunityLike, CommunityBookmark, CommunityAnnouncement
+
+// ❌ WRONG: Post, Category, Tag, Comment
 ```
 
-## Schema Facts (NEVER ASSUME)
-### Models use Main* prefix
-- MainPost, MainCategory, MainTag, MainComment (NOT Post, Category)
-- CommunityPost, CommunityCategory (NOT Post, Category)
-
-### User Relations
-- user.mainPosts (NOT user.posts)
-- user.mainComments (NOT user.comments)
-- user.image returns null, components expect undefined
-
-### MainTag
-- Relation field: `posts` (through MainPostTag join table)
-- Count field: `postCount` (Int field, not computed)
-- When mapping to UI: tag.postCount → count
-
-### Like/Bookmark Models
-- **MainLike** (NOT mainPostLike)
-- **MainBookmark** (NOT mainPostBookmark)
-- Composite unique constraint: `userId_postId`
-
-### Common Type Conversions
+### ✅ CORRECT Relations
 ```typescript
-// User → ActiveUser
-{
-  name: user.name || 'Unknown',      // null → default
-  image: user.image || undefined,    // null → undefined
-  postCount: user._count.mainPosts   // rename field
+// User relations
+user.mainPosts      // ❌ NOT user.posts
+user.mainComments   // ❌ NOT user.comments
+user.communities    // as owner
+user.memberships    // as member
+
+// Tag relations
+tag.posts           // through MainPostTag
+tag.postCount       // DB field, NOT computed
+```
+
+## 3️⃣ NULL HANDLING (CRITICAL)
+```typescript
+// ✅ CORRECT: Prisma null → TypeScript undefined
+const image = user.image || undefined
+const name = user.name || 'Unknown'
+
+// ❌ WRONG: Using non-null assertion
+const image = user.image!  // ESLint error
+```
+
+## 4️⃣ COMMON MISTAKES TO AVOID
+```typescript
+// ❌ WRONG: Non-null assertion
+const userId = session.user.id!
+
+// ✅ CORRECT: Proper check
+if (!session?.user?.id) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
+const userId = session.user.id
 
-// MainTag → TrendingTag  
-{
-  count: tag.postCount  // rename: postCount → count
-}
+// ❌ WRONG: console.log
+console.log('debug', data)
+
+// ✅ CORRECT: console.error/warn only
+console.error('Error:', error)
 ```
 
-## NextAuth v5 Patterns
+## 5️⃣ FRAMEWORK PATTERNS
+### NextAuth v5
 ```typescript
-// ❌ OLD (NextAuth v4)
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/auth'
-const session = await getServerSession(authOptions)
-
-// ✅ NEW (NextAuth v5)
+// ✅ CORRECT
 import { auth } from '@/auth'
 const session = await auth()
+
+// ❌ WRONG (v4 pattern)
+import { getServerSession } from 'next-auth'
 ```
 
-## PostStatus Rules
-- Main site: PENDING → PUBLISHED (approval required)
-- Community: instant PUBLISHED (no approval)
-
-## File Upload Rules
-- Community posts: ✅ Can upload files
-- Main posts: ❌ Cannot upload files
-
-## Next.js 15 Dynamic Routes
+### Next.js 15 Routes
 ```typescript
-// ❌ OLD (Next.js 14)
+// ✅ CORRECT: Async params
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+}
+
+// ❌ WRONG: Sync params (Next.js 14)
 { params }: { params: { id: string } }
-const id = params.id
-
-// ✅ NEW (Next.js 15) 
-{ params }: { params: Promise<{ id: string }> }
-const resolvedParams = await params
-const id = resolvedParams.id
 ```
 
-## Zod Error Handling
+### Zod v3
 ```typescript
-// ❌ OLD (Zod v2)
-if (error instanceof z.ZodError) {
-  return { error: error.errors[0].message }
-}
+// ✅ CORRECT: issues array
+error.issues[0].message
 
-// ✅ NEW (Zod v3+)
-if (error instanceof z.ZodError) {
-  return { error: error.issues[0].message }
-}
+// ❌ WRONG: errors array (v2)
+error.errors[0].message
 ```
 
-## 🚨 CRITICAL: Code Quality Checks
-### Before EVERY Commit:
-1. **ALWAYS** run `npm run format:check` before committing
-2. **ALWAYS** run `npm run type-check` before pushing
-3. **NEVER** bypass format checks with --no-verify
+## 6️⃣ BUSINESS RULES
+- **Main Posts**: PENDING → PUBLISHED (needs approval)
+- **Community Posts**: instant PUBLISHED
+- **File Upload**: ❌ Main posts, ✅ Community posts
+- **Role Hierarchy**: ADMIN > MANAGER > USER (global)
+- **Community Roles**: OWNER > ADMIN > MODERATOR > MEMBER
 
-### Quality Check Commands:
+## 7️⃣ BEFORE EVERY COMMIT
 ```bash
-npm run format:check  # Check formatting issues
-npm run format        # Fix formatting issues
-npm run type-check    # Check TypeScript types
-npm run lint          # Check ESLint rules
+# RUN ALL THESE (NO EXCEPTIONS)
+npm run format:check  # Must pass
+npm run lint          # Must have 0 errors
+npm run type-check    # Must pass
+
+# NEVER use --no-verify
+# FIX all issues before committing
 ```
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

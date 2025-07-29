@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
+import { markdownToHtml } from '@/lib/markdown'
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,8 +73,15 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // 마크다운을 HTML로 변환
+    const formattedPosts = posts.map((post) => ({
+      ...post,
+      content: markdownToHtml(post.content),
+      tags: post.tags.map((postTag) => postTag.tag),
+    }))
+
     return NextResponse.json({
-      posts,
+      posts: formattedPosts,
       pagination: {
         page,
         limit,

@@ -94,8 +94,6 @@ export default function CommunityMemberList({
 
   const fetchMembers = useCallback(
     async (pageNum: number, reset = false) => {
-      if (isLoading || (!reset && !hasMore)) return
-
       setIsLoading(true)
 
       try {
@@ -133,7 +131,7 @@ export default function CommunityMemberList({
         setIsLoading(false)
       }
     },
-    [communityId, debouncedSearch, roleFilter, hasMore, isLoading]
+    [communityId, debouncedSearch, roleFilter]
   )
 
   // 초기 로드 및 필터 변경 시

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { checkAuth } from '@/lib/auth-helpers'
 import { PostStatus } from '@prisma/client'
 import { canModifyMainContent } from '@/lib/role-hierarchy'
+import { markdownToHtml } from '@/lib/markdown'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -13,12 +14,35 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const session = await auth()
+
+    // 기본적으로 PUBLISHED만 조회 가능
+    let whereClause: any = {
+      id,
+      status: 'PUBLISHED',
+    }
+
+    // 로그인한 경우 추가 권한 체크
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { globalRole: true },
+      })
+
+      // ADMIN/MANAGER는 모든 게시글 조회 가능
+      if (user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER') {
+        whereClause = { id }
+      } else {
+        // 일반 사용자는 자신의 게시글은 상태와 관계없이 조회 가능
+        whereClause = {
+          id,
+          OR: [{ status: 'PUBLISHED' }, { authorId: session.user.id }],
+        }
+      }
+    }
 
     const post = await prisma.mainPost.findFirst({
-      where: {
-        id,
-        status: 'PUBLISHED',
-      },
+      where: whereClause,
       include: {
         author: {
           select: {
@@ -60,10 +84,12 @@ export async function GET(
       data: { viewCount: { increment: 1 } },
     })
 
-    // 태그 형식 변환
+    // 태그 형식 변환 및 마크다운 변환
     const formattedPost = {
       ...post,
+      content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
       tags: post.tags.map((postTag) => postTag.tag),
+      status: post.status, // 상태 정보 포함
     }
 
     return NextResponse.json(formattedPost)

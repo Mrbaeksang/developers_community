@@ -108,11 +108,10 @@ export async function PostListServer({
       : undefined,
     tags: post.tags.map((pt) => ({
       id: pt.tag.id,
-      tag: {
-        id: pt.tag.id,
-        name: pt.tag.name,
-        slug: pt.tag.slug,
-      },
+      name: pt.tag.name,
+      slug: pt.tag.slug,
+      color: '#64748b', // 기본 색상
+      postCount: 0,
     })),
     _count: {
       likes: post._count.likes,

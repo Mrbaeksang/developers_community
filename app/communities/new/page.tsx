@@ -139,7 +139,7 @@ export default function CreateCommunityPage() {
                     setFormData({ ...formData, slug: e.target.value })
                   }
                   className="border-2 border-black"
-                  pattern="[a-z0-9-]+"
+                  pattern="[a-z0-9\-]*"
                   required
                 />
               </div>

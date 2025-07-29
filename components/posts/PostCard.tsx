@@ -73,12 +73,12 @@ export function PostCard({ post, className }: PostCardProps) {
 
         {post.tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {post.tags.slice(0, 3).map((postTag) => (
+            {post.tags.slice(0, 3).map((tag) => (
               <span
-                key={postTag.tag.id}
+                key={tag.id}
                 className="text-xs px-2 py-1 rounded-md bg-secondary font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
-                #{postTag.tag.name}
+                #{tag.name}
               </span>
             ))}
             {post.tags.length > 3 && (
