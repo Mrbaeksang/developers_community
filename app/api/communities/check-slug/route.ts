@@ -3,7 +3,11 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
 const checkSlugSchema = z.object({
-  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/),
 })
 
 export async function POST(req: NextRequest) {

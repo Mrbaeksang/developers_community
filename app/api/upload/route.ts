@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { randomUUID } from 'crypto'
+import { put } from '@vercel/blob'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -52,21 +52,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 파일 저장 (Vercel Blob Storage를 사용한다고 가정)
-    // 실제 구현에서는 Vercel Blob Storage API를 사용
-    const storedName = `${randomUUID()}-${file.name}`
-    const url = `/uploads/${storedName}` // 임시 URL
+    // Vercel Blob Storage에 파일 업로드
+    const blob = await put(file.name, file, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    })
 
     // DB에 파일 정보 저장
     const fileRecord = await prisma.file.create({
       data: {
         filename: file.name,
-        storedName,
+        storedName: blob.pathname,
         mimeType: file.type,
         size: file.size,
         type: getFileType(file.type),
-        url,
-        downloadUrl: url,
+        url: blob.url,
+        downloadUrl: blob.downloadUrl,
         uploaderId: session.user.id,
       },
     })

@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { FileType } from '@prisma/client'
-import { v4 as uuidv4 } from 'uuid'
+import { put } from '@vercel/blob'
 import {
   checkBanStatus,
   checkCommunityMembership,
@@ -101,21 +101,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 파일 정보 준비
-    // 실제 환경에서는 파일을 읽어서 저장
-    // const bytes = await file.arrayBuffer()
-    // const buffer = Buffer.from(bytes)
+    // 파일 타입 확인
     const fileType = getFileType(file.type)
-    const storedName = `${uuidv4()}-${file.name}`
 
-    // 실제 환경에서는 클라우드 스토리지 사용
-    // const uploadDir = join(process.cwd(), 'public', 'uploads')
-    // const filePath = join(uploadDir, storedName)
-    // await writeFile(filePath, buffer)
-
-    // 임시 URL (실제로는 클라우드 스토리지 URL)
-    const url = `/uploads/${storedName}`
-    const downloadUrl = `/api/files/${storedName}/download`
+    // Vercel Blob Storage에 파일 업로드
+    const blob = await put(file.name, file, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    })
 
     // 이미지인 경우 크기 정보 가져오기
     let width: number | undefined
@@ -130,12 +123,12 @@ export async function POST(req: NextRequest) {
     const savedFile = await prisma.file.create({
       data: {
         filename: file.name,
-        storedName,
+        storedName: blob.pathname,
         mimeType: file.type,
         size: file.size,
         type: fileType,
-        url,
-        downloadUrl,
+        url: blob.url,
+        downloadUrl: blob.downloadUrl,
         width,
         height,
         uploaderId: session.user.id,
