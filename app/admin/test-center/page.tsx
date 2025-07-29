@@ -1,7 +1,6 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { checkGlobalRole } from '@/lib/auth-helpers'
 import { TestCenterContent } from '@/components/admin/TestCenterContent'
 
 export default async function TestCenterPage() {
@@ -11,9 +10,13 @@ export default async function TestCenterPage() {
     redirect('/login')
   }
 
-  // 관리자 권한 확인
-  const roleError = await checkGlobalRole(session.user.id, ['ADMIN', 'MANAGER'])
-  if (roleError) {
+  // 관리자 권한 확인 - 직접 구현
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { globalRole: true },
+  })
+
+  if (!user || !['ADMIN', 'MANAGER'].includes(user.globalRole)) {
     redirect('/admin')
   }
 

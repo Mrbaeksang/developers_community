@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkGlobalRole } from '@/lib/auth-helpers'
 import { faker } from '@faker-js/faker'
 import { PostStatus } from '@prisma/client'
 
@@ -13,12 +12,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자 권한 확인
-    const roleError = await checkGlobalRole(session.user.id, [
-      'ADMIN',
-      'MANAGER',
-    ])
-    if (roleError) {
-      return NextResponse.json({ error: roleError }, { status: 403 })
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { globalRole: true },
+    })
+
+    if (!user || !['ADMIN', 'MANAGER'].includes(user.globalRole)) {
+      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
     }
 
     const { count = 20, status = 'PUBLISHED' } = await request.json()

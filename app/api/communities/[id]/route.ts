@@ -277,11 +277,17 @@ export async function DELETE(
     const authError = checkAuth(session)
     if (authError) return authError
 
-    // 커뮤니티 소유자 확인
-    const community = await prisma.community.findUnique({
-      where: { id },
-      select: { ownerId: true },
-    })
+    // 커뮤니티 및 사용자 정보 조회
+    const [community, user] = await Promise.all([
+      prisma.community.findUnique({
+        where: { id },
+        select: { ownerId: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: session!.user.id },
+        select: { globalRole: true },
+      })
+    ])
 
     if (!community) {
       return NextResponse.json(
@@ -290,9 +296,13 @@ export async function DELETE(
       )
     }
 
-    if (community.ownerId !== session!.user.id) {
+    // 커뮤니티 소유자 또는 사이트 관리자만 삭제 가능
+    const isOwner = community.ownerId === session!.user.id
+    const isGlobalAdmin = user?.globalRole === 'ADMIN'
+
+    if (!isOwner && !isGlobalAdmin) {
       return NextResponse.json(
-        { error: '커뮤니티 소유자만 삭제할 수 있습니다.' },
+        { error: '커뮤니티를 삭제할 권한이 없습니다.' },
         { status: 403 }
       )
     }
