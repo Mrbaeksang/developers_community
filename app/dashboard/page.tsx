@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 
 async function getDashboardStats(userId: string) {
-  const [mainPosts, communityPosts, comments, likes, communities] = await Promise.all([
-    prisma.mainPost.count({ where: { authorId: userId } }),
-    prisma.communityPost.count({ where: { authorId: userId } }),
-    prisma.mainComment.count({ where: { authorId: userId } }),
-    prisma.mainLike.count({ where: { userId } }),
-    prisma.communityMember.count({ where: { userId, status: 'ACTIVE' } })
-  ])
+  const [mainPosts, communityPosts, comments, likes, communities] =
+    await Promise.all([
+      prisma.mainPost.count({ where: { authorId: userId } }),
+      prisma.communityPost.count({ where: { authorId: userId } }),
+      prisma.mainComment.count({ where: { authorId: userId } }),
+      prisma.mainLike.count({ where: { userId } }),
+      prisma.communityMember.count({ where: { userId, status: 'ACTIVE' } }),
+    ])
 
   return {
     totalPosts: mainPosts + communityPosts,
@@ -20,13 +21,13 @@ async function getDashboardStats(userId: string) {
     communityPosts,
     comments,
     likes,
-    communities
+    communities,
   }
 }
 
 export default async function DashboardPage() {
   const session = await auth()
-  
+
   if (!session?.user?.id) {
     redirect('/auth/login')
   }
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
   return (
     <div className="container max-w-7xl py-8">
       <h1 className="text-3xl font-black mb-8">대시보드</h1>
-      
+
       {/* 통계 카드 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -93,13 +94,22 @@ export default async function DashboardPage() {
             <CardTitle>내 활동</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Link href={`/profile/${session.user.id}`} className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href={`/profile/${session.user.id}`}
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 내 프로필 보기
             </Link>
-            <Link href="/posts/write" className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href="/posts/write"
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 새 게시글 작성
             </Link>
-            <Link href="/communities" className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href="/communities"
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 커뮤니티 둘러보기
             </Link>
           </CardContent>
@@ -110,13 +120,22 @@ export default async function DashboardPage() {
             <CardTitle>계정 설정</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Link href="/settings/profile" className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href="/settings/profile"
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 프로필 편집
             </Link>
-            <Link href="/settings/account" className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href="/settings/account"
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 계정 설정
             </Link>
-            <Link href="/settings/notifications" className="block p-2 hover:bg-secondary rounded">
+            <Link
+              href="/settings/notifications"
+              className="block p-2 hover:bg-secondary rounded"
+            >
               → 알림 설정
             </Link>
           </CardContent>

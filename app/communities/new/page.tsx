@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +22,7 @@ export default function CreateCommunityPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -29,7 +35,7 @@ export default function CreateCommunityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name || !formData.slug) {
       toast({
         title: '오류',
@@ -54,17 +60,20 @@ export default function CreateCommunityPage() {
       }
 
       const community = await res.json()
-      
+
       toast({
         title: '성공',
         description: '커뮤니티가 생성되었습니다.',
       })
-      
+
       router.push(`/communities/${community.slug}`)
     } catch (error) {
       toast({
         title: '오류',
-        description: error instanceof Error ? error.message : '커뮤니티 생성에 실패했습니다.',
+        description:
+          error instanceof Error
+            ? error.message
+            : '커뮤니티 생성에 실패했습니다.',
         variant: 'destructive',
       })
     } finally {
@@ -84,7 +93,9 @@ export default function CreateCommunityPage() {
     <div className="container max-w-3xl py-8">
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader>
-          <CardTitle className="text-2xl font-black">새 커뮤니티 만들기</CardTitle>
+          <CardTitle className="text-2xl font-black">
+            새 커뮤니티 만들기
+          </CardTitle>
           <CardDescription>
             관심사가 비슷한 개발자들과 함께할 공간을 만들어보세요.
           </CardDescription>
@@ -100,8 +111,14 @@ export default function CreateCommunityPage() {
                 value={formData.name}
                 onChange={(e) => {
                   setFormData({ ...formData, name: e.target.value })
-                  if (!formData.slug || formData.slug === generateSlug(formData.name)) {
-                    setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))
+                  if (
+                    !formData.slug ||
+                    formData.slug === generateSlug(formData.name)
+                  ) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      slug: generateSlug(e.target.value),
+                    }))
                   }
                 }}
                 className="border-2 border-black"
@@ -118,7 +135,9 @@ export default function CreateCommunityPage() {
                   id="slug"
                   placeholder="react-developers"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slug: e.target.value })
+                  }
                   className="border-2 border-black"
                   pattern="[a-z0-9-]+"
                   required
@@ -136,7 +155,9 @@ export default function CreateCommunityPage() {
                 id="description"
                 placeholder="커뮤니티에 대한 간단한 소개를 작성해주세요."
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="border-2 border-black min-h-[100px]"
               />
             </div>
@@ -148,7 +169,9 @@ export default function CreateCommunityPage() {
                 id="rules"
                 placeholder="커뮤니티 멤버들이 지켜야 할 규칙을 작성해주세요."
                 value={formData.rules}
-                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, rules: e.target.value })
+                }
                 className="border-2 border-black min-h-[100px]"
               />
             </div>
@@ -158,7 +181,12 @@ export default function CreateCommunityPage() {
               <Label>공개 설정</Label>
               <RadioGroup
                 value={formData.visibility}
-                onValueChange={(value) => setFormData({ ...formData, visibility: value as 'PUBLIC' | 'PRIVATE' })}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    visibility: value as 'PUBLIC' | 'PRIVATE',
+                  })
+                }
               >
                 <div className="flex items-center space-x-2 p-3 border-2 border-black rounded">
                   <RadioGroupItem value="PUBLIC" id="public" />
@@ -199,10 +227,12 @@ export default function CreateCommunityPage() {
                 <Switch
                   id="file-upload"
                   checked={formData.allowFileUpload}
-                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, allowFileUpload: checked })}
+                  onCheckedChange={(checked: boolean) =>
+                    setFormData({ ...formData, allowFileUpload: checked })
+                  }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="chat" className="flex-1">
                   <div className="font-bold">실시간 채팅</div>
@@ -213,7 +243,9 @@ export default function CreateCommunityPage() {
                 <Switch
                   id="chat"
                   checked={formData.allowChat}
-                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, allowChat: checked })}
+                  onCheckedChange={(checked: boolean) =>
+                    setFormData({ ...formData, allowChat: checked })
+                  }
                 />
               </div>
             </div>
