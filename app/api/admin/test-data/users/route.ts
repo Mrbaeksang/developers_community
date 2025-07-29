@@ -23,27 +23,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { count = 10 } = await request.json()
+    const {
+      count = 1,
+      name,
+      email,
+      globalRole = 'USER',
+      image,
+    } = await request.json()
 
     const users = []
     for (let i = 0; i < count; i++) {
-      const firstName = faker.person.firstName()
-      const lastName = faker.person.lastName()
-      const username = faker.internet
-        .userName({ firstName, lastName })
-        .toLowerCase()
+      // 단일 생성이고 모든 필드가 제공된 경우
+      if (count === 1 && name && email) {
+        const user = await prisma.user.create({
+          data: {
+            email,
+            name,
+            username: email.split('@')[0].substring(0, 20), // email에서 username 생성
+            globalRole,
+            image: image || null,
+            bio: faker.person.bio(),
+          },
+        })
+        users.push(user)
+      } else {
+        // 대량 생성 또는 필드가 없는 경우 faker 사용
+        const firstName = faker.person.firstName()
+        const lastName = faker.person.lastName()
+        const username = faker.internet
+          .userName({ firstName, lastName })
+          .toLowerCase()
 
-      const user = await prisma.user.create({
-        data: {
-          email: faker.internet.email({ firstName, lastName }).toLowerCase(),
-          name: `${lastName}${firstName}`,
-          username: username.substring(0, 20), // username은 최대 20자
-          bio: faker.person.bio(),
-          globalRole: 'USER',
-        },
-      })
-
-      users.push(user)
+        const user = await prisma.user.create({
+          data: {
+            email: faker.internet.email({ firstName, lastName }).toLowerCase(),
+            name: `${lastName}${firstName}`,
+            username: username.substring(0, 20),
+            bio: faker.person.bio(),
+            globalRole: 'USER',
+            image: null,
+          },
+        })
+        users.push(user)
+      }
     }
 
     return NextResponse.json({

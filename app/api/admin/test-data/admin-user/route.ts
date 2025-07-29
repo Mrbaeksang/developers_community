@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { role = 'MANAGER' } = body
+    const { role = 'MANAGER', name, email } = body
 
     if (!['ADMIN', 'MANAGER'].includes(role)) {
       return NextResponse.json(
@@ -36,9 +36,11 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const user = await prisma.user.create({
       data: {
-        email: `${role.toLowerCase()}-${timestamp}@test.com`,
-        name: `테스트 ${role === 'ADMIN' ? '관리자' : '매니저'}`,
-        username: `test_${role.toLowerCase()}_${timestamp}`,
+        email: email || `${role.toLowerCase()}-${timestamp}@test.com`,
+        name: name || `테스트 ${role === 'ADMIN' ? '관리자' : '매니저'}`,
+        username: email
+          ? email.split('@')[0].substring(0, 20)
+          : `test_${role.toLowerCase()}_${timestamp}`,
         bio: `테스트용 ${role === 'ADMIN' ? '관리자' : '매니저'} 계정입니다.`,
         globalRole: role as GlobalRole,
       },

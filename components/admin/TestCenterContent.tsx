@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TestActionCard } from '@/components/admin/TestActionCard'
 import { TestResultsPanel } from '@/components/admin/TestResultsPanel'
+import { DataTableViewer } from '@/components/admin/DataTableViewer'
 import {
   ChevronLeft,
   Database,
@@ -15,6 +16,7 @@ import {
   Building2,
   TestTube2,
   Loader2,
+  Table,
 } from 'lucide-react'
 
 interface TestCenterContentProps {
@@ -80,12 +82,12 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
   }) => {
     // API 응답을 결과 패널용 형식으로 변환
     const { action, response } = result
-    
+
     // 생성된 데이터 타입 판별
     let type: TestResult['type'] = 'user'
     const title = action
     let subtitle = response.message || '작업 완료'
-    
+
     if (action.includes('사용자')) type = 'user'
     else if (action.includes('게시글')) type = 'post'
     else if (action.includes('커뮤니티')) type = 'community'
@@ -93,13 +95,15 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
     else if (action.includes('좋아요')) type = 'like'
     else if (action.includes('북마크')) type = 'bookmark'
     else if (action.includes('태그')) type = 'tag'
-    
+
     // 생성된 데이터 정보 추출
     if (response.created) {
-      const count = Array.isArray(response.created) ? response.created.length : 1
+      const count = Array.isArray(response.created)
+        ? response.created.length
+        : 1
       subtitle = `${count}개 항목 생성됨`
     }
-    
+
     const newResult: TestResult = {
       id: Date.now().toString(),
       type,
@@ -108,7 +112,7 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
       createdAt: new Date(),
       data: response,
     }
-    
+
     setTestResults((prev) => [newResult, ...prev])
   }
 
@@ -119,18 +123,28 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
       actions: [
         {
           title: '테스트 사용자 생성',
-          description: '다양한 역할의 테스트 사용자를 생성합니다',
+          description: '상세 정보를 입력하여 사용자를 생성합니다',
           endpoint: '/api/admin/test-data/users',
           method: 'POST',
-          params: { count: 10 },
+          params: {
+            count: 1,
+            name: '테스트사용자',
+            email: 'test@example.com',
+            globalRole: 'USER',
+            image: '',
+          },
           badge: `현재 ${stats.userCount}명`,
         },
         {
           title: '관리자 계정 생성',
-          description: 'ADMIN 또는 MANAGER 권한의 계정을 생성합니다',
+          description: '상세 정보를 입력하여 관리자를 생성합니다',
           endpoint: '/api/admin/test-data/admin-user',
           method: 'POST',
-          params: { role: 'ADMIN' },
+          params: {
+            role: 'ADMIN',
+            name: '관리자',
+            email: 'admin@example.com',
+          },
         },
       ],
     },
@@ -140,25 +154,27 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
       actions: [
         {
           title: '메인 게시글 생성',
-          description: 'PUBLISHED 상태의 게시글을 생성합니다',
+          description: '상태를 선택하여 게시글을 생성합니다',
           endpoint: '/api/admin/test-data/main-posts',
           method: 'POST',
-          params: { count: 20, status: 'PUBLISHED' },
+          params: {
+            count: 1,
+            status: 'PUBLISHED',
+            title: '테스트 게시글',
+            content: '테스트 내용입니다',
+            categoryId: '',
+          },
           badge: `현재 ${stats.mainPostCount}개`,
         },
         {
-          title: '승인 대기 게시글 생성',
-          description: 'PENDING 상태의 게시글을 생성합니다',
-          endpoint: '/api/admin/test-data/main-posts',
-          method: 'POST',
-          params: { count: 5, status: 'PENDING' },
-        },
-        {
           title: '메인 댓글 생성',
-          description: '랜덤 게시글에 댓글을 생성합니다',
+          description: '특정 게시글에 댓글을 생성합니다',
           endpoint: '/api/admin/test-data/main-comments',
           method: 'POST',
-          params: { count: 50 },
+          params: {
+            postId: '',
+            content: '테스트 댓글입니다',
+          },
           badge: `현재 ${stats.mainCommentCount}개`,
         },
       ],
@@ -198,17 +214,21 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
       actions: [
         {
           title: '좋아요 생성',
-          description: '랜덤 게시글에 좋아요를 추가합니다',
+          description: '특정 게시글에 좋아요를 추가합니다',
           endpoint: '/api/admin/test-data/likes',
           method: 'POST',
-          params: { count: 100 },
+          params: {
+            postId: '',
+          },
         },
         {
           title: '북마크 생성',
-          description: '랜덤 게시글에 북마크를 추가합니다',
+          description: '특정 게시글에 북마크를 추가합니다',
           endpoint: '/api/admin/test-data/bookmarks',
           method: 'POST',
-          params: { count: 50 },
+          params: {
+            postId: '',
+          },
         },
         {
           title: '태그 생성',
@@ -273,7 +293,7 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
 
       {/* 탭 */}
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           {testActions.map((section) => (
             <TabsTrigger
               key={section.category}
@@ -283,6 +303,10 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
               {section.category}
             </TabsTrigger>
           ))}
+          <TabsTrigger value="data-viewer">
+            <Table className="h-4 w-4 mr-2" />
+            데이터 뷰어
+          </TabsTrigger>
         </TabsList>
 
         {testActions.map((section) => (
@@ -303,6 +327,11 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
             </div>
           </TabsContent>
         ))}
+
+        {/* 데이터 테이블 뷰어 */}
+        <TabsContent value="data-viewer" className="space-y-4">
+          <DataTableViewer />
+        </TabsContent>
       </Tabs>
 
       {/* 결과 패널 */}

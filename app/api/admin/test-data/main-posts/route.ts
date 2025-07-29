@@ -24,7 +24,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { count = 20, status = 'PUBLISHED' } = await request.json()
+    const {
+      count = 1,
+      status = 'PUBLISHED',
+      title,
+      content,
+      categoryId,
+    } = await request.json()
 
     // 사용 가능한 사용자, 카테고리, 태그 가져오기
     const [users, categories, tags] = await Promise.all([
@@ -42,17 +48,30 @@ export async function POST(request: NextRequest) {
 
     const posts = []
     for (let i = 0; i < count; i++) {
-      const title = faker.lorem.sentence()
-      const content = `# ${title}\n\n${faker.lorem.paragraphs(3, '\n\n')}\n\n## 주요 내용\n\n${faker.lorem.paragraphs(2, '\n\n')}\n\n### 마무리\n\n${faker.lorem.paragraph()}`
+      // 단일 생성이고 제목/내용이 제공된 경우
+      const postTitle = count === 1 && title ? title : faker.lorem.sentence()
+      const postContent =
+        count === 1 && content
+          ? content
+          : `# ${postTitle}\n\n${faker.lorem.paragraphs(3, '\n\n')}\n\n## 주요 내용\n\n${faker.lorem.paragraphs(2, '\n\n')}\n\n### 마무리\n\n${faker.lorem.paragraph()}`
+
+      // 카테고리 ID 처리
+      let selectedCategoryId = faker.helpers.arrayElement(categories).id
+      if (categoryId) {
+        const categoryExists = categories.find((c) => c.id === categoryId)
+        if (categoryExists) {
+          selectedCategoryId = categoryId
+        }
+      }
 
       const post = await prisma.mainPost.create({
         data: {
-          title,
-          content,
-          slug: faker.helpers.slugify(title).toLowerCase(),
+          title: postTitle,
+          content: postContent,
+          slug: faker.helpers.slugify(postTitle).toLowerCase(),
           status: status as PostStatus,
-          authorId: faker.helpers.arrayElement(users).id,
-          categoryId: faker.helpers.arrayElement(categories).id,
+          authorId: session.user.id, // 현재 사용자가 작성자
+          categoryId: selectedCategoryId,
           viewCount: faker.number.int({ min: 0, max: 1000 }),
           approvedAt: status === 'PUBLISHED' ? new Date() : null,
           approvedById: status === 'PUBLISHED' ? session.user.id : null,

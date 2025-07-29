@@ -24,79 +24,76 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { count = 50 } = body
+    const { postId } = body
 
-    // 사용자와 게시글 정보 가져오기
-    const [users, mainPosts, communityPosts] = await Promise.all([
-      prisma.user.findMany({ select: { id: true } }),
-      prisma.mainPost.findMany({
+    // 게시글 확인 (메인 사이트 게시글만 지원)
+    let targetPostId = postId
+
+    if (!targetPostId) {
+      // postId가 없으면 랜덤 게시글 선택
+      const posts = await prisma.mainPost.findMany({
         where: { status: 'PUBLISHED' },
-        select: { id: true },
-      }),
-      prisma.communityPost.findMany({ select: { id: true } }),
-    ])
+        select: { id: true, title: true },
+      })
 
-    if (
-      users.length === 0 ||
-      (mainPosts.length === 0 && communityPosts.length === 0)
-    ) {
+      if (posts.length === 0) {
+        return NextResponse.json(
+          { error: '북마크를 추가할 게시글이 없습니다.' },
+          { status: 400 }
+        )
+      }
+
+      const selectedPost = faker.helpers.arrayElement(posts)
+      targetPostId = selectedPost.id
+    } else {
+      // postId가 제공된 경우 유효성 확인
+      const post = await prisma.mainPost.findUnique({
+        where: { id: targetPostId },
+      })
+
+      if (!post) {
+        return NextResponse.json(
+          { error: '해당 게시글을 찾을 수 없습니다.' },
+          { status: 404 }
+        )
+      }
+    }
+
+    // 이미 북마크가 있는지 확인
+    const existing = await prisma.mainBookmark.findUnique({
+      where: {
+        userId_postId: {
+          userId: session.user.id,
+          postId: targetPostId,
+        },
+      },
+    })
+
+    if (existing) {
       return NextResponse.json(
-        { error: '북마크를 추가할 사용자 또는 게시글이 없습니다.' },
+        { error: '이미 북마크한 게시글입니다.' },
         { status: 400 }
       )
     }
 
-    const bookmarks = []
-    const createdBookmarks = new Set<string>()
-
-    for (let i = 0; i < count; i++) {
-      const userId = faker.helpers.arrayElement(users).id
-      const isMainPost = faker.datatype.boolean()
-
-      if (isMainPost && mainPosts.length > 0) {
-        const postId = faker.helpers.arrayElement(mainPosts).id
-        const key = `main-${userId}-${postId}`
-
-        if (!createdBookmarks.has(key)) {
-          const existing = await prisma.mainBookmark.findUnique({
-            where: { userId_postId: { userId, postId } },
-          })
-
-          if (!existing) {
-            const bookmark = await prisma.mainBookmark.create({
-              data: { userId, postId },
-            })
-            bookmarks.push({ type: 'main', ...bookmark })
-            createdBookmarks.add(key)
-          }
-        }
-      } else if (!isMainPost && communityPosts.length > 0) {
-        const postId = faker.helpers.arrayElement(communityPosts).id
-        const key = `community-${userId}-${postId}`
-
-        if (!createdBookmarks.has(key)) {
-          const existing = await prisma.communityBookmark.findUnique({
-            where: { userId_postId: { userId, postId } },
-          })
-
-          if (!existing) {
-            const bookmark = await prisma.communityBookmark.create({
-              data: { userId, postId },
-            })
-            bookmarks.push({ type: 'community', ...bookmark })
-            createdBookmarks.add(key)
-          }
-        }
-      }
-    }
+    // 북마크 추가
+    const bookmark = await prisma.mainBookmark.create({
+      data: {
+        userId: session.user.id,
+        postId: targetPostId,
+      },
+      include: {
+        post: { select: { title: true } },
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      message: `${bookmarks.length}개의 북마크가 추가되었습니다.`,
-      bookmarks: bookmarks.map((b) => ({
-        type: b.type,
-        postId: b.postId,
-      })),
+      message: `북마크가 추가되었습니다.`,
+      bookmark: {
+        postId: bookmark.postId,
+        postTitle: bookmark.post.title,
+      },
     })
   } catch (error) {
     console.error('Failed to create bookmarks:', error)

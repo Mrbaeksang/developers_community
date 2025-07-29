@@ -63,6 +63,109 @@ export function TestActionModal({
 
   // 파라미터 타입에 따른 입력 컴포넌트 렌더링
   const renderParamInput = (key: string, value: unknown) => {
+    // email 필드
+    if (key === 'email') {
+      return (
+        <div className="space-y-2">
+          <Label>이메일</Label>
+          <Input
+            type="email"
+            value={String(value)}
+            onChange={(e) => updateParam(key, e.target.value)}
+            placeholder="user@example.com"
+          />
+        </div>
+      )
+    }
+
+    // name, title 필드
+    if (key === 'name' || key === 'title') {
+      return (
+        <div className="space-y-2">
+          <Label>{key === 'name' ? '이름' : '제목'}</Label>
+          <Input
+            type="text"
+            value={String(value)}
+            onChange={(e) => updateParam(key, e.target.value)}
+            placeholder={key === 'name' ? '사용자 이름' : '게시글 제목'}
+          />
+        </div>
+      )
+    }
+
+    // content 필드
+    if (key === 'content') {
+      return (
+        <div className="space-y-2">
+          <Label>내용</Label>
+          <textarea
+            className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            value={String(value)}
+            onChange={(e) => updateParam(key, e.target.value)}
+            placeholder="내용을 입력하세요"
+          />
+        </div>
+      )
+    }
+
+    // postId, categoryId 필드
+    if (key === 'postId' || key === 'categoryId' || key === 'communityId') {
+      return (
+        <div className="space-y-2">
+          <Label>
+            {key === 'postId'
+              ? '게시글 ID'
+              : key === 'categoryId'
+                ? '카테고리 ID'
+                : '커뮤니티 ID'}
+          </Label>
+          <Input
+            type="text"
+            value={String(value)}
+            onChange={(e) => updateParam(key, e.target.value)}
+            placeholder="ID를 입력하거나 비워두면 랜덤 선택"
+          />
+        </div>
+      )
+    }
+
+    // image 필드
+    if (key === 'image') {
+      return (
+        <div className="space-y-2">
+          <Label>프로필 이미지 URL</Label>
+          <Input
+            type="url"
+            value={String(value)}
+            onChange={(e) => updateParam(key, e.target.value)}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+      )
+    }
+
+    // globalRole 필드
+    if (key === 'globalRole') {
+      return (
+        <div className="space-y-2">
+          <Label>전역 권한</Label>
+          <Select
+            value={String(value)}
+            onValueChange={(val: string) => updateParam(key, val)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USER">일반 사용자</SelectItem>
+              <SelectItem value="MANAGER">매니저</SelectItem>
+              <SelectItem value="ADMIN">관리자</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
+    }
+
     // count 파라미터는 슬라이더로
     if (key === 'count') {
       const max = key === 'count' && action.title.includes('사용자') ? 100 : 50
@@ -70,7 +173,9 @@ export function TestActionModal({
         <div className="space-y-2">
           <div className="flex justify-between">
             <Label>{key === 'count' ? '생성할 개수' : key}</Label>
-            <span className="text-sm text-muted-foreground">{String(value)}</span>
+            <span className="text-sm text-muted-foreground">
+              {String(value)}
+            </span>
           </div>
           <Slider
             value={[Number(value)]}
@@ -89,7 +194,10 @@ export function TestActionModal({
       return (
         <div className="space-y-2">
           <Label>권한 선택</Label>
-          <Select value={String(value)} onValueChange={(val: string) => updateParam(key, val)}>
+          <Select
+            value={String(value)}
+            onValueChange={(val: string) => updateParam(key, val)}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -108,7 +216,10 @@ export function TestActionModal({
       return (
         <div className="space-y-2">
           <Label>게시글 상태</Label>
-          <RadioGroup value={String(value)} onValueChange={(val: string) => updateParam(key, val)}>
+          <RadioGroup
+            value={String(value)}
+            onValueChange={(val: string) => updateParam(key, val)}
+          >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="PUBLISHED" id="published" />
               <Label htmlFor="published">게시됨 (PUBLISHED)</Label>
@@ -116,6 +227,10 @@ export function TestActionModal({
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="PENDING" id="pending" />
               <Label htmlFor="pending">승인 대기 (PENDING)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="DRAFT" id="draft" />
+              <Label htmlFor="draft">임시저장 (DRAFT)</Label>
             </div>
           </RadioGroup>
         </div>

@@ -46,7 +46,7 @@ export function TestActionCard({
   const handleAction = async (customParams?: Record<string, unknown>) => {
     setLoading(true)
     const finalParams = customParams || params
-    
+
     try {
       const response = await fetch(endpoint, {
         method,
@@ -63,7 +63,7 @@ export function TestActionCard({
       }
 
       toast.success(data.message || '작업이 완료되었습니다.')
-      
+
       // 결과 데이터를 상위 컴포넌트로 전달
       if (onResult && data) {
         onResult({
@@ -73,7 +73,7 @@ export function TestActionCard({
           response: data,
         })
       }
-      
+
       onSuccess?.()
     } catch (error) {
       console.error('Test action failed:', error)
@@ -103,7 +103,9 @@ export function TestActionCard({
             <Button
               className="flex-1"
               variant={danger ? 'destructive' : 'default'}
-              onClick={() => hasCustomizableParams ? setModalOpen(true) : handleAction()}
+              onClick={() =>
+                hasCustomizableParams ? setModalOpen(true) : handleAction()
+              }
               disabled={loading}
             >
               {loading ? (

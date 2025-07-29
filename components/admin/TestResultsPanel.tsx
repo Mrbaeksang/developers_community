@@ -27,7 +27,11 @@ interface TestResultsPanelProps {
   onDelete?: (id: string) => void
 }
 
-export function TestResultsPanel({ results, onClear, onDelete }: TestResultsPanelProps) {
+export function TestResultsPanel({
+  results,
+  onClear,
+  onDelete,
+}: TestResultsPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
 
