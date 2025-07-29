@@ -43,6 +43,24 @@ export function checkAuth(session: Session | null) {
   return null
 }
 
+// 전역 역할 확인 헬퍼 
+export async function hasRole(session: Session | null, roles: string[]) {
+  if (!session?.user?.id) {
+    return false
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { globalRole: true }
+  })
+
+  if (!user) {
+    return false
+  }
+
+  return roles.includes(user.globalRole)
+}
+
 // 커뮤니티 멤버십 확인 헬퍼
 export async function checkMembership(userId: string, communityId: string) {
   const membership = await prisma.communityMember.findUnique({

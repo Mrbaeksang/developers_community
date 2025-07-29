@@ -3,11 +3,11 @@
 ## 📡 디렉토리 구조
 
 ### 🚀 최근 업데이트
-- **테스트 센터 완전 개편**: 커스터마이징 가능한 입력 폼, 실시간 결과 확인, Prisma Studio 스타일 데이터 뷰어 구현
-- **TypeScript 완전 타입 안전화**: 모든 'any' 타입 제거, 누락된 Radix UI 컴포넌트 완성 (table, slider, radio-group)
-- **테스트 데이터 API 고도화**: 15개 엔드포인트 매개변수 커스터마이징 및 상세 입력 지원
-- **권한 시스템 완성**: Stage 1-2 완료 (auth-helpers.ts, 커뮤니티 권한 18/26 endpoints)
-- **커뮤니티 버그 수정**: 멤버십 버튼, 로그인 URL, 게시글 작성 링크 수정
+- **태그 관리 API 완전 구현**: 태그 CRUD 및 태그별 게시글 조회 API 구현 완료
+- **댓글 시스템 완전 개편**: CommentItem 컴포넌트 분리로 한글 입력 포커스 문제 해결
+- **관련 게시글 추천 기능**: 태그/카테고리 기반 스코어링 알고리즘으로 개인화된 추천
+- **게시글 상세 페이지 완성**: 10개 API 완전 통합, 댓글/답글/좋아요/북마크/추천 시스템
+- **Git 훅 및 린트 설정**: Husky + lint-staged로 코드 품질 자동화
 
 ```
 my_project/
@@ -71,8 +71,10 @@ my_project/
 │   │   │   │       │   └── route.ts  ✓ POST/GET 구현 (좋아요)
 │   │   │   │       ├── bookmark/
 │   │   │   │       │   └── route.ts  ✓ POST/GET 구현 (북마크)
-│   │   │   │       └── comments/
-│   │   │   │           └── route.ts  ✓ GET/POST 구현 (댓글 목록/작성)
+│   │   │   │       ├── comments/
+│   │   │   │       │   └── route.ts  ✓ GET/POST 구현 (댓글 목록/작성)
+│   │   │   │       └── related/
+│   │   │   │           └── route.ts  ✓ GET 구현 (관련 게시글 추천)
 │   │   │   ├── comments/         
 │   │   │   │   └── [id]/
 │   │   │   │       └── route.ts  ✓ PUT/DELETE 구현 (댓글 수정/삭제)
@@ -164,7 +166,9 @@ my_project/
 │   │   ├── PostDetail.tsx   ✓ 게시글 상세
 │   │   ├── CommentSection.tsx ✓ 댓글 섹션
 │   │   ├── PostListServer.tsx ✓ 게시글 목록 서버 컴포넌트
-│   │   └── PostEditor.tsx   ✓ 게시글 에디터
+│   │   ├── PostEditor.tsx   ✓ 게시글 에디터
+│   │   ├── CommentItem.tsx  ✓ 댓글 아이템 (분리된 컴포넌트)
+│   │   └── RelatedPosts.tsx ✓ 관련 게시글 추천
 │   ├── communities/         # 커뮤니티 관련 (7개 구현)
 │   │   ├── CommunityActions.tsx ✓ 커뮤니티 액션 버튼
 │   │   ├── CommunityAnnouncements.tsx ✓ 커뮤니티 공지사항
@@ -206,10 +210,10 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 89개 중 86개 구현 (96.6%)
-- **페이지**: 15개 중 14개 구현 (93.3%)
-- **컴포넌트**: 95개 중 49개 구현 (51.6%)
-- **전체**: 199개 중 149개 구현 (74.9%)
+- **API**: 94개 중 91개 구현 (96.8%)
+- **페이지**: 18개 중 17개 구현 (94.4%)
+- **컴포넌트**: 83개 중 69개 구현 (83.1%)
+- **전체**: 195개 중 177개 구현 (90.8%)
 
 ### 🆕 관리자 API (24개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -248,7 +252,7 @@ my_project/
 | `/api/users/bookmarks` | GET | 내 북마크 목록 | ✅ |
 | `/api/users/stats` | GET | 내 활동 통계 | ✅ |
 
-### 2️⃣ 메인 사이트 API (22개) - ✅ 90.9% 완료
+### 2️⃣ 메인 사이트 API (23개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/main/posts` | GET | 게시글 목록 조회 | ✅ |
@@ -266,12 +270,13 @@ my_project/
 | `/api/main/comments/[id]` | DELETE | 댓글 삭제 | ✅ |
 | `/api/main/categories` | GET | 카테고리 목록 | ✅ |
 | `/api/main/tags` | GET | 태그 목록 | ✅ |
-| `/api/main/tags` | POST | 태그 생성 | ❌ |
-| `/api/main/tags/[id]` | PUT | 태그 수정 | ❌ |
-| `/api/main/tags/[id]` | DELETE | 태그 삭제 | ❌ |
-| `/api/main/tags/[id]/posts` | GET | 태그별 게시글 | ❌ |
+| `/api/main/tags` | POST | 태그 생성 | ✅ |
+| `/api/main/tags/[id]` | PUT | 태그 수정 | ✅ |
+| `/api/main/tags/[id]` | DELETE | 태그 삭제 | ✅ |
+| `/api/main/tags/[id]/posts` | GET | 태그별 게시글 | ✅ |
 | `/api/main/posts/search` | GET | 게시글 검색 | ✅ |
 | `/api/main/posts/pending` | GET | 승인 대기 게시글 목록 | ✅ |
+| `/api/main/posts/[id]/related` | GET | 관련 게시글 추천 | ✅ |
 | `/api/main/stats` | GET | 커뮤니티 통계 | ✅ |
 | `/api/main/users/active` | GET | 활발한 사용자 | ✅ |
 
@@ -432,14 +437,15 @@ my_project/
 
 ### 핵심 지표
 - **페이지**: 18개 중 17개 구현 (94.4% 완성)
-- **API**: 89개 중 86개 구현 (96.6% 완성)
-- **컴포넌트**: 81개 중 67개 구현 (82.7% 완성)
+- **API**: 94개 중 91개 구현 (96.8% 완성)
+- **컴포넌트**: 83개 중 69개 구현 (83.1% 완성)
 
 ### 최근 완료된 주요 작업
-- ✅ **테스트 센터 완전 개편**: 커스터마이징 입력 폼, 실시간 결과 확인, Prisma Studio 스타일 데이터 뷰어
-- ✅ **TypeScript 완전 타입 안전화**: 모든 'any' 타입 제거, 누락된 Radix UI 컴포넌트 4개 추가
-- ✅ **테스트 데이터 API 고도화**: 15개 엔드포인트 + 8개 데이터 뷰어 API 구현
-- ✅ **관리자 시스템 완성**: 24개 API로 확장, 6개 컴포넌트로 관리 기능 강화
+- ✅ **태그 관리 시스템 구현**: 태그 CRUD API (POST/PUT/DELETE) 및 태그별 게시글 조회 API 완성
+- ✅ **댓글 시스템 완전 리팩토링**: CommentItem 분리로 React 상태 관리 최적화, 한글 입력 포커스 이슈 해결
+- ✅ **관련 게시글 추천 시스템**: 태그/카테고리 매칭 + 인기도 + 최신도 기반 스코어링 알고리즘 구현
+- ✅ **게시글 상세 페이지 API 통합**: 10개 API 완전 연동으로 댓글, 좋아요, 북마크, 추천 기능 완성
+- ✅ **코드 품질 자동화**: Husky + lint-staged + Prettier + ESLint 설정으로 Git 커밋 시 자동 포맷팅
 
 ### 다음 우선 순위
 - ❌ 채팅 시스템 (8개 API, 관련 컴포넌트)
