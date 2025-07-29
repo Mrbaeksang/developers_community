@@ -1,5 +1,11 @@
 import { notFound } from 'next/navigation'
-import { Calendar, FileText, MessageSquare, Heart, Bookmark } from 'lucide-react'
+import {
+  Calendar,
+  FileText,
+  MessageSquare,
+  Heart,
+  Bookmark,
+} from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -195,7 +201,7 @@ async function getUserLikedPosts(userId: string) {
     take: 10,
   })
 
-  return likes.map(like => ({ ...like.post, likedAt: like.createdAt }))
+  return likes.map((like) => ({ ...like.post, likedAt: like.createdAt }))
 }
 
 // 사용자의 북마크 목록 가져오기 (본인만 볼 수 있음)
@@ -230,7 +236,10 @@ async function getUserBookmarks(userId: string) {
     take: 10,
   })
 
-  return bookmarks.map(bookmark => ({ ...bookmark.post, bookmarkedAt: bookmark.createdAt }))
+  return bookmarks.map((bookmark) => ({
+    ...bookmark.post,
+    bookmarkedAt: bookmark.createdAt,
+  }))
 }
 
 export default async function ProfilePage({
@@ -243,7 +252,7 @@ export default async function ProfilePage({
 
   const isOwnProfile = session?.user?.id === id
   const profile = await getProfile(id)
-  
+
   // 프로필 데이터 가져오기
   const [posts, comments, likedPosts, bookmarks] = await Promise.all([
     getUserPosts(id),
@@ -347,7 +356,9 @@ export default async function ProfilePage({
 
       {/* Activity Tabs */}
       <Tabs defaultValue="posts" className="space-y-4">
-        <TabsList className={`grid ${isOwnProfile ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+        <TabsList
+          className={`grid ${isOwnProfile ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
+        >
           <TabsTrigger value="posts" className="font-bold">
             게시글
           </TabsTrigger>
@@ -379,20 +390,32 @@ export default async function ProfilePage({
                   <h3 className="font-bold mb-2">메인 게시글</h3>
                   <div className="space-y-2">
                     {posts.mainPosts.map((post) => (
-                      <Card key={post.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Card
+                        key={post.id}
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <Link href={`/main/posts/${post.id}`} className="hover:underline">
+                              <Link
+                                href={`/main/posts/${post.id}`}
+                                className="hover:underline"
+                              >
                                 <h4 className="font-bold">{post.title}</h4>
                               </Link>
-                              <p className="text-sm text-muted-foreground mt-1">{post.excerpt}</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {post.excerpt}
+                              </p>
                               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{post.category?.name}</span>
                                 <span>조회 {post.viewCount}</span>
                                 <span>좋아요 {post.likeCount}</span>
                                 <span>댓글 {post.commentCount}</span>
-                                <span>{new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
+                                <span>
+                                  {new Date(post.createdAt).toLocaleDateString(
+                                    'ko-KR'
+                                  )}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -407,20 +430,32 @@ export default async function ProfilePage({
                   <h3 className="font-bold mb-2">커뮤니티 게시글</h3>
                   <div className="space-y-2">
                     {posts.communityPosts.map((post) => (
-                      <Card key={post.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Card
+                        key={post.id}
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <Link href={`/communities/${post.community?.slug}/posts/${post.id}`} className="hover:underline">
+                              <Link
+                                href={`/communities/${post.community?.slug}/posts/${post.id}`}
+                                className="hover:underline"
+                              >
                                 <h4 className="font-bold">{post.title}</h4>
                               </Link>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.content}</p>
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {post.content}
+                              </p>
                               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span>{post.community?.name}</span>
                                 <span>조회 {post.viewCount}</span>
                                 <span>좋아요 {post.likeCount}</span>
                                 <span>댓글 {post.commentCount}</span>
-                                <span>{new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
+                                <span>
+                                  {new Date(post.createdAt).toLocaleDateString(
+                                    'ko-KR'
+                                  )}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -445,16 +480,26 @@ export default async function ProfilePage({
           ) : (
             <div className="space-y-2">
               {comments.map((comment) => (
-                <Card key={comment.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Card
+                  key={comment.id}
+                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
                   <CardContent className="p-4">
                     <p className="text-sm">{comment.content}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <span>게시글:</span>
-                      <Link href={`/main/posts/${comment.post.slug}`} className="hover:underline font-medium">
+                      <Link
+                        href={`/main/posts/${comment.post.slug}`}
+                        className="hover:underline font-medium"
+                      >
                         {comment.post.title}
                       </Link>
                       <span>•</span>
-                      <span>{new Date(comment.createdAt).toLocaleDateString('ko-KR')}</span>
+                      <span>
+                        {new Date(comment.createdAt).toLocaleDateString(
+                          'ko-KR'
+                        )}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -474,20 +519,31 @@ export default async function ProfilePage({
           ) : (
             <div className="space-y-2">
               {likedPosts.map((post) => (
-                <Card key={post.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Card
+                  key={post.id}
+                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <Link href={`/main/posts/${post.id}`} className="hover:underline">
+                        <Link
+                          href={`/main/posts/${post.id}`}
+                          className="hover:underline"
+                        >
                           <h4 className="font-bold">{post.title}</h4>
                         </Link>
-                        <p className="text-sm text-muted-foreground mt-1">{post.excerpt}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {post.excerpt}
+                        </p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                           <span>{post.category?.name}</span>
                           <span>조회 {post.viewCount}</span>
                           <span>좋아요 {post.likeCount}</span>
                           <span>댓글 {post.commentCount}</span>
-                          <span>좋아요한 날짜: {new Date(post.likedAt).toLocaleDateString('ko-KR')}</span>
+                          <span>
+                            좋아요한 날짜:{' '}
+                            {new Date(post.likedAt).toLocaleDateString('ko-KR')}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -497,7 +553,7 @@ export default async function ProfilePage({
             </div>
           )}
         </TabsContent>
-        
+
         {isOwnProfile && (
           <TabsContent value="bookmarks">
             {bookmarks.length === 0 ? (
@@ -510,20 +566,33 @@ export default async function ProfilePage({
             ) : (
               <div className="space-y-2">
                 {bookmarks.map((post) => (
-                  <Card key={post.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Card
+                    key={post.id}
+                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <Link href={`/main/posts/${post.id}`} className="hover:underline">
+                          <Link
+                            href={`/main/posts/${post.id}`}
+                            className="hover:underline"
+                          >
                             <h4 className="font-bold">{post.title}</h4>
                           </Link>
-                          <p className="text-sm text-muted-foreground mt-1">{post.excerpt}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {post.excerpt}
+                          </p>
                           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                             <span>{post.category?.name}</span>
                             <span>조회 {post.viewCount}</span>
                             <span>좋아요 {post.likeCount}</span>
                             <span>댓글 {post.commentCount}</span>
-                            <span>북마크한 날짜: {new Date(post.bookmarkedAt).toLocaleDateString('ko-KR')}</span>
+                            <span>
+                              북마크한 날짜:{' '}
+                              {new Date(post.bookmarkedAt).toLocaleDateString(
+                                'ko-KR'
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>

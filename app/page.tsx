@@ -43,7 +43,9 @@ async function getSidebarData() {
   try {
     const [tagsRes, usersRes, statsRes] = await Promise.all([
       fetch(`${getApiUrl()}/api/main/tags?limit=5`, { cache: 'no-store' }),
-      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, {
+        cache: 'no-store',
+      }),
       fetch(`${getApiUrl()}/api/main/stats`, { cache: 'no-store' }),
     ])
 
@@ -82,9 +84,9 @@ export const revalidate = 0 // 캐싱 비활성화
 
 export default async function Home() {
   const [posts, categories, sidebarData] = await Promise.all([
-    getPosts(), 
+    getPosts(),
     getCategories(),
-    getSidebarData()
+    getSidebarData(),
   ])
 
   return (

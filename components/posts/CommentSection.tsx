@@ -72,7 +72,7 @@ export default function CommentSection({
     if (initialComments.length > 0) {
       return // 이미 서버에서 받아온 데이터가 있으면 스킵
     }
-    
+
     const fetchComments = async () => {
       try {
         const res = await fetch(`/api/main/posts/${postId}/comments`)
@@ -184,15 +184,17 @@ export default function CommentSection({
       if (res.ok) {
         const data = await res.json()
         // 답글을 해당 댓글의 replies 배열에 추가
-        setComments(comments.map(comment => {
-          if (comment.id === parentId) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), data.comment]
+        setComments(
+          comments.map((comment) => {
+            if (comment.id === parentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), data.comment],
+              }
             }
-          }
-          return comment
-        }))
+            return comment
+          })
+        )
         toast({
           title: '답글이 작성되었습니다',
         })
@@ -399,7 +401,7 @@ export default function CommentSection({
                 <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
               )}
             </div>
-            
+
             {/* 답글 버튼 */}
             {depth === 0 && (
               <div className="mt-2">
@@ -421,7 +423,7 @@ export default function CommentSection({
                 </Button>
               </div>
             )}
-            
+
             {/* 답글 작성 폼 */}
             {replyingToId === comment.id && (
               <div className="mt-3 ml-12">

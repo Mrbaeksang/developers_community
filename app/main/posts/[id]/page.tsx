@@ -24,12 +24,15 @@ async function getPost(id: string) {
     }
 
     const data = await res.json()
-    
+
     // 댓글도 함께 조회
     try {
-      const commentsRes = await fetch(`${baseUrl}/api/main/posts/${id}/comments`, {
-        cache: 'no-store',
-      })
+      const commentsRes = await fetch(
+        `${baseUrl}/api/main/posts/${id}/comments`,
+        {
+          cache: 'no-store',
+        }
+      )
       if (commentsRes.ok) {
         const commentsData = await commentsRes.json()
         data.comments = commentsData.comments || []
@@ -38,7 +41,7 @@ async function getPost(id: string) {
       console.error('Failed to fetch comments:', error)
       data.comments = []
     }
-    
+
     return data
   } catch (error) {
     console.error('Failed to fetch post:', error)
@@ -84,7 +87,10 @@ export default async function PostDetailPage({ params }: PageProps) {
     <div className="container mx-auto py-8">
       <div className="max-w-4xl mx-auto">
         <PostDetail post={post} />
-        <CommentSection postId={post.id} initialComments={post.comments || []} />
+        <CommentSection
+          postId={post.id}
+          initialComments={post.comments || []}
+        />
       </div>
     </div>
   )

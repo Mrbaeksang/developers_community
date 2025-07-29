@@ -18,7 +18,9 @@ async function getSidebarData() {
   try {
     const [tagsRes, usersRes, statsRes] = await Promise.all([
       fetch(`${getApiUrl()}/api/main/tags?limit=5`, { cache: 'no-store' }),
-      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, {
+        cache: 'no-store',
+      }),
       fetch(`${getApiUrl()}/api/main/stats`, { cache: 'no-store' }),
     ])
 
@@ -58,7 +60,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const category = params.category
   const sort = params.sort || 'latest'
   const page = params.page || '1'
-  
+
   const sidebarData = await getSidebarData()
 
   return (

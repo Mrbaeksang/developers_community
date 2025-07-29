@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import { X, Copy, Check } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -15,7 +20,12 @@ interface ShareModalProps {
   title: string
 }
 
-export default function ShareModal({ isOpen, onClose, url, title }: ShareModalProps) {
+export default function ShareModal({
+  isOpen,
+  onClose,
+  url,
+  title,
+}: ShareModalProps) {
   const [copied, setCopied] = useState(false)
   const { toast } = useToast()
 
@@ -66,12 +76,18 @@ export default function ShareModal({ isOpen, onClose, url, title }: ShareModalPr
   const shareToTwitter = () => {
     const text = encodeURIComponent(`${title} - 개발자 커뮤니티`)
     const shareUrl = encodeURIComponent(url)
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${shareUrl}`, '_blank')
+    window.open(
+      `https://twitter.com/intent/tweet?text=${text}&url=${shareUrl}`,
+      '_blank'
+    )
   }
 
   const shareToFacebook = () => {
     const shareUrl = encodeURIComponent(url)
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank')
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`,
+      '_blank'
+    )
   }
 
   return (
@@ -80,7 +96,7 @@ export default function ShareModal({ isOpen, onClose, url, title }: ShareModalPr
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">공유하기</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* SNS 공유 버튼들 */}
           <div className="grid grid-cols-3 gap-3">
@@ -94,7 +110,7 @@ export default function ShareModal({ isOpen, onClose, url, title }: ShareModalPr
               </div>
               <span className="text-xs font-medium">카카오톡</span>
             </Button>
-            
+
             <Button
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
@@ -105,7 +121,7 @@ export default function ShareModal({ isOpen, onClose, url, title }: ShareModalPr
               </div>
               <span className="text-xs font-medium">트위터</span>
             </Button>
-            
+
             <Button
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
