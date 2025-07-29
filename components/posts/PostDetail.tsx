@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
+import ShareModal from './ShareModal'
 
 interface PostDetailProps {
   post: {
@@ -53,6 +54,7 @@ export default function PostDetail({ post }: PostDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [likeCount, setLikeCount] = useState(post._count.likes)
+  const [showShareModal, setShowShareModal] = useState(false)
   const { toast } = useToast()
   const { status } = useSession()
   const router = useRouter()
@@ -145,44 +147,8 @@ export default function PostDetail({ post }: PostDetailProps) {
     }
   }
 
-  const handleShare = async () => {
-    try {
-      // 먼저 navigator.clipboard 시도
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(window.location.href)
-        toast({
-          title: '링크가 복사되었습니다',
-        })
-      } else {
-        // fallback: input 요소를 이용한 복사
-        const textArea = document.createElement('textarea')
-        textArea.value = window.location.href
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-
-        const successful = document.execCommand('copy')
-        document.body.removeChild(textArea)
-
-        if (successful) {
-          toast({
-            title: '링크가 복사되었습니다',
-          })
-        } else {
-          throw new Error('복사 실패')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to copy link:', error)
-      toast({
-        title: '링크 복사에 실패했습니다',
-        description: 'URL을 수동으로 복사해주세요',
-        variant: 'destructive',
-      })
-    }
+  const handleShare = () => {
+    setShowShareModal(true)
   }
 
   return (
@@ -290,6 +256,14 @@ export default function PostDetail({ post }: PostDetailProps) {
           공유
         </Button>
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={typeof window !== 'undefined' ? window.location.href : ''}
+        title={post.title}
+      />
     </article>
   )
 }

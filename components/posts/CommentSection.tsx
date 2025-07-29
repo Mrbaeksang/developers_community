@@ -61,12 +61,18 @@ export default function CommentSection({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const [replyContent, setReplyContent] = useState('')
   const { toast } = useToast()
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  // 댓글 목록 가져오기
+  // 댓글 목록 가져오기 (initialComments가 비어있을 때만)
   useEffect(() => {
+    if (initialComments.length > 0) {
+      return // 이미 서버에서 받아온 데이터가 있으면 스킵
+    }
+    
     const fetchComments = async () => {
       try {
         const res = await fetch(`/api/main/posts/${postId}/comments`)
@@ -80,7 +86,7 @@ export default function CommentSection({
     }
 
     fetchComments()
-  }, [postId])
+  }, [postId, initialComments.length])
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,6 +120,7 @@ export default function CommentSection({
         },
         body: JSON.stringify({
           content: newComment.trim(),
+          parentId: null,
         }),
       })
 
@@ -132,6 +139,73 @@ export default function CommentSection({
       console.error('Failed to create comment:', error)
       toast({
         title: '댓글 작성에 실패했습니다',
+        description:
+          error instanceof Error ? error.message : '다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleReplySubmit = async (parentId: string) => {
+    if (status === 'unauthenticated') {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '답글을 작성하려면 로그인해주세요.',
+        variant: 'destructive',
+      })
+      router.push('/signin')
+      return
+    }
+
+    if (!replyContent.trim()) {
+      toast({
+        title: '답글 내용을 입력해주세요',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const res = await fetch(`/api/main/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: replyContent.trim(),
+          parentId: parentId,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        // 답글을 해당 댓글의 replies 배열에 추가
+        setComments(comments.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), data.comment]
+            }
+          }
+          return comment
+        }))
+        toast({
+          title: '답글이 작성되었습니다',
+        })
+        setReplyingToId(null)
+        setReplyContent('')
+      } else {
+        const error = await res.json()
+        throw new Error(error.error || '답글 작성에 실패했습니다')
+      }
+    } catch (error) {
+      console.error('Failed to create reply:', error)
+      toast({
+        title: '답글 작성에 실패했습니다',
         description:
           error instanceof Error ? error.message : '다시 시도해주세요.',
         variant: 'destructive',
@@ -325,15 +399,64 @@ export default function CommentSection({
                 <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
               )}
             </div>
-            <div className="mt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs font-bold hover:bg-gray-100"
-              >
-                답글 달기
-              </Button>
-            </div>
+            
+            {/* 답글 버튼 */}
+            {depth === 0 && (
+              <div className="mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs font-bold hover:bg-gray-100"
+                  onClick={() => {
+                    if (replyingToId === comment.id) {
+                      setReplyingToId(null)
+                      setReplyContent('')
+                    } else {
+                      setReplyingToId(comment.id)
+                      setReplyContent('')
+                    }
+                  }}
+                >
+                  {replyingToId === comment.id ? '취소' : '답글 달기'}
+                </Button>
+              </div>
+            )}
+            
+            {/* 답글 작성 폼 */}
+            {replyingToId === comment.id && (
+              <div className="mt-3 ml-12">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="답글을 작성해주세요..."
+                    className="flex-1 min-h-[80px] border-2 border-black focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    rows={2}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleReplySubmit(comment.id)}
+                      disabled={isSubmitting || !replyContent.trim()}
+                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    >
+                      답글 작성
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setReplyingToId(null)
+                        setReplyContent('')
+                      }}
+                      className="border-2 border-black"
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {comment.replies?.map((reply) => (

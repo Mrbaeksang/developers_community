@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { KakaoProvider } from '@/components/providers/KakaoProvider'
 import { Header } from '@/components/layouts/Header'
 
 const geistSans = Geist({
@@ -26,12 +27,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script
+          src="https://developers.kakao.com/sdk/js/kakao.js"
+          async
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
-          <Header />
-          <main>{children}</main>
+          <KakaoProvider>
+            <Header />
+            <main>{children}</main>
+          </KakaoProvider>
         </SessionProvider>
       </body>
     </html>

@@ -5,58 +5,6 @@ import { getApiUrl } from '@/lib/api'
 
 async function getPosts() {
   try {
-    // 개발 환경에서는 직접 prisma 사용
-    if (process.env.NODE_ENV === 'development') {
-      const { prisma } = await import('@/lib/prisma')
-
-      const posts = await prisma.mainPost.findMany({
-        where: {
-          status: 'PUBLISHED',
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 10,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-          tags: {
-            include: {
-              tag: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-              likes: true,
-            },
-          },
-        },
-      })
-
-      return posts
-    }
-
-    // 프로덕션에서는 API 호출
     const res = await fetch(`${getApiUrl()}/api/main/posts?limit=10`, {
       cache: 'no-store',
     })
@@ -75,33 +23,6 @@ async function getPosts() {
 
 async function getCategories() {
   try {
-    // 개발 환경에서는 직접 prisma 사용
-    if (process.env.NODE_ENV === 'development') {
-      const { prisma } = await import('@/lib/prisma')
-
-      const categories = await prisma.mainCategory.findMany({
-        orderBy: {
-          name: 'asc',
-        },
-        include: {
-          _count: {
-            select: {
-              posts: true,
-            },
-          },
-        },
-      })
-
-      return categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        postCount: category._count.posts,
-      }))
-    }
-
-    // 프로덕션에서는 API 호출
     const res = await fetch(`${getApiUrl()}/api/main/categories`, {
       cache: 'no-store',
     })
@@ -118,10 +39,53 @@ async function getCategories() {
   }
 }
 
+async function getSidebarData() {
+  try {
+    const [tagsRes, usersRes, statsRes] = await Promise.all([
+      fetch(`${getApiUrl()}/api/main/tags?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/stats`, { cache: 'no-store' }),
+    ])
+
+    const [tagsData, usersData, statsData] = await Promise.all([
+      tagsRes.ok ? tagsRes.json() : { tags: [] },
+      usersRes.ok ? usersRes.json() : { users: [] },
+      statsRes.ok ? statsRes.json() : { stats: {} },
+    ])
+
+    return {
+      trendingTags: tagsData.tags || [],
+      activeUsers: usersData.users || [],
+      stats: statsData.stats || {
+        totalUsers: 0,
+        weeklyPosts: 0,
+        weeklyComments: 0,
+        activeDiscussions: 0,
+      },
+    }
+  } catch (error) {
+    console.error('사이드바 데이터 조회 실패:', error)
+    return {
+      trendingTags: [],
+      activeUsers: [],
+      stats: {
+        totalUsers: 0,
+        weeklyPosts: 0,
+        weeklyComments: 0,
+        activeDiscussions: 0,
+      },
+    }
+  }
+}
+
 export const revalidate = 0 // 캐싱 비활성화
 
 export default async function Home() {
-  const [posts, categories] = await Promise.all([getPosts(), getCategories()])
+  const [posts, categories, sidebarData] = await Promise.all([
+    getPosts(), 
+    getCategories(),
+    getSidebarData()
+  ])
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,7 +101,7 @@ export default async function Home() {
           </main>
 
           {/* Sidebar */}
-          <SidebarContainer />
+          <SidebarContainer sidebarData={sidebarData} />
         </div>
       </div>
     </div>
