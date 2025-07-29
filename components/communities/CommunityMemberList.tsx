@@ -133,7 +133,7 @@ export default function CommunityMemberList({
         setIsLoading(false)
       }
     },
-    [communityId, debouncedSearch, roleFilter, hasMore, isLoading]
+    [communityId, debouncedSearch, roleFilter]
   )
 
   // 초기 로드 및 필터 변경 시
@@ -142,14 +142,14 @@ export default function CommunityMemberList({
     setPage(1)
     setHasMore(true)
     fetchMembers(1, true)
-  }, [debouncedSearch, roleFilter, communityId, fetchMembers])
+  }, [debouncedSearch, roleFilter, communityId])
 
   // 무한 스크롤
   useEffect(() => {
-    if (inView && hasMore && !isLoading && page > 1) {
+    if (inView && hasMore && !isLoading) {
       fetchMembers(page + 1)
     }
-  }, [inView, hasMore, isLoading, page, fetchMembers])
+  }, [inView, hasMore, isLoading, page])
 
   const roleOptions = [
     { value: null, label: '전체 역할' },

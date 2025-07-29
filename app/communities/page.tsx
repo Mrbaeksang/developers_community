@@ -77,7 +77,7 @@ export default async function CommunitiesPage({
           asChild
           className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
-          <Link href="/community/new">
+          <Link href="/communities/new">
             <Plus className="h-4 w-4 mr-2" />
             커뮤니티 만들기
           </Link>
@@ -177,7 +177,7 @@ export default async function CommunitiesPage({
               asChild
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
             >
-              <Link href="/community/new">
+              <Link href="/communities/new">
                 <Plus className="h-4 w-4 mr-2" />
                 커뮤니티 만들기
               </Link>
