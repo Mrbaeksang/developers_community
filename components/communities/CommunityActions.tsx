@@ -120,7 +120,7 @@ export function CommunityActions({
           승인 대기중
         </Button>
       )}
-      {canJoin && (
+      {!isMember && !isPending && canJoin && (
         <Button
           size="sm"
           onClick={handleJoin}

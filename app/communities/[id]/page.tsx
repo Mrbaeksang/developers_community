@@ -234,7 +234,7 @@ export default async function CommunityDetailPage({
                 asChild
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
               >
-                <Link href={`/communities/${community.slug}/write`}>
+                <Link href={`/communities/${community.id}/write`}>
                   게시글 작성
                 </Link>
               </Button>

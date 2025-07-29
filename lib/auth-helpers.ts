@@ -259,7 +259,24 @@ export async function requireCommunityRole(
   return member
 }
 
-// 글로벌 권한 체크 함수
+// 글로벌 권한 체크 함수 (NextResponse 반환)
+export async function checkGlobalRole(
+  userId: string,
+  requiredRoles: string[] // ['MANAGER', 'ADMIN']
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { globalRole: true },
+  })
+
+  if (!user || !requiredRoles.includes(user.globalRole)) {
+    return forbidden('관리자 권한이 필요합니다.')
+  }
+
+  return null
+}
+
+// 글로벌 권한 체크 함수 (에러 throw)
 export async function requireGlobalRole(
   userId: string,
   requiredRoles: string[] // ['MANAGER', 'ADMIN']

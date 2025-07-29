@@ -1,0 +1,92 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { checkGlobalRole } from '@/lib/auth-helpers'
+import { faker } from '@faker-js/faker'
+import { PostStatus } from '@prisma/client'
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    }
+
+    // 관리자 권한 확인
+    const roleError = await checkGlobalRole(session.user.id, [
+      'ADMIN',
+      'MANAGER',
+    ])
+    if (roleError) {
+      return NextResponse.json({ error: roleError }, { status: 403 })
+    }
+
+    const { count = 20, status = 'PUBLISHED' } = await request.json()
+
+    // 사용 가능한 사용자, 카테고리, 태그 가져오기
+    const [users, categories, tags] = await Promise.all([
+      prisma.user.findMany({ select: { id: true } }),
+      prisma.mainCategory.findMany({ select: { id: true } }),
+      prisma.mainTag.findMany({ select: { id: true } }),
+    ])
+
+    if (users.length === 0 || categories.length === 0) {
+      return NextResponse.json(
+        { error: '게시글을 생성하기 위한 사용자 또는 카테고리가 없습니다.' },
+        { status: 400 }
+      )
+    }
+
+    const posts = []
+    for (let i = 0; i < count; i++) {
+      const title = faker.lorem.sentence()
+      const content = `# ${title}\n\n${faker.lorem.paragraphs(3, '\n\n')}\n\n## 주요 내용\n\n${faker.lorem.paragraphs(2, '\n\n')}\n\n### 마무리\n\n${faker.lorem.paragraph()}`
+
+      const post = await prisma.mainPost.create({
+        data: {
+          title,
+          content,
+          slug: faker.helpers.slugify(title).toLowerCase(),
+          status: status as PostStatus,
+          authorId: faker.helpers.arrayElement(users).id,
+          categoryId: faker.helpers.arrayElement(categories).id,
+          viewCount: faker.number.int({ min: 0, max: 1000 }),
+          approvedAt: status === 'PUBLISHED' ? new Date() : null,
+          approvedById: status === 'PUBLISHED' ? session.user.id : null,
+        },
+      })
+
+      // 태그 연결 (랜덤하게 1-3개)
+      if (tags.length > 0) {
+        const selectedTags = faker.helpers.arrayElements(tags, {
+          min: 1,
+          max: Math.min(3, tags.length),
+        })
+        await prisma.mainPostTag.createMany({
+          data: selectedTags.map((tag) => ({
+            postId: post.id,
+            tagId: tag.id,
+          })),
+        })
+      }
+
+      posts.push(post)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${count}개의 ${status === 'PUBLISHED' ? '게시된' : '승인 대기'} 게시글이 생성되었습니다.`,
+      posts: posts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+      })),
+    })
+  } catch (error) {
+    console.error('Failed to create test posts:', error)
+    return NextResponse.json(
+      { error: '테스트 게시글 생성에 실패했습니다.' },
+      { status: 500 }
+    )
+  }
+}

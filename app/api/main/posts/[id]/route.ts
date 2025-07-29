@@ -77,7 +77,7 @@ const updatePostSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(100),
   content: z.string().min(1, '내용을 입력해주세요'),
   categoryId: z.string(),
-  tagIds: z.array(z.string()).max(5, '태그는 최대 5개까지 가능합니다')
+  tagIds: z.array(z.string()).max(5, '태그는 최대 5개까지 가능합니다'),
 })
 
 export async function PUT(
@@ -87,7 +87,7 @@ export async function PUT(
   try {
     const { id } = await params
     const session = await auth()
-    
+
     // 인증 확인
     const authError = checkAuth(session)
     if (authError) return authError
@@ -95,24 +95,30 @@ export async function PUT(
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
       where: { id },
-      select: { 
+      select: {
         authorId: true,
-        status: true 
-      }
+        status: true,
+      },
     })
 
     if (!post) {
-      return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+      return NextResponse.json(
+        { error: '게시글을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
     }
 
     // 작성자 또는 관리자만 수정 가능
     const user = await prisma.user.findUnique({
       where: { id: session!.user.id },
-      select: { globalRole: true }
+      select: { globalRole: true },
     })
 
     if (post.authorId !== session!.user.id && user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '게시글을 수정할 권한이 없습니다.' }, { status: 403 })
+      return NextResponse.json(
+        { error: '게시글을 수정할 권한이 없습니다.' },
+        { status: 403 }
+      )
     }
 
     const body = await request.json()
@@ -129,21 +135,27 @@ export async function PUT(
 
     // 카테고리 확인
     const category = await prisma.mainCategory.findUnique({
-      where: { id: categoryId }
+      where: { id: categoryId },
     })
 
     if (!category) {
-      return NextResponse.json({ error: '유효하지 않은 카테고리입니다.' }, { status: 400 })
+      return NextResponse.json(
+        { error: '유효하지 않은 카테고리입니다.' },
+        { status: 400 }
+      )
     }
 
     // 태그 확인
     if (tagIds.length > 0) {
       const tags = await prisma.mainTag.findMany({
-        where: { id: { in: tagIds } }
+        where: { id: { in: tagIds } },
       })
 
       if (tags.length !== tagIds.length) {
-        return NextResponse.json({ error: '유효하지 않은 태그가 포함되어 있습니다.' }, { status: 400 })
+        return NextResponse.json(
+          { error: '유효하지 않은 태그가 포함되어 있습니다.' },
+          { status: 400 }
+        )
       }
     }
 
@@ -151,7 +163,7 @@ export async function PUT(
     const updatedPost = await prisma.$transaction(async (tx) => {
       // 기존 태그 연결 삭제
       await tx.mainPostTag.deleteMany({
-        where: { postId: id }
+        where: { postId: id },
       })
 
       // 게시글 수정
@@ -162,60 +174,64 @@ export async function PUT(
           content,
           categoryId,
           // 수정 시 다시 PENDING 상태로 변경 (관리자가 아닌 경우)
-          status: user?.globalRole === 'ADMIN' ? post.status : PostStatus.PENDING
+          status:
+            user?.globalRole === 'ADMIN' ? post.status : PostStatus.PENDING,
         },
         include: {
           author: {
             select: {
               id: true,
               name: true,
-              image: true
-            }
+              image: true,
+            },
           },
           category: {
             select: {
               id: true,
               name: true,
               slug: true,
-              color: true
-            }
+              color: true,
+            },
           },
           _count: {
             select: {
               comments: true,
               likes: true,
-              bookmarks: true
-            }
-          }
-        }
+              bookmarks: true,
+            },
+          },
+        },
       })
 
       // 새 태그 연결
       if (tagIds.length > 0) {
         await tx.mainPostTag.createMany({
-          data: tagIds.map(tagId => ({
+          data: tagIds.map((tagId) => ({
             postId: id,
-            tagId
-          }))
+            tagId,
+          })),
         })
       }
 
       // 태그 정보 가져오기
       const postTags = await tx.mainPostTag.findMany({
         where: { postId: id },
-        include: { tag: true }
+        include: { tag: true },
       })
 
       return {
         ...updated,
-        tags: postTags.map(pt => pt.tag)
+        tags: postTags.map((pt) => pt.tag),
       }
     })
 
     return NextResponse.json(updatedPost)
   } catch (error) {
     console.error('Failed to update post:', error)
-    return NextResponse.json({ error: '게시글 수정에 실패했습니다.' }, { status: 500 })
+    return NextResponse.json(
+      { error: '게시글 수정에 실패했습니다.' },
+      { status: 500 }
+    )
   }
 }
 
@@ -227,7 +243,7 @@ export async function DELETE(
   try {
     const { id } = await params
     const session = await auth()
-    
+
     // 인증 확인
     const authError = checkAuth(session)
     if (authError) return authError
@@ -235,31 +251,40 @@ export async function DELETE(
     // 게시글 조회 (작성자 확인)
     const post = await prisma.mainPost.findUnique({
       where: { id },
-      select: { authorId: true }
+      select: { authorId: true },
     })
 
     if (!post) {
-      return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+      return NextResponse.json(
+        { error: '게시글을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
     }
 
     // 작성자 또는 관리자만 삭제 가능
     const user = await prisma.user.findUnique({
       where: { id: session!.user.id },
-      select: { globalRole: true }
+      select: { globalRole: true },
     })
 
     if (post.authorId !== session!.user.id && user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '게시글을 삭제할 권한이 없습니다.' }, { status: 403 })
+      return NextResponse.json(
+        { error: '게시글을 삭제할 권한이 없습니다.' },
+        { status: 403 }
+      )
     }
 
     // 게시글 삭제 (관련 데이터는 CASCADE로 자동 삭제)
     await prisma.mainPost.delete({
-      where: { id }
+      where: { id },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete post:', error)
-    return NextResponse.json({ error: '게시글 삭제에 실패했습니다.' }, { status: 500 })
+    return NextResponse.json(
+      { error: '게시글 삭제에 실패했습니다.' },
+      { status: 500 }
+    )
   }
 }

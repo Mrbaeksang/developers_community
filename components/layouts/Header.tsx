@@ -183,7 +183,13 @@ export function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <Button onClick={() => signIn()}>로그인</Button>
+            <Button
+              onClick={() =>
+                signIn(undefined, { callbackUrl: window.location.pathname })
+              }
+            >
+              로그인
+            </Button>
           )}
 
           {/* Mobile menu button */}

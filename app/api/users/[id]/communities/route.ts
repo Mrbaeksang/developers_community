@@ -17,7 +17,7 @@ export async function GET(
     // 사용자 존재 확인
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { id: true }
+      select: { id: true },
     })
 
     if (!user) {
@@ -32,7 +32,7 @@ export async function GET(
       userId: string
       status?: MembershipStatus
     } = {
-      userId: id
+      userId: id,
     }
 
     // 상태 필터 (기본값: ACTIVE)
@@ -54,31 +54,31 @@ export async function GET(
                   id: true,
                   name: true,
                   email: true,
-                  image: true
-                }
+                  image: true,
+                },
               },
               _count: {
                 select: {
                   members: true,
-                  posts: true
-                }
-              }
-            }
-          }
+                  posts: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { joinedAt: 'desc' },
         take: limit,
-        skip: (page - 1) * limit
+        skip: (page - 1) * limit,
       }),
-      prisma.communityMember.count({ where })
+      prisma.communityMember.count({ where }),
     ])
 
     // 응답 형식 변환
-    const communities = memberships.map(membership => ({
+    const communities = memberships.map((membership) => ({
       ...membership.community,
       membershipRole: membership.role,
       membershipStatus: membership.status,
-      joinedAt: membership.joinedAt
+      joinedAt: membership.joinedAt,
     }))
 
     return NextResponse.json({
@@ -87,8 +87,8 @@ export async function GET(
         total,
         page,
         limit,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     })
   } catch (error) {
     console.error('Failed to fetch user communities:', error)
