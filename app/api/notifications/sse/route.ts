@@ -141,8 +141,8 @@ export async function GET(req: NextRequest) {
         'X-Accel-Buffering': 'no',
       },
     })
-  } catch (error) {
-    console.error('Failed to stream notifications:', error)
+  } catch {
+    // 에러 로깅은 이미 다른 곳에서 처리됨
     return NextResponse.json(
       { error: '알림 스트리밍에 실패했습니다.' },
       { status: 500 }
