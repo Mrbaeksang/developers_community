@@ -48,7 +48,7 @@ export function Header() {
     (session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER')
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b-4 border-black bg-white shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
+    <header className="sticky top-0 z-50 w-full border-b-4 border-black bg-white text-black shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="container flex h-16 items-center">
         {/* Logo */}
         <Link
@@ -58,7 +58,7 @@ export function Header() {
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             D
           </div>
-          <span className="hidden font-black text-xl sm:inline-block">
+          <span className="hidden font-black text-xl sm:inline-block text-black">
             Dev Community
           </span>
         </Link>

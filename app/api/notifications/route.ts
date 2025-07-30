@@ -24,21 +24,33 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
+
+    // 빈 문자열을 undefined로 변환
+    const type = searchParams.get('type')
+    const unreadOnly = searchParams.get('unreadOnly')
+    const page = searchParams.get('page')
+    const limit = searchParams.get('limit')
+
     const validatedParams = notificationFilterSchema.parse({
-      type: searchParams.get('type'),
-      unreadOnly: searchParams.get('unreadOnly'),
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
+      type: type && type !== '' ? type : undefined,
+      unreadOnly: unreadOnly && unreadOnly !== '' ? unreadOnly : undefined,
+      page: page && page !== '' ? page : undefined,
+      limit: limit && limit !== '' ? limit : undefined,
     })
 
-    const { type, unreadOnly, page, limit } = validatedParams
-    const skip = (page - 1) * limit
+    const {
+      type: validatedType,
+      unreadOnly: validatedUnreadOnly,
+      page: validatedPage,
+      limit: validatedLimit,
+    } = validatedParams
+    const skip = (validatedPage - 1) * validatedLimit
 
     // 조건 설정
     const where = {
       userId: session.user.id,
-      ...(type && { type }),
-      ...(unreadOnly && { isRead: false }),
+      ...(validatedType && { type: validatedType }),
+      ...(validatedUnreadOnly && { isRead: false }),
     }
 
     // 알림 조회
@@ -57,7 +69,7 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: validatedLimit,
       }),
       prisma.notification.count({ where }),
     ])
@@ -82,9 +94,9 @@ export async function GET(req: NextRequest) {
       notifications: formattedNotifications,
       pagination: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: validatedPage,
+        limit: validatedLimit,
+        totalPages: Math.ceil(total / validatedLimit),
       },
       unreadCount,
     })

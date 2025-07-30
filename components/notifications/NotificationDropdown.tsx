@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bell, CheckCheck, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -94,6 +94,37 @@ export default function NotificationDropdown() {
     }
   }
 
+  // 알림 삭제
+  const deleteNotification = async (
+    e: React.MouseEvent,
+    notificationId: string
+  ) => {
+    e.stopPropagation() // 부모 클릭 이벤트 전파 방지
+    e.preventDefault() // 링크 이동 방지
+
+    try {
+      const res = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
+
+      // UI에서 즉시 제거
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
+
+      // 삭제한 알림이 읽지 않은 알림이었다면 카운트 감소
+      const deletedNotification = notifications.find(
+        (n) => n.id === notificationId
+      )
+      if (deletedNotification && !deletedNotification.isRead) {
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+      }
+
+      toast.success('알림이 삭제되었습니다.')
+    } catch {
+      toast.error('알림 삭제에 실패했습니다.')
+    }
+  }
+
   // 알림 링크 생성
   const getNotificationLink = (notification: Notification): string | null => {
     if (!notification.resourceIds) return null
@@ -105,8 +136,11 @@ export default function NotificationDropdown() {
       case 'POST_COMMENT':
       case 'POST_MENTION':
       case 'POST_APPROVED':
-      case 'POST_REJECTED':
         return postId ? `/main/posts/${postId}` : null
+
+      // 거부된 게시글은 링크 제공하지 않음 (404 방지)
+      case 'POST_REJECTED':
+        return null
 
       case 'COMMENT_REPLY':
       case 'COMMENT_LIKE':
@@ -116,8 +150,15 @@ export default function NotificationDropdown() {
       case 'COMMUNITY_INVITE':
       case 'COMMUNITY_JOIN':
       case 'COMMUNITY_ROLE':
-      case 'COMMUNITY_BAN':
         return communityId ? `/communities/${communityId}` : null
+
+      // 차단된 커뮤니티도 접근 불가하므로 링크 제공하지 않음
+      case 'COMMUNITY_BAN':
+        return null
+
+      case 'CHAT_MESSAGE':
+      case 'CHAT_MENTION':
+        return null
 
       default:
         return null
@@ -246,6 +287,16 @@ export default function NotificationDropdown() {
                       {!notification.isRead && (
                         <div className="h-2 w-2 bg-blue-500 rounded-full mt-2" />
                       )}
+
+                      {/* 삭제 버튼 */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                        onClick={(e) => deleteNotification(e, notification.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 )
