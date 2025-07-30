@@ -50,7 +50,7 @@ export default function NotificationDropdown() {
       setIsLoading(true)
       const res = await fetch('/api/notifications?limit=10')
       if (!res.ok) throw new Error('알림을 불러오는데 실패했습니다.')
-      
+
       const data = await res.json()
       setNotifications(data.notifications)
       setUnreadCount(data.unreadCount)
@@ -68,13 +68,11 @@ export default function NotificationDropdown() {
         method: 'PUT',
       })
       if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
-      
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, isRead: true } : n
-        )
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
       )
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch {
       toast.error('알림 읽음 처리에 실패했습니다.')
     }
@@ -87,10 +85,8 @@ export default function NotificationDropdown() {
         method: 'PUT',
       })
       if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
-      
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, isRead: true }))
-      )
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
       setUnreadCount(0)
       toast.success('모든 알림을 읽음으로 표시했습니다.')
     } catch {
@@ -111,18 +107,18 @@ export default function NotificationDropdown() {
       case 'POST_APPROVED':
       case 'POST_REJECTED':
         return postId ? `/main/posts/${postId}` : null
-      
+
       case 'COMMENT_REPLY':
       case 'COMMENT_LIKE':
       case 'COMMENT_MENTION':
         return postId ? `/main/posts/${postId}#comment-${commentId}` : null
-      
+
       case 'COMMUNITY_INVITE':
       case 'COMMUNITY_JOIN':
       case 'COMMUNITY_ROLE':
       case 'COMMUNITY_BAN':
         return communityId ? `/communities/${communityId}` : null
-      
+
       default:
         return null
     }
@@ -165,22 +161,16 @@ export default function NotificationDropdown() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-        >
+        <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 hover:bg-red-500"
-            >
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 hover:bg-red-500">
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </DropdownMenuTrigger>
-      
+
       <DropdownMenuContent
         align="end"
         className="w-[380px] max-w-[90vw] border-2 border-black"
@@ -199,9 +189,9 @@ export default function NotificationDropdown() {
             </Button>
           )}
         </div>
-        
+
         <DropdownMenuSeparator />
-        
+
         <ScrollArea className="h-[400px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -234,20 +224,25 @@ export default function NotificationDropdown() {
                       >
                         <Bell className="h-5 w-5" />
                       </div>
-                      
+
                       <div className="flex-1 space-y-1">
-                        <p className="font-bold text-sm">{notification.title}</p>
+                        <p className="font-bold text-sm">
+                          {notification.title}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {notification.message}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true,
-                            locale: ko,
-                          })}
+                          {formatDistanceToNow(
+                            new Date(notification.createdAt),
+                            {
+                              addSuffix: true,
+                              locale: ko,
+                            }
+                          )}
                         </p>
                       </div>
-                      
+
                       {!notification.isRead && (
                         <div className="h-2 w-2 bg-blue-500 rounded-full mt-2" />
                       )}
@@ -266,9 +261,9 @@ export default function NotificationDropdown() {
             </div>
           )}
         </ScrollArea>
-        
+
         <DropdownMenuSeparator />
-        
+
         <DropdownMenuItem asChild>
           <Link
             href="/dashboard/notifications"
