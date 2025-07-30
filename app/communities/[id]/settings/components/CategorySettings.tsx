@@ -231,7 +231,12 @@ export default function CommunityCategorySettings({
 
   // 카테고리 순서 변경
   const handleReorder = async (newOrder: Category[]) => {
-    setCategories(newOrder)
+    // 각 카테고리의 order 값을 새로운 인덱스로 업데이트
+    const updatedCategories = newOrder.map((cat, index) => ({
+      ...cat,
+      order: index,
+    }))
+    setCategories(updatedCategories)
 
     // 순서 업데이트 API 호출
     try {

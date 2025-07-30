@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import CommunityGeneralSettings from './components/GeneralSettings'
 import CommunityCategorySettings from './components/CategorySettings'
+import CommunityMemberSettings from './components/MemberSettings'
 
 export default async function CommunitySettingsPage({
   params,
@@ -122,9 +123,11 @@ export default async function CommunitySettingsPage({
                 <CardTitle>멤버 관리</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  준비 중입니다. 곧 멤버 관리 기능이 추가됩니다.
-                </p>
+                <CommunityMemberSettings
+                  communityId={community.id}
+                  currentUserId={session.user.id}
+                  isOwner={true}
+                />
               </CardContent>
             </Card>
           </TabsContent>

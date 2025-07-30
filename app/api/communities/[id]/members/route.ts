@@ -21,6 +21,7 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '20')
     const role = searchParams.get('role')
     const search = searchParams.get('search')
+    const status = searchParams.get('status') || 'ACTIVE'
 
     // 커뮤니티 확인
     const community = await prisma.community.findUnique({
@@ -66,7 +67,10 @@ export async function GET(
       }
     } = {
       communityId: id,
-      status: MembershipStatus.ACTIVE,
+      status:
+        status === 'PENDING'
+          ? MembershipStatus.PENDING
+          : MembershipStatus.ACTIVE,
     }
 
     if (role && Object.values(CommunityRole).includes(role as CommunityRole)) {
@@ -98,6 +102,7 @@ export async function GET(
               id: true,
               name: true,
               username: true,
+              email: true,
               image: true,
               bio: true,
               _count: {
@@ -126,12 +131,15 @@ export async function GET(
     // 멤버 정보 포맷팅
     const formattedMembers = members.map((member) => ({
       id: member.id,
+      userId: member.userId,
       role: member.role,
+      status: member.status,
       joinedAt: member.joinedAt,
       user: {
         id: member.user.id,
         name: member.user.name || undefined,
         username: member.user.username || undefined,
+        email: member.user.email,
         image: member.user.image || undefined,
         bio: member.user.bio || undefined,
         postCount: member.user._count.communityPosts,
