@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { SearchModal } from '@/components/search/SearchModal'
+import NotificationDropdown from '@/components/notifications/NotificationDropdown'
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -116,6 +117,9 @@ export function Header() {
               <Button asChild className="hidden sm:flex">
                 <Link href="/main/write">새 글 작성</Link>
               </Button>
+
+              {/* Notifications */}
+              <NotificationDropdown />
 
               {/* User menu */}
               <DropdownMenu>
