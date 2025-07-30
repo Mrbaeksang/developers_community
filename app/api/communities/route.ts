@@ -25,12 +25,18 @@ export async function GET(req: NextRequest) {
 
     // 검색 조건 구성
     const where: {
-      name?: { contains: string; mode: 'insensitive' }
+      OR?: Array<{
+        name?: { contains: string; mode: 'insensitive' }
+        description?: { contains: string; mode: 'insensitive' }
+      }>
       visibility?: CommunityVisibility
     } = {}
 
     if (search) {
-      where.name = { contains: search, mode: 'insensitive' }
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ]
     }
 
     if (

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import CommunitySearchForm from '@/components/communities/community-search-form'
 
 interface Community {
   id: string
@@ -82,6 +83,11 @@ export default async function CommunitiesPage({
             커뮤니티 만들기
           </Link>
         </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-8">
+        <CommunitySearchForm initialSearch={resolvedSearchParams.search} />
       </div>
 
       {/* Communities Grid */}
