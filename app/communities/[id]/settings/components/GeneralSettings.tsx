@@ -145,7 +145,7 @@ export default function CommunityGeneralSettings({
       {/* 기능 설정 */}
       <div className="space-y-4 pt-4 border-t">
         <h3 className="font-medium">기능 설정</h3>
-        
+
         {/* 파일 업로드 설정 */}
         <div className="flex items-center justify-between">
           <div>

@@ -8,10 +8,7 @@ export async function GET(req: NextRequest) {
     const filename = searchParams.get('filename')
 
     if (!url || !filename) {
-      return NextResponse.json(
-        { error: '잘못된 요청입니다.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
     }
 
     // Vercel Blob URL 검증 (보안)
@@ -24,7 +21,7 @@ export async function GET(req: NextRequest) {
 
     // 파일 fetch
     const response = await fetch(url)
-    
+
     if (!response.ok) {
       return NextResponse.json(
         { error: '파일을 찾을 수 없습니다.' },
@@ -34,9 +31,15 @@ export async function GET(req: NextRequest) {
 
     // Response headers 설정
     const headers = new Headers()
-    headers.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream')
-    headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
-    
+    headers.set(
+      'Content-Type',
+      response.headers.get('content-type') || 'application/octet-stream'
+    )
+    headers.set(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(filename)}"`
+    )
+
     // Content-Length가 있다면 추가
     const contentLength = response.headers.get('content-length')
     if (contentLength) {

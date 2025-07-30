@@ -133,7 +133,8 @@ export function CommunityPostEditor({
         body: JSON.stringify({
           title,
           content,
-          categoryId: categoryId === 'none' ? undefined : categoryId || undefined,
+          categoryId:
+            categoryId === 'none' ? undefined : categoryId || undefined,
           fileIds: files.map((f) => f.id),
         }),
       })

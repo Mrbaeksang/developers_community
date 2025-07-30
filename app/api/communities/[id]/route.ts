@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import {
-  checkAuth,
-  checkMembership,
-} from '@/lib/auth-helpers'
+import { checkAuth, checkMembership } from '@/lib/auth-helpers'
 import { CommunityVisibility, MembershipStatus } from '@prisma/client'
 
 // GET: 커뮤니티 상세 조회
@@ -251,7 +248,8 @@ export async function PUT(
     }
 
     const body = await req.json()
-    const { name, description, rules, visibility, allowFileUpload, allowChat } = body
+    const { name, description, rules, visibility, allowFileUpload, allowChat } =
+      body
 
     // 커뮤니티 업데이트
     const updatedCommunity = await prisma.community.update({
