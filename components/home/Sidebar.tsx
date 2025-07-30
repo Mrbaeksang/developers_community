@@ -5,6 +5,24 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TrendingUp, Hash, Users } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+// 동적 임포트로 ChatChannelList 로드 (클라이언트 컴포넌트)
+const ChatChannelList = dynamic(
+  () => import('@/components/chat/ChatChannelList'),
+  {
+    ssr: false,
+    loading: () => (
+      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            채팅 목록을 불러오는 중...
+          </div>
+        </CardContent>
+      </Card>
+    ),
+  }
+)
 
 interface TrendingTag {
   id: string
@@ -44,6 +62,8 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="space-y-6">
+      {/* 실시간 채팅 */}
+      <ChatChannelList />
       {/* 인기 태그 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">

@@ -12,6 +12,7 @@ import { CommunityActions } from '@/components/communities/CommunityActions'
 import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import CommunityMemberList from '@/components/communities/CommunityMemberList'
 import CommunityAnnouncements from '@/components/communities/CommunityAnnouncements'
+import CommunityChatSection from '@/components/communities/CommunityChatSection'
 
 interface Category {
   id: string
@@ -288,6 +289,13 @@ export default async function CommunityDetailPage({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Chat Button - 멤버이고 채팅이 활성화된 경우에만 표시 */}
+      <CommunityChatSection
+        communityId={community.id}
+        isMember={isMember}
+        allowChat={community.allowChat}
+      />
     </div>
   )
 }
