@@ -14,11 +14,26 @@ export async function GET(
     const { id, postId } = await context.params
     const session = await auth()
 
+    // 먼저 커뮤니티 찾기 (ID 또는 slug로)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: { id: true },
+    })
+
+    if (!community) {
+      return NextResponse.json(
+        { error: 'Community not found' },
+        { status: 404 }
+      )
+    }
+
     // 커뮤니티 및 게시글 확인
     const post = await prisma.communityPost.findUnique({
       where: {
         id: postId,
-        communityId: id,
+        communityId: community.id,
       },
       include: {
         author: {
@@ -140,9 +155,24 @@ export async function PATCH(
       )
     }
 
+    // 먼저 커뮤니티 찾기 (ID 또는 slug로)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: { id: true },
+    })
+
+    if (!community) {
+      return NextResponse.json(
+        { error: 'Community not found' },
+        { status: 404 }
+      )
+    }
+
     // 게시글 확인
     const post = await prisma.communityPost.findUnique({
-      where: { id: postId, communityId: id },
+      where: { id: postId, communityId: community.id },
       include: {
         community: {
           select: { allowFileUpload: true },
@@ -251,17 +281,32 @@ export async function DELETE(
       )
     }
 
+    // 먼저 커뮤니티 찾기 (ID 또는 slug로)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: { id: true },
+    })
+
+    if (!community) {
+      return NextResponse.json(
+        { error: 'Community not found' },
+        { status: 404 }
+      )
+    }
+
     // 게시글 및 멤버십 확인
     const [post, membership] = await Promise.all([
       prisma.communityPost.findUnique({
-        where: { id: postId, communityId: id },
+        where: { id: postId, communityId: community.id },
         select: { authorId: true },
       }),
       prisma.communityMember.findUnique({
         where: {
           userId_communityId: {
             userId: session.user.id,
-            communityId: id,
+            communityId: community.id,
           },
         },
         select: { role: true },

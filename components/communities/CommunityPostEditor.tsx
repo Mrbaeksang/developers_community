@@ -133,7 +133,7 @@ export function CommunityPostEditor({
         body: JSON.stringify({
           title,
           content,
-          categoryId: categoryId || undefined,
+          categoryId: categoryId === 'none' ? undefined : categoryId || undefined,
           fileIds: files.map((f) => f.id),
         }),
       })
@@ -171,7 +171,7 @@ export function CommunityPostEditor({
                   <SelectValue placeholder="카테고리를 선택하세요" />
                 </SelectTrigger>
                 <SelectContent className="border-2 border-black">
-                  <SelectItem value="" className="cursor-pointer">
+                  <SelectItem value="none" className="cursor-pointer">
                     카테고리 없음
                   </SelectItem>
                   {categories.map((category) => (

@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import {
   checkAuth,
   checkMembership,
-  canManageCommunity,
 } from '@/lib/auth-helpers'
 import { CommunityVisibility, MembershipStatus } from '@prisma/client'
 
@@ -230,18 +229,29 @@ export async function PUT(
       )
     }
 
-    // 커뮤니티 관리 권한 확인
-    const userId = session.user.id
-    const canManage = await canManageCommunity(userId, id)
-    if (!canManage) {
+    // 커뮤니티 소유자 확인
+    const community = await prisma.community.findUnique({
+      where: { id },
+      select: { ownerId: true },
+    })
+
+    if (!community) {
       return NextResponse.json(
-        { error: '커뮤니티를 수정할 권한이 없습니다.' },
+        { error: '커뮤니티를 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // OWNER만 수정 가능
+    if (community.ownerId !== session.user.id) {
+      return NextResponse.json(
+        { error: '커뮤니티 소유자만 설정을 변경할 수 있습니다.' },
         { status: 403 }
       )
     }
 
     const body = await req.json()
-    const { name, description, rules, visibility } = body
+    const { name, description, rules, visibility, allowFileUpload, allowChat } = body
 
     // 커뮤니티 업데이트
     const updatedCommunity = await prisma.community.update({
@@ -251,6 +261,8 @@ export async function PUT(
         description,
         rules,
         visibility,
+        allowFileUpload,
+        allowChat,
       },
       include: {
         owner: {

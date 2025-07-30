@@ -303,8 +303,7 @@ export function CommunityPostDetail({
                 {post.files.map((file) => (
                   <a
                     key={file.id}
-                    href={file.url}
-                    download
+                    href={`/api/download?url=${encodeURIComponent(file.url)}&filename=${encodeURIComponent(file.filename)}`}
                     className="flex items-center gap-3 p-3 rounded-lg border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
                   >
                     <FileText className="h-5 w-5 text-muted-foreground" />

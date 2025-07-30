@@ -4,6 +4,7 @@ import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { KakaoProvider } from '@/components/providers/KakaoProvider'
 import { Header } from '@/components/layouts/Header'
+import { Toaster } from '@/components/ui/sonner'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -37,6 +38,7 @@ export default function RootLayout({
           <KakaoProvider>
             <Header />
             <main>{children}</main>
+            <Toaster richColors position="bottom-right" />
           </KakaoProvider>
         </SessionProvider>
       </body>

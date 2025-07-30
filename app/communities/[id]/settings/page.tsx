@@ -39,12 +39,12 @@ export default async function CommunitySettingsPage({
     notFound()
   }
 
-  // 관리자 권한 확인 (OWNER, ADMIN만 설정 가능)
+  // 관리자 권한 확인 (OWNER만 설정 가능)
   const membership = community.members[0]
   if (
     !membership ||
     membership.status !== 'ACTIVE' ||
-    !['OWNER', 'ADMIN'].includes(membership.role)
+    membership.role !== 'OWNER'
   ) {
     redirect(`/communities/${community.slug}`)
   }
