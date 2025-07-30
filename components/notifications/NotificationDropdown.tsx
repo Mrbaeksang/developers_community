@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,82 +17,18 @@ import { ko } from 'date-fns/locale'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { NotificationType } from '@prisma/client'
-
-interface Notification {
-  id: string
-  type: NotificationType
-  title: string
-  message: string
-  isRead: boolean
-  createdAt: string
-  sender: {
-    id: string
-    name: string | null
-    username: string | null
-    image: string | null
-  } | null
-  resourceIds: {
-    postId?: string
-    commentId?: string
-    communityId?: string
-  } | null
-}
+import { useNotifications } from '@/components/providers/NotificationProvider'
 
 export default function NotificationDropdown() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    refreshNotifications,
+  } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
-
-  // 알림 목록 가져오기
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const res = await fetch('/api/notifications?limit=10')
-      if (!res.ok) throw new Error('알림을 불러오는데 실패했습니다.')
-
-      const data = await res.json()
-      setNotifications(data.notifications)
-      setUnreadCount(data.unreadCount)
-    } catch {
-      toast.error('알림을 불러오는데 실패했습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // 알림 읽음 처리
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const res = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
-      })
-      if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
-
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
-      )
-      setUnreadCount((prev) => Math.max(0, prev - 1))
-    } catch {
-      toast.error('알림 읽음 처리에 실패했습니다.')
-    }
-  }
-
-  // 모든 알림 읽음 처리
-  const markAllAsRead = async () => {
-    try {
-      const res = await fetch('/api/notifications/read-all', {
-        method: 'PUT',
-      })
-      if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
-
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-      setUnreadCount(0)
-      toast.success('모든 알림을 읽음으로 표시했습니다.')
-    } catch {
-      toast.error('알림 읽음 처리에 실패했습니다.')
-    }
-  }
+  const [isLoading, setIsLoading] = useState(false)
 
   // 알림 삭제
   const deleteNotification = async (
@@ -108,16 +44,8 @@ export default function NotificationDropdown() {
       })
       if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
 
-      // UI에서 즉시 제거
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
-
-      // 삭제한 알림이 읽지 않은 알림이었다면 카운트 감소
-      const deletedNotification = notifications.find(
-        (n) => n.id === notificationId
-      )
-      if (deletedNotification && !deletedNotification.isRead) {
-        setUnreadCount((prev) => Math.max(0, prev - 1))
-      }
+      // 알림 목록 새로고침
+      refreshNotifications()
 
       toast.success('알림이 삭제되었습니다.')
     } catch {
@@ -126,7 +54,14 @@ export default function NotificationDropdown() {
   }
 
   // 알림 링크 생성
-  const getNotificationLink = (notification: Notification): string | null => {
+  const getNotificationLink = (notification: {
+    type: NotificationType
+    resourceIds: {
+      postId?: string
+      commentId?: string
+      communityId?: string
+    } | null
+  }): string | null => {
     if (!notification.resourceIds) return null
 
     const { postId, commentId, communityId } = notification.resourceIds
@@ -187,17 +122,14 @@ export default function NotificationDropdown() {
     }
   }
 
-  // 드롭다운이 열릴 때 알림 목록 가져오기
+  // 드롭다운이 열릴 때 알림 목록 새로고침
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications()
+      setIsLoading(true)
+      refreshNotifications()
+      setIsLoading(false)
     }
-  }, [isOpen, fetchNotifications])
-
-  // 초기 읽지 않은 알림 개수 가져오기
-  useEffect(() => {
-    fetchNotifications()
-  }, [fetchNotifications])
+  }, [isOpen, refreshNotifications])
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

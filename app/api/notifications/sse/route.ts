@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { notificationEmitter } from '@/lib/notification-emitter'
 
 // GET: SSE로 실시간 알림 스트리밍
 export async function GET(req: NextRequest) {
@@ -13,59 +14,133 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // SSE 응답 헤더 설정
+    const userId = session.user.id
     const encoder = new TextEncoder()
-    const stream = new TransformStream()
-    const writer = stream.writable.getWriter()
 
-    // 5초마다 새로운 알림 확인 (실제로는 Redis Pub/Sub나 WebSocket이 더 좋음)
-    const intervalId = setInterval(async () => {
-      try {
-        const notifications = await prisma.notification.findMany({
-          where: {
-            userId: session.user.id,
-            isRead: false,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
+    // ReadableStream 생성
+    const stream = new ReadableStream({
+      async start(controller) {
+        // 연결 성공 메시지
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
+        )
+
+        // 초기 읽지 않은 알림 수 전송
+        const unreadCount = await prisma.notification.count({
+          where: { userId, isRead: false },
         })
 
-        const data = {
-          count: notifications.length,
-          notifications: notifications.map((n) => ({
-            id: n.id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            isRead: n.isRead,
-            createdAt: n.createdAt,
-          })),
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'unreadCount', count: unreadCount })}\n\n`
+          )
+        )
+
+        // 최근 알림 10개 전송
+        const recentNotifications = await prisma.notification.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+          },
+        })
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: 'initial',
+              notifications: recentNotifications.map((n) => ({
+                ...n,
+                resourceIds: n.resourceIds ? JSON.parse(n.resourceIds) : null,
+              })),
+            })}\n\n`
+          )
+        )
+
+        // 실시간 알림 리스너
+        const notificationHandler = (data: {
+          userId: string
+          notification: {
+            id: string
+            type: string
+            title: string
+            message: string | null
+            isRead: boolean
+            createdAt: string
+            senderId: string | null
+            resourceIds: {
+              postId?: string
+              commentId?: string
+              communityId?: string
+            } | null
+            sender?: {
+              id: string
+              name: string | null
+              username: string | null
+              image: string | null
+            } | null
+          }
+        }) => {
+          if (data.userId === userId) {
+            try {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'notification',
+                    data: data.notification,
+                  })}\n\n`
+                )
+              )
+            } catch {
+              // 연결이 끊어진 경우
+              notificationEmitter.removeListener(
+                'notification',
+                notificationHandler
+              )
+            }
+          }
         }
 
-        await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error)
-        clearInterval(intervalId)
-        await writer.close()
-      }
-    }, 5000)
+        // 이벤트 리스너 등록
+        notificationEmitter.on('notification', notificationHandler)
 
-    // 요청이 취소되면 interval 정리
-    req.signal.addEventListener('abort', () => {
-      clearInterval(intervalId)
-      writer.close()
-    })
+        // 30초마다 heartbeat
+        const heartbeatInterval = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(':heartbeat\n\n'))
+          } catch {
+            clearInterval(heartbeatInterval)
+          }
+        }, 30000)
 
-    // SSE 헤더 설정
-    const response = new Response(stream.readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+        // 클린업
+        req.signal.addEventListener('abort', () => {
+          clearInterval(heartbeatInterval)
+          notificationEmitter.removeListener(
+            'notification',
+            notificationHandler
+          )
+        })
       },
     })
 
-    return response
+    // SSE 응답 반환
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      },
+    })
   } catch (error) {
     console.error('Failed to stream notifications:', error)
     return NextResponse.json(

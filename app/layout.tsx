@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { KakaoProvider } from '@/components/providers/KakaoProvider'
+import { NotificationProvider } from '@/components/providers/NotificationProvider'
 import { Header } from '@/components/layouts/Header'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -35,11 +36,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
-          <KakaoProvider>
-            <Header />
-            <main>{children}</main>
-            <Toaster richColors position="bottom-right" />
-          </KakaoProvider>
+          <NotificationProvider>
+            <KakaoProvider>
+              <Header />
+              <main>{children}</main>
+              <Toaster richColors position="bottom-right" />
+            </KakaoProvider>
+          </NotificationProvider>
         </SessionProvider>
       </body>
     </html>

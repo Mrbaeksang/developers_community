@@ -39,8 +39,25 @@ export async function createNotification({
       },
     })
 
-    // TODO: 실시간 알림 전송 (Redis Pub/Sub, WebSocket 등)
-    // 현재는 SSE 폴링 방식이므로 별도 처리 없음
+    // 실시간 알림 전송을 위한 이벤트 발생
+    // SSE를 통해 클라이언트에 즉시 전송
+    if (global.notificationEmitter) {
+      global.notificationEmitter.emit('notification', {
+        userId,
+        notification: {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          isRead: notification.isRead,
+          createdAt: notification.createdAt,
+          senderId: notification.senderId,
+          resourceIds: notification.resourceIds
+            ? JSON.parse(notification.resourceIds)
+            : null,
+        },
+      })
+    }
 
     return notification
   } catch (error) {

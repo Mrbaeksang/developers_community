@@ -288,15 +288,17 @@ export default function NotificationsPage() {
             </Button>
           </div>
 
-          {unreadCount > 0 && (
-            <Button
-              onClick={markAllAsRead}
-              className="bg-primary hover:bg-primary/90 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            >
-              <CheckCheck className="h-4 w-4 mr-2" />
-              모두 읽음 ({unreadCount})
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                onClick={markAllAsRead}
+                className="bg-primary hover:bg-primary/90 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
+                <CheckCheck className="h-4 w-4 mr-2" />
+                모두 읽음 ({unreadCount})
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
