@@ -36,6 +36,11 @@ my_project/
 │   │       │       └── page.tsx  ✓ 커뮤니티 게시글 상세
 │   │       ├── write/
 │   │       │   └── page.tsx      ✓ 커뮤니티 게시글 작성
+│   │       ├── settings/         ✓ 커뮤니티 설정
+│   │       │   ├── page.tsx      ✓ 설정 메인 페이지
+│   │       │   └── components/   ✓ 설정 컴포넌트들
+│   │       │       ├── GeneralSettings.tsx ✓ 일반 설정
+│   │       │       └── CategorySettings.tsx ✓ 카테고리 관리
 │   │       └── chat/             ✗ 커뮤니티 채팅
 │   ├── admin/                     # 관리자 페이지
 │   │   ├── page.tsx              ✓ 관리자 대시보드
@@ -210,35 +215,16 @@ my_project/
 ## 🎯 API 라우트 매핑
 
 ### 📊 전체 현황
-- **API**: 94개 중 91개 구현 (96.8%)
-- **페이지**: 18개 중 17개 구현 (94.4%)
-- **컴포넌트**: 83개 중 69개 구현 (83.1%)
-- **전체**: 195개 중 177개 구현 (90.8%)
+- **API**: 77개 중 66개 구현 (85.7%)
+- **페이지**: 22개 중 21개 구현 (95.5%)
+- **컴포넌트**: 85개 중 73개 구현 (85.9%)
+- **전체**: 184개 중 160개 구현 (87.0%)
 
-### 🆕 관리자 API (24개) - ✅ 100% 완료
+### 🆕 관리자 API (2개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/admin/stats` | GET | 관리자 통계 조회 | ✅ |
-| `/api/admin/test-data/users` | POST | 테스트 사용자 생성 (커스터마이징) | ✅ |
-| `/api/admin/test-data/admin-user` | POST | 관리자 계정 생성 (상세 입력) | ✅ |
-| `/api/admin/test-data/main-posts` | POST | 메인 게시글 생성 (상태 선택) | ✅ |
-| `/api/admin/test-data/main-comments` | POST | 메인 댓글 생성 (게시글/내용 선택) | ✅ |
-| `/api/admin/test-data/communities` | POST | 테스트 커뮤니티 생성 | ✅ |
-| `/api/admin/test-data/community-posts` | POST | 커뮤니티 게시글 생성 | ✅ |
-| `/api/admin/test-data/community-members` | POST | 커뮤니티 멤버 추가 | ✅ |
-| `/api/admin/test-data/likes` | POST | 좋아요 생성 (특정 게시글 선택) | ✅ |
-| `/api/admin/test-data/bookmarks` | POST | 북마크 생성 (특정 게시글 선택) | ✅ |
-| `/api/admin/test-data/tags` | POST | 태그 생성 | ✅ |
-| `/api/admin/test-data/reset` | DELETE | 모든 테스트 데이터 삭제 | ✅ |
-| `/api/admin/test-data/seed` | POST | 기본 시드 데이터 재생성 | ✅ |
-| `/api/admin/data-viewer/users` | GET | 사용자 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/mainPosts` | GET | 메인 게시글 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/mainComments` | GET | 메인 댓글 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/communities` | GET | 커뮤니티 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/communityPosts` | GET | 커뮤니티 게시글 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/mainLikes` | GET | 좋아요 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/mainBookmarks` | GET | 북마크 테이블 조회 | ✅ |
-| `/api/admin/data-viewer/mainTags` | GET | 태그 테이블 조회 | ✅ |
+| `/api/admin/data-viewer/[table]` | GET | 데이터 테이블 조회 (동적 테이블명) | ✅ |
 
 ### 1️⃣ 인증 & 사용자 API (8개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -252,7 +238,7 @@ my_project/
 | `/api/users/bookmarks` | GET | 내 북마크 목록 | ✅ |
 | `/api/users/stats` | GET | 내 활동 통계 | ✅ |
 
-### 2️⃣ 메인 사이트 API (23개) - ✅ 100% 완료
+### 2️⃣ 메인 사이트 API (22개) - ✅ 95.5% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/main/posts` | GET | 게시글 목록 조회 | ✅ |
@@ -280,7 +266,7 @@ my_project/
 | `/api/main/stats` | GET | 커뮤니티 통계 | ✅ |
 | `/api/main/users/active` | GET | 활발한 사용자 | ✅ |
 
-### 3️⃣ 커뮤니티 API (26개) - ✅ 69.2% 완료
+### 3️⃣ 커뮤니티 API (29개) - ✅ 93.1% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/communities` | GET | 커뮤니티 목록 조회 | ✅ |
@@ -294,21 +280,27 @@ my_project/
 | `/api/communities/[id]/members/[userId]` | PUT | 멤버 역할 변경 | ✅ |
 | `/api/communities/[id]/members/[userId]` | DELETE | 멤버 추방 | ✅ |
 | `/api/communities/[id]/members/[userId]/ban` | POST/DELETE | 멤버 밴/언밴 | ✅ |
-| `/api/communities/[id]/categories` | GET | 카테고리 목록 | ❌ |
-| `/api/communities/[id]/categories` | POST | 카테고리 생성 | ❌ |
-| `/api/communities/[id]/announcements` | GET | 공지사항 목록 | ❌ |
-| `/api/communities/[id]/announcements` | POST | 공지사항 작성 | ❌ |
+| `/api/communities/[id]/categories` | GET | 카테고리 목록 | ✅ |
+| `/api/communities/[id]/categories` | POST | 카테고리 생성 | ✅ |
+| `/api/communities/[id]/categories/[categoryId]` | PATCH | 카테고리 수정 | ✅ |
+| `/api/communities/[id]/categories/[categoryId]` | DELETE | 카테고리 삭제 | ✅ |
+| `/api/communities/[id]/categories/reorder` | PATCH | 카테고리 순서 변경 | ✅ |
+| `/api/communities/[id]/announcements` | GET | 공지사항 목록 | ✅ |
+| `/api/communities/[id]/announcements` | POST | 공지사항 작성 | ✅ |
+| `/api/communities/[id]/announcements/[announcementId]` | GET | 공지사항 상세 | ✅ |
+| `/api/communities/[id]/announcements/[announcementId]` | PUT | 공지사항 수정 | ✅ |
+| `/api/communities/[id]/announcements/[announcementId]` | DELETE | 공지사항 삭제 | ✅ |
 | `/api/communities/[id]/posts` | GET | 게시글 목록 | ✅ |
 | `/api/communities/[id]/posts` | POST | 게시글 작성 | ✅ |
 | `/api/communities/[id]/posts/[postId]` | GET | 게시글 상세 | ✅ |
-| `/api/communities/[id]/posts/[postId]` | PUT | 게시글 수정 | ❌ |
+| `/api/communities/[id]/posts/[postId]` | PATCH | 게시글 수정 | ✅ |
 | `/api/communities/[id]/posts/[postId]` | DELETE | 게시글 삭제 | ✅ |
 | `/api/communities/[id]/posts/[postId]/like` | POST/DELETE | 좋아요 토글 | ✅ |
 | `/api/communities/[id]/posts/[postId]/bookmark` | POST/DELETE | 북마크 토글 | ✅ |
 | `/api/communities/[id]/posts/[postId]/comments` | GET | 댓글 목록 | ✅ |
 | `/api/communities/[id]/posts/[postId]/comments` | POST | 댓글 작성 | ✅ |
-| `/api/communities/[id]/posts/[postId]/comments/[commentId]` | PUT | 댓글 수정 | ❌ |
-| `/api/communities/[id]/posts/[postId]/comments/[commentId]` | DELETE | 댓글 삭제 | ❌ |
+| `/api/communities/[id]/comments/[commentId]` | PATCH | 댓글 수정 | ❌ |
+| `/api/communities/[id]/comments/[commentId]` | DELETE | 댓글 삭제 | ❌ |
 
 ### 4️⃣ 채팅 API (8개) - ❌ 0% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -322,19 +314,21 @@ my_project/
 | `/api/chat/channels/[id]/messages` | GET | 메시지 조회 | ❌ |
 | `/api/chat/channels/[id]/messages` | POST | 메시지 전송 | ❌ |
 
-### 5️⃣ 파일 API (3개) - ✅ 33.3% 완료
+### 5️⃣ 파일 API (4개) - ✅ 50% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/files/upload` | POST | 파일 업로드 | ✅ |
+| `/api/upload` | POST | 파일 업로드 (대체 엔드포인트) | ✅ |
 | `/api/files/[id]` | GET | 파일 정보 조회 | ❌ |
 | `/api/files/[id]` | DELETE | 파일 삭제 | ❌ |
 
-### 6️⃣ 알림 API (3개) - ✅ 100% 완료
+### 6️⃣ 알림 API (4개) - ✅ 100% 완료
 | 경로 | 메서드 | 설명 | 상태 |
 |------|---------|------|------|
 | `/api/notifications` | GET | 알림 목록 조회 | ✅ |
 | `/api/notifications/[id]/read` | PUT | 알림 읽음 처리 | ✅ |
 | `/api/notifications/read-all` | PUT | 모든 알림 읽음 처리 | ✅ |
+| `/api/notifications/sse` | GET | 실시간 알림 SSE | ✅ |
 
 ### 7️⃣ 검색 API (3개) - ✅ 33.3% 완료
 | 경로 | 메서드 | 설명 | 상태 |
@@ -388,9 +382,9 @@ my_project/
 
 ## 📄 페이지 구현 현황
 
-### 📊 페이지 현황: 총 18개
-- ✅ 구현 완료: 17개 (94.4%)
-- ❌ 미구현: 1개 (5.6%)
+### 📊 페이지 현황: 총 22개
+- ✅ 구현 완료: 21개 (95.5%)
+- ❌ 미구현: 1개 (4.5%)
 
 ### 페이지 목록
 | 경로 | 설명 | 레이아웃 | 상태 |
@@ -409,6 +403,10 @@ my_project/
 | `/admin/users` | 사용자 관리 | 루트 | ❌ |
 | `/communities` | 커뮤니티 목록 | 루트 | ✅ |
 | `/communities/[id]` | 커뮤니티 상세 | 루트 | ✅ |
+| `/communities/[id]/settings` | 커뮤니티 설정 | 루트 | ✅ |
+| `/communities/[id]/posts` | 커뮤니티 게시글 목록 | 루트 | ✅ |
+| `/communities/[id]/posts/[postId]` | 커뮤니티 게시글 상세 | 루트 | ✅ |
+| `/communities/[id]/write` | 커뮤니티 게시글 작성 | 루트 | ✅ |
 | `/search` | 검색 모달 (Header 통합) | - | ✅ |
 
 ## 🧩 컴포넌트 구현 현황
@@ -437,7 +435,7 @@ my_project/
 
 ### 핵심 지표
 - **페이지**: 18개 중 17개 구현 (94.4% 완성)
-- **API**: 94개 중 91개 구현 (96.8% 완성)
+- **API**: 77개 중 66개 구현 (85.7% 완성)
 - **컴포넌트**: 83개 중 69개 구현 (83.1% 완성)
 
 ### 최근 완료된 주요 작업
