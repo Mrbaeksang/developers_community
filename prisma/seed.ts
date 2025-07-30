@@ -3,7 +3,7 @@ import { PrismaClient, PostStatus, GlobalRole } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  // 🌱 Seeding database...
 
   // Create main site categories
   const categories = await Promise.all([
@@ -192,7 +192,8 @@ Next.js 15에서 추가된 주요 기능들을 소개합니다.
       approvedById: managerUser.id,
       authorId: sampleUser.id,
       authorRole: GlobalRole.USER,
-      categoryId: categories.find((c) => c.slug === 'nextjs')!.id,
+      categoryId:
+        categories.find((c) => c.slug === 'nextjs')?.id || categories[0].id,
     },
   })
 
@@ -217,23 +218,33 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
       status: PostStatus.PENDING, // 승인 대기 중
       authorId: sampleUser.id,
       authorRole: GlobalRole.USER,
-      categoryId: categories.find((c) => c.slug === 'react')!.id,
+      categoryId:
+        categories.find((c) => c.slug === 'react')?.id || categories[0].id,
     },
   })
 
   // Connect tags to posts
   await prisma.mainPostTag.createMany({
     data: [
-      { postId: post2.id, tagId: tags.find((t) => t.slug === 'nextjs')!.id },
-      { postId: post2.id, tagId: tags.find((t) => t.slug === 'react')!.id },
       {
         postId: post2.id,
-        tagId: tags.find((t) => t.slug === 'typescript')!.id,
+        tagId: tags.find((t) => t.slug === 'nextjs')?.id || tags[0].id,
       },
-      { postId: post3.id, tagId: tags.find((t) => t.slug === 'react')!.id },
+      {
+        postId: post2.id,
+        tagId: tags.find((t) => t.slug === 'react')?.id || tags[0].id,
+      },
+      {
+        postId: post2.id,
+        tagId: tags.find((t) => t.slug === 'typescript')?.id || tags[0].id,
+      },
       {
         postId: post3.id,
-        tagId: tags.find((t) => t.slug === 'javascript')!.id,
+        tagId: tags.find((t) => t.slug === 'react')?.id || tags[0].id,
+      },
+      {
+        postId: post3.id,
+        tagId: tags.find((t) => t.slug === 'javascript')?.id || tags[0].id,
       },
     ],
   })
@@ -278,7 +289,7 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
   })
 
   // Create community category
-  const communityCategory = await prisma.communityCategory.create({
+  await prisma.communityCategory.create({
     data: {
       name: '일반',
       slug: 'general',
@@ -287,24 +298,36 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
     },
   })
 
-  // Create default chat channel
+  // Create default chat channel for community
   await prisma.chatChannel.create({
     data: {
       name: 'general',
       description: '일반 채팅',
+      type: 'COMMUNITY' as const,
       isDefault: true,
       communityId: community.id,
     },
   })
 
-  console.log('✅ Database seeded successfully!')
-  console.log(`📝 Created ${categories.length} main categories`)
-  console.log(`🏷️ Created ${tags.length} tags`)
-  console.log(`👤 Created 3 users (admin, manager, user)`)
-  console.log(`📄 Created 3 main posts (2 published, 1 pending)`)
-  console.log(`💬 Created 2 comments`)
-  console.log(`👥 Created 1 community`)
-  console.log(`💭 Created 1 chat channel`)
+  // Create global chat channel for entire site
+  await prisma.chatChannel.create({
+    data: {
+      name: 'global',
+      description: '전체 사이트 채팅',
+      type: 'GLOBAL' as const,
+      isDefault: true,
+      // communityId는 GLOBAL 타입에서는 필요없음
+    },
+  })
+
+  // ✅ Database seeded successfully!
+  // 📝 Created ${categories.length} main categories
+  // 🏷️ Created ${tags.length} tags
+  // 👤 Created 3 users (admin, manager, user)
+  // 📄 Created 3 main posts (2 published, 1 pending)
+  // 💬 Created 2 comments
+  // 👥 Created 1 community
+  // 💭 Created 2 chat channels (1 community, 1 global)
 }
 
 main()

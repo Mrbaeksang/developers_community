@@ -105,6 +105,12 @@ enum MessageType {
   SYSTEM   // 시스템 메시지 (입장, 퇴장 등)
 }
 
+// 채팅 채널 타입
+enum ChannelType {
+  COMMUNITY // 커뮤니티 채팅
+  GLOBAL    // 전체 사이트 채팅
+}
+
 // ============================================================================
 // USER MODELS - 사용자 관련 모델
 // ============================================================================
@@ -574,18 +580,19 @@ model CommunityAnnouncement {
 // CHAT MODELS - 실시간 채팅 시스템
 // ============================================================================
 
-// 채팅 채널 (커뮤니티별)
+// 채팅 채널 (커뮤니티별 또는 전체)
 model ChatChannel {
-  id          String  @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
   description String?
-  isDefault   Boolean @default(false) // 기본 채널 여부
-  order       Int     @default(0)
-  createdAt   DateTime @default(now())
+  type        ChannelType @default(COMMUNITY) // 채널 타입
+  isDefault   Boolean     @default(false)     // 기본 채널 여부
+  order       Int         @default(0)
+  createdAt   DateTime    @default(now())
 
-  // 관계
-  communityId String
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  // 관계 - communityId는 GLOBAL 타입일 때 null
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   messages ChatMessage[]
   members  ChatChannelMember[]
