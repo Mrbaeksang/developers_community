@@ -6,8 +6,10 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { NotificationType } from '@prisma/client'
 
@@ -57,10 +59,12 @@ export function NotificationProvider({
   children: React.ReactNode
 }) {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isConnected, setIsConnected] = useState(false)
-  const [eventSource, setEventSource] = useState<EventSource | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const [reconnectAttempts, setReconnectAttempts] = useState(0)
 
   // 알림 읽음 처리
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -114,33 +118,90 @@ export function NotificationProvider({
     }
   }, [session])
 
+  // 알림 타입별 액션 버튼 생성
+  const getNotificationAction = useCallback(
+    (notification: Notification) => {
+      if (!notification.resourceIds) return undefined
+
+      const { postId, communityId } = notification.resourceIds
+
+      switch (notification.type) {
+        case 'POST_LIKE':
+        case 'POST_COMMENT':
+        case 'POST_MENTION':
+        case 'POST_APPROVED':
+          if (postId) {
+            return {
+              label: '게시글 보기',
+              onClick: () => {
+                router.push(`/main/posts/${postId}`)
+              },
+            }
+          }
+          break
+
+        case 'COMMENT_REPLY':
+        case 'COMMENT_LIKE':
+        case 'COMMENT_MENTION':
+          if (postId) {
+            return {
+              label: '댓글 보기',
+              onClick: () => {
+                router.push(`/main/posts/${postId}#comments`)
+              },
+            }
+          }
+          break
+
+        case 'COMMUNITY_INVITE':
+        case 'COMMUNITY_JOIN':
+        case 'COMMUNITY_ROLE':
+          if (communityId) {
+            return {
+              label: '커뮤니티 보기',
+              onClick: () => {
+                router.push(`/communities/${communityId}`)
+              },
+            }
+          }
+          break
+      }
+
+      return undefined
+    },
+    [router]
+  )
+
   // SSE 연결 설정
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.id) {
       return
     }
 
-    // 기존 연결 정리
-    if (eventSource) {
-      eventSource.close()
+    // 기존 연결이 있다면 정리
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
     }
 
     // 새 SSE 연결
     const source = new EventSource('/api/notifications/sse')
+    eventSourceRef.current = source
 
     source.onopen = () => {
       setIsConnected(true)
+      setReconnectAttempts(0) // 연결 성공 시 재시도 횟수 초기화
     }
 
-    source.onerror = (error) => {
-      console.error('SSE error:', error)
+    source.onerror = () => {
       setIsConnected(false)
 
-      // 재연결 시도
-      setTimeout(() => {
-        source.close()
-        // React가 다시 렌더링하면서 새 연결 시도
-      }, 5000)
+      // 최대 5번까지만 재연결 시도
+      if (reconnectAttempts < 5) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000) // 지수 백오프: 1s, 2s, 4s, 8s, 16s, 30s
+        setTimeout(() => {
+          setReconnectAttempts((prev) => prev + 1)
+        }, delay)
+      }
     }
 
     source.onmessage = (event) => {
@@ -177,15 +238,13 @@ export function NotificationProvider({
       }
     }
 
-    setEventSource(source)
-
     // 클린업
     return () => {
       source.close()
-      setEventSource(null)
+      eventSourceRef.current = null
       setIsConnected(false)
     }
-  }, [session, status, eventSource])
+  }, [session?.user?.id, status, reconnectAttempts, getNotificationAction])
 
   return (
     <NotificationContext.Provider
@@ -201,55 +260,4 @@ export function NotificationProvider({
       {children}
     </NotificationContext.Provider>
   )
-}
-
-// 알림 타입별 액션 버튼 생성
-function getNotificationAction(notification: Notification) {
-  if (!notification.resourceIds) return undefined
-
-  const { postId, communityId } = notification.resourceIds
-
-  switch (notification.type) {
-    case 'POST_LIKE':
-    case 'POST_COMMENT':
-    case 'POST_MENTION':
-    case 'POST_APPROVED':
-      if (postId) {
-        return {
-          label: '게시글 보기',
-          onClick: () => {
-            window.location.href = `/main/posts/${postId}`
-          },
-        }
-      }
-      break
-
-    case 'COMMENT_REPLY':
-    case 'COMMENT_LIKE':
-    case 'COMMENT_MENTION':
-      if (postId) {
-        return {
-          label: '댓글 보기',
-          onClick: () => {
-            window.location.href = `/main/posts/${postId}#comments`
-          },
-        }
-      }
-      break
-
-    case 'COMMUNITY_INVITE':
-    case 'COMMUNITY_JOIN':
-    case 'COMMUNITY_ROLE':
-      if (communityId) {
-        return {
-          label: '커뮤니티 보기',
-          onClick: () => {
-            window.location.href = `/communities/${communityId}`
-          },
-        }
-      }
-      break
-  }
-
-  return undefined
 }
