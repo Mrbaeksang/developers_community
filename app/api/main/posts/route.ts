@@ -239,8 +239,11 @@ export async function POST(request: NextRequest) {
     //   isAdmin: user.globalRole === 'ADMIN',
     // })
 
-    // 게시글 생성 (ADMIN은 자동으로 PUBLISHED 상태로)
-    const finalStatus = user.globalRole === 'ADMIN' ? 'PUBLISHED' : status
+    // 게시글 생성 (ADMIN은 자동으로 PUBLISHED, requiresApproval이 false인 카테고리도 PUBLISHED)
+    const finalStatus =
+      user.globalRole === 'ADMIN' || !category.requiresApproval
+        ? 'PUBLISHED'
+        : status
     const postData = {
       title,
       content,
@@ -253,8 +256,8 @@ export async function POST(request: NextRequest) {
       tags: {
         create: tagConnections,
       },
-      // ADMIN이 작성한 경우 승인 정보 자동 설정
-      ...(user.globalRole === 'ADMIN' && {
+      // ADMIN이 작성하거나 승인 불필요 카테고리인 경우 승인 정보 자동 설정
+      ...((user.globalRole === 'ADMIN' || !category.requiresApproval) && {
         approvedAt: new Date(),
         approvedById: session.user.id,
       }),

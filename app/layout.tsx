@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Noto_Sans_KR } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { KakaoProvider } from '@/components/providers/KakaoProvider'
@@ -10,14 +10,11 @@ import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const notoSansKr = Noto_Sans_KR({
+  weight: ['400', '500', '700', '900'],
   subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-noto-sans-kr',
 })
 
 export const metadata: Metadata = {
@@ -35,9 +32,7 @@ export default function RootLayout({
       <head>
         <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <SessionProvider>
           <NotificationProvider>
             <KakaoProvider>

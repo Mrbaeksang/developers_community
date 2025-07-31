@@ -65,8 +65,10 @@ export default async function Home() {
           {/* Main Content Area */}
           <main className="space-y-8">
             {/* 카테고리 그리드 */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4">게시판 둘러보기</h2>
+            <section className="mb-16">
+              <h3 className="text-4xl font-black text-center mb-12">
+                분야별 탐색
+              </h3>
               <CategoryGrid />
             </section>
 
