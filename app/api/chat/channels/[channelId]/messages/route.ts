@@ -16,32 +16,45 @@ export async function GET(
   try {
     const session = await auth()
     const { channelId } = await params
+    const userId = session?.user?.id
 
-    // 인증 확인
-    if (!checkAuth(session)) {
+    // 채널 정보 조회
+    const channel = await prisma.chatChannel.findUnique({
+      where: { id: channelId },
+    })
+
+    if (!channel) {
       return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
+        { error: '채널을 찾을 수 없습니다.' },
+        { status: 404 }
       )
     }
 
-    const userId = session.user.id
+    // GLOBAL 채널이 아닌 경우에만 인증 및 멤버 확인
+    if (channel.type !== 'GLOBAL') {
+      if (!checkAuth(session)) {
+        return NextResponse.json(
+          { error: '로그인이 필요합니다.' },
+          { status: 401 }
+        )
+      }
 
-    // 채널 멤버 확인
-    const channelMember = await prisma.chatChannelMember.findUnique({
-      where: {
-        userId_channelId: {
-          userId,
-          channelId,
+      // 채널 멤버 확인 (여기서는 userId가 확실히 있음)
+      const channelMember = await prisma.chatChannelMember.findUnique({
+        where: {
+          userId_channelId: {
+            userId: session.user.id,
+            channelId,
+          },
         },
-      },
-    })
+      })
 
-    if (!channelMember) {
-      return NextResponse.json(
-        { error: '채팅방에 참여하지 않았습니다.' },
-        { status: 403 }
-      )
+      if (!channelMember) {
+        return NextResponse.json(
+          { error: '채팅방에 참여하지 않았습니다.' },
+          { status: 403 }
+        )
+      }
     }
 
     // 쿼리 파라미터 처리
@@ -88,18 +101,18 @@ export async function GET(
     // 메시지 순서 역순으로 변경 (최신 메시지가 아래에 오도록)
     messages.reverse()
 
-    // 마지막 읽은 시간 업데이트
-    await prisma.chatChannelMember.update({
-      where: {
-        userId_channelId: {
+    // 마지막 읽은 시간 업데이트 (로그인한 사용자만)
+    if (userId) {
+      await prisma.chatChannelMember.updateMany({
+        where: {
           userId,
           channelId,
         },
-      },
-      data: {
-        lastReadAt: new Date(),
-      },
-    })
+        data: {
+          lastReadAt: new Date(),
+        },
+      })
+    }
 
     return NextResponse.json({
       messages: messages.map((message) => ({
@@ -144,21 +157,35 @@ export async function POST(
 
     const userId = session.user.id
 
-    // 채널 멤버 확인
-    const channelMember = await prisma.chatChannelMember.findUnique({
-      where: {
-        userId_channelId: {
-          userId,
-          channelId,
-        },
-      },
+    // 채널 정보 조회
+    const channel = await prisma.chatChannel.findUnique({
+      where: { id: channelId },
     })
 
-    if (!channelMember) {
+    if (!channel) {
       return NextResponse.json(
-        { error: '채팅방에 참여하지 않았습니다.' },
-        { status: 403 }
+        { error: '채널을 찾을 수 없습니다.' },
+        { status: 404 }
       )
+    }
+
+    // GLOBAL 채널이 아닌 경우에만 멤버 확인
+    if (channel.type !== 'GLOBAL') {
+      const channelMember = await prisma.chatChannelMember.findUnique({
+        where: {
+          userId_channelId: {
+            userId,
+            channelId,
+          },
+        },
+      })
+
+      if (!channelMember) {
+        return NextResponse.json(
+          { error: '채팅방에 참여하지 않았습니다.' },
+          { status: 403 }
+        )
+      }
     }
 
     // 요청 본문 검증
@@ -184,18 +211,20 @@ export async function POST(
       },
     })
 
-    // 마지막 읽은 시간 업데이트
-    await prisma.chatChannelMember.update({
-      where: {
-        userId_channelId: {
-          userId,
-          channelId,
+    // 마지막 읽은 시간 업데이트 (GLOBAL이 아닌 경우만)
+    if (channel.type !== 'GLOBAL') {
+      await prisma.chatChannelMember.update({
+        where: {
+          userId_channelId: {
+            userId,
+            channelId,
+          },
         },
-      },
-      data: {
-        lastReadAt: new Date(),
-      },
-    })
+        data: {
+          lastReadAt: new Date(),
+        },
+      })
+    }
 
     return NextResponse.json({
       message: {

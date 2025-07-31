@@ -51,7 +51,9 @@ export default function ChatChannelList() {
 
   const fetchChannels = async () => {
     try {
-      const res = await fetch('/api/chat/channels')
+      const res = await fetch('/api/chat/channels', {
+        credentials: 'include', // 쿠키를 포함하여 요청
+      })
       if (!res.ok) {
         throw new Error('채널 목록을 불러오는데 실패했습니다.')
       }

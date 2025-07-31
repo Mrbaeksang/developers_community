@@ -1,53 +1,53 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth } from '@/lib/auth-helpers'
+import { Prisma } from '@prisma/client'
 
 // GET: 사용자가 접근 가능한 채팅 채널 목록 조회
 export async function GET() {
   try {
     const session = await auth()
+    const userId = session?.user?.id
 
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    // 1. 로그인한 경우에만 커뮤니티 조회
+    let communityIds: string[] = []
+    if (userId) {
+      const userCommunities = await prisma.communityMember.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE',
+        },
+        select: {
+          communityId: true,
+        },
+      })
+      communityIds = userCommunities.map((m) => m.communityId)
     }
 
-    const userId = session.user.id
-
-    // 1. 사용자가 속한 활성 커뮤니티 ID 목록 조회
-    const userCommunities = await prisma.communityMember.findMany({
-      where: {
-        userId,
-        status: 'ACTIVE',
-      },
-      select: {
-        communityId: true,
-      },
-    })
-
-    const communityIds = userCommunities.map((m) => m.communityId)
-
     // 2. 접근 가능한 채널 조회
+    const whereConditions: Prisma.ChatChannelWhereInput = {
+      isDefault: true, // 기본 채널만 (커뮤니티당 1개)
+    }
+
+    if (userId && communityIds.length > 0) {
+      // 로그인한 경우: GLOBAL + 내가 속한 커뮤니티 채널
+      whereConditions.OR = [
+        { type: 'GLOBAL' },
+        {
+          AND: [
+            { type: 'COMMUNITY' },
+            { communityId: { in: communityIds } },
+            { community: { allowChat: true } },
+          ],
+        },
+      ]
+    } else {
+      // 로그인하지 않은 경우: GLOBAL만
+      whereConditions.type = 'GLOBAL'
+    }
+
     const channels = await prisma.chatChannel.findMany({
-      where: {
-        OR: [
-          // 전체 사이트 채팅 (GLOBAL)
-          { type: 'GLOBAL' },
-          // 내가 속한 커뮤니티의 채팅 (COMMUNITY)
-          {
-            AND: [
-              { type: 'COMMUNITY' },
-              { communityId: { in: communityIds } },
-              { community: { allowChat: true } }, // 채팅이 활성화된 커뮤니티만
-            ],
-          },
-        ],
-        isDefault: true, // 기본 채널만 (커뮤니티당 1개)
-      },
+      where: whereConditions,
       include: {
         community: {
           select: {
@@ -72,12 +72,14 @@ export async function GET() {
           },
         },
         // 내 채널 멤버 정보 (읽지 않은 메시지 수 계산용)
-        members: {
-          where: { userId },
-          select: {
-            lastReadAt: true,
-          },
-        },
+        members: userId
+          ? {
+              where: { userId },
+              select: {
+                lastReadAt: true,
+              },
+            }
+          : false,
       },
       orderBy: [
         // GLOBAL 타입을 먼저 표시
@@ -88,10 +90,11 @@ export async function GET() {
     // 3. 읽지 않은 메시지 수 계산
     const channelsWithUnread = await Promise.all(
       channels.map(async (channel) => {
-        const memberInfo = channel.members[0]
         let unreadCount = 0
 
-        if (memberInfo) {
+        // 로그인한 사용자만 읽지 않은 메시지 수 계산
+        if (userId && channel.members && channel.members[0]) {
+          const memberInfo = channel.members[0]
           unreadCount = await prisma.chatMessage.count({
             where: {
               channelId: channel.id,
