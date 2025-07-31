@@ -13,13 +13,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const type = searchParams.get('type') as string | null
     const categoryId = searchParams.get('categoryId') as string | null
+    const category = searchParams.get('category') as string | null // 카테고리 slug
     const sort = searchParams.get('sort') || 'latest'
+
+    // 카테고리 필터 처리 (다중 카테고리 지원)
+    let categoryFilter = {}
+    if (category) {
+      const categories = category.split(',').map((c) => c.trim())
+      if (categories.length === 1) {
+        categoryFilter = { category: { slug: categories[0] } }
+      } else {
+        categoryFilter = {
+          category: {
+            slug: { in: categories },
+          },
+        }
+      }
+    } else if (categoryId) {
+      categoryFilter = { categoryId }
+    }
 
     // 필터 조건
     const where = {
       status: 'PUBLISHED' as const,
       ...(type && { type }),
-      ...(categoryId && { categoryId }),
+      ...categoryFilter,
     }
 
     // 정렬 조건

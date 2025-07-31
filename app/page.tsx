@@ -1,43 +1,12 @@
 import { HeroSection } from '@/components/home/HeroSection'
-import { PostList } from '@/components/home/PostList'
+import { WeeklyPopularPosts } from '@/components/home/WeeklyPopularPosts'
+import { RecentPosts } from '@/components/home/RecentPosts'
+import { CategoryGrid } from '@/components/home/CategoryGrid'
+import { ActiveCommunities } from '@/components/home/ActiveCommunities'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { getApiUrl } from '@/lib/api'
 
-async function getPosts() {
-  try {
-    const res = await fetch(`${getApiUrl()}/api/main/posts?limit=10`, {
-      cache: 'no-store',
-    })
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch posts')
-    }
-
-    const data = await res.json()
-    return data.posts || []
-  } catch (error) {
-    console.error('게시글 목록 조회 실패:', error)
-    return []
-  }
-}
-
-async function getCategories() {
-  try {
-    const res = await fetch(`${getApiUrl()}/api/main/categories`, {
-      cache: 'no-store',
-    })
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch categories')
-    }
-
-    const data = await res.json()
-    return data.categories || []
-  } catch (error) {
-    console.error('카테고리 목록 조회 실패:', error)
-    return []
-  }
-}
+// 서버 사이드에서 필요한 데이터만 가져오기 (클라이언트 컴포넌트에서 직접 호출)
 
 async function getSidebarData() {
   try {
@@ -83,11 +52,7 @@ async function getSidebarData() {
 export const revalidate = 0 // 캐싱 비활성화
 
 export default async function Home() {
-  const [posts, categories, sidebarData] = await Promise.all([
-    getPosts(),
-    getCategories(),
-    getSidebarData(),
-  ])
+  const sidebarData = await getSidebarData()
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,13 +62,39 @@ export default async function Home() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-          {/* Post List */}
-          <main>
-            <PostList initialPosts={posts} categories={categories} />
+          {/* Main Content Area */}
+          <main className="space-y-8">
+            {/* 카테고리 그리드 */}
+            <section>
+              <h2 className="text-2xl font-bold mb-4">게시판 둘러보기</h2>
+              <CategoryGrid />
+            </section>
+
+            {/* 주간 인기 게시글 */}
+            <section>
+              <WeeklyPopularPosts />
+            </section>
+
+            {/* 최근 게시글 */}
+            <section>
+              <RecentPosts />
+            </section>
+
+            {/* 활성 커뮤니티 - 모바일에서만 보이기 */}
+            <section className="lg:hidden">
+              <ActiveCommunities />
+            </section>
           </main>
 
           {/* Sidebar */}
-          <SidebarContainer sidebarData={sidebarData} />
+          <aside className="space-y-6">
+            <SidebarContainer sidebarData={sidebarData} />
+
+            {/* 활성 커뮤니티 - 데스크톱에서만 보이기 */}
+            <div className="hidden lg:block">
+              <ActiveCommunities />
+            </div>
+          </aside>
         </div>
       </div>
     </div>

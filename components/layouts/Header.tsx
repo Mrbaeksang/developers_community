@@ -35,7 +35,17 @@ export function Header() {
 
   const navigation = [
     { name: '홈', href: '/', icon: Home },
-    { name: '게시글', href: '/main/posts', icon: MessageSquare },
+    { name: '메인 게시글', href: '/main/posts', icon: MessageSquare },
+    {
+      name: '자유게시판',
+      href: '/main/posts?category=free',
+      icon: MessageSquare,
+    },
+    {
+      name: 'Q&A 게시판',
+      href: '/main/posts?category=qna',
+      icon: MessageSquare,
+    },
     { name: '커뮤니티', href: '/communities', icon: Users },
   ]
 

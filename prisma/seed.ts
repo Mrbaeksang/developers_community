@@ -30,7 +30,7 @@ async function main() {
         color: '#f59e0b',
         icon: 'HelpCircle',
         order: 2,
-        requiresApproval: true, // Q&A는 승인 필요
+        requiresApproval: false, // Q&A도 즉시 게시
       },
     }),
     prisma.mainCategory.upsert({
