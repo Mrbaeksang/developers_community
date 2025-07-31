@@ -67,15 +67,12 @@ export function broadcastMessage(channelId: string, message: ChatMessage) {
     timestamp: new Date().toISOString(),
   })
 
-  let sentCount = 0
   connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId) {
       try {
         connection.controller.enqueue(`data: ${messageData}\n\n`)
-        sentCount++
-      } catch (error) {
+      } catch {
         // 연결이 끊어진 경우 제거
-        // console.error(`[SSE] Failed to send to ${connectionId}:`, error)
         removeConnection(connectionId)
       }
     }
