@@ -77,6 +77,14 @@ export default function PostDetail({ post }: PostDetailProps) {
     }
   }, [status, post.id])
 
+  // 조회수 증가 (Redis 버퍼링)
+  useEffect(() => {
+    // 조회수 증가 API 호출
+    fetch(`/api/main/posts/${post.id}/view`, {
+      method: 'POST',
+    }).catch(console.error)
+  }, [post.id])
+
   const handleLike = async () => {
     if (status === 'unauthenticated') {
       toast({

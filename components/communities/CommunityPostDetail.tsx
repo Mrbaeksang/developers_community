@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -87,6 +87,14 @@ export function CommunityPostDetail({
   const [isDeleting, setIsDeleting] = useState(false)
 
   const isAuthor = currentUserId === post.author.id
+
+  // 조회수 증가 (Redis 버퍼링)
+  useEffect(() => {
+    // 조회수 증가 API 호출
+    fetch(`/api/communities/${post.community.id}/posts/${post.id}/view`, {
+      method: 'POST',
+    }).catch(console.error)
+  }, [post.community.id, post.id])
 
   const handleLike = async () => {
     if (!currentUserId) {

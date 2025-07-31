@@ -78,11 +78,7 @@ export async function GET(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
-    // 조회수 증가
-    await prisma.mainPost.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    })
+    // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
 
     // 태그 형식 변환 및 마크다운 변환
     const formattedPost = {

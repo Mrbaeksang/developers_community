@@ -76,20 +76,22 @@ export async function GET(
     }
 
     // 정렬 옵션
-    const orderBy: {
-      createdAt?: 'desc' | 'asc'
-      viewCount?: 'desc' | 'asc'
-      comments?: { _count: 'desc' | 'asc' }
-    } = {}
+    let orderBy: any
     switch (sort) {
       case 'popular':
-        orderBy.viewCount = 'desc'
+        orderBy = { viewCount: 'desc' }
+        break
+      case 'likes':
+        orderBy = { likeCount: 'desc' }
+        break
+      case 'bookmarks':
+        orderBy = { bookmarkCount: 'desc' }
         break
       case 'commented':
-        orderBy.comments = { _count: 'desc' }
+        orderBy = { commentCount: 'desc' }
         break
       default:
-        orderBy.createdAt = 'desc'
+        orderBy = { createdAt: 'desc' }
     }
 
     // 게시글 조회

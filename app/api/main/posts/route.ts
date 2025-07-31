@@ -23,10 +23,23 @@ export async function GET(request: NextRequest) {
     }
 
     // 정렬 조건
-    const orderBy =
-      sort === 'popular'
-        ? { viewCount: 'desc' as const }
-        : { createdAt: 'desc' as const }
+    let orderBy: any
+    switch (sort) {
+      case 'popular':
+        orderBy = { viewCount: 'desc' }
+        break
+      case 'likes':
+        orderBy = { likeCount: 'desc' }
+        break
+      case 'bookmarks':
+        orderBy = { bookmarkCount: 'desc' }
+        break
+      case 'commented':
+        orderBy = { commentCount: 'desc' }
+        break
+      default:
+        orderBy = { createdAt: 'desc' }
+    }
 
     // 전체 개수 조회
     const total = await prisma.mainPost.count({ where })

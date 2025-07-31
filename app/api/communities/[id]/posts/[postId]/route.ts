@@ -104,13 +104,7 @@ export async function GET(
       }
     }
 
-    // 조회수 증가 (작성자 본인이 아닌 경우)
-    if (session?.user?.id !== post.authorId) {
-      await prisma.communityPost.update({
-        where: { id: postId },
-        data: { viewCount: { increment: 1 } },
-      })
-    }
+    // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
 
     // 사용자별 좋아요/북마크 상태 처리
     const formattedPost = {
