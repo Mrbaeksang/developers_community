@@ -3,11 +3,12 @@
 ## 📡 디렉토리 구조
 
 ### 🚀 최근 업데이트
-- **채팅 시스템 구현**: 전역 채팅 및 커뮤니티 채팅 API 8개 완성
-- **플로팅 채팅창**: 드래그 & 8방향 리사이즈 기능 구현
-- **태그 관리 API 완전 구현**: 태그 CRUD 및 태그별 게시글 조회 API 구현 완료
-- **댓글 시스템 완전 개편**: CommentItem 컴포넌트 분리로 한글 입력 포커스 문제 해결
-- **관련 게시글 추천 기능**: 태그/카테고리 기반 스코어링 알고리즘으로 개인화된 추천
+- **채팅 실시간 브로드캐스트**: 메시지 수정/삭제 시 실시간 업데이트 완료 (SSE)
+- **채팅 메시지 수정/삭제**: 자기 메시지 수정/삭제 기능 구현 (PATCH/DELETE)
+- **안 읽은 메시지 카운트**: 채팅창 닫혀있을 때 안 읽은 메시지 뱃지 표시 (99+)
+- **채팅 파일 업로드**: 이미지/파일 첨부 기능 (영구 보관)
+- **채팅 시스템 구현**: 전역 채팅 및 커뮤니티 채팅 API 12개 완성
+- **플로팅 채팅창**: 드래그 & 8방향 리사이즈 + 수정/삭제 기능
 
 ```
 my_project/
@@ -101,10 +102,17 @@ my_project/
 │   │   │   └── [id]/             ✗ 상세/수정/삭제/좋아요/북마크
 │   │   ├── chat/                 # 채팅 API
 │   │   │   ├── global/           ✓ 전역 채팅 채널
+│   │   │   ├── upload/           ✓ 채팅 파일 업로드
 │   │   │   └── channels/         
 │   │   │       ├── route.ts      ✓ 채널 목록
 │   │   │       └── [channelId]/
-│   │   │           └── messages/ ✓ 메시지 조회/전송
+│   │   │           ├── messages/ 
+│   │   │           │   ├── route.ts ✓ 메시지 조회/전송
+│   │   │           │   └── [messageId]/
+│   │   │           │       └── route.ts ✓ 메시지 수정/삭제
+│   │   │           ├── events/   ✓ SSE 실시간 이벤트
+│   │   │           ├── typing/   ✓ 타이핑 상태
+│   │   │           └── read/     ✓ 읽음 상태 업데이트
 │   │   ├── files/                # 파일 API
 │   │   │   ├── upload/           ✓ 파일 업로드
 │   │   │   ├── [id]/             ✓ 파일 조회/삭제
@@ -193,7 +201,8 @@ my_project/
 │   │   ├── SearchModal.tsx  ✓ 검색 모달
 │   │   └── index.ts         ✓ 내보내기 파일
 │   ├── chat/                # 채팅 관련
-│   │   └── FloatingChatButton.tsx ✓ 플로팅 채팅 버튼
+│   │   ├── FloatingChatButton.tsx ✓ 플로팅 채팅 버튼 (안 읽은 메시지 카운트)
+│   │   └── FloatingChatWindow.tsx ✓ 플로팅 채팅 창 (수정/삭제 기능)
 │   ├── providers/           # Provider 컴포넌트
 │   │   ├── SessionProvider.tsx ✓ NextAuth 세션 프로바이더
 │   │   └── ChatProvider.tsx    ✓ 채팅 상태 관리 프로바이더
@@ -210,10 +219,14 @@ my_project/
 │   ├── types.ts             ✓ 타입 정의 파일
 │   ├── api.ts               ✓ API 유틸리티
 │   ├── notifications.ts     ✓ 알림 헬퍼 함수
-│   └── auth-helpers.ts      ✓ 인증/권한 헬퍼 함수 (Stage 1 완료)
+│   ├── auth-helpers.ts      ✓ 인증/권한 헬퍼 함수 (Stage 1 완료)
+│   ├── chat-utils.ts        ✓ 채팅 유틸리티 (파일 업로드)
+│   └── chat-broadcast.ts    ✓ SSE 브로드캐스트 관리
 ├── hooks/
 │   ├── use-toast.tsx        ✓ 토스트 훅
-│   └── use-debounce.ts      ✓ 디바운스 훅
+│   ├── use-debounce.ts      ✓ 디바운스 훅
+│   ├── use-chat-events.ts   ✓ 채팅 실시간 이벤트 훅 (SSE)
+│   └── use-typing-indicator.ts ✓ 타이핑 인디케이터 훅
 ├── prisma/
 │   ├── schema.prisma        ✓ 데이터베이스 스키마
 │   └── seed.ts              ✓ 시드 데이터

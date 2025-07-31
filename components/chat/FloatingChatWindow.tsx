@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Paperclip, LogIn, Image, File, X } from 'lucide-react'
+import {
+  Send,
+  Paperclip,
+  LogIn,
+  Image,
+  File,
+  X,
+  Edit2,
+  Trash2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -18,10 +27,12 @@ import { uploadChatFile } from '@/lib/chat-utils'
 
 interface FloatingChatWindowProps {
   channelId: string
+  onNewMessage?: (message: ChatMessage) => void
 }
 
 export default function FloatingChatWindow({
   channelId,
+  onNewMessage,
 }: FloatingChatWindowProps) {
   const { data: session } = useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -30,6 +41,8 @@ export default function FloatingChatWindow({
   const [sending, setSending] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState('')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -40,6 +53,8 @@ export default function FloatingChatWindow({
     onlineInfo,
     typingUsers,
     setOnMessage,
+    setOnMessageUpdate,
+    setOnMessageDelete,
     sendTypingStatus,
   } = useChatEvents(channelId)
 
@@ -62,9 +77,31 @@ export default function FloatingChatWindow({
         }
         return [...prev, newMessage]
       })
+
+      // 부모 컴포넌트에 새 메시지 알림
+      if (onNewMessage) {
+        onNewMessage(newMessage)
+      }
+
       scrollToBottom()
     })
-  }, [setOnMessage])
+  }, [setOnMessage, onNewMessage])
+
+  // 실시간 메시지 업데이트 설정
+  useEffect(() => {
+    setOnMessageUpdate((updatedMessage: ChatMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+      )
+    })
+  }, [setOnMessageUpdate])
+
+  // 실시간 메시지 삭제 설정
+  useEffect(() => {
+    setOnMessageDelete((messageId: string) => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+    })
+  }, [setOnMessageDelete])
 
   const fetchMessages = async () => {
     try {
@@ -165,6 +202,65 @@ export default function FloatingChatWindow({
     startTyping()
   }
 
+  // 메시지 수정 시작
+  const startEditMessage = (messageId: string, content: string) => {
+    setEditingMessageId(messageId)
+    setEditingContent(content)
+  }
+
+  // 메시지 수정 취소
+  const cancelEditMessage = () => {
+    setEditingMessageId(null)
+    setEditingContent('')
+  }
+
+  // 메시지 수정 저장
+  const saveEditMessage = async (messageId: string) => {
+    if (!editingContent.trim()) return
+
+    try {
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages/${messageId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ content: editingContent.trim() }),
+        }
+      )
+
+      if (!res.ok) throw new Error('Failed to update message')
+
+      // 서버에서 브로드캐스트된 실시간 업데이트가 자동으로 반영됨
+      cancelEditMessage()
+    } catch (error) {
+      console.error('Failed to update message:', error)
+      alert('메시지 수정에 실패했습니다.')
+    }
+  }
+
+  // 메시지 삭제
+  const deleteMessage = async (messageId: string) => {
+    if (!confirm('이 메시지를 삭제하시겠습니까?')) return
+
+    try {
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages/${messageId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      )
+
+      if (!res.ok) throw new Error('Failed to delete message')
+
+      // 서버에서 브로드캐스트된 실시간 삭제가 자동으로 반영됨
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+      alert('메시지 삭제에 실패했습니다.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -184,7 +280,7 @@ export default function FloatingChatWindow({
             </div>
           ) : (
             messages.map((message) => (
-              <div key={message.id} className="flex gap-3">
+              <div key={message.id} className="flex gap-3 group">
                 <Avatar className="h-8 w-8 border-2 border-black">
                   <AvatarImage src={message.author.image || ''} />
                   <AvatarFallback className="text-xs font-bold">
@@ -203,12 +299,70 @@ export default function FloatingChatWindow({
                         addSuffix: true,
                         locale: ko,
                       })}
+                      {message.updatedAt !== message.createdAt && ' (수정됨)'}
                     </span>
+
+                    {/* 수정/삭제 버튼 (자기 메시지만) */}
+                    {session?.user?.id === message.author.id && (
+                      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() =>
+                            startEditMessage(message.id, message.content)
+                          }
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => deleteMessage(message.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* 메시지 내용 */}
                   <div className="text-sm break-words">
-                    {message.content}
+                    {editingMessageId === message.id ? (
+                      <div className="flex gap-2">
+                        <Input
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              saveEditMessage(message.id)
+                            } else if (e.key === 'Escape') {
+                              cancelEditMessage()
+                            }
+                          }}
+                          className="flex-1 text-sm h-8"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => saveEditMessage(message.id)}
+                          className="h-8"
+                        >
+                          저장
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={cancelEditMessage}
+                          className="h-8"
+                        >
+                          취소
+                        </Button>
+                      </div>
+                    ) : (
+                      message.content
+                    )}
 
                     {/* 파일 첨부 표시 */}
                     {message.file && (

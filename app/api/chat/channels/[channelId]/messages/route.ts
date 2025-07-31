@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkAuth } from '@/lib/auth-helpers'
 import { z } from 'zod'
-import { broadcastMessage } from '../events/route'
+import { broadcastMessage } from '@/lib/chat-broadcast'
 
 const messageSchema = z.object({
   content: z.string().min(1).max(1000),
@@ -63,12 +63,18 @@ export async function GET(
     // 쿼리 파라미터 처리
     const { searchParams } = new URL(req.url)
     const cursor = searchParams.get('cursor')
+    const after = searchParams.get('after')
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
     // 메시지 조회
     const messages = await prisma.chatMessage.findMany({
       where: {
         channelId,
+        ...(after && {
+          createdAt: {
+            gt: new Date(after),
+          },
+        }),
       },
       include: {
         author: {

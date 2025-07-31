@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkAuth } from '@/lib/auth-helpers'
 import { z } from 'zod'
-import { broadcastTyping } from '../events/route'
+import { broadcastTyping } from '@/lib/chat-broadcast'
 
 const typingSchema = z.object({
   isTyping: z.boolean(),

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import FloatingChatWindow from './FloatingChatWindow'
+import { useChatEvents } from '@/hooks/use-chat-events'
 
 interface FloatingChatButtonProps {
   channelId?: string
@@ -18,8 +19,79 @@ export default function FloatingChatButton({
   const [isOpen, setIsOpen] = useState(false)
   const [size, setSize] = useState({ width: 400, height: 600 })
   const [position, setPosition] = useState({ x: 20, y: 20 })
-  const [unreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [isResizing, setIsResizing] = useState(false)
+
+  // 마지막으로 읽은 시간 키
+  const lastReadKey = `chat_last_read_${channelId}`
+
+  // 마지막으로 읽은 시간 가져오기
+  const getLastReadTime = useCallback(() => {
+    const stored = localStorage.getItem(lastReadKey)
+    return stored ? new Date(stored) : new Date()
+  }, [lastReadKey])
+
+  // 마지막으로 읽은 시간 업데이트
+  const updateLastReadTime = useCallback(() => {
+    localStorage.setItem(lastReadKey, new Date().toISOString())
+    setUnreadCount(0)
+  }, [lastReadKey])
+
+  // 새 메시지 수신 시 카운트 증가
+  const handleNewMessage = useCallback(
+    (message: { createdAt: string }) => {
+      if (!isOpen) {
+        const lastRead = getLastReadTime()
+        const messageTime = new Date(message.createdAt)
+
+        if (messageTime > lastRead) {
+          setUnreadCount((prev) => Math.min(prev + 1, 99))
+        }
+      }
+    },
+    [isOpen, getLastReadTime]
+  )
+
+  // 창이 열릴 때 읽음 처리
+  useEffect(() => {
+    if (isOpen) {
+      updateLastReadTime()
+    }
+  }, [isOpen, updateLastReadTime])
+
+  // SSE 연결로 전역 메시지 수신 (창이 닫혀있을 때만)
+  const { setOnMessage } = useChatEvents(isOpen ? null : channelId)
+
+  // 초기 안 읽은 메시지 수 계산
+  useEffect(() => {
+    const calculateUnreadCount = async () => {
+      try {
+        const lastRead = getLastReadTime()
+        const res = await fetch(
+          `/api/chat/channels/${channelId}/messages?after=${lastRead.toISOString()}`
+        )
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(Math.min(data.messages.length, 99))
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error)
+      }
+    }
+
+    if (!isOpen) {
+      calculateUnreadCount()
+    }
+  }, [channelId, getLastReadTime, isOpen])
+
+  // 실시간 메시지 수신 처리 (창이 닫혀있을 때)
+  useEffect(() => {
+    if (!isOpen) {
+      setOnMessage((message: { createdAt: string }) => {
+        handleNewMessage(message)
+      })
+    }
+  }, [setOnMessage, handleNewMessage, isOpen])
 
   // 창 크기 조절
   const handleResize = (direction: string) => (e: React.MouseEvent) => {
@@ -130,8 +202,8 @@ export default function FloatingChatButton({
       >
         <MessageCircle className="h-6 w-6" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center border border-black">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center border border-black">
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </Button>
@@ -170,7 +242,10 @@ export default function FloatingChatButton({
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <FloatingChatWindow channelId={channelId} />
+          <FloatingChatWindow
+            channelId={channelId}
+            onNewMessage={handleNewMessage}
+          />
         </CardContent>
 
         {/* 크기 조절 핸들 - 4모서리 */}

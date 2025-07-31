@@ -59,11 +59,25 @@ export interface OnlineCountEvent {
   timestamp: string
 }
 
+export interface MessageUpdateEvent {
+  type: 'message_update'
+  data: ChatMessage
+  timestamp: string
+}
+
+export interface MessageDeleteEvent {
+  type: 'message_delete'
+  data: { messageId: string }
+  timestamp: string
+}
+
 export type ChatEventData =
   | ConnectedEvent
   | MessageEvent
   | TypingEvent
   | OnlineCountEvent
+  | MessageUpdateEvent
+  | MessageDeleteEvent
 
 export function useChatEvents(channelId: string | null) {
   const [isConnected, setIsConnected] = useState(false)
@@ -79,6 +93,16 @@ export function useChatEvents(channelId: string | null) {
   // 새 메시지 콜백
   const [onMessage, setOnMessage] = useState<
     ((message: ChatMessage) => void) | null
+  >(null)
+
+  // 메시지 업데이트 콜백
+  const [onMessageUpdate, setOnMessageUpdate] = useState<
+    ((message: ChatMessage) => void) | null
+  >(null)
+
+  // 메시지 삭제 콜백
+  const [onMessageDelete, setOnMessageDelete] = useState<
+    ((messageId: string) => void) | null
   >(null)
 
   const connect = () => {
@@ -125,6 +149,18 @@ export function useChatEvents(channelId: string | null) {
           case 'online_count':
             if ('data' in eventData) {
               setOnlineInfo(eventData.data)
+            }
+            break
+
+          case 'message_update':
+            if (onMessageUpdate && 'data' in eventData) {
+              onMessageUpdate(eventData.data)
+            }
+            break
+
+          case 'message_delete':
+            if (onMessageDelete && 'data' in eventData) {
+              onMessageDelete(eventData.data.messageId)
             }
             break
         }
@@ -195,6 +231,8 @@ export function useChatEvents(channelId: string | null) {
     onlineInfo,
     typingUsers: Array.from(typingUsers.keys()),
     setOnMessage,
+    setOnMessageUpdate,
+    setOnMessageDelete,
     sendTypingStatus,
     connect,
     disconnect,
