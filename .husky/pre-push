@@ -1,10 +1,13 @@
 #!/bin/sh
-echo "🔍 Running format check..."
-npm run format:check
+echo "🔧 Running auto-format..."
+npm run format
 
-if [ $? -ne 0 ]; then
-  echo "❌ Format check failed! Run 'npm run format' to fix formatting issues."
-  exit 1
+# 포맷팅으로 변경사항이 있는지 확인
+if ! git diff --exit-code --quiet; then
+  echo "📝 Files were formatted. Adding changes..."
+  git add -A
+  git commit --amend --no-edit
+  echo "✅ Formatting applied and committed!"
 fi
 
 echo "🔍 Running TypeScript type check..."

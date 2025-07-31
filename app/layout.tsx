@@ -7,6 +7,8 @@ import { NotificationProvider } from '@/components/providers/NotificationProvide
 import { Header } from '@/components/layouts/Header'
 import { Toaster } from '@/components/ui/sonner'
 import { ChatProvider } from '@/components/providers/ChatProvider'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -46,6 +48,8 @@ export default function RootLayout({
             </KakaoProvider>
           </NotificationProvider>
         </SessionProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
