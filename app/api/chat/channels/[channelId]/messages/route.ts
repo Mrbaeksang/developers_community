@@ -3,9 +3,12 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkAuth } from '@/lib/auth-helpers'
 import { z } from 'zod'
+import { broadcastMessage } from '../events/route'
 
 const messageSchema = z.object({
   content: z.string().min(1).max(1000),
+  fileId: z.string().optional(), // 파일 첨부용
+  type: z.enum(['TEXT', 'IMAGE', 'FILE']).default('TEXT'), // 메시지 타입
 })
 
 // GET: 채팅 메시지 목록 조회
@@ -76,6 +79,7 @@ export async function GET(
             image: true,
           },
         },
+        file: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -115,18 +119,35 @@ export async function GET(
     }
 
     return NextResponse.json({
-      messages: messages.map((message) => ({
-        id: message.id,
-        content: message.content,
-        createdAt: message.createdAt,
-        updatedAt: message.updatedAt,
-        author: {
-          id: message.author.id,
-          username: message.author.username,
-          name: message.author.name,
-          image: message.author.image || undefined,
-        },
-      })),
+      messages: messages.map((message) => {
+        return {
+          id: message.id,
+          content: message.content,
+          type: message.type,
+          createdAt: message.createdAt,
+          updatedAt: message.updatedAt,
+          author: {
+            id: message.author.id,
+            username: message.author.username,
+            name: message.author.name,
+            image: message.author.image || undefined,
+          },
+          file: message.file
+            ? {
+                id: message.file.id,
+                filename: message.file.filename,
+                size: message.file.size,
+                type: message.file.type,
+                url: message.file.url,
+                mimeType: message.file.mimeType,
+                width: message.file.width,
+                height: message.file.height,
+                expiresAt: message.file.expiresAt,
+                isTemporary: message.file.isTemporary,
+              }
+            : undefined,
+        }
+      }),
       nextCursor,
     })
   } catch (error) {
@@ -192,12 +213,28 @@ export async function POST(
     const body = await req.json()
     const validatedData = messageSchema.parse(body)
 
+    // 파일이 첨부된 경우 파일 존재 확인
+    if (validatedData.fileId) {
+      const file = await prisma.file.findUnique({
+        where: { id: validatedData.fileId },
+      })
+
+      if (!file || file.uploaderId !== userId) {
+        return NextResponse.json(
+          { error: '파일을 찾을 수 없거나 권한이 없습니다.' },
+          { status: 400 }
+        )
+      }
+    }
+
     // 메시지 생성
     const message = await prisma.chatMessage.create({
       data: {
         content: validatedData.content,
+        type: validatedData.type,
         authorId: userId,
         channelId,
+        fileId: validatedData.fileId,
       },
       include: {
         author: {
@@ -208,6 +245,7 @@ export async function POST(
             image: true,
           },
         },
+        file: true,
       },
     })
 
@@ -226,19 +264,39 @@ export async function POST(
       })
     }
 
-    return NextResponse.json({
-      message: {
-        id: message.id,
-        content: message.content,
-        createdAt: message.createdAt,
-        updatedAt: message.updatedAt,
-        author: {
-          id: message.author.id,
-          username: message.author.username,
-          name: message.author.name,
-          image: message.author.image || undefined,
-        },
+    const messageResponse = {
+      id: message.id,
+      content: message.content,
+      type: message.type,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      author: {
+        id: message.author.id,
+        username: message.author.username,
+        name: message.author.name,
+        image: message.author.image || undefined,
       },
+      file: message.file
+        ? {
+            id: message.file.id,
+            filename: message.file.filename,
+            size: message.file.size,
+            type: message.file.type,
+            url: message.file.url,
+            mimeType: message.file.mimeType,
+            width: message.file.width,
+            height: message.file.height,
+            expiresAt: message.file.expiresAt,
+            isTemporary: message.file.isTemporary,
+          }
+        : undefined,
+    }
+
+    // 실시간으로 다른 사용자들에게 메시지 브로드캐스트
+    broadcastMessage(channelId, messageResponse)
+
+    return NextResponse.json({
+      message: messageResponse,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

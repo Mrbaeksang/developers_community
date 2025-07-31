@@ -664,6 +664,10 @@ model File {
   width        Int?     // 이미지 너비
   height       Int?     // 이미지 높이
   
+  // 임시 파일 관련 필드 (향후 확장성)
+  isTemporary  Boolean   @default(false) // 임시 파일 여부
+  expiresAt    DateTime? // 만료 시간
+  
   createdAt    DateTime @default(now())
 
   // 관계

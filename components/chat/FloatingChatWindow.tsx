@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Paperclip, LogIn } from 'lucide-react'
+import { Send, Paperclip, LogIn, Image, File, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -10,19 +10,11 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useChatEvents, type ChatMessage } from '@/hooks/use-chat-events'
+import { useTypingIndicator } from '@/hooks/use-typing-indicator'
+import { uploadChatFile } from '@/lib/chat-utils'
 
-interface Message {
-  id: string
-  content: string
-  type: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM'
-  createdAt: string
-  author: {
-    id: string
-    name: string | null
-    username: string | null
-    image: string | null
-  }
-}
+// ChatMessage 타입을 use-chat-events에서 가져와서 사용
 
 interface FloatingChatWindowProps {
   channelId: string
@@ -32,20 +24,47 @@ export default function FloatingChatWindow({
   channelId,
 }: FloatingChatWindowProps) {
   const { data: session } = useSession()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 메시지 로드
+  // 실시간 채팅 연결
+  const {
+    isConnected,
+    onlineInfo,
+    typingUsers,
+    setOnMessage,
+    sendTypingStatus,
+  } = useChatEvents(channelId)
+
+  // 타이핑 인디케이터
+  const { startTyping, stopTyping } = useTypingIndicator(sendTypingStatus)
+
+  // 메시지 로드 (초기 로드만, 실시간은 SSE로 처리)
   useEffect(() => {
     fetchMessages()
-    const interval = setInterval(fetchMessages, 5000) // 5초마다 새 메시지 확인
-    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelId])
+
+  // 실시간 메시지 수신 설정
+  useEffect(() => {
+    setOnMessage((newMessage: ChatMessage) => {
+      setMessages((prev) => {
+        // 중복 메시지 방지
+        if (prev.some((msg) => msg.id === newMessage.id)) {
+          return prev
+        }
+        return [...prev, newMessage]
+      })
+      scrollToBottom()
+    })
+  }, [setOnMessage])
 
   const fetchMessages = async () => {
     try {
@@ -71,28 +90,79 @@ export default function FloatingChatWindow({
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || sending) return
+    if ((!newMessage.trim() && !selectedFile) || sending) return
 
     setSending(true)
+    stopTyping() // 타이핑 상태 중지
+
     try {
+      let fileId: string | undefined
+
+      // 파일이 선택된 경우 먼저 업로드
+      if (selectedFile) {
+        setUploading(true)
+        const uploadResult = await uploadChatFile(selectedFile)
+        fileId = uploadResult.fileId
+        setUploading(false)
+      }
+
+      // 메시지 전송
       const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // 쿠키를 포함하여 요청
-        body: JSON.stringify({ content: newMessage.trim() }),
+        credentials: 'include',
+        body: JSON.stringify({
+          content:
+            newMessage.trim() ||
+            (selectedFile ? `파일: ${selectedFile.name}` : ''),
+          fileId,
+          type: selectedFile
+            ? selectedFile.type.startsWith('image/')
+              ? 'IMAGE'
+              : 'FILE'
+            : 'TEXT',
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to send message')
 
-      const data = await res.json()
-      setMessages((prev) => [...prev, data.message])
+      // 폼 초기화 (실시간으로 메시지가 추가되므로 수동 추가는 제거)
       setNewMessage('')
+      setSelectedFile(null)
       scrollToBottom()
     } catch (error) {
       console.error('Failed to send message:', error)
+      setUploading(false)
     } finally {
       setSending(false)
     }
+  }
+
+  // 파일 선택 핸들러
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // 파일 크기 제한 (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('파일 크기는 10MB를 초과할 수 없습니다.')
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
+  // 파일 선택 제거
+  const removeSelectedFile = () => {
+    setSelectedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // 타이핑 상태 처리
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value)
+    startTyping()
   }
 
   if (loading) {
@@ -135,47 +205,153 @@ export default function FloatingChatWindow({
                       })}
                     </span>
                   </div>
-                  <p className="text-sm break-words">{message.content}</p>
+
+                  {/* 메시지 내용 */}
+                  <div className="text-sm break-words">
+                    {message.content}
+
+                    {/* 파일 첨부 표시 */}
+                    {message.file && (
+                      <div className="mt-2 p-2 border border-gray-200 rounded-md bg-gray-50">
+                        {message.type === 'IMAGE' ? (
+                          <div className="flex items-center gap-2">
+                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                            <Image className="h-4 w-4" aria-hidden="true" />
+                            <a
+                              href={message.file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {message.file.filename}
+                            </a>
+                            <span className="text-xs text-gray-500">
+                              ({(message.file.size / 1024 / 1024).toFixed(2)}MB)
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <File className="h-4 w-4" />
+                            <a
+                              href={message.file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {message.file.filename}
+                            </a>
+                            <span className="text-xs text-gray-500">
+                              ({(message.file.size / 1024 / 1024).toFixed(2)}MB)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
           )}
+
+          {/* 타이핑 인디케이터 */}
+          {typingUsers.length > 0 && (
+            <div className="text-xs text-muted-foreground italic px-4 py-1">
+              {typingUsers.length === 1
+                ? '누군가 입력 중...'
+                : `${typingUsers.length}명이 입력 중...`}
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
+      {/* 연결 상태 및 온라인 사용자 표시 */}
+      <div className="px-4 py-1 text-xs text-muted-foreground border-t border-gray-200 flex justify-between items-center">
+        <span
+          className={`flex items-center gap-1 ${isConnected ? 'text-green-600' : 'text-red-600'}`}
+        >
+          <div
+            className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-600' : 'bg-red-600'}`}
+          />
+          {isConnected ? '실시간 연결됨' : '연결 끊김'}
+        </span>
+        <span>온라인: {onlineInfo.count}명</span>
+      </div>
+
       {/* 입력 영역 */}
       {session ? (
-        <form
-          onSubmit={sendMessage}
-          className="p-4 border-t-2 border-black flex gap-2"
-        >
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="메시지를 입력하세요..."
-            disabled={sending}
-            className="flex-1 border-2 border-black"
-          />
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="border-2 border-black"
-            disabled
-            title="파일 첨부 (준비중)"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!newMessage.trim() || sending}
-            className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <div className="p-4 border-t-2 border-black">
+          {/* 선택된 파일 표시 */}
+          {selectedFile && (
+            <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {selectedFile.type.startsWith('image/') ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <File className="h-4 w-4" />
+                  )}
+                  <span className="text-sm truncate">{selectedFile.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={removeSelectedFile}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={sendMessage} className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={handleInputChange}
+              placeholder="메시지를 입력하세요..."
+              disabled={sending || uploading}
+              className="flex-1 border-2 border-black"
+            />
+
+            {/* 파일 선택 */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+              className="hidden"
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="border-2 border-black"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending || uploading}
+              title="파일 첨부"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+
+            <Button
+              type="submit"
+              size="icon"
+              disabled={
+                (!newMessage.trim() && !selectedFile) || sending || uploading
+              }
+              className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+            >
+              {uploading ? '...' : <Send className="h-4 w-4" />}
+            </Button>
+          </form>
+        </div>
       ) : (
         <div className="p-4 border-t-2 border-black">
           <Link href="/auth/signin" className="block">
