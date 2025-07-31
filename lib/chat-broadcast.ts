@@ -1,12 +1,12 @@
-// SSE 연결을 저장하기 위한 Map
-const connections = new Map<
-  string,
-  {
-    controller: ReadableStreamDefaultController
-    userId: string
-    channelId: string
-  }
->()
+// SSE 연결 관리 및 메시지 브로드캐스트
+// 프로덕션 환경에서는 서버가 재시작되지 않으므로 메모리에 저장해도 문제없음
+// 추후 Redis pub/sub으로 교체 예정
+
+interface Connection {
+  controller: ReadableStreamDefaultController
+  userId: string
+  channelId: string
+}
 
 // 메시지 타입 정의
 interface ChatMessage {
@@ -35,6 +35,9 @@ interface ChatMessage {
   }
 }
 
+// 연결 저장소
+const connections = new Map<string, Connection>()
+
 // 연결 저장
 export function saveConnection(
   connectionId: string,
@@ -47,11 +50,13 @@ export function saveConnection(
     userId,
     channelId,
   })
+  // console.log(`[SSE] Connection saved: ${connectionId}, total: ${connections.size}`)
 }
 
 // 연결 제거
 export function removeConnection(connectionId: string) {
   connections.delete(connectionId)
+  // console.log(`[SSE] Connection removed: ${connectionId}, remaining: ${connections.size}`)
 }
 
 // 메시지를 모든 채널 구독자에게 브로드캐스트
@@ -62,17 +67,21 @@ export function broadcastMessage(channelId: string, message: ChatMessage) {
     timestamp: new Date().toISOString(),
   })
 
-  // 해당 채널을 구독하는 모든 연결에 메시지 전송
-  for (const [connectionId, connection] of connections.entries()) {
+  let sentCount = 0
+  connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId) {
       try {
         connection.controller.enqueue(`data: ${messageData}\n\n`)
-      } catch {
+        sentCount++
+      } catch (error) {
         // 연결이 끊어진 경우 제거
-        connections.delete(connectionId)
+        // console.error(`[SSE] Failed to send to ${connectionId}:`, error)
+        removeConnection(connectionId)
       }
     }
-  }
+  })
+
+  // console.log(`[SSE] Message broadcast to ${sentCount} connections in channel ${channelId}`)
 }
 
 // 타이핑 상태를 브로드캐스트
@@ -90,44 +99,45 @@ export function broadcastTyping(
     timestamp: new Date().toISOString(),
   })
 
-  // 해당 채널을 구독하는 모든 연결에 타이핑 상태 전송 (자신 제외)
-  for (const [connectionId, connection] of connections.entries()) {
+  connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId && connection.userId !== userId) {
       try {
         connection.controller.enqueue(`data: ${typingData}\n\n`)
       } catch {
-        connections.delete(connectionId)
+        removeConnection(connectionId)
       }
     }
-  }
+  })
 }
 
 // 온라인 사용자 수 브로드캐스트
 export function broadcastOnlineCount(channelId: string) {
-  const onlineUsers = Array.from(connections.values())
-    .filter((conn) => conn.channelId === channelId)
-    .map((conn) => conn.userId)
+  const channelUsers = new Set<string>()
 
-  const uniqueUsers = [...new Set(onlineUsers)]
+  connections.forEach((connection) => {
+    if (connection.channelId === channelId) {
+      channelUsers.add(connection.userId)
+    }
+  })
 
   const onlineData = JSON.stringify({
     type: 'online_count',
     data: {
-      count: uniqueUsers.length,
-      users: uniqueUsers,
+      count: channelUsers.size,
+      users: Array.from(channelUsers),
     },
     timestamp: new Date().toISOString(),
   })
 
-  for (const [connectionId, connection] of connections.entries()) {
+  connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId) {
       try {
         connection.controller.enqueue(`data: ${onlineData}\n\n`)
       } catch {
-        connections.delete(connectionId)
+        removeConnection(connectionId)
       }
     }
-  }
+  })
 }
 
 // 메시지 업데이트를 브로드캐스트
@@ -141,16 +151,15 @@ export function broadcastMessageUpdate(
     timestamp: new Date().toISOString(),
   })
 
-  // 해당 채널을 구독하는 모든 연결에 메시지 업데이트 전송
-  for (const [connectionId, connection] of connections.entries()) {
+  connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId) {
       try {
         connection.controller.enqueue(`data: ${updateData}\n\n`)
       } catch {
-        connections.delete(connectionId)
+        removeConnection(connectionId)
       }
     }
-  }
+  })
 }
 
 // 메시지 삭제를 브로드캐스트
@@ -161,14 +170,13 @@ export function broadcastMessageDelete(channelId: string, messageId: string) {
     timestamp: new Date().toISOString(),
   })
 
-  // 해당 채널을 구독하는 모든 연결에 메시지 삭제 전송
-  for (const [connectionId, connection] of connections.entries()) {
+  connections.forEach((connection, connectionId) => {
     if (connection.channelId === channelId) {
       try {
         connection.controller.enqueue(`data: ${deleteData}\n\n`)
       } catch {
-        connections.delete(connectionId)
+        removeConnection(connectionId)
       }
     }
-  }
+  })
 }

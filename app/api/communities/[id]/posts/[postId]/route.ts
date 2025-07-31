@@ -119,7 +119,6 @@ export async function GET(
       isBookmarked: post.bookmarks && post.bookmarks.length > 0,
       likes: undefined,
       bookmarks: undefined,
-      viewCount: post.viewCount + (session?.user?.id !== post.authorId ? 1 : 0),
     }
 
     return NextResponse.json(formattedPost)

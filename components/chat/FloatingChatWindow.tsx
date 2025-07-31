@@ -69,10 +69,12 @@ export default function FloatingChatWindow({
 
   // 실시간 메시지 수신 설정
   useEffect(() => {
-    setOnMessage((newMessage: ChatMessage) => {
+    setOnMessage((newMessage: ChatMessage | null) => {
+      if (!newMessage?.id) return
+
       setMessages((prev) => {
         // 중복 메시지 방지
-        if (prev.some((msg) => msg.id === newMessage.id)) {
+        if (prev.some((msg) => msg?.id === newMessage.id)) {
           return prev
         }
         return [...prev, newMessage]
@@ -89,17 +91,23 @@ export default function FloatingChatWindow({
 
   // 실시간 메시지 업데이트 설정
   useEffect(() => {
-    setOnMessageUpdate((updatedMessage: ChatMessage) => {
+    setOnMessageUpdate((updatedMessage: ChatMessage | null) => {
+      if (!updatedMessage?.id) return
+
       setMessages((prev) =>
-        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+        prev.map((msg) =>
+          msg?.id === updatedMessage.id ? updatedMessage : msg
+        )
       )
     })
   }, [setOnMessageUpdate])
 
   // 실시간 메시지 삭제 설정
   useEffect(() => {
-    setOnMessageDelete((messageId: string) => {
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+    setOnMessageDelete((messageId: string | null) => {
+      if (!messageId) return
+
+      setMessages((prev) => prev.filter((msg) => msg?.id !== messageId))
     })
   }, [setOnMessageDelete])
 
@@ -110,7 +118,9 @@ export default function FloatingChatWindow({
       })
       if (!res.ok) throw new Error('Failed to fetch messages')
       const data = await res.json()
-      setMessages(data.messages)
+      setMessages(
+        data.messages.filter((msg: ChatMessage | null) => msg !== null)
+      )
       scrollToBottom()
     } catch (error) {
       console.error('Failed to fetch messages:', error)

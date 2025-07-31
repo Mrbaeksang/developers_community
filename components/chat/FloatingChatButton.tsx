@@ -87,8 +87,10 @@ export default function FloatingChatButton({
   // 실시간 메시지 수신 처리 (창이 닫혀있을 때)
   useEffect(() => {
     if (!isOpen) {
-      setOnMessage((message: { createdAt: string }) => {
-        handleNewMessage(message)
+      setOnMessage((message: { createdAt: string } | null) => {
+        if (message?.createdAt) {
+          handleNewMessage(message)
+        }
       })
     }
   }, [setOnMessage, handleNewMessage, isOpen])

@@ -108,17 +108,20 @@ export function useChatEvents(channelId: string | null) {
   const connect = () => {
     if (!channelId || eventSourceRef.current) return
 
+    // console.log(`[SSE Client] Connecting to channel: ${channelId}`)
     const eventSource = new EventSource(
       `/api/chat/channels/${channelId}/events`
     )
     eventSourceRef.current = eventSource
 
     eventSource.onopen = () => {
+      // console.log('[SSE Client] Connection opened')
       setIsConnected(true)
     }
 
     eventSource.onmessage = (event) => {
       try {
+        // console.log('[SSE Client] Message received:', event.data)
         const eventData: ChatEventData = JSON.parse(event.data)
 
         switch (eventData.type) {
@@ -169,11 +172,13 @@ export function useChatEvents(channelId: string | null) {
       }
     }
 
-    eventSource.onerror = () => {
+    eventSource.onerror = (error) => {
+      console.error('[SSE Client] Connection error:', error)
       setIsConnected(false)
       // 자동 재연결 시도
       setTimeout(() => {
         if (channelId) {
+          // console.log('[SSE Client] Attempting to reconnect...')
           disconnect()
           connect()
         }
