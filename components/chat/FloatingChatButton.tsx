@@ -1,48 +1,75 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, X, Minimize2, Maximize2 } from 'lucide-react'
+import { MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import FloatingChatWindow from './FloatingChatWindow'
 
 interface FloatingChatButtonProps {
-  channelId: string
-  channelName: string
+  channelId?: string
+  channelName?: string
 }
 
 export default function FloatingChatButton({
-  channelId,
-  channelName,
+  channelId = 'global',
+  channelName = '전체 채팅',
 }: FloatingChatButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
   const [size, setSize] = useState({ width: 400, height: 600 })
   const [position, setPosition] = useState({ x: 20, y: 20 })
   const [unreadCount] = useState(0)
+  const [isResizing, setIsResizing] = useState(false)
 
   // 창 크기 조절
-  const handleResize = (e: React.MouseEvent) => {
+  const handleResize = (direction: string) => (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+
     const startX = e.clientX
     const startY = e.clientY
     const startWidth = size.width
     const startHeight = size.height
+    const startPosX = position.x
+    const startPosY = position.y
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(
-        300,
-        Math.min(800, startWidth + e.clientX - startX)
-      )
-      const newHeight = Math.max(
-        400,
-        Math.min(800, startHeight + e.clientY - startY)
-      )
+      const deltaX = e.clientX - startX
+      const deltaY = e.clientY - startY
+
+      let newWidth = startWidth
+      let newHeight = startHeight
+      let newPosX = startPosX
+      let newPosY = startPosY
+
+      // right/bottom 기준이므로 방향 반대로 처리
+      if (direction.includes('right')) {
+        newWidth = Math.max(300, Math.min(800, startWidth - deltaX))
+        newPosX = Math.max(
+          20,
+          Math.min(window.innerWidth - 320, startPosX + deltaX)
+        )
+      } else if (direction.includes('left')) {
+        newWidth = Math.max(300, Math.min(800, startWidth + deltaX))
+      }
+
+      if (direction.includes('bottom')) {
+        newHeight = Math.max(400, Math.min(800, startHeight - deltaY))
+        newPosY = Math.max(
+          20,
+          Math.min(window.innerHeight - 420, startPosY + deltaY)
+        )
+      } else if (direction.includes('top')) {
+        newHeight = Math.max(400, Math.min(800, startHeight + deltaY))
+      }
+
       setSize({ width: newWidth, height: newHeight })
+      setPosition({ x: newPosX, y: newPosY })
     }
 
     const handleMouseUp = () => {
+      setIsResizing(false)
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
@@ -54,18 +81,22 @@ export default function FloatingChatButton({
   // 창 이동
   const handleDrag = (e: React.MouseEvent) => {
     e.preventDefault()
-    const startX = e.clientX - position.x
-    const startY = e.clientY - position.y
+    if (isResizing) return
+
+    const startX = e.clientX + position.x
+    const startY = e.clientY + position.y
 
     const handleMouseMove = (e: MouseEvent) => {
+      // right/bottom 기준이므로 반대로 계산
       const newX = Math.max(
-        0,
-        Math.min(window.innerWidth - size.width - 40, e.clientX - startX)
+        20,
+        Math.min(window.innerWidth - size.width - 20, startX - e.clientX)
       )
       const newY = Math.max(
-        0,
-        Math.min(window.innerHeight - size.height - 40, e.clientY - startY)
+        20,
+        Math.min(window.innerHeight - size.height - 20, startY - e.clientY)
       )
+
       setPosition({ x: newX, y: newY })
     }
 
@@ -109,88 +140,77 @@ export default function FloatingChatButton({
 
   return (
     <div
-      className={cn(
-        'fixed z-50 transition-all duration-200',
-        isMinimized && 'pointer-events-none'
-      )}
+      className="fixed z-50"
       style={{
         right: `${position.x}px`,
         bottom: `${position.y}px`,
-        width: isMinimized ? 'auto' : `${size.width}px`,
-        height: isMinimized ? 'auto' : `${size.height}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
       }}
     >
-      {isMinimized ? (
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto">
-          <CardHeader className="p-3 cursor-move" onMouseDown={handleDrag}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold">{channelName}</CardTitle>
-              <div className="flex gap-1">
-                <Button
-                  onClick={() => setIsMinimized(false)}
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                >
-                  <Maximize2 className="h-3 w-3" />
-                </Button>
-                <Button
-                  onClick={() => setIsOpen(false)}
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-      ) : (
-        <Card className="h-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col">
-          <CardHeader
-            className="p-4 cursor-move border-b-2 border-black"
-            onMouseDown={handleDrag}
-          >
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-bold flex items-center">
-                <MessageCircle className="mr-2 h-5 w-5" />
-                {channelName}
-              </CardTitle>
-              <div className="flex gap-1">
-                <Button
-                  onClick={() => setIsMinimized(true)}
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  title="최소화"
-                >
-                  <Minimize2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={() => setIsOpen(false)}
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  title="닫기 (Ctrl + /)"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 p-0 overflow-hidden">
-            <FloatingChatWindow channelId={channelId} />
-          </CardContent>
-          {/* 크기 조절 핸들 */}
-          <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-            onMouseDown={handleResize}
-          >
-            <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-black" />
+      <Card className="h-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col relative">
+        <CardHeader
+          className="p-4 cursor-move border-b-2 border-black"
+          onMouseDown={handleDrag}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold flex items-center">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              {channelName}
+            </CardTitle>
+            <Button
+              onClick={() => setIsOpen(false)}
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              title="닫기 (Ctrl + /)"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        </Card>
-      )}
+        </CardHeader>
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <FloatingChatWindow channelId={channelId} />
+        </CardContent>
+
+        {/* 크기 조절 핸들 - 4모서리 */}
+        <div
+          className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize hover:bg-black/10"
+          onMouseDown={handleResize('top-left')}
+        />
+        <div
+          className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize hover:bg-black/10"
+          onMouseDown={handleResize('top-right')}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize hover:bg-black/10"
+          onMouseDown={handleResize('bottom-left')}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize hover:bg-black/10"
+          onMouseDown={handleResize('bottom-right')}
+        >
+          <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-black" />
+        </div>
+
+        {/* 크기 조절 핸들 - 4변 */}
+        <div
+          className="absolute top-0 left-4 right-4 h-2 cursor-n-resize hover:bg-black/10"
+          onMouseDown={handleResize('top')}
+        />
+        <div
+          className="absolute bottom-0 left-4 right-4 h-2 cursor-s-resize hover:bg-black/10"
+          onMouseDown={handleResize('bottom')}
+        />
+        <div
+          className="absolute left-0 top-4 bottom-4 w-2 cursor-w-resize hover:bg-black/10"
+          onMouseDown={handleResize('left')}
+        />
+        <div
+          className="absolute right-0 top-4 bottom-4 w-2 cursor-e-resize hover:bg-black/10"
+          onMouseDown={handleResize('right')}
+        />
+      </Card>
     </div>
   )
 }

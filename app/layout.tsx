@@ -6,6 +6,7 @@ import { KakaoProvider } from '@/components/providers/KakaoProvider'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
 import { Header } from '@/components/layouts/Header'
 import { Toaster } from '@/components/ui/sonner'
+import { ChatProvider } from '@/components/providers/ChatProvider'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -41,6 +42,7 @@ export default function RootLayout({
               <Header />
               <main>{children}</main>
               <Toaster richColors position="bottom-right" />
+              <ChatProvider />
             </KakaoProvider>
           </NotificationProvider>
         </SessionProvider>
