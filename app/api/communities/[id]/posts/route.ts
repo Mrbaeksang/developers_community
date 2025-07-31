@@ -76,7 +76,7 @@ export async function GET(
     }
 
     // 정렬 옵션
-    let orderBy: any
+    let orderBy: Record<string, 'asc' | 'desc'>
     switch (sort) {
       case 'popular':
         orderBy = { viewCount: 'desc' }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 정렬 조건
-    let orderBy: any
+    let orderBy: Record<string, 'asc' | 'desc'>
     switch (sort) {
       case 'popular':
         orderBy = { viewCount: 'desc' }
