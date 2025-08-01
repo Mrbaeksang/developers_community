@@ -12,9 +12,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, Grid3X3, List, TrendingUp, Clock } from 'lucide-react'
+import {
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  FileText,
+  Sparkles,
+  Filter,
+  SortAsc,
+  LayoutGrid,
+  LayoutList,
+} from 'lucide-react'
 import type { Post } from '@/lib/types'
 
 interface Category {
@@ -78,8 +87,13 @@ export function PostList({
       ? posts
       : posts.filter((post) => post.category?.slug === selectedCategory)
 
-  // 정렬된 게시물 목록
+  // 정렬된 게시물 목록 (고정 게시글 우선 정렬)
   const sortedPosts = [...filteredPosts].sort((a, b) => {
+    // 1. 고정 게시글이 항상 먼저
+    if (a.isPinned && !b.isPinned) return -1
+    if (!a.isPinned && b.isPinned) return 1
+
+    // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
     switch (sortBy) {
       case 'latest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -128,79 +142,136 @@ export function PostList({
         )}
       </div>
 
-      {/* 헤더 섹션 */}
-      <div className="border-2 border-black rounded-lg p-6 bg-gradient-to-br from-blue-50/50 to-purple-50/50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-1">
-              {getCategoryName(selectedCategory)} 게시물
-            </h2>
-            <p className="text-muted-foreground">
-              총 {filteredPosts.length}개의 게시물
-            </p>
+      {/* 헤더 섹션 - 톤다운 버전 */}
+      <div className="relative border rounded-lg p-6 bg-white shadow-sm border-border">
+        <div className="flex items-start justify-between mb-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {getCategoryName(selectedCategory)} 게시물
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  총{' '}
+                  <span className="font-semibold text-foreground">
+                    {filteredPosts.length}개
+                  </span>
+                  의 게시물이 있어요
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* 뷰 모드 토글 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className={`rounded-md transition-all duration-200 ${
+                viewMode === 'grid'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted-foreground/10 text-muted-foreground'
+              }`}
             >
-              <Grid3X3 className="h-4 w-4" />
+              <LayoutGrid className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className={`rounded-md transition-all duration-200 ${
+                viewMode === 'list'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted-foreground/10 text-muted-foreground'
+              }`}
             >
-              <List className="h-4 w-4" />
+              <LayoutList className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* 필터 섹션 */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
           {/* 카테고리 선택 */}
-          <Select
-            value={selectedCategory}
-            onValueChange={(value) => {
-              setSelectedCategory(value)
-              updateURL({ category: value })
-            }}
-          >
-            <SelectTrigger className="w-[180px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 카테고리</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.slug}>
-                  {category.name} ({category.postCount})
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              카테고리
+            </div>
+            <Select
+              value={selectedCategory}
+              onValueChange={(value) => {
+                setSelectedCategory(value)
+                updateURL({ category: value })
+              }}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    모든 카테고리
+                  </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.slug}>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
+                      {category.name}{' '}
+                      <span className="text-xs text-muted-foreground">
+                        ({category.postCount})
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* 정렬 선택 */}
-          <Select
-            value={sortBy}
-            onValueChange={(value) => {
-              setSortBy(value)
-              updateURL({ sort: value })
-            }}
-          >
-            <SelectTrigger className="w-[180px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="latest">최신순</SelectItem>
-              <SelectItem value="popular">인기순</SelectItem>
-              <SelectItem value="discussed">댓글 많은 순</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <SortAsc className="h-4 w-4" />
+              정렬
+            </div>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => {
+                setSortBy(value)
+                updateURL({ sort: value })
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-500" />
+                    최신순
+                  </div>
+                </SelectItem>
+                <SelectItem value="popular">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    인기순
+                  </div>
+                </SelectItem>
+                <SelectItem value="discussed">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    댓글 많은 순
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -211,10 +282,8 @@ export function PostList({
             className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold"
           >
             <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
               <span>전체</span>
-              <Badge variant="secondary" className="ml-1">
-                {sortedPosts.length}
-              </Badge>
             </span>
           </TabsTrigger>
           <TabsTrigger

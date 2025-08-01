@@ -53,6 +53,8 @@ async function getTagWithPosts(tagName: string) {
                     id: true,
                     name: true,
                     slug: true,
+                    color: true,
+                    icon: true,
                   },
                 },
                 tags: {

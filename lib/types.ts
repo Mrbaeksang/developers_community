@@ -17,6 +17,8 @@ export interface Post {
     id: string
     name: string
     slug: string
+    color: string
+    icon?: string | null
   }
   type?: 'ARTICLE' | 'QUESTION' | 'DISCUSSION' | 'TUTORIAL' | 'NEWS'
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
@@ -39,6 +41,7 @@ export interface Tag {
   id: string
   name: string
   slug: string
+  color: string
 }
 
 export interface Comment {

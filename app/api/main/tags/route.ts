@@ -36,6 +36,7 @@ export async function GET(request: Request) {
         name: tag.name,
         slug: tag.slug,
         count: tag.publishedCount,
+        color: tag.color,
       })),
     })
   } catch {

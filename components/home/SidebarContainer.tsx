@@ -8,6 +8,7 @@ interface SidebarContainerProps {
       id: string
       name: string
       count: number
+      color: string
     }>
     activeUsers: Array<{
       id: string
