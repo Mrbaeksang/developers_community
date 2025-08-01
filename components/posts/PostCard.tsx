@@ -43,14 +43,21 @@ export function PostCard({ post, className }: PostCardProps) {
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between mb-3">
-          <Badge
-            className={cn(
-              'px-3 py-1 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
-              postType.color
+          <div className="flex items-center gap-2">
+            {post.isPinned && (
+              <Badge className="px-2 py-1 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-yellow-500 text-white">
+                📌 고정
+              </Badge>
             )}
-          >
-            {postType.label}
-          </Badge>
+            <Badge
+              className={cn(
+                'px-3 py-1 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                postType.color
+              )}
+            >
+              {postType.label}
+            </Badge>
+          </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
             <Clock className="size-3" />
             <span>{readingTime}분</span>

@@ -1,3 +1,5 @@
+'use client'
+
 import { Sidebar } from './Sidebar'
 
 interface SidebarContainerProps {
@@ -10,7 +12,7 @@ interface SidebarContainerProps {
     activeUsers: Array<{
       id: string
       name: string
-      image: string | undefined
+      image?: string
       postCount: number
     }>
     trendingPosts: Array<{
@@ -25,6 +27,6 @@ interface SidebarContainerProps {
   }
 }
 
-export async function SidebarContainer({ sidebarData }: SidebarContainerProps) {
+export function SidebarContainer({ sidebarData }: SidebarContainerProps) {
   return <Sidebar {...sidebarData} />
 }

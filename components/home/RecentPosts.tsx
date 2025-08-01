@@ -16,6 +16,7 @@ interface Post {
   excerpt: string
   viewCount: number
   createdAt: string
+  isPinned?: boolean
   author: {
     id: string
     name: string | null
@@ -42,10 +43,8 @@ export function RecentPosts() {
 
   const fetchRecentPosts = async () => {
     try {
-      // 자유게시판과 Q&A 게시글 모두 가져오기
-      const response = await fetch(
-        '/api/main/posts?category=free,qna&limit=10&sort=latest'
-      )
+      // 메인 사이트의 모든 카테고리 게시글 가져오기 (커뮤니티 글 제외)
+      const response = await fetch('/api/main/posts?limit=10&sort=latest')
       if (!response.ok) throw new Error('Failed to fetch')
       const data = await response.json()
       setPosts(data.posts)
@@ -101,6 +100,11 @@ export function RecentPosts() {
             >
               <Link href={`/main/posts/${post.id}`}>
                 <div className="flex items-center gap-2 mb-2">
+                  {post.isPinned && (
+                    <Badge className="text-xs bg-yellow-500 text-white">
+                      📌
+                    </Badge>
+                  )}
                   <Badge
                     variant={
                       post.category.slug === 'free' ? 'default' : 'secondary'

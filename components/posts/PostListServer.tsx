@@ -27,16 +27,20 @@ export async function PostListServer({
   const skip = (pageNumber - 1) * pageSize
 
   // 카테고리 필터 설정
-  const where = {
-    status: 'PUBLISHED' as const,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    status: 'PUBLISHED',
     ...(category && { category: { slug: category } }),
   }
 
-  // 게시글 조회
-  const [posts, categories] = await Promise.all([
+  // 게시글 조회 - isPinned 우선 정렬 추가
+  const [postsData, categories] = await Promise.all([
     prisma.mainPost.findMany({
       where,
-      orderBy,
+      orderBy: [
+        { isPinned: 'desc' as const }, // 고정 게시글 우선
+        orderBy,
+      ],
       skip,
       take: pageSize,
       include: {
@@ -64,35 +68,38 @@ export async function PostListServer({
     }),
     prisma.mainCategory.findMany({
       include: {
-        _count: {
+        posts: {
+          where: {
+            status: 'PUBLISHED',
+          },
           select: {
-            posts: true,
+            id: true,
           },
         },
       },
       orderBy: {
-        posts: {
-          _count: 'desc',
-        },
+        order: 'asc',
       },
     }),
   ])
 
   // 타입 변환
-  const formattedPosts: Post[] = posts.map((post) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formattedPosts: Post[] = postsData.map((post: any) => ({
     id: post.id,
     title: post.title,
-    slug: post.slug, // MainPost 모델에 slug 필드가 있음
+    slug: post.slug,
     content: post.content,
     excerpt: post.excerpt || '',
-    type: 'ARTICLE' as const, // MainPost 모델에 type 필드가 없으므로 기본값 설정
-    status: post.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED', // 타입 캐스팅
+    type: 'ARTICLE' as const,
+    status: post.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
     viewCount: post.viewCount,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
-    publishedAt: post.approvedAt?.toISOString() || post.createdAt.toISOString(), // approvedAt을 publishedAt으로 매핑
+    publishedAt: post.approvedAt?.toISOString() || post.createdAt.toISOString(),
     authorId: post.authorId,
     categoryId: post.categoryId,
+    isPinned: post.isPinned,
     author: {
       id: post.author.id,
       name: post.author.name,
@@ -106,12 +113,11 @@ export async function PostListServer({
           slug: post.category.slug,
         }
       : undefined,
-    tags: post.tags.map((pt) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tags: post.tags.map((pt: any) => ({
       id: pt.tag.id,
       name: pt.tag.name,
       slug: pt.tag.slug,
-      color: '#64748b', // 기본 색상
-      postCount: 0,
     })),
     _count: {
       likes: post._count.likes,
@@ -123,7 +129,7 @@ export async function PostListServer({
     id: cat.id,
     name: cat.name,
     slug: cat.slug,
-    postCount: cat._count.posts,
+    postCount: cat.posts.length,
   }))
 
   return (
@@ -131,6 +137,7 @@ export async function PostListServer({
       initialPosts={formattedPosts}
       categories={formattedCategories}
       isLoading={false}
+      currentCategory={category}
     />
   )
 }

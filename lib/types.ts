@@ -23,6 +23,8 @@ export interface Post {
   viewCount: number
   createdAt: Date | string
   updatedAt: Date | string
+  publishedAt?: Date | string
+  isPinned?: boolean
   tags: Tag[]
   _count?: {
     comments: number

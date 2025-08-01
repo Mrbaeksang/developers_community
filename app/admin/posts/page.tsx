@@ -45,6 +45,8 @@ import {
   XCircle,
   Clock,
   Archive,
+  Pin,
+  PinOff,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
@@ -184,6 +186,38 @@ export default function PostsPage() {
     }
     fetchData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 게시글 고정/고정해제
+  const handleTogglePin = async (postId: string) => {
+    try {
+      const res = await fetch(`/api/admin/posts/main/${postId}/pin`, {
+        method: 'PATCH',
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || '고정 상태 변경 실패')
+      }
+
+      const data = await res.json()
+
+      toast({
+        title: data.message,
+      })
+
+      // 데이터 새로고침
+      fetchMainPosts()
+    } catch (error) {
+      toast({
+        title: '고정 상태 변경에 실패했습니다.',
+        description:
+          error instanceof Error
+            ? error.message
+            : '알 수 없는 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   // 게시글 삭제
   const handleDelete = async () => {
@@ -455,6 +489,20 @@ export default function PostsPage() {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
+                        {post.status === 'PUBLISHED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePin(post.id)}
+                            title={post.isPinned ? '고정 해제' : '게시글 고정'}
+                          >
+                            {post.isPinned ? (
+                              <PinOff className="h-4 w-4" />
+                            ) : (
+                              <Pin className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"

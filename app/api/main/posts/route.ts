@@ -34,8 +34,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 필터 조건
-    const where = {
-      status: 'PUBLISHED' as const,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
+      status: 'PUBLISHED',
       ...(type && { type }),
       ...categoryFilter,
     }
