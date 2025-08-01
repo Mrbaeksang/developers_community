@@ -16,41 +16,33 @@ interface PostsPageProps {
 
 async function getSidebarData() {
   try {
-    const [tagsRes, usersRes, statsRes] = await Promise.all([
-      fetch(`${getApiUrl()}/api/main/tags?limit=5`, { cache: 'no-store' }),
+    const [tagsRes, usersRes, trendingRes] = await Promise.all([
+      fetch(`${getApiUrl()}/api/main/tags?limit=8`, { cache: 'no-store' }),
       fetch(`${getApiUrl()}/api/main/users/active?limit=5`, {
         cache: 'no-store',
       }),
-      fetch(`${getApiUrl()}/api/main/stats`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/posts/weekly-trending?limit=3`, {
+        cache: 'no-store',
+      }),
     ])
 
-    const [tagsData, usersData, statsData] = await Promise.all([
+    const [tagsData, usersData, trendingData] = await Promise.all([
       tagsRes.ok ? tagsRes.json() : { tags: [] },
       usersRes.ok ? usersRes.json() : { users: [] },
-      statsRes.ok ? statsRes.json() : { stats: {} },
+      trendingRes.ok ? trendingRes.json() : { posts: [] },
     ])
 
     return {
       trendingTags: tagsData.tags || [],
       activeUsers: usersData.users || [],
-      stats: statsData.stats || {
-        totalUsers: 0,
-        weeklyPosts: 0,
-        weeklyComments: 0,
-        activeDiscussions: 0,
-      },
+      trendingPosts: trendingData.posts || [],
     }
   } catch (error) {
     console.error('사이드바 데이터 조회 실패:', error)
     return {
       trendingTags: [],
       activeUsers: [],
-      stats: {
-        totalUsers: 0,
-        weeklyPosts: 0,
-        weeklyComments: 0,
-        activeDiscussions: 0,
-      },
+      trendingPosts: [],
     }
   }
 }

@@ -13,12 +13,15 @@ interface SidebarContainerProps {
       image: string | undefined
       postCount: number
     }>
-    stats: {
-      totalUsers: number
-      weeklyPosts: number
-      weeklyComments: number
-      activeDiscussions: number
-    }
+    trendingPosts: Array<{
+      id: string
+      title: string
+      viewCount: number
+      weeklyViews: number
+      author: {
+        name: string
+      }
+    }>
   }
 }
 
