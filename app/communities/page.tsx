@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Users, Plus, Lock, Globe, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
