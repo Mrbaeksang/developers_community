@@ -259,18 +259,21 @@ function RealtimeActivityFeed() {
   }
 
   return (
-    <div className="space-y-3 max-h-[400px] overflow-y-auto">
-      {activities.map((activity) => {
+    <div className="space-y-0 max-h-[400px] overflow-y-auto">
+      {activities.map((activity, index) => {
         const style = getActivityStyle(activity.type)
         return (
-          <div
-            key={activity.id}
-            className="pb-3 border-b last:border-0 border-gray-100"
-          >
-            <div className="flex items-start gap-2">
-              <span className="text-lg" role="img">
-                {style.icon}
-              </span>
+          <div key={activity.id} className="relative">
+            <div className="flex items-start gap-2 pb-3">
+              <div className="relative">
+                <span className="text-lg relative z-10" role="img">
+                  {style.icon}
+                </span>
+                {/* 세로 연결선 */}
+                {index < activities.length - 1 && (
+                  <div className="absolute left-1/2 top-7 -translate-x-1/2 w-0.5 h-12 bg-gradient-to-b from-gray-300 to-gray-100" />
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm">
                   <span className={`font-semibold ${style.color}`}>
@@ -285,6 +288,10 @@ function RealtimeActivityFeed() {
                 </p>
               </div>
             </div>
+            {/* 가로 구분선 */}
+            {index < activities.length - 1 && (
+              <div className="ml-7 mr-2 h-px bg-gradient-to-r from-gray-200 via-gray-100 to-transparent mb-3" />
+            )}
           </div>
         )
       })}

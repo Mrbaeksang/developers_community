@@ -188,14 +188,6 @@ export function Sidebar({
               // 배경색이 밝으면 검은색, 어두우면 흰색 텍스트
               const textColor =
                 getLuminance(tag.color) > 128 ? '#000000' : '#ffffff'
-              const badgeColor =
-                getLuminance(tag.color) > 128
-                  ? 'rgba(0,0,0,0.15)'
-                  : 'rgba(255,255,255,0.25)'
-              const badgeBorder =
-                getLuminance(tag.color) > 128
-                  ? 'rgba(0,0,0,0.2)'
-                  : 'rgba(255,255,255,0.3)'
 
               // 숫자 포맷팅 (1000 -> 1K, 1500 -> 1.5K)
               const formatCount = (count: number) => {
@@ -212,12 +204,12 @@ export function Sidebar({
                 <Link
                   key={tag.id}
                   href={`/main/tags/${encodeURIComponent(tag.name)}`}
-                  className={`group inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border-2 hover:scale-105 hover:shadow-lg transition-all duration-200 font-semibold ${fontSize} whitespace-nowrap`}
+                  className={`group inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 hover:scale-105 hover:shadow-lg transition-all duration-200 font-semibold ${fontSize} whitespace-nowrap`}
                   style={{
                     backgroundColor: tag.color,
                     borderColor: tag.color,
                     color: textColor,
-                    boxShadow: `0 2px 8px ${tag.color}40`,
+                    boxShadow: `3px 3px 0px 0px rgba(0,0,0,0.2)`,
                   }}
                 >
                   <Hash className="w-3 h-3 flex-shrink-0" />
@@ -225,10 +217,8 @@ export function Sidebar({
                     {tag.name}
                   </span>
                   <span
-                    className="text-xs px-1.5 py-0.5 rounded-full border font-medium flex-shrink-0"
+                    className="text-[10px] px-1 py-0 rounded font-bold flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
                     style={{
-                      backgroundColor: badgeColor,
-                      borderColor: badgeBorder,
                       color: textColor,
                     }}
                   >
