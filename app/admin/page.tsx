@@ -112,6 +112,14 @@ export default async function AdminPage() {
       color: 'secondary',
     },
     {
+      title: '사용자 관리',
+      description: '사용자 권한, 차단, 활성화 상태 관리',
+      href: '/admin/users',
+      icon: Users,
+      badge: null,
+      color: 'secondary',
+    },
+    {
       title: '카테고리 관리',
       description: '메인 사이트 카테고리를 생성, 수정, 삭제',
       href: '/admin/categories',
