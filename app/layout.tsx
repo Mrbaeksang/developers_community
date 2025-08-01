@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { VisitorTracker } from '@/components/VisitorTracker'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -40,6 +41,7 @@ export default function RootLayout({
               <main>{children}</main>
               <Toaster richColors position="bottom-right" />
               <ChatProvider />
+              <VisitorTracker />
             </KakaoProvider>
           </NotificationProvider>
         </SessionProvider>

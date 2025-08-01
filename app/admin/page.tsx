@@ -21,6 +21,7 @@ import {
   FolderOpen,
   Users2,
 } from 'lucide-react'
+import { RealtimeDashboard } from '@/components/admin/RealtimeDashboard'
 
 async function getAdminStats() {
   try {
@@ -171,7 +172,7 @@ export default async function AdminPage() {
       title: '전체 조회수',
       value: stats.totalViews.toLocaleString(),
       icon: Eye,
-      description: `오늘 조회수 (추적 중)`,
+      description: `오늘 조회수는 실시간 모니터링에서 확인`,
       bgColor: '',
       color: 'text-green-600',
     },
@@ -311,6 +312,12 @@ export default async function AdminPage() {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* 실시간 모니터링 */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">실시간 모니터링</h2>
+          <RealtimeDashboard />
         </div>
       </div>
     </div>
