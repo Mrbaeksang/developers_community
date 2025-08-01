@@ -230,7 +230,7 @@ export async function GET() {
 
     // 5. Redis에서 조회수 마일스톤 이벤트 가져오기
     try {
-      const milestones = await redis.lrange('view_milestones', 0, 4)
+      const milestones = await redis().lrange('view_milestones', 0, 4)
 
       for (const milestone of milestones) {
         const data = JSON.parse(milestone)

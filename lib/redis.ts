@@ -72,8 +72,8 @@ function getRedisClient(): Redis {
   return redisClient
 }
 
-// 내보내기
-export const redis = getRedisClient()
+// 내보내기 - 지연 초기화를 위해 getter 함수로 변경
+export const redis = getRedisClient
 
 // 조회수 증가 및 마일스톤 체크 함수
 export async function incrementViewCount(postId: string): Promise<number> {

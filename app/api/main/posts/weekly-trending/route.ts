@@ -71,13 +71,13 @@ export async function GET(request: NextRequest) {
         // Redis에서 7일간의 조회수 합산
         for (const date of dates) {
           const dayKey = `post:${post.id}:views:${date}`
-          const dayViews = await redis.get(dayKey)
+          const dayViews = await redis().get(dayKey)
           weeklyViews += parseInt(dayViews || '0')
         }
 
         // 현재 버퍼링된 조회수도 추가
         const bufferKey = `post:${post.id}:views`
-        const bufferedViews = await redis.get(bufferKey)
+        const bufferedViews = await redis().get(bufferKey)
         weeklyViews += parseInt(bufferedViews || '0')
 
         return {

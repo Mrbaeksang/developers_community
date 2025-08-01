@@ -49,10 +49,10 @@ export async function POST(
     const viewKey = `community:${community.id}:post:${postId}:views`
 
     // 조회수 증가
-    await redis.incr(viewKey)
+    await redis().incr(viewKey)
 
     // TTL 설정 (24시간)
-    await redis.expire(viewKey, 86400)
+    await redis().expire(viewKey, 86400)
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -10,7 +10,7 @@ export async function syncViewCounts() {
 
   try {
     // 모든 post 조회수 키 가져오기
-    const keys = await redis.keys('post:*:views')
+    const keys = await redis().keys('post:*:views')
     results.total = keys.length
 
     if (keys.length === 0) {
@@ -24,7 +24,7 @@ export async function syncViewCounts() {
         const postId = key.split(':')[1]
 
         // Redis에서 조회수 가져오기
-        const viewCount = await redis.get(key)
+        const viewCount = await redis().get(key)
 
         if (viewCount && parseInt(viewCount) > 0) {
           // DB에 조회수 업데이트
@@ -38,7 +38,7 @@ export async function syncViewCounts() {
           })
 
           // Redis 키 삭제 (동기화 완료)
-          await redis.del(key)
+          await redis().del(key)
 
           results.success++
         }
@@ -63,7 +63,7 @@ export async function syncCommunityViewCounts() {
 
   try {
     // 모든 community post 조회수 키 가져오기
-    const keys = await redis.keys('community:*:post:*:views')
+    const keys = await redis().keys('community:*:post:*:views')
     results.total = keys.length
 
     if (keys.length === 0) {
@@ -79,7 +79,7 @@ export async function syncCommunityViewCounts() {
         const postId = parts[3]
 
         // Redis에서 조회수 가져오기
-        const viewCount = await redis.get(key)
+        const viewCount = await redis().get(key)
 
         if (viewCount && parseInt(viewCount) > 0) {
           // DB에 조회수 업데이트
@@ -96,7 +96,7 @@ export async function syncCommunityViewCounts() {
           })
 
           // Redis 키 삭제 (동기화 완료)
-          await redis.del(key)
+          await redis().del(key)
 
           results.success++
         }
