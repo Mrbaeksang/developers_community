@@ -22,6 +22,7 @@ import {
   Clock,
   Shield,
   Database,
+  FolderOpen,
 } from 'lucide-react'
 
 async function getAdminStats() {
@@ -86,7 +87,8 @@ export default async function AdminPage() {
     select: { globalRole: true },
   })
 
-  if (!user || (user.globalRole !== 'ADMIN' && user.globalRole !== 'MANAGER')) {
+  // ADMIN 권한만 허용 (절대 권력자)
+  if (!user || user.globalRole !== 'ADMIN') {
     redirect('/')
   }
 
@@ -100,6 +102,22 @@ export default async function AdminPage() {
       icon: FileText,
       badge: stats.pendingPosts > 0 ? stats.pendingPosts : null,
       color: stats.pendingPosts > 0 ? 'destructive' : 'secondary',
+    },
+    {
+      title: '게시글 관리',
+      description: '메인 사이트와 커뮤니티의 모든 게시글 관리',
+      href: '/admin/posts',
+      icon: MessageSquare,
+      badge: null,
+      color: 'secondary',
+    },
+    {
+      title: '카테고리 관리',
+      description: '메인 사이트 카테고리를 생성, 수정, 삭제',
+      href: '/admin/categories',
+      icon: FolderOpen,
+      badge: null,
+      color: 'secondary',
     },
     {
       title: '데이터베이스 뷰어',
@@ -225,7 +243,7 @@ export default async function AdminPage() {
       </div>
 
       {/* 관리 메뉴 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminMenus.map((menu, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardHeader>

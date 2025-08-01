@@ -3,12 +3,15 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { useState, useEffect } from 'react'
+import * as Icons from 'lucide-react'
 
 interface Category {
   id: string
   name: string
   slug: string
-  description: string
+  description: string | null
+  color: string
+  icon: string | null
   postCount: number
 }
 
@@ -50,29 +53,21 @@ export function CategoryGrid() {
     )
   }
 
-  // 카테고리별 색상 매핑
-  const getColorClass = (slug: string) => {
-    const colorMap: Record<string, string> = {
-      web: 'bg-orange-400',
-      mobile: 'bg-green-400',
-      ai: 'bg-purple-400',
-      cloud: 'bg-blue-400',
-      data: 'bg-pink-400',
-      security: 'bg-red-400',
-      free: 'bg-yellow-400',
-      qna: 'bg-indigo-400',
+  // 카테고리 이름에서 약어 생성 (아이콘이 없을 때 대체)
+  const getAbbreviation = (name: string) => {
+    // 영어인 경우 대문자만 추출
+    const englishMatch = name.match(/[A-Z]/g)
+    if (englishMatch && englishMatch.length >= 2) {
+      return englishMatch.slice(0, 2).join('')
     }
-    return colorMap[slug] || 'bg-gray-400'
-  }
 
-  // 카테고리 약어 생성
-  const getAbbreviation = (slug: string) => {
-    if (slug === 'ai') return 'AI'
-    if (slug === 'security') return 'SEC'
-    if (slug === 'data') return 'DATA'
-    if (slug === 'qna') return 'Q&A'
-    if (slug === 'free') return '자유'
-    return slug.toUpperCase().slice(0, 4)
+    // 한글인 경우 첫 2글자
+    if (/[가-힣]/.test(name)) {
+      return name.slice(0, 2)
+    }
+
+    // 그 외의 경우 첫 3글자 대문자로
+    return name.toUpperCase().slice(0, 3)
   }
 
   return (
@@ -88,9 +83,21 @@ export function CategoryGrid() {
             >
               <CardContent className="p-4 text-center">
                 <div
-                  className={`w-full h-24 ${getColorClass(category.slug)} mb-4 flex items-center justify-center font-bold text-2xl text-white`}
+                  className="w-full h-24 mb-4 flex items-center justify-center font-bold text-2xl text-white"
+                  style={{ backgroundColor: category.color }}
                 >
-                  {getAbbreviation(category.slug)}
+                  {(() => {
+                    if (
+                      category.icon &&
+                      Icons[category.icon as keyof typeof Icons]
+                    ) {
+                      const IconComponent = Icons[
+                        category.icon as keyof typeof Icons
+                      ] as React.ComponentType<{ size?: number }>
+                      return <IconComponent size={48} />
+                    }
+                    return getAbbreviation(category.name)
+                  })()}
                 </div>
                 <h4 className="font-bold">{category.name}</h4>
                 <p className="text-sm text-gray-500">
