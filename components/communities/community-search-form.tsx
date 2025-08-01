@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -44,33 +44,36 @@ export default function CommunitySearchForm({
   }
 
   return (
-    <form onSubmit={handleSearch} className="flex gap-2">
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <form onSubmit={handleSearch} className="flex gap-4 max-w-4xl mx-auto">
+      <div className="relative flex-1">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-purple-500 to-pink-500 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <Search className="h-5 w-5 text-white" />
+        </div>
         <Input
           type="text"
-          placeholder="커뮤니티 이름이나 설명으로 검색..."
+          placeholder="🔍 React, Vue, Next.js... 관심 있는 기술로 검색해보세요!"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 pr-4 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+          className="pl-20 pr-14 h-16 text-lg font-medium border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[-2px] focus:translate-y-[-2px] transition-all duration-200 rounded-2xl bg-gradient-to-r from-white to-purple-50"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-red-100 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all bg-white"
+          >
+            <X className="h-5 w-5 text-red-500" />
+          </button>
+        )}
       </div>
       <Button
         type="submit"
-        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+        size="lg"
+        className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-lg border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 rounded-2xl"
       >
-        검색
+        <Search className="h-5 w-5 mr-2" />
+        검색하기
       </Button>
-      {initialSearch && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={clearSearch}
-          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-        >
-          초기화
-        </Button>
-      )}
     </form>
   )
 }
