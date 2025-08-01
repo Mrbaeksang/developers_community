@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { redis } from '@/lib/redis'
 
 // GET /api/main/posts/[id]/related - 관련 게시글 조회
 export async function GET(
@@ -94,17 +95,31 @@ export async function GET(
       new Map(relatedPosts.map((post) => [post.id, post])).values()
     )
 
-    // 점수 계산 및 재정렬
-    const scoredPosts = uniquePosts
-      .map((post) => {
+    // 점수 계산 및 재정렬 (Redis 조회수 포함)
+    const scoredPosts = await Promise.all(
+      uniquePosts.map(async (post) => {
+        // Redis에서 버퍼링된 조회수 가져오기
+        const bufferKey = `post:${post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+        const totalViewCount = post.viewCount + redisViews
+
         const daysSinceCreated = Math.floor(
           (Date.now() - new Date(post.createdAt).getTime()) /
             (1000 * 60 * 60 * 24)
         )
         const recencyScore = Math.max(0, 30 - daysSinceCreated) // 30일 이내 게시글에 가산점
-        const score = post.viewCount + post.likeCount * 2 + recencyScore * 0.5
-        return { ...post, score }
+        const score = totalViewCount + post.likeCount * 2 + recencyScore * 0.5
+
+        return {
+          ...post,
+          viewCount: totalViewCount, // Redis 조회수가 포함된 총 조회수
+          score,
+        }
       })
+    )
+
+    const sortedPosts = scoredPosts
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((post) => {
@@ -113,7 +128,7 @@ export async function GET(
         return postWithoutScore
       }) // score 필드 제거
 
-    return NextResponse.json({ posts: scoredPosts })
+    return NextResponse.json({ posts: sortedPosts })
   } catch (error) {
     console.error('Failed to fetch related posts:', error)
     return NextResponse.json(

@@ -2,7 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, FileText, Hash, User, Loader2 } from 'lucide-react'
+import {
+  Search,
+  X,
+  FileText,
+  Hash,
+  User,
+  Loader2,
+  Eye,
+  Heart,
+  MessageSquare,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +25,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { formatCount, getTextColor } from '@/lib/post-format-utils'
 
 interface SearchResult {
   id: string
@@ -209,11 +220,16 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                           {result.excerpt}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                         <Badge
                           variant="secondary"
-                          style={{ backgroundColor: result.category.color }}
-                          className="text-white"
+                          style={{
+                            backgroundColor: result.category.color,
+                            color: getTextColor(result.category.color),
+                            borderColor: result.category.color,
+                            boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
+                          }}
+                          className="border-2 font-bold"
                         >
                           {result.category.name}
                         </Badge>
@@ -228,6 +244,18 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             addSuffix: true,
                             locale: ko,
                           })}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          {formatCount(result.viewCount)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Heart className="h-3 w-3" />
+                          {formatCount(result._count.likes)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          {formatCount(result._count.comments)}
                         </span>
                       </div>
                       {result.tags.length > 0 && (

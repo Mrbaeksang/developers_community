@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
 import { markdownToHtml } from '@/lib/markdown'
+import { redis } from '@/lib/redis'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +84,8 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             slug: true,
+            color: true,
+            icon: true,
           },
         },
         tags: {
@@ -92,6 +95,7 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 slug: true,
+                color: true,
               },
             },
           },
@@ -105,12 +109,22 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // 마크다운을 HTML로 변환
-    const formattedPosts = posts.map((post) => ({
-      ...post,
-      content: markdownToHtml(post.content),
-      tags: post.tags.map((postTag) => postTag.tag),
-    }))
+    // 마크다운을 HTML로 변환하고 Redis 조회수 포함
+    const formattedPosts = await Promise.all(
+      posts.map(async (post) => {
+        // Redis에서 버퍼링된 조회수 가져오기
+        const bufferKey = `post:${post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+
+        return {
+          ...post,
+          content: markdownToHtml(post.content),
+          tags: post.tags.map((postTag) => postTag.tag),
+          viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+        }
+      })
+    )
 
     return NextResponse.json({
       posts: formattedPosts,

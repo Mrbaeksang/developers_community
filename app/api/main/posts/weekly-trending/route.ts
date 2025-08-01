@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             slug: true,
+            color: true,
+            icon: true,
           },
         },
         tags: {
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 slug: true,
+                color: true,
               },
             },
           },

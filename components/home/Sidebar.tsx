@@ -76,7 +76,7 @@ export function Sidebar({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 space-y-3">
-          <Link href="/main/posts/new" className="block group">
+          <Link href="/main/write" className="block group">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 hover:bg-primary/10 transition-all duration-200 hover:shadow-sm border border-primary/20">
               <div className="p-2 rounded-full bg-primary text-primary-foreground">
                 <PenSquare className="h-4 w-4" />

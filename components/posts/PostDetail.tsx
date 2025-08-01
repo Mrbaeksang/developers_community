@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Eye, Heart, MessageSquare, Bookmark, Share2 } from 'lucide-react'
+import { Eye, Heart, MessageSquare, Bookmark, Share2, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
 import ShareModal from './ShareModal'
+import { formatCount, getTextColor } from '@/lib/post-format-utils'
 
 interface PostDetailProps {
   post: {
@@ -167,8 +168,13 @@ export default function PostDetail({ post }: PostDetailProps) {
         <div className="flex items-center gap-2 mb-4">
           <Badge
             variant="secondary"
-            style={{ backgroundColor: post.category.color }}
-            className="text-white"
+            style={{
+              backgroundColor: post.category.color,
+              color: getTextColor(post.category.color),
+              borderColor: post.category.color,
+              boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
+            }}
+            className="border-2 font-bold"
           >
             {post.category.name}
           </Badge>
@@ -191,10 +197,15 @@ export default function PostDetail({ post }: PostDetailProps) {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-10 w-10 border-2 border-black">
                 <AvatarImage src={post.author.image || undefined} />
-                <AvatarFallback>
-                  {post.author.name?.[0] || post.author.username?.[0] || 'U'}
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                  {post.author.image
+                    ? null
+                    : post.author.name?.[0]?.toUpperCase() ||
+                      post.author.username?.[0]?.toUpperCase() || (
+                        <User className="h-5 w-5" />
+                      )}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -214,15 +225,15 @@ export default function PostDetail({ post }: PostDetailProps) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Eye className="h-4 w-4" />
-              <span>{post.viewCount.toLocaleString()}</span>
+              <span>{formatCount(post.viewCount)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              <span>{likeCount.toLocaleString()}</span>
+              <span>{formatCount(likeCount)}</span>
             </div>
             <div className="flex items-center gap-1">
               <MessageSquare className="h-4 w-4" />
-              <span>{post._count.comments.toLocaleString()}</span>
+              <span>{formatCount(post._count.comments)}</span>
             </div>
           </div>
         </div>
@@ -233,8 +244,14 @@ export default function PostDetail({ post }: PostDetailProps) {
             {post.tags.map((tag) => (
               <Badge
                 key={tag.id}
-                variant="outline"
-                style={{ borderColor: tag.color, color: tag.color }}
+                variant="secondary"
+                style={{
+                  backgroundColor: tag.color,
+                  color: getTextColor(tag.color),
+                  borderColor: tag.color,
+                  boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
+                }}
+                className="text-xs border-2 font-bold"
               >
                 #{tag.name}
               </Badge>
@@ -259,21 +276,28 @@ export default function PostDetail({ post }: PostDetailProps) {
           variant={isLiked ? 'default' : 'outline'}
           size="sm"
           onClick={handleLike}
+          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
           <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-          좋아요 {likeCount > 0 && `(${likeCount})`}
+          좋아요 {likeCount > 0 && `(${formatCount(likeCount)})`}
         </Button>
         <Button
           variant={isBookmarked ? 'default' : 'outline'}
           size="sm"
           onClick={handleBookmark}
+          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
           <Bookmark
             className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`}
           />
           북마크
         </Button>
-        <Button variant="outline" size="sm" onClick={handleShare}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleShare}
+          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+        >
           <Share2 className="h-4 w-4 mr-2" />
           공유
         </Button>

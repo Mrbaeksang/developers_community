@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Eye, Heart, MessageSquare, TrendingUp } from 'lucide-react'
+import { Eye, Heart, MessageSquare, TrendingUp, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { formatCount, getTextColor } from '@/lib/post-format-utils'
 
 interface RelatedPost {
   id: string
@@ -91,10 +92,12 @@ export default function RelatedPosts({ postId }: RelatedPostsProps) {
           >
             <article className="border-2 border-black rounded-lg p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
               <Badge
-                className="mb-2 border-2 border-black font-bold text-xs"
+                className="mb-2 border-2 font-bold text-xs"
                 style={{
                   backgroundColor: post.category.color,
-                  color: 'white',
+                  color: getTextColor(post.category.color),
+                  borderColor: post.category.color,
+                  boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
                 }}
               >
                 {post.category.name}
@@ -103,10 +106,14 @@ export default function RelatedPosts({ postId }: RelatedPostsProps) {
                 {post.title}
               </h4>
               <div className="flex items-center gap-2 mb-2">
-                <Avatar className="h-6 w-6 border border-black">
+                <Avatar className="h-6 w-6 border-2 border-black">
                   <AvatarImage src={post.author.image || undefined} />
-                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                    {post.author.name?.[0] || 'U'}
+                  <AvatarFallback className="text-xs bg-primary text-primary-foreground font-bold">
+                    {post.author.image
+                      ? null
+                      : post.author.name?.[0]?.toUpperCase() || (
+                          <User className="h-3 w-3" />
+                        )}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-xs text-muted-foreground">
@@ -123,15 +130,15 @@ export default function RelatedPosts({ postId }: RelatedPostsProps) {
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Eye className="h-3 w-3" />
-                  {post.viewCount}
+                  {formatCount(post.viewCount)}
                 </span>
                 <span className="flex items-center gap-1">
                   <Heart className="h-3 w-3" />
-                  {post.likeCount}
+                  {formatCount(post.likeCount)}
                 </span>
                 <span className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  {post.commentCount}
+                  {formatCount(post.commentCount)}
                 </span>
               </div>
             </article>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 export async function GET(request: NextRequest) {
   try {
@@ -133,7 +134,22 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ results })
+    // Redis에서 버퍼링된 조회수 포함
+    const resultsWithRedisViews = await Promise.all(
+      results.map(async (post) => {
+        const bufferKey = `post:${post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+
+        return {
+          ...post,
+          viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+          tags: post.tags.map((postTag) => postTag.tag),
+        }
+      })
+    )
+
+    return NextResponse.json({ results: resultsWithRedisViews })
   } catch (error) {
     console.error('검색 실패:', error)
     return NextResponse.json({ error: '검색에 실패했습니다.' }, { status: 500 })

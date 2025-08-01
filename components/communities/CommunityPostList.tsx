@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { MessageSquare, Heart, Eye } from 'lucide-react'
+import { MessageSquare, Heart, Eye, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { formatCount, getTextColor } from '@/lib/post-format-utils'
 
 interface Author {
   id: string
@@ -156,10 +157,12 @@ export function CommunityPostList({
                     {post.category && (
                       <Badge
                         variant="secondary"
-                        className="text-xs"
+                        className="text-xs border-2 font-bold"
                         style={{
-                          backgroundColor: post.category.color || undefined,
-                          color: post.category.color ? 'white' : undefined,
+                          backgroundColor: post.category.color || '#6366f1',
+                          color: getTextColor(post.category.color || '#6366f1'),
+                          borderColor: post.category.color || '#6366f1',
+                          boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
                         }}
                       >
                         {post.category.name}
@@ -179,9 +182,13 @@ export function CommunityPostList({
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 border-2 border-black">
                       <AvatarImage src={post.author.image || undefined} />
-                      <AvatarFallback className="font-bold">
-                        {post.author.name?.[0] ||
-                          post.author.email[0].toUpperCase()}
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                        {post.author.image
+                          ? null
+                          : post.author.name?.[0]?.toUpperCase() ||
+                            post.author.email[0].toUpperCase() || (
+                              <User className="h-4 w-4" />
+                            )}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -201,17 +208,17 @@ export function CommunityPostList({
                   <div className="flex items-center gap-4 text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Eye className="h-4 w-4" />
-                      {post.viewCount}
+                      {formatCount(post.viewCount)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Heart
                         className={`h-4 w-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`}
                       />
-                      {post._count.likes}
+                      {formatCount(post._count.likes)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageSquare className="h-4 w-4" />
-                      {post._count.comments}
+                      {formatCount(post._count.comments)}
                     </span>
                   </div>
                 </div>

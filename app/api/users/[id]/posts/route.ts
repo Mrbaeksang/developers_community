@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { redis } from '@/lib/redis'
 
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(
@@ -99,43 +100,52 @@ export async function GET(
       prisma.mainPost.count({ where }),
     ])
 
-    // 응답 데이터 형식화
-    const formattedPosts = posts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      excerpt: post.excerpt,
-      slug: post.slug,
-      status: post.status,
-      isPinned: post.isPinned,
-      viewCount: post.viewCount,
-      likeCount: post.likeCount,
-      commentCount: post.commentCount,
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
-      approvedAt: post.approvedAt?.toISOString() || null,
-      author: {
-        id: post.author.id,
-        name: post.author.name || 'Unknown',
-        image: post.author.image || undefined,
-      },
-      category: {
-        id: post.category.id,
-        name: post.category.name,
-        slug: post.category.slug,
-        color: post.category.color,
-      },
-      tags: post.tags.map((tagRelation) => ({
-        id: tagRelation.tag.id,
-        name: tagRelation.tag.name,
-        slug: tagRelation.tag.slug,
-        color: tagRelation.tag.color,
-      })),
-      stats: {
-        commentCount: post._count.comments,
-        likeCount: post._count.likes,
-        bookmarkCount: post._count.bookmarks,
-      },
-    }))
+    // 응답 데이터 형식화 및 Redis 조회수 포함
+    const formattedPosts = await Promise.all(
+      posts.map(async (post) => {
+        // Redis에서 버퍼링된 조회수 가져오기
+        const bufferKey = `post:${post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+
+        return {
+          id: post.id,
+          title: post.title,
+          excerpt: post.excerpt,
+          slug: post.slug,
+          status: post.status,
+          isPinned: post.isPinned,
+          viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+          likeCount: post.likeCount,
+          commentCount: post.commentCount,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString(),
+          approvedAt: post.approvedAt?.toISOString() || null,
+          author: {
+            id: post.author.id,
+            name: post.author.name || 'Unknown',
+            image: post.author.image || undefined,
+          },
+          category: {
+            id: post.category.id,
+            name: post.category.name,
+            slug: post.category.slug,
+            color: post.category.color,
+          },
+          tags: post.tags.map((tagRelation) => ({
+            id: tagRelation.tag.id,
+            name: tagRelation.tag.name,
+            slug: tagRelation.tag.slug,
+            color: tagRelation.tag.color,
+          })),
+          stats: {
+            commentCount: post._count.comments,
+            likeCount: post._count.likes,
+            bookmarkCount: post._count.bookmarks,
+          },
+        }
+      })
+    )
 
     const totalPages = Math.ceil(totalCount / limit)
 

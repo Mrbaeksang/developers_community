@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { redis } from '@/lib/redis'
 
 // 내 북마크 목록 조회 - GET /api/users/bookmarks
 export async function GET(request: NextRequest) {
@@ -87,47 +88,56 @@ export async function GET(request: NextRequest) {
       prisma.mainBookmark.count({ where }),
     ])
 
-    // 응답 데이터 형식화
-    const formattedBookmarks = bookmarks.map((bookmark) => ({
-      bookmarkId: bookmark.id,
-      bookmarkedAt: bookmark.createdAt.toISOString(),
-      post: {
-        id: bookmark.post.id,
-        title: bookmark.post.title,
-        excerpt: bookmark.post.excerpt,
-        slug: bookmark.post.slug,
-        status: bookmark.post.status,
-        isPinned: bookmark.post.isPinned,
-        viewCount: bookmark.post.viewCount,
-        likeCount: bookmark.post.likeCount,
-        commentCount: bookmark.post.commentCount,
-        createdAt: bookmark.post.createdAt.toISOString(),
-        updatedAt: bookmark.post.updatedAt.toISOString(),
-        approvedAt: bookmark.post.approvedAt?.toISOString() || null,
-        author: {
-          id: bookmark.post.author.id,
-          name: bookmark.post.author.name || 'Unknown',
-          image: bookmark.post.author.image || undefined,
-        },
-        category: {
-          id: bookmark.post.category.id,
-          name: bookmark.post.category.name,
-          slug: bookmark.post.category.slug,
-          color: bookmark.post.category.color,
-        },
-        tags: bookmark.post.tags.map((tagRelation) => ({
-          id: tagRelation.tag.id,
-          name: tagRelation.tag.name,
-          slug: tagRelation.tag.slug,
-          color: tagRelation.tag.color,
-        })),
-        stats: {
-          commentCount: bookmark.post._count.comments,
-          likeCount: bookmark.post._count.likes,
-          bookmarkCount: bookmark.post._count.bookmarks,
-        },
-      },
-    }))
+    // 응답 데이터 형식화 및 Redis 조회수 포함
+    const formattedBookmarks = await Promise.all(
+      bookmarks.map(async (bookmark) => {
+        // Redis에서 버퍼링된 조회수 가져오기
+        const bufferKey = `post:${bookmark.post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+
+        return {
+          bookmarkId: bookmark.id,
+          bookmarkedAt: bookmark.createdAt.toISOString(),
+          post: {
+            id: bookmark.post.id,
+            title: bookmark.post.title,
+            excerpt: bookmark.post.excerpt,
+            slug: bookmark.post.slug,
+            status: bookmark.post.status,
+            isPinned: bookmark.post.isPinned,
+            viewCount: bookmark.post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+            likeCount: bookmark.post.likeCount,
+            commentCount: bookmark.post.commentCount,
+            createdAt: bookmark.post.createdAt.toISOString(),
+            updatedAt: bookmark.post.updatedAt.toISOString(),
+            approvedAt: bookmark.post.approvedAt?.toISOString() || null,
+            author: {
+              id: bookmark.post.author.id,
+              name: bookmark.post.author.name || 'Unknown',
+              image: bookmark.post.author.image || undefined,
+            },
+            category: {
+              id: bookmark.post.category.id,
+              name: bookmark.post.category.name,
+              slug: bookmark.post.category.slug,
+              color: bookmark.post.category.color,
+            },
+            tags: bookmark.post.tags.map((tagRelation) => ({
+              id: tagRelation.tag.id,
+              name: tagRelation.tag.name,
+              slug: tagRelation.tag.slug,
+              color: tagRelation.tag.color,
+            })),
+            stats: {
+              commentCount: bookmark.post._count.comments,
+              likeCount: bookmark.post._count.likes,
+              bookmarkCount: bookmark.post._count.bookmarks,
+            },
+          },
+        }
+      })
+    )
 
     const totalPages = Math.ceil(totalCount / limit)
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { checkAuth, checkMembership } from '@/lib/auth-helpers'
 import { CommunityVisibility } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -124,14 +125,24 @@ export async function GET(
       prisma.communityPost.count({ where }),
     ])
 
-    // 사용자별 좋아요/북마크 상태 처리
-    const formattedPosts = posts.map((post) => ({
-      ...post,
-      isLiked: post.likes && post.likes.length > 0,
-      isBookmarked: post.bookmarks && post.bookmarks.length > 0,
-      likes: undefined,
-      bookmarks: undefined,
-    }))
+    // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
+    const formattedPosts = await Promise.all(
+      posts.map(async (post) => {
+        // Redis에서 버퍼링된 조회수 가져오기
+        const bufferKey = `community:post:${post.id}:views`
+        const bufferedViews = await redis().get(bufferKey)
+        const redisViews = parseInt(bufferedViews || '0')
+
+        return {
+          ...post,
+          viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+          isLiked: post.likes && post.likes.length > 0,
+          isBookmarked: post.bookmarks && post.bookmarks.length > 0,
+          likes: undefined,
+          bookmarks: undefined,
+        }
+      })
+    )
 
     return NextResponse.json({
       posts: formattedPosts,
