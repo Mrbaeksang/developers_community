@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useDebounce } from '@/hooks/use-debounce'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -47,11 +48,9 @@ interface SearchResult {
     image: string | null
   }
   tags: Array<{
-    tag: {
-      id: string
-      name: string
-      slug: string
-    }
+    id: string
+    name: string
+    slug: string
   }>
   _count: {
     comments: number
@@ -138,159 +137,254 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0">
-        <DialogHeader className="px-4 pt-4 pb-0">
+      <DialogContent className="max-w-2xl p-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="sr-only">검색</DialogTitle>
         </DialogHeader>
 
         {/* Search Input */}
-        <div className="border-b px-4 pb-4">
+        <div className="border-b-2 border-black px-6 pb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="게시글 검색..."
-              className="pl-9 pr-9"
+              placeholder="무엇을 찾고 계신가요?"
+              className="pl-12 pr-12 h-14 text-lg font-medium border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
               autoFocus
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             )}
           </div>
 
           {/* Search Type Filters */}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-4 flex gap-3">
             <Badge
               variant={searchType === 'all' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
+                searchType === 'all'
+                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
               onClick={() => setSearchType('all')}
             >
-              전체
+              🔍 전체
             </Badge>
             <Badge
               variant={searchType === 'title' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
+                searchType === 'title'
+                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
               onClick={() => setSearchType('title')}
             >
-              제목
+              📝 제목
             </Badge>
             <Badge
               variant={searchType === 'content' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
+                searchType === 'content'
+                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
               onClick={() => setSearchType('content')}
             >
-              내용
+              📄 내용
             </Badge>
             <Badge
               variant={searchType === 'tag' ? 'default' : 'outline'}
-              className="cursor-pointer"
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
+                searchType === 'tag'
+                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
               onClick={() => setSearchType('tag')}
             >
-              태그
+              #️⃣ 태그
             </Badge>
           </div>
         </div>
 
         {/* Search Results */}
-        <ScrollArea className="max-h-[400px]">
+        <ScrollArea className="max-h-[500px] bg-gray-50">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
           ) : results.length > 0 ? (
-            <div className="p-2">
+            <div className="p-4 space-y-3">
               {results.map((result) => (
                 <button
                   key={result.id}
                   onClick={() => handleResultClick(result.id)}
-                  className="w-full rounded-lg p-3 text-left hover:bg-accent focus:bg-accent focus:outline-none"
+                  className="w-full text-left bg-white border-2 border-black rounded-xl p-5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 group"
                 >
-                  <div className="flex items-start gap-3">
-                    <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">
-                      <h4 className="font-medium">{result.title}</h4>
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 bg-gray-100 border-2 border-black rounded-lg group-hover:bg-gray-200 transition-colors">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {/* 카테고리 뱃지 */}
+                      <Badge
+                        variant="secondary"
+                        style={{
+                          backgroundColor: result.category.color,
+                          color: getTextColor(result.category.color),
+                          borderColor: '#000',
+                          boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)',
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold border-2 mb-2"
+                      >
+                        {result.category.name}
+                      </Badge>
+
+                      {/* 제목 */}
+                      <h4 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                        {result.title}
+                      </h4>
+
+                      {/* 요약 */}
                       {result.excerpt && (
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                           {result.excerpt}
                         </p>
                       )}
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <Badge
-                          variant="secondary"
-                          style={{
-                            backgroundColor: result.category.color,
-                            color: getTextColor(result.category.color),
-                            borderColor: result.category.color,
-                            boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
-                          }}
-                          className="border-2 font-bold"
-                        >
-                          {result.category.name}
-                        </Badge>
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {result.author.name ||
-                            result.author.username ||
-                            'Unknown'}
+
+                      {/* 메타 정보 */}
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <Avatar className="h-5 w-5 border border-black">
+                            <AvatarImage
+                              src={result.author.image || undefined}
+                            />
+                            <AvatarFallback className="text-[10px] bg-gray-100">
+                              {result.author.name?.[0]?.toUpperCase() || (
+                                <User className="h-3 w-3" />
+                              )}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">
+                            {result.author.name ||
+                              result.author.username ||
+                              'Unknown'}
+                          </span>
                         </span>
-                        <span>
+
+                        <span className="text-gray-400">•</span>
+
+                        <span className="text-gray-500">
                           {formatDistanceToNow(new Date(result.createdAt), {
                             addSuffix: true,
                             locale: ko,
                           })}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {formatCount(result.viewCount)}
+                      </div>
+
+                      {/* 통계 정보 */}
+                      <div className="flex items-center gap-4 mt-3">
+                        <span className="flex items-center gap-1 text-xs">
+                          <Eye className="h-4 w-4 text-orange-500" />
+                          <span className="font-semibold">
+                            {formatCount(result.viewCount)}
+                          </span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Heart className="h-3 w-3" />
-                          {formatCount(result._count.likes)}
+                        <span className="flex items-center gap-1 text-xs">
+                          <Heart className="h-4 w-4 text-red-500" />
+                          <span className="font-semibold">
+                            {formatCount(result._count.likes)}
+                          </span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="h-3 w-3" />
-                          {formatCount(result._count.comments)}
+                        <span className="flex items-center gap-1 text-xs">
+                          <MessageSquare className="h-4 w-4 text-blue-500" />
+                          <span className="font-semibold">
+                            {formatCount(result._count.comments)}
+                          </span>
                         </span>
                       </div>
+
+                      {/* 태그 */}
                       {result.tags.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {result.tags.map(({ tag }) => (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {result.tags.map((tag) => (
                             <Badge
                               key={tag.id}
                               variant="outline"
-                              className="text-xs"
+                              className="text-xs px-2 py-0.5 border-2 border-gray-300 font-semibold hover:border-black transition-colors"
                             >
-                              <Hash className="mr-0.5 h-2.5 w-2.5" />
+                              <Hash className="mr-0.5 h-3 w-3" />
                               {tag.name}
                             </Badge>
                           ))}
                         </div>
                       )}
                     </div>
+
+                    {/* 화살표 */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-2xl">→</span>
+                    </div>
                   </div>
                 </button>
               ))}
             </div>
           ) : query.trim() ? (
-            <div className="py-8 text-center text-muted-foreground">
-              &quot;{query}&quot;에 대한 검색 결과가 없습니다.
+            <div className="py-16 text-center">
+              <div className="inline-flex flex-col items-center gap-3">
+                <div className="p-4 bg-gray-100 border-2 border-black rounded-full">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-lg font-medium text-gray-600">
+                  &quot;{query}&quot;에 대한 검색 결과가 없습니다.
+                </p>
+                <p className="text-sm text-gray-500">
+                  다른 키워드로 검색해보세요.
+                </p>
+              </div>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              검색어를 입력해주세요.
+            <div className="py-16 text-center">
+              <div className="inline-flex flex-col items-center gap-3">
+                <div className="p-4 bg-gray-100 border-2 border-black rounded-full animate-pulse">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-lg font-medium text-gray-600">
+                  검색어를 입력해주세요
+                </p>
+                <p className="text-sm text-gray-500">
+                  제목, 내용, 태그로 검색할 수 있습니다.
+                </p>
+              </div>
             </div>
           )}
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t p-3 text-xs text-muted-foreground">
-          <kbd className="rounded bg-muted px-1">ESC</kbd> 닫기
+        <div className="border-t-2 border-black px-6 py-4 bg-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-white border-2 border-black rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                ESC
+              </kbd>
+              <span className="font-medium">닫기</span>
+            </span>
+            <span className="text-gray-400">|</span>
+            <span className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-white border-2 border-black rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                Enter
+              </kbd>
+              <span className="font-medium">선택</span>
+            </span>
+          </div>
+          <div className="text-sm text-gray-500">
+            {results.length > 0 && `${results.length}개 결과`}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
