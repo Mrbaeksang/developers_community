@@ -1,10 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import type { Activity } from '@/types/activity'
 
 export function HeroSection() {
   const [stats, setStats] = useState({
@@ -162,27 +161,6 @@ export function HeroSection() {
                 </div>
               </Link>
             </div>
-
-            <div className="flex gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
-              >
-                <Link href="/auth/signin">
-                  시작하기
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
-              >
-                <Link href="/main/posts">둘러보기</Link>
-              </Button>
-            </div>
           </motion.div>
 
           {/* 오른쪽: 실시간 활동 피드 */}
@@ -206,90 +184,110 @@ export function HeroSection() {
 
 // 실시간 활동 피드 컴포넌트
 function RealtimeActivityFeed() {
-  const activities = [
-    {
-      user: '김개발',
-      action: '님이',
-      target: 'React 최적화 가이드',
-      targetAction: '작성',
-      time: '방금 전',
-      category: '메인 게시글',
-      avatar: 'bg-blue-200',
-    },
-    {
-      user: '이코딩',
-      action: '님이 질문에 답변',
-      time: '2분 전',
-      category: 'Q&A',
-      avatar: 'bg-green-200',
-    },
-    {
-      user: 'Vue.js Korea',
-      action: '채팅방 활발',
-      time: '5분 전',
-      category: '커뮤니티',
-      avatar: 'bg-purple-200',
-    },
-    {
-      user: '박프로',
-      action: '님이 경험 공유',
-      time: '12분 전',
-      category: '자유게시판',
-      avatar: 'bg-yellow-200',
-    },
-    {
-      user: '🔥 인기',
-      target: 'TypeScript 5.0 가이드',
-      time: '조회수 1.2K',
-      category: '메인 게시글',
-      avatar: 'bg-orange-200',
-      isPopular: true,
-    },
-  ]
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch('/api/activities/realtime')
+        const data = await res.json()
+        setActivities(data.activities || [])
+      } catch (error) {
+        console.error('Failed to fetch activities:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivities()
+    // 30초마다 갱신
+    const interval = setInterval(fetchActivities, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500 text-sm">아직 활동이 없습니다</p>
+      </div>
+    )
+  }
+
+  // 활동 타입별 아이콘과 색상
+  const getActivityStyle = (type: string) => {
+    switch (type) {
+      case 'post':
+        return { icon: '📝', color: 'text-blue-600' }
+      case 'comment':
+        return { icon: '💬', color: 'text-green-600' }
+      case 'like':
+        return { icon: '❤️', color: 'text-red-600' }
+      case 'member_join':
+        return { icon: '🎉', color: 'text-purple-600' }
+      case 'view_milestone':
+        return { icon: '🔥', color: 'text-orange-600' }
+      default:
+        return { icon: '📌', color: 'text-gray-600' }
+    }
+  }
+
+  const formatTime = (timestamp: string) => {
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diffMs = now.getTime() - time.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return '방금 전'
+    if (diffMins < 60) return `${diffMins}분 전`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}시간 전`
+    return `${Math.floor(diffHours / 24)}일 전`
+  }
 
   return (
-    <div className="space-y-3">
-      {activities.map((activity, index) => (
-        <div
-          key={index}
-          className={`flex items-start gap-3 pb-3 ${index < activities.length - 1 ? 'border-b border-gray-200' : ''}`}
-        >
+    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+      {activities.map((activity) => {
+        const style = getActivityStyle(activity.type)
+        return (
           <div
-            className={`w-8 h-8 ${activity.avatar} rounded-full flex-shrink-0`}
-          ></div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm">
-              {activity.isPopular ? (
-                <>
-                  <span className="font-bold text-orange-600">
-                    {activity.user}
-                  </span>{' '}
-                  {activity.target}
-                </>
-              ) : (
-                <>
-                  <span className="font-bold">{activity.user}</span>
-                  {activity.action}
-                  {activity.target && (
-                    <span className="font-bold text-blue-600">
-                      {' '}
-                      {activity.target}
-                    </span>
-                  )}
-                  {activity.targetAction && ` ${activity.targetAction}`}
-                </>
-              )}
-            </p>
-            <p className="text-xs text-gray-500">
-              {activity.time} • {activity.category}
-            </p>
+            key={activity.id}
+            className="pb-3 border-b last:border-0 border-gray-100"
+          >
+            <div className="flex items-start gap-2">
+              <span className="text-lg" role="img">
+                {style.icon}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm">
+                  <span className={`font-semibold ${style.color}`}>
+                    {activity.userName}
+                  </span>
+                  <span className="text-gray-600">
+                    님이 {activity.description}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {formatTime(activity.timestamp)}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
-
-      <button className="w-full mt-4 text-center text-sm font-bold text-blue-600 hover:underline">
-        더 많은 활동 보기 →
-      </button>
+        )
+      })}
     </div>
   )
 }

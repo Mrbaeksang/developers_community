@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') // 특정 카테고리만 조회
 
     // Redis에서 주간 조회수 데이터 가져오기
-    const redisClient = redis()
 
     // 7일간의 날짜 생성
     const dates: string[] = []
@@ -72,13 +71,13 @@ export async function GET(request: NextRequest) {
         // Redis에서 7일간의 조회수 합산
         for (const date of dates) {
           const dayKey = `post:${post.id}:views:${date}`
-          const dayViews = await redisClient.get(dayKey)
+          const dayViews = await redis.get(dayKey)
           weeklyViews += parseInt(dayViews || '0')
         }
 
         // 현재 버퍼링된 조회수도 추가
         const bufferKey = `post:${post.id}:views`
-        const bufferedViews = await redisClient.get(bufferKey)
+        const bufferedViews = await redis.get(bufferKey)
         weeklyViews += parseInt(bufferedViews || '0')
 
         return {

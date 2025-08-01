@@ -6,12 +6,11 @@ import { prisma } from '@/lib/prisma'
  * Vercel Cron 또는 별도 배치 작업으로 실행
  */
 export async function syncViewCounts() {
-  const redisClient = redis()
   const results = { success: 0, failed: 0, total: 0 }
 
   try {
     // 모든 post 조회수 키 가져오기
-    const keys = await redisClient.keys('post:*:views')
+    const keys = await redis.keys('post:*:views')
     results.total = keys.length
 
     if (keys.length === 0) {
@@ -25,7 +24,7 @@ export async function syncViewCounts() {
         const postId = key.split(':')[1]
 
         // Redis에서 조회수 가져오기
-        const viewCount = await redisClient.get(key)
+        const viewCount = await redis.get(key)
 
         if (viewCount && parseInt(viewCount) > 0) {
           // DB에 조회수 업데이트
@@ -39,7 +38,7 @@ export async function syncViewCounts() {
           })
 
           // Redis 키 삭제 (동기화 완료)
-          await redisClient.del(key)
+          await redis.del(key)
 
           results.success++
         }
@@ -60,12 +59,11 @@ export async function syncViewCounts() {
  * 커뮤니티 게시글 조회수 동기화
  */
 export async function syncCommunityViewCounts() {
-  const redisClient = redis()
   const results = { success: 0, failed: 0, total: 0 }
 
   try {
     // 모든 community post 조회수 키 가져오기
-    const keys = await redisClient.keys('community:*:post:*:views')
+    const keys = await redis.keys('community:*:post:*:views')
     results.total = keys.length
 
     if (keys.length === 0) {
@@ -81,7 +79,7 @@ export async function syncCommunityViewCounts() {
         const postId = parts[3]
 
         // Redis에서 조회수 가져오기
-        const viewCount = await redisClient.get(key)
+        const viewCount = await redis.get(key)
 
         if (viewCount && parseInt(viewCount) > 0) {
           // DB에 조회수 업데이트
@@ -98,7 +96,7 @@ export async function syncCommunityViewCounts() {
           })
 
           // Redis 키 삭제 (동기화 완료)
-          await redisClient.del(key)
+          await redis.del(key)
 
           results.success++
         }
