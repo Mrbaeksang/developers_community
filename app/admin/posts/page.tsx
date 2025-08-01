@@ -451,29 +451,21 @@ export default function PostsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/main/posts/${post.id}`} target="_blank">
+                          <Link href={`/main/posts/${post.id}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        {post.status === 'PENDING' ? (
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href="/admin/pending">
-                              <Clock className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedPost(post)
-                              setSelectedPostType('main')
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPost(post)
+                            setSelectedPostType('main')
+                            setIsDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -574,7 +566,6 @@ export default function PostsPage() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link
                             href={`/communities/${post.community.id}/posts/${post.id}`}
-                            target="_blank"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
