@@ -45,8 +45,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return token
     },
     session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub!
+      if (token && token.sub) {
+        session.user.id = token.sub
         session.user.role = token.role as 'USER' | 'MANAGER' | 'ADMIN'
       }
       return session
@@ -54,16 +54,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   },
   providers: [
     GitHub({
-      clientId: process.env.AUTH_GITHUB_ID!,
-      clientSecret: process.env.AUTH_GITHUB_SECRET!,
+      clientId: process.env.AUTH_GITHUB_ID || '',
+      clientSecret: process.env.AUTH_GITHUB_SECRET || '',
     }),
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      clientId: process.env.AUTH_GOOGLE_ID || '',
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
     }),
     Kakao({
-      clientId: process.env.AUTH_KAKAO_ID!,
-      clientSecret: process.env.AUTH_KAKAO_SECRET!,
+      clientId: process.env.AUTH_KAKAO_ID || '',
+      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
     }),
   ],
 })

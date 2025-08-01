@@ -15,37 +15,46 @@ import {
   FileText,
   Users,
   MessageSquare,
-  Heart,
   Eye,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   Shield,
   Database,
   FolderOpen,
+  Users2,
 } from 'lucide-react'
 
 async function getAdminStats() {
   try {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
     const [
       totalPosts,
       pendingPosts,
       totalUsers,
-      totalComments,
-      totalLikes,
-      totalViews,
       recentUsers,
+      totalCommunities,
+      weeklyPosts,
+      weeklyCommunities,
+      totalViews,
+      todayPosts,
     ] = await Promise.all([
       prisma.mainPost.count(),
       prisma.mainPost.count({ where: { status: 'PENDING' } }),
       prisma.user.count(),
-      prisma.mainComment.count(),
-      prisma.mainLike.count(),
-      prisma.mainPost.aggregate({ _sum: { viewCount: true } }),
       prisma.user.count({
+        where: { createdAt: { gte: weekAgo } },
+      }),
+      prisma.community.count(),
+      prisma.mainPost.count({
+        where: { createdAt: { gte: weekAgo } },
+      }),
+      prisma.community.count({
+        where: { createdAt: { gte: weekAgo } },
+      }),
+      prisma.mainPost.aggregate({ _sum: { viewCount: true } }),
+      prisma.mainPost.count({
         where: {
           createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 최근 7일
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
           },
         },
       }),
@@ -55,10 +64,12 @@ async function getAdminStats() {
       totalPosts,
       pendingPosts,
       totalUsers,
-      totalComments,
-      totalLikes,
-      totalViews: totalViews._sum.viewCount || 0,
       recentUsers,
+      totalCommunities,
+      weeklyPosts,
+      weeklyCommunities,
+      totalViews: totalViews._sum.viewCount || 0,
+      todayPosts,
     }
   } catch (error) {
     console.error('관리자 통계 조회 실패:', error)
@@ -66,10 +77,12 @@ async function getAdminStats() {
       totalPosts: 0,
       pendingPosts: 0,
       totalUsers: 0,
-      totalComments: 0,
-      totalLikes: 0,
-      totalViews: 0,
       recentUsers: 0,
+      totalCommunities: 0,
+      weeklyPosts: 0,
+      weeklyCommunities: 0,
+      totalViews: 0,
+      todayPosts: 0,
     }
   }
 }
@@ -120,6 +133,14 @@ export default async function AdminPage() {
       color: 'secondary',
     },
     {
+      title: '커뮤니티 관리',
+      description: '생성된 모든 커뮤니티를 관리하고 설정',
+      href: '/admin/communities',
+      icon: Users2,
+      badge: null,
+      color: 'secondary',
+    },
+    {
       title: '카테고리 관리',
       description: '메인 사이트 카테고리를 생성, 수정, 삭제',
       href: '/admin/categories',
@@ -139,53 +160,36 @@ export default async function AdminPage() {
 
   const statsCards = [
     {
-      title: '전체 게시글',
-      value: stats.totalPosts,
-      icon: FileText,
-      description: '승인된 게시글 수',
-    },
-    {
-      title: '승인 대기',
-      value: stats.pendingPosts,
-      icon: Clock,
-      description: '검토가 필요한 게시글',
-      alert: stats.pendingPosts > 0,
-    },
-    {
       title: '전체 사용자',
-      value: stats.totalUsers,
+      value: stats.totalUsers.toLocaleString(),
       icon: Users,
-      description: '등록된 사용자 수',
-    },
-    {
-      title: '이번 주 신규',
-      value: stats.recentUsers,
-      icon: Users,
-      description: '최근 7일간 가입자',
-    },
-    {
-      title: '전체 댓글',
-      value: stats.totalComments,
-      icon: MessageSquare,
-      description: '작성된 댓글 수',
-    },
-    {
-      title: '전체 좋아요',
-      value: stats.totalLikes,
-      icon: Heart,
-      description: '받은 좋아요 수',
+      description: `이번 주 신규 +${stats.recentUsers}명`,
+      bgColor: '',
+      color: 'text-blue-600',
     },
     {
       title: '전체 조회수',
       value: stats.totalViews.toLocaleString(),
       icon: Eye,
-      description: '누적 조회수',
+      description: `오늘 조회수 (추적 중)`,
+      bgColor: '',
+      color: 'text-green-600',
     },
     {
-      title: '시스템 상태',
-      value: '정상',
-      icon: CheckCircle,
-      description: '모든 서비스 정상 작동',
+      title: '전체 게시글',
+      value: stats.totalPosts.toLocaleString(),
+      icon: FileText,
+      description: `이번 주 게시글 +${stats.weeklyPosts}개`,
+      bgColor: '',
+      color: 'text-purple-600',
+    },
+    {
+      title: '전체 커뮤니티',
+      value: stats.totalCommunities.toLocaleString(),
+      icon: Users2,
+      description: `이번 주 신규 +${stats.weeklyCommunities}개`,
+      bgColor: '',
+      color: 'text-orange-600',
     },
   ]
 
@@ -202,83 +206,112 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      {/* 승인 대기 알림 */}
-      {stats.pendingPosts > 0 && (
-        <Card className="mb-6 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="font-medium text-orange-900 dark:text-orange-100">
-                    {stats.pendingPosts}개의 게시글이 승인을 기다리고 있습니다
-                  </p>
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    검토가 필요한 게시글을 확인해주세요.
-                  </p>
-                </div>
-              </div>
-              <Button asChild>
-                <Link href="/admin/pending">지금 검토하기</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statsCards.map((card, index) => (
-          <Card key={index} className={card.alert ? 'border-orange-200' : ''}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-bold">{card.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {card.description}
-                  </p>
-                </div>
+          <Card key={index} className={card.bgColor || ''}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
                 <card.icon
-                  className={`h-8 w-8 ${card.alert ? 'text-orange-600' : 'text-muted-foreground'}`}
+                  className={`h-5 w-5 ${card.color || 'text-muted-foreground'}`}
                 />
+                <span className={`text-3xl font-bold ${card.color || ''}`}>
+                  {card.value}
+                </span>
               </div>
+              <h3 className="font-medium text-sm">{card.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {card.description}
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* 관리 메뉴 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {adminMenus.map((menu, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <menu.icon className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-xl">{menu.title}</CardTitle>
-                </div>
-                {menu.badge && (
-                  <Badge
+      <div className="space-y-6">
+        {/* 콘텐츠 관리 */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">콘텐츠 관리</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {adminMenus.slice(0, 3).map((menu, index) => (
+              <Card
+                key={index}
+                className="group hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        menu.badge && menu.badge > 0
+                          ? 'bg-orange-100 dark:bg-orange-900'
+                          : 'bg-gray-100 dark:bg-gray-800'
+                      }`}
+                    >
+                      <menu.icon
+                        className={`h-5 w-5 ${
+                          menu.badge && menu.badge > 0
+                            ? 'text-orange-600 dark:text-orange-400'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                      />
+                    </div>
+                    {menu.badge && (
+                      <Badge variant="destructive" className="animate-pulse">
+                        {menu.badge}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardTitle className="text-base">{menu.title}</CardTitle>
+                  <CardDescription className="text-sm">
+                    {menu.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button
+                    asChild
                     variant={
-                      menu.color === 'destructive' ? 'destructive' : 'secondary'
+                      menu.badge && menu.badge > 0 ? 'default' : 'secondary'
                     }
+                    className="w-full"
                   >
-                    {menu.badge}
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>{menu.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href={menu.href}>{menu.title} 바로가기</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                    <Link href={menu.href}>바로가기</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* 시스템 관리 */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">시스템 관리</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {adminMenus.slice(3).map((menu, index) => (
+              <Card
+                key={index}
+                className="group hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                      <menu.icon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    </div>
+                  </div>
+                  <CardTitle className="text-base">{menu.title}</CardTitle>
+                  <CardDescription className="text-sm">
+                    {menu.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button asChild variant="secondary" className="w-full">
+                    <Link href={menu.href}>바로가기</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
