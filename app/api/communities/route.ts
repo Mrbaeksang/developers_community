@@ -110,9 +110,12 @@ const createCommunitySchema = z.object({
     ),
   description: z.string().max(500).optional(),
   rules: z.string().max(5000).optional(),
+  avatar: z.string().optional().or(z.literal('')),
+  banner: z.string().optional().or(z.literal('')),
   visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PUBLIC'),
   allowFileUpload: z.boolean().default(true),
   allowChat: z.boolean().default(true),
+  maxFileSize: z.number().min(1048576).max(104857600).default(10485760), // 1MB ~ 100MB, default 10MB
 })
 
 export async function POST(req: NextRequest) {
@@ -142,9 +145,12 @@ export async function POST(req: NextRequest) {
       slug,
       description,
       rules,
+      avatar,
+      banner,
       visibility,
       allowFileUpload,
       allowChat,
+      maxFileSize,
     } = validation.data
 
     // 중복 체크
@@ -171,9 +177,12 @@ export async function POST(req: NextRequest) {
         slug,
         description,
         rules,
+        avatar,
+        banner,
         visibility,
         allowFileUpload,
         allowChat,
+        maxFileSize,
         ownerId: userId,
         // 생성자를 자동으로 OWNER 멤버로 추가
         members: {

@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
 interface CommunitySearchFormProps {
   initialSearch?: string
@@ -44,36 +43,26 @@ export default function CommunitySearchForm({
   }
 
   return (
-    <form onSubmit={handleSearch} className="flex gap-4 max-w-4xl mx-auto">
-      <div className="relative flex-1">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-purple-500 to-pink-500 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <Search className="h-5 w-5 text-white" />
-        </div>
+    <form onSubmit={handleSearch} className="relative">
+      <div className="relative flex items-center">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
         <Input
           type="text"
-          placeholder="🔍 React, Vue, Next.js... 관심 있는 기술로 검색해보세요!"
+          placeholder="React, Node.js, Python... 기술 스택으로 검색"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-20 pr-14 h-16 text-lg font-medium border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[-2px] focus:translate-y-[-2px] transition-all duration-200 rounded-2xl bg-gradient-to-r from-white to-purple-50"
+          className="pl-12 pr-10 h-11 text-sm font-medium border-0 focus:outline-none focus:ring-0 bg-transparent w-full placeholder:text-gray-500"
         />
         {search && (
           <button
             type="button"
             onClick={clearSearch}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-red-100 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all bg-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <X className="h-5 w-5 text-red-500" />
+            <X className="h-4 w-4 text-gray-500" />
           </button>
         )}
       </div>
-      <Button
-        type="submit"
-        size="lg"
-        className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-lg border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 rounded-2xl"
-      >
-        <Search className="h-5 w-5 mr-2" />
-        검색하기
-      </Button>
     </form>
   )
 }
