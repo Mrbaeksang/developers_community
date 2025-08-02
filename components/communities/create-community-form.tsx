@@ -600,6 +600,7 @@ export default function CreateCommunityForm() {
                       !formData.avatar.startsWith('default:')) ? (
                     avatarPreview?.startsWith('blob:') ||
                     formData.avatar?.startsWith('blob:') ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={avatarPreview || formData.avatar}
                         alt="Avatar preview"
@@ -778,6 +779,7 @@ export default function CreateCommunityForm() {
                 {bannerPreview ? (
                   <div className="relative w-full h-full group">
                     {bannerPreview.startsWith('blob:') ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={bannerPreview}
                         alt="Banner preview"
