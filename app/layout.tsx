@@ -32,6 +32,10 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Icons"
+          rel="stylesheet"
+        />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <SessionProvider>
