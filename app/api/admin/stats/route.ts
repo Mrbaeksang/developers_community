@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkGlobalRole } from '@/lib/auth-helpers'
+import { requireRoleAPI } from '@/lib/auth-utils'
 import { redis } from '@/lib/redis'
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const roleError = await checkGlobalRole(session.user.id, [
-      'ADMIN',
-      'MANAGER',
-    ])
-    if (roleError) {
-      return NextResponse.json({ error: roleError }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (result instanceof NextResponse) return result
 
     // 통계 데이터 가져오기
     const [users, mainPosts, mainComments, communities, communityPosts, tags] =

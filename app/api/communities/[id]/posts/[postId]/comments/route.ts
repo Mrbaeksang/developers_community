@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { CommunityRole } from '@prisma/client'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(
@@ -76,24 +76,36 @@ export async function POST(
 ) {
   try {
     const { id, postId } = await context.params
-    const session = await auth()
 
-    // 인증 확인
-    if (!checkAuth(session)) {
+    // 커뮤니티 찾기 (ID 또는 slug)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: { id: true },
+    })
+
+    if (!community) {
       return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
+        { error: '커뮤니티를 찾을 수 없습니다.' },
+        { status: 404 }
       )
     }
 
-    // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session.user.id, id)
-    if (membershipError) return membershipError
+    const actualCommunityId = community.id
+
+    // 멤버십 확인 (MEMBER 이상)
+    const session = await requireCommunityRoleAPI(actualCommunityId, [
+      CommunityRole.MEMBER,
+    ])
+    if (session instanceof NextResponse) {
+      return session
+    }
 
     const post = await prisma.communityPost.findUnique({
       where: {
         id: postId,
-        communityId: id,
+        communityId: actualCommunityId,
       },
     })
 
@@ -143,30 +155,12 @@ export async function POST(
       }
     }
 
-    // 현재 사용자의 커뮤니티 역할 확인 (authorRole 저장을 위해)
-    const userMembership = await prisma.communityMember.findUnique({
-      where: {
-        userId_communityId: {
-          userId: session.user.id,
-          communityId: post.communityId,
-        },
-      },
-      select: { role: true },
-    })
-
-    if (!userMembership) {
-      return NextResponse.json(
-        { error: '커뮤니티 멤버가 아닙니다.' },
-        { status: 403 }
-      )
-    }
-
     // 댓글 생성
     const comment = await prisma.communityComment.create({
       data: {
         content,
-        authorId: session.user.id,
-        authorRole: userMembership.role, // 작성 시점의 역할 저장
+        authorId: session.session.user.id,
+        authorRole: session.membership.role, // 작성 시점의 역할 저장
         postId: postId,
         parentId,
       },

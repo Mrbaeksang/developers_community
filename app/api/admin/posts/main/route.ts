@@ -1,32 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // 메인 게시글 목록 조회 (관리자용)
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true, email: true },
-    })
-
-    // ADMIN 권한만 허용 (절대 권력자)
-    if (!user || user.globalRole !== 'ADMIN') {
-      return NextResponse.json(
-        {
-          error: '권한이 없습니다. 관리자만 접근 가능합니다.',
-        },
-        { status: 403 }
-      )
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof NextResponse) {
+      return session // Return error response
     }
 
     const posts = await prisma.mainPost.findMany({

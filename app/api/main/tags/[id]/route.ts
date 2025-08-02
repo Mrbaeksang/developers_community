@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
-import { checkAuth, checkGlobalRole } from '@/lib/auth-helpers'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // 태그 수정 (관리자/모더레이터만 가능)
 export async function PUT(
@@ -9,19 +8,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
     // 관리자 또는 모더레이터만 태그 수정 가능
-    const userId = session.user.id
-    const roleCheck = await checkGlobalRole(userId, ['ADMIN', 'MANAGER'])
-    if (roleCheck) {
-      return roleCheck
+    const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const resolvedParams = await params
@@ -107,19 +97,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
     // 관리자만 태그 삭제 가능
-    const userId = session.user.id
-    const roleCheck = await checkGlobalRole(userId, ['ADMIN'])
-    if (roleCheck) {
-      return roleCheck
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const resolvedParams = await params

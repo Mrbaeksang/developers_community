@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 
 // GET: 커뮤니티의 기본 채팅 채널 정보 조회
 export async function GET(
@@ -9,18 +8,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireAuthAPI()
+    if (result instanceof NextResponse) return result
     const { id } = await params
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userId = session.user.id
+    const userId = result.user.id
 
     // 커뮤니티 확인 및 멤버십 체크
     const community = await prisma.community.findUnique({

@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 
 // GET: 전체 사이트 채팅 채널 정보 조회
 export async function GET() {
   try {
-    const session = await auth()
-
     // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const userId = session.user.id

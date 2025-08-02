@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { FileType } from '@prisma/client'
 import { put } from '@vercel/blob'
 import {
+  requireAuthAPI,
   checkBanStatus,
-  checkCommunityMembership,
-  unauthorized,
-} from '@/lib/auth-helpers'
+  getCommunityMembership,
+} from '@/lib/auth-utils'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -41,9 +40,9 @@ async function getImageDimensions(): Promise<{
 // 현재는 메타데이터만 DB에 저장하고 실제 파일은 저장하지 않음
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return unauthorized()
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // Ban 상태 체크
@@ -82,7 +81,16 @@ export async function POST(req: NextRequest) {
       }
 
       // 커뮤니티 멤버십 확인
-      await checkCommunityMembership(session.user.id, communityId)
+      const membership = await getCommunityMembership(
+        session.user.id,
+        communityId
+      )
+      if (!membership) {
+        return NextResponse.json(
+          { error: '커뮤니티 멤버가 아닙니다.' },
+          { status: 403 }
+        )
+      }
 
       if (!community.allowFileUpload) {
         return NextResponse.json(

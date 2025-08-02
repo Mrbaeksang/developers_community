@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
-import { checkAuth } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import { PostStatus, Prisma } from '@prisma/client'
 import { canModifyMainContent } from '@/lib/role-hierarchy'
 import { markdownToHtml } from '@/lib/markdown'
@@ -109,14 +109,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const session = await auth()
 
     // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 게시글 조회 (작성자 확인)
@@ -286,14 +283,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const session = await auth()
 
     // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 게시글 조회 (작성자 확인)

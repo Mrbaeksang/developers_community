@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
-import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { redis } from '@/lib/redis'
 
@@ -146,9 +145,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return unauthorized()
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // Ban 상태 체크

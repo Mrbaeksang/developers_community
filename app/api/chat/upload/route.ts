@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -29,14 +28,10 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 // POST: 채팅용 파일 업로드
 export async function POST(req: Request) {
   try {
-    const session = await auth()
-
     // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const userId = session.user.id

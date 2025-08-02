@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import {
   createPostApprovedNotification,
@@ -12,29 +12,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const session = await auth()
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (
-      !user ||
-      (user.globalRole !== 'ADMIN' && user.globalRole !== 'MANAGER')
-    ) {
-      return NextResponse.json(
-        { error: '승인 권한이 없습니다.' },
-        { status: 403 }
-      )
+    const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const { action, reason } = await request.json()

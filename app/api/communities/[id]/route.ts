@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import { CommunityVisibility, MembershipStatus } from '@prisma/client'
 
 // GET: 커뮤니티 상세 조회
@@ -142,12 +142,20 @@ export async function GET(
     if (community.visibility === CommunityVisibility.PRIVATE) {
       if (session?.user?.id) {
         // 로그인한 경우, 멤버십 확인
-        const membershipError = await checkMembership(
-          session.user.id,
-          community.id
-        )
+        const membership = await prisma.communityMember.findUnique({
+          where: {
+            userId_communityId: {
+              userId: session.user.id,
+              communityId: community.id,
+            },
+          },
+          select: { status: true },
+        })
         // 멤버가 아니고 오너도 아닌 경우
-        if (membershipError && community.ownerId !== session.user.id) {
+        if (
+          (!membership || membership.status !== 'ACTIVE') &&
+          community.ownerId !== session.user.id
+        ) {
           return NextResponse.json(
             { error: '비공개 커뮤니티입니다.' },
             { status: 403 }
@@ -216,14 +224,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 커뮤니티 소유자 확인
@@ -300,14 +303,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 커뮤니티 및 사용자 정보 조회

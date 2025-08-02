@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
 
 // POST: 커뮤니티 게시글 좋아요
 export async function POST(
@@ -10,19 +9,10 @@ export async function POST(
 ) {
   try {
     const { id, postId } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireCommunityMembershipAPI(id)
+    if (session instanceof NextResponse) {
+      return session
     }
-
-    // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session.user.id, id)
-    if (membershipError) return membershipError
 
     // 게시글 존재 확인
     const post = await prisma.communityPost.findUnique({
@@ -83,19 +73,10 @@ export async function DELETE(
 ) {
   try {
     const { id, postId } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireCommunityMembershipAPI(id)
+    if (session instanceof NextResponse) {
+      return session
     }
-
-    // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session.user.id, id)
-    if (membershipError) return membershipError
 
     // 좋아요 삭제
     const result = await prisma.communityLike.deleteMany({

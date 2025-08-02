@@ -1,26 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const session = await auth()
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (
-      !user ||
-      (user.globalRole !== 'ADMIN' && user.globalRole !== 'MANAGER')
-    ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 모든 사용자 조회

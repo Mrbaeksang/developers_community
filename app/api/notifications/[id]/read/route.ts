@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkBanStatus, unauthorized, forbidden } from '@/lib/auth-helpers'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 
 // PUT: 특정 알림 읽음 처리
 export async function PUT(
@@ -9,9 +8,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return unauthorized()
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // Ban 상태 체크
@@ -34,7 +33,10 @@ export async function PUT(
     }
 
     if (notification.userId !== session.user.id) {
-      return forbidden()
+      return NextResponse.json(
+        { error: '알림에 액세스할 권한이 없습니다.' },
+        { status: 403 }
+      )
     }
 
     if (notification.isRead) {

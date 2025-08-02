@@ -1,27 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // 관리자용 전체 카테고리 조회 (비활성 포함)
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
 
     const categories = await prisma.mainCategory.findMany({
       orderBy: {

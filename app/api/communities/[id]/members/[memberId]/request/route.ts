@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkCommunityRole } from '@/lib/auth-helpers'
+import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
 
@@ -17,13 +16,11 @@ export async function PATCH(
 ) {
   try {
     const { id, memberId } = await context.params
-    const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    // 요청자의 권한 확인 (MODERATOR 이상)
+    const session = await requireCommunityRoleAPI(id, [CommunityRole.MODERATOR])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 요청 본문 검증
@@ -44,16 +41,6 @@ export async function PATCH(
         { error: '커뮤니티를 찾을 수 없습니다.' },
         { status: 404 }
       )
-    }
-
-    // 요청자의 권한 확인 (MODERATOR 이상)
-    const roleCheck = await checkCommunityRole(
-      session.user.id,
-      id,
-      CommunityRole.MODERATOR
-    )
-    if (roleCheck) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
     // 대상 멤버 확인 (PENDING 상태여야 함)

@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
+import { requireAuthAPI } from '@/lib/auth-utils'
 
 // 내 북마크 목록 조회 - GET /api/users/bookmarks
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    const result = await requireAuthAPI()
+    if (result instanceof NextResponse) return result
+    const userId = result.user.id
 
     const { searchParams } = new URL(request.url)
 
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // 조건 설정
     const where = {
-      userId: session.user.id,
+      userId,
       post: {
         status: 'PUBLISHED' as const,
         ...(categoryId && { categoryId }),

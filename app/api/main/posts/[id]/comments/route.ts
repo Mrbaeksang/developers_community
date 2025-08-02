@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import {
   createPostCommentNotification,
   createCommentReplyNotification,
 } from '@/lib/notifications'
-import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -76,9 +75,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return unauthorized()
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // Ban 상태 체크

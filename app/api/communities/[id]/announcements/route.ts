@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
-import { checkAuth, checkCommunityMembership } from '@/lib/auth-helpers'
-import { canCreateAnnouncement } from '@/lib/permission-helpers'
+import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { CommunityRole } from '@prisma/client'
 
 // GET /api/communities/[id]/announcements - 공지사항 목록 조회
 export async function GET(
@@ -63,35 +62,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
     const resolvedParams = await params
     const communityId = resolvedParams.id
-    const userId = session.user.id
 
-    // 커뮤니티 멤버십 확인
-    let membership
-    try {
-      membership = await checkCommunityMembership(userId, communityId)
-    } catch (error) {
-      if (error instanceof Error) {
-        return NextResponse.json({ error: error.message }, { status: 403 })
-      }
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
-
-    // 관리자 권한 확인 (OWNER, ADMIN, MODERATOR 가능)
-    if (!canCreateAnnouncement(membership.role)) {
-      return NextResponse.json(
-        { error: '공지사항 작성 권한이 없습니다.' },
-        { status: 403 }
-      )
+    // 관리자 권한 확인 (MODERATOR 이상)
+    const session = await requireCommunityRoleAPI(communityId, [
+      CommunityRole.MODERATOR,
+    ])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const body = await request.json()
@@ -110,8 +89,8 @@ export async function POST(
         content: content.trim(),
         isPinned,
         communityId,
-        authorId: userId,
-        authorRole: membership.role, // 작성 시점의 역할 저장
+        authorId: session.session.user.id,
+        authorRole: session.membership.role, // 작성 시점의 역할 저장
       },
       include: {
         author: {

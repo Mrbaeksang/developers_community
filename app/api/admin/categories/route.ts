@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // 카테고리 목록 조회 + 새 카테고리 생성
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN' && user?.globalRole !== 'MANAGER') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (result instanceof NextResponse) return result
 
     // 모든 카테고리 조회
     const categories = await prisma.mainCategory.findMany({
@@ -56,20 +44,8 @@ export async function GET() {
 // 새 카테고리 생성
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
 
     const body = await req.json()
     const { name, slug, description, color, icon, requiresApproval } = body

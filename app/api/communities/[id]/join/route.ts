@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkAuth, checkCommunityBan } from '@/lib/auth-helpers'
+import { requireAuthAPI, checkCommunityBan } from '@/lib/auth-utils'
 import { createNotification } from '@/lib/notifications'
 import {
   MembershipStatus,
@@ -16,17 +15,11 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
-    // checkAuth 통과 후 session은 확실히 존재
     const userId = session.user.id
 
     // 커뮤니티 확인
@@ -185,17 +178,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
-    // checkAuth 통과 후 session은 확실히 존재
     const userId = session.user.id
 
     // 멤버십 확인

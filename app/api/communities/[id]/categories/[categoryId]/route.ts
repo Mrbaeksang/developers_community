@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
-import {
-  checkAuth,
-  checkCommunityRole,
-  checkCommunityMembership,
-} from '@/lib/auth-helpers'
+import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
 
 // PATCH /api/communities/[id]/categories/[categoryId] - 카테고리 수정
@@ -14,17 +9,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; categoryId: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
     const resolvedParams = await params
-    const { id, categoryId } = resolvedParams
-    const userId = session.user.id
+    let { id } = resolvedParams
+    const { categoryId } = resolvedParams
 
     // 커뮤니티 찾기 (ID 또는 slug)
     const community = await prisma.community.findFirst({
@@ -41,31 +28,20 @@ export async function PATCH(
       )
     }
 
-    // 커뮤니티 멤버십 확인
-    try {
-      await checkCommunityMembership(userId, community.id)
-    } catch (error) {
-      if (error instanceof Error) {
-        return NextResponse.json({ error: error.message }, { status: 403 })
-      }
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
+    // 실제 ID로 업데이트
+    id = community.id
 
     // 관리자 권한 확인
-    const roleCheck = await checkCommunityRole(
-      userId,
-      community.id,
-      CommunityRole.ADMIN
-    )
-    if (roleCheck) {
-      return roleCheck
+    const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 카테고리 존재 확인
     const category = await prisma.communityCategory.findFirst({
       where: {
         id: categoryId,
-        communityId: community.id,
+        communityId: id,
       },
     })
 
@@ -108,7 +84,7 @@ export async function PATCH(
     if (name || slug) {
       const existing = await prisma.communityCategory.findFirst({
         where: {
-          communityId: community.id,
+          communityId: id,
           id: { not: categoryId },
           OR: [
             ...(name ? [{ name: name.trim() }] : []),
@@ -152,17 +128,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; categoryId: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
     const resolvedParams = await params
-    const { id, categoryId } = resolvedParams
-    const userId = session.user.id
+    let { id } = resolvedParams
+    const { categoryId } = resolvedParams
 
     // 커뮤니티 찾기 (ID 또는 slug)
     const community = await prisma.community.findFirst({
@@ -179,31 +147,20 @@ export async function DELETE(
       )
     }
 
-    // 커뮤니티 멤버십 확인
-    try {
-      await checkCommunityMembership(userId, community.id)
-    } catch (error) {
-      if (error instanceof Error) {
-        return NextResponse.json({ error: error.message }, { status: 403 })
-      }
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
+    // 실제 ID로 업데이트
+    id = community.id
 
     // 관리자 권한 확인
-    const roleCheck = await checkCommunityRole(
-      userId,
-      community.id,
-      CommunityRole.ADMIN
-    )
-    if (roleCheck) {
-      return roleCheck
+    const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 카테고리 존재 확인
     const category = await prisma.communityCategory.findFirst({
       where: {
         id: categoryId,
-        communityId: community.id,
+        communityId: id,
       },
       include: {
         _count: {

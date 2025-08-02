@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkBanStatus, unauthorized } from '@/lib/auth-helpers'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 
 // POST /api/main/posts/[id]/bookmark - 북마크 토글
 export async function POST(
@@ -9,9 +9,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return unauthorized()
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // Ban 상태 체크

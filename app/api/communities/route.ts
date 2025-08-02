@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { checkAuth } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import {
   CommunityVisibility,
   CommunityRole,
@@ -120,14 +119,9 @@ const createCommunitySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const body = await req.json()

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
-import { checkAuth, checkGlobalRole } from '@/lib/auth-helpers'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 export async function GET(request: Request) {
   try {
@@ -50,19 +49,9 @@ export async function GET(request: Request) {
 // 태그 생성 (관리자/모더레이터만 가능)
 export async function POST(request: Request) {
   try {
-    const session = await auth()
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자 또는 모더레이터만 태그 생성 가능
-    const userId = session.user.id
-    const roleCheck = await checkGlobalRole(userId, ['ADMIN', 'MANAGER'])
-    if (roleCheck) {
-      return roleCheck
+    const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const body = await request.json()

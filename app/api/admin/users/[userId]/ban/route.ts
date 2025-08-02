@@ -1,31 +1,19 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
     const { userId } = await params
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const admin = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!admin || admin.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const adminUserId = result.user.id
 
     // 자기 자신을 차단하는 것 방지
-    if (userId === session.user.id) {
+    if (userId === adminUserId) {
       return NextResponse.json(
         { error: 'Cannot ban yourself' },
         { status: 400 }

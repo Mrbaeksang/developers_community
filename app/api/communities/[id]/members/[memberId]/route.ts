@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkCommunityRole } from '@/lib/auth-helpers'
+import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
 
@@ -17,41 +16,16 @@ export async function DELETE(
 ) {
   try {
     const { id, memberId } = await context.params
-    const session = await auth()
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    // 요청자의 권한 확인 (MODERATOR 이상)
+    const session = await requireCommunityRoleAPI(id, [CommunityRole.MODERATOR])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 요청 본문 검증
     const body = await req.json()
     const { ban } = deleteMemberSchema.parse(body)
-
-    // 커뮤니티 확인
-    const community = await prisma.community.findUnique({
-      where: { id },
-      select: { id: true },
-    })
-
-    if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
-    }
-
-    // 요청자의 권한 확인 (MODERATOR 이상)
-    const roleCheck = await checkCommunityRole(
-      session.user.id,
-      id,
-      CommunityRole.MODERATOR
-    )
-    if (roleCheck) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
 
     // 대상 멤버 확인
     const targetMember = await prisma.communityMember.findUnique({
@@ -83,23 +57,15 @@ export async function DELETE(
     }
 
     // 자기 자신은 추방할 수 없음
-    if (targetMember.userId === session.user.id) {
+    if (targetMember.userId === session.session.user.id) {
       return NextResponse.json(
         { error: '자신을 추방할 수 없습니다.' },
         { status: 403 }
       )
     }
 
-    // 요청자의 역할 가져오기
-    const requesterMember = await prisma.communityMember.findUnique({
-      where: {
-        userId_communityId: {
-          userId: session.user.id,
-          communityId: id,
-        },
-      },
-      select: { role: true },
-    })
+    // 요청자의 역할은 이미 requireCommunityRoleAPI에서 확인됨
+    const requesterMember = session.membership
 
     if (!requesterMember) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })

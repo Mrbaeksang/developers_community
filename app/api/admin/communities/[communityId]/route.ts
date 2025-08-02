@@ -1,29 +1,16 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { CommunityVisibility } from '@prisma/client'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ communityId: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
     const { communityId } = await params
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const admin = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!admin || admin.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const {
       name,
@@ -81,22 +68,9 @@ export async function DELETE(
   { params }: { params: Promise<{ communityId: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
     const { communityId } = await params
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const admin = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!admin || admin.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // 커뮤니티 삭제
     await prisma.community.delete({

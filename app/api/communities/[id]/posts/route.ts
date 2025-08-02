@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
 import { CommunityVisibility } from '@prisma/client'
 import { redis } from '@/lib/redis'
 
@@ -38,12 +38,23 @@ export async function GET(
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
     if (community.visibility === CommunityVisibility.PRIVATE) {
       if (session?.user?.id) {
-        const membershipError = await checkMembership(session.user.id, id)
-        if (membershipError && community.ownerId !== session.user.id) {
-          return NextResponse.json(
-            { error: '비공개 커뮤니티입니다.' },
-            { status: 403 }
-          )
+        const membership = await prisma.communityMember.findUnique({
+          where: {
+            userId_communityId: {
+              userId: session.user.id,
+              communityId: id,
+            },
+          },
+          select: { status: true },
+        })
+
+        if (!membership || membership.status !== 'ACTIVE') {
+          if (community.ownerId !== session.user.id) {
+            return NextResponse.json(
+              { error: '비공개 커뮤니티입니다.' },
+              { status: 403 }
+            )
+          }
         }
       } else {
         return NextResponse.json(
@@ -176,19 +187,10 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireCommunityMembershipAPI(id)
+    if (session instanceof NextResponse) {
+      return session
     }
-
-    // 커뮤니티 멤버십 확인
-    const membershipError = await checkMembership(session.user.id, id)
-    if (membershipError) return membershipError
 
     // 멤버십 상세 정보 조회 (파일 업로드 권한 확인용)
     const membership = await prisma.communityMember.findUnique({

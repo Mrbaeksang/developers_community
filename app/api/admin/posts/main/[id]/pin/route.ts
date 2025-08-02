@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // GET: 현재 고정 상태 조회
 export async function GET(
@@ -8,22 +8,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
     const { id } = await params
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!user || user.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
 
     const post = await prisma.mainPost.findUnique({
       where: { id },
@@ -53,22 +40,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
     const { id } = await params
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!user || user.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
 
     // 현재 고정 상태 확인
     const currentPost = await prisma.mainPost.findUnique({

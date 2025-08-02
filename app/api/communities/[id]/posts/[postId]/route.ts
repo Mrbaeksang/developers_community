@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { checkAuth, checkMembership } from '@/lib/auth-helpers'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import { CommunityVisibility, CommunityRole } from '@prisma/client'
 
 // GET: 커뮤니티 게시글 상세 조회
@@ -89,12 +89,23 @@ export async function GET(
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
     if (post.community.visibility === CommunityVisibility.PRIVATE) {
       if (session?.user?.id) {
-        const membershipError = await checkMembership(session.user.id, id)
-        if (membershipError && post.community.ownerId !== session.user.id) {
-          return NextResponse.json(
-            { error: '비공개 커뮤니티의 게시글입니다.' },
-            { status: 403 }
-          )
+        const membership = await prisma.communityMember.findUnique({
+          where: {
+            userId_communityId: {
+              userId: session.user.id,
+              communityId: community.id,
+            },
+          },
+          select: { status: true },
+        })
+
+        if (!membership || membership.status !== 'ACTIVE') {
+          if (post.community.ownerId !== session.user.id) {
+            return NextResponse.json(
+              { error: '비공개 커뮤니티의 게시글입니다.' },
+              { status: 403 }
+            )
+          }
         }
       } else {
         return NextResponse.json(
@@ -138,14 +149,9 @@ export async function PATCH(
 ) {
   try {
     const { id, postId } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 먼저 커뮤니티 찾기 (ID 또는 slug로)
@@ -264,14 +270,9 @@ export async function DELETE(
 ) {
   try {
     const { id, postId } = await context.params
-    const session = await auth()
-
-    // 인증 확인
-    if (!checkAuth(session)) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 먼저 커뮤니티 찾기 (ID 또는 slug로)

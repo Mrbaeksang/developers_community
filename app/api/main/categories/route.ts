@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 export async function GET() {
   try {
@@ -43,23 +43,8 @@ export async function GET() {
 // 카테고리 생성 (관리자만)
 export async function POST(req: Request) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN'])
+    if (result instanceof NextResponse) return result
 
     const body = await req.json()
     const { name, slug, description, color, icon, order, isActive } = body

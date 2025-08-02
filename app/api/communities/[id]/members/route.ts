@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { checkMembership } from '@/lib/auth-helpers'
+import { getSession, canAccessPrivateCommunity } from '@/lib/auth-utils'
 import {
   CommunityVisibility,
   MembershipStatus,
@@ -15,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params
-    const session = await auth()
+    const session = await getSession()
     const searchParams = req.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -38,15 +37,8 @@ export async function GET(
 
     // 비공개 커뮤니티 접근 확인
     if (community.visibility === CommunityVisibility.PRIVATE) {
-      if (session?.user?.id) {
-        const membershipError = await checkMembership(session.user.id, id)
-        if (membershipError) {
-          return NextResponse.json(
-            { error: '비공개 커뮤니티입니다.' },
-            { status: 403 }
-          )
-        }
-      } else {
+      const canAccess = await canAccessPrivateCommunity(session?.user?.id, id)
+      if (!canAccess) {
         return NextResponse.json(
           { error: '비공개 커뮤니티입니다.' },
           { status: 403 }
