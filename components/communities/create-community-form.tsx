@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Loader2, Check, X, Image as ImageIcon, Search } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community-utils'
+import { defaultBanners } from '@/lib/banner-utils'
 
 export default function CreateCommunityForm() {
   const router = useRouter()
@@ -28,6 +29,12 @@ export default function CreateCommunityForm() {
   const [avatarType, setAvatarType] = useState<'default' | 'upload' | 'search'>(
     'default'
   )
+  const [bannerType, setBannerType] = useState<'default' | 'upload' | 'none'>(
+    'none'
+  )
+  const [selectedDefaultBanner, setSelectedDefaultBanner] = useState<
+    (typeof defaultBanners)[0] | null
+  >(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<
     Array<{ url: string; alt: string }>
@@ -594,6 +601,14 @@ export default function CreateCommunityForm() {
                         alt="Banner preview"
                         className="w-full h-full object-cover"
                       />
+                    ) : selectedDefaultBanner ? (
+                      <div
+                        className={`w-full h-full ${selectedDefaultBanner.preview} flex items-center justify-center`}
+                      >
+                        <span className="text-white font-bold text-lg">
+                          {selectedDefaultBanner.name}
+                        </span>
+                      </div>
                     ) : (
                       <Image
                         src={bannerPreview}
@@ -607,9 +622,11 @@ export default function CreateCommunityForm() {
                       type="button"
                       size="sm"
                       variant="destructive"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                       onClick={() => {
                         setBannerPreview('')
+                        setBannerType('none')
+                        setSelectedDefaultBanner(null)
                         setFormData({ ...formData, banner: '' })
                       }}
                     >
@@ -621,26 +638,125 @@ export default function CreateCommunityForm() {
                 )}
               </div>
 
-              <Button
-                type="button"
-                className="w-full p-3 font-bold bg-white border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
-                onClick={() =>
-                  document.getElementById('banner-upload')?.click()
-                }
-              >
-                <span className="material-icons">upload</span>
-                <span>배너 이미지 업로드</span>
-              </Button>
-              <Input
-                id="banner-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFileUpload(e)}
-              />
-              <p className="text-sm text-gray-500 mt-2 text-center">
-                권장 크기: 1200x300px (가로형 이미지)
-              </p>
+              {/* 배너 타입 선택 탭 */}
+              <div className="flex border-b-2 border-black mb-4">
+                <button
+                  type="button"
+                  className={`flex-1 p-3 font-bold border-t-2 border-l-2 border-r border-black transition-all ${
+                    bannerType === 'default'
+                      ? 'bg-white -mb-px z-10'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                  onClick={() => setBannerType('default')}
+                >
+                  기본 배너
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 p-3 font-bold border-t-2 border-l border-r border-black transition-all ${
+                    bannerType === 'upload'
+                      ? 'bg-white -mb-px z-10'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                  onClick={() => setBannerType('upload')}
+                >
+                  업로드
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 p-3 font-bold border-t-2 border-l border-r-2 border-black transition-all ${
+                    bannerType === 'none'
+                      ? 'bg-white -mb-px z-10'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                  onClick={() => {
+                    setBannerType('none')
+                    setBannerPreview('')
+                    setSelectedDefaultBanner(null)
+                    setFormData({ ...formData, banner: '' })
+                  }}
+                >
+                  배너 없음
+                </button>
+              </div>
+
+              {/* 배너 컨텐츠 */}
+              <div className="border-2 border-black border-t-0 p-4 bg-white">
+                {bannerType === 'default' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {defaultBanners.map((banner) => (
+                      <button
+                        key={banner.id}
+                        type="button"
+                        className={`aspect-video rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all flex items-center justify-center text-white text-xs font-bold relative ${
+                          banner.preview
+                        } ${
+                          selectedDefaultBanner?.id === banner.id
+                            ? 'ring-4 ring-blue-500'
+                            : ''
+                        }`}
+                        onClick={() => {
+                          setSelectedDefaultBanner(banner)
+                          setBannerPreview(banner.preview)
+                          setFormData({
+                            ...formData,
+                            banner: `default:${banner.id}`,
+                          })
+                        }}
+                      >
+                        <span className="text-center px-1">{banner.name}</span>
+                        {selectedDefaultBanner?.id === banner.id && (
+                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 border-2 border-black rounded-full flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {bannerType === 'upload' && (
+                  <div>
+                    <Button
+                      type="button"
+                      className="w-full p-4 font-bold bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+                      onClick={() =>
+                        document.getElementById('banner-upload')?.click()
+                      }
+                    >
+                      <span className="material-icons">upload</span>
+                      <span>배너 이미지 업로드</span>
+                    </Button>
+                    <Input
+                      id="banner-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleFileUpload(e)
+                        setBannerType('upload')
+                        setSelectedDefaultBanner(null)
+                      }}
+                    />
+                    <p className="text-sm text-gray-500 mt-2 text-center">
+                      권장 크기: 1200x300px (가로형 이미지)
+                    </p>
+                  </div>
+                )}
+
+                {bannerType === 'none' && (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center mx-auto mb-4">
+                      <span className="material-icons text-gray-400 text-2xl">
+                        image_not_supported
+                      </span>
+                    </div>
+                    <p className="text-gray-500 font-medium">
+                      배너 없이 깔끔한 커뮤니티를 만듭니다.
+                    </p>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* 구분선 */}

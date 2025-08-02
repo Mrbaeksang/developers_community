@@ -20,6 +20,11 @@ import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
 import { formatCount } from '@/lib/post-format-utils'
 import { getDefaultAvatar } from '@/lib/community-utils'
+import {
+  getBannerUrl,
+  getBannerType,
+  getDefaultBannerById,
+} from '@/lib/banner-utils'
 
 interface Community {
   id: string
@@ -259,8 +264,68 @@ export default async function CommunitiesPage({
                     href={`/communities/${community.slug}`}
                   >
                     <Card
-                      className={`h-full ${theme.card} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 cursor-pointer group`}
+                      className={`h-full ${theme.card} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 cursor-pointer group overflow-hidden`}
                     >
+                      {/* Banner Preview */}
+                      <div className="relative h-20 w-full">
+                        {(() => {
+                          const bannerType = getBannerType(
+                            community.banner || ''
+                          )
+
+                          // 배너가 없는 경우 랜덤 기본 배너 적용
+                          if (bannerType === 'none') {
+                            const randomBanner = getBannerUrl('')
+                            return (
+                              <Image
+                                src={randomBanner}
+                                alt={`${community.name} banner preview`}
+                                fill
+                                className="object-cover"
+                              />
+                            )
+                          }
+
+                          // 기본 배너인 경우 그라데이션 또는 단색 배경 적용
+                          if (bannerType === 'default') {
+                            const bannerId = community.banner?.replace(
+                              'default:',
+                              ''
+                            )
+                            const defaultBanner = getDefaultBannerById(
+                              bannerId || ''
+                            )
+
+                            if (defaultBanner) {
+                              return (
+                                <div
+                                  className={`absolute inset-0 ${defaultBanner.gradient}`}
+                                />
+                              )
+                            }
+                          }
+
+                          // 업로드된 이미지인 경우
+                          if (bannerType === 'upload' && community.banner) {
+                            return (
+                              <Image
+                                src={community.banner}
+                                alt={`${community.name} banner preview`}
+                                fill
+                                className="object-cover"
+                              />
+                            )
+                          }
+
+                          // 기본 그라데이션 (fallback)
+                          return (
+                            <div
+                              className={`absolute inset-0 ${theme.bg} opacity-20`}
+                            />
+                          )
+                        })()}
+                      </div>
+
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">

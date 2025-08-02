@@ -13,6 +13,11 @@ import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import CommunityMemberList from '@/components/communities/CommunityMemberList'
 import CommunityAnnouncements from '@/components/communities/CommunityAnnouncements'
 import CommunityChatSection from '@/components/communities/CommunityChatSection'
+import {
+  getBannerUrl,
+  getBannerType,
+  getDefaultBannerById,
+} from '@/lib/banner-utils'
 
 interface Category {
   id: string
@@ -123,15 +128,51 @@ export default async function CommunityDetailPage({
     <div className="container max-w-7xl py-8">
       {/* Banner */}
       <div className="relative h-48 md:h-64 -mx-4 sm:-mx-6 lg:-mx-8 mb-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
-        {community.banner && (
-          <Image
-            src={community.banner}
-            alt={`${community.name} banner`}
-            fill
-            className="object-cover"
-          />
-        )}
+        {(() => {
+          const bannerType = getBannerType(community.banner || '')
+
+          // 배너가 없는 경우 랜덤 기본 배너 적용
+          if (bannerType === 'none') {
+            const randomBanner = getBannerUrl('')
+            return (
+              <Image
+                src={randomBanner}
+                alt={`${community.name} banner`}
+                fill
+                className="object-cover"
+              />
+            )
+          }
+
+          // 기본 배너인 경우 그라데이션 또는 단색 배경 적용
+          if (bannerType === 'default') {
+            const bannerId = community.banner?.replace('default:', '')
+            const defaultBanner = getDefaultBannerById(bannerId || '')
+
+            if (defaultBanner) {
+              return (
+                <div className={`absolute inset-0 ${defaultBanner.gradient}`} />
+              )
+            }
+          }
+
+          // 업로드된 이미지인 경우
+          if (bannerType === 'upload' && community.banner) {
+            return (
+              <Image
+                src={community.banner}
+                alt={`${community.name} banner`}
+                fill
+                className="object-cover"
+              />
+            )
+          }
+
+          // 기본 그라데이션 (fallback)
+          return (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
+          )
+        })()}
       </div>
 
       {/* Header */}
