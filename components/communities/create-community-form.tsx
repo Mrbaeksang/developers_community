@@ -114,7 +114,7 @@ export default function CreateCommunityForm() {
   useEffect(() => {
     const hasData =
       formData.name || formData.slug || formData.description || formData.rules
-    setHasUnsavedChanges(hasData)
+    setHasUnsavedChanges(!!hasData)
   }, [formData])
 
   // 페이지 이탈 방지
