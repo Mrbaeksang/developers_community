@@ -51,8 +51,54 @@ export default function CreateCommunityForm() {
     visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
     allowFileUpload: true,
     allowChat: false,
-    maxFileSize: 10485760, // 10MB default
+    maxFileSize: 10485760, // 10MB default - fixed value
   })
+
+  // Character limits based on database schema
+  const CHARACTER_LIMITS = {
+    name: 50,
+    slug: 50,
+    description: 500,
+    rules: 5000,
+  }
+
+  // Real-time validation states
+  const [validationErrors, setValidationErrors] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    rules: '',
+  })
+
+  // Validate input field in real-time
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case 'name':
+        if (!value) return '커뮤니티 이름은 필수입니다.'
+        if (value.length < 2) return '커뮤니티 이름은 2자 이상이어야 합니다.'
+        if (value.length > CHARACTER_LIMITS.name)
+          return `커뮤니티 이름은 ${CHARACTER_LIMITS.name}자 이하여야 합니다.`
+        return ''
+      case 'slug':
+        if (!value) return 'URL 슬러그는 필수입니다.'
+        if (value.length < 2) return 'URL 슬러그는 2자 이상이어야 합니다.'
+        if (value.length > CHARACTER_LIMITS.slug)
+          return `URL 슬러그는 ${CHARACTER_LIMITS.slug}자 이하여야 합니다.`
+        if (!/^[a-z0-9-]+$/.test(value))
+          return 'URL 슬러그는 소문자, 숫자, 하이픈만 사용할 수 있습니다.'
+        return ''
+      case 'description':
+        if (value.length > CHARACTER_LIMITS.description)
+          return `설명은 ${CHARACTER_LIMITS.description}자 이하여야 합니다.`
+        return ''
+      case 'rules':
+        if (value.length > CHARACTER_LIMITS.rules)
+          return `규칙은 ${CHARACTER_LIMITS.rules}자 이하여야 합니다.`
+        return ''
+      default:
+        return ''
+    }
+  }
 
   // 커뮤니티 이름 변경시 자동으로 기본 아바타 선택
   useEffect(() => {
@@ -166,12 +212,14 @@ export default function CreateCommunityForm() {
     }
   }
 
-  // 슬러그 자동 생성
+  // 슬러그 자동 생성 - 패턴 검증 포함
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
       .replace(/[^a-z0-9가-힣]+/g, '-')
       .replace(/^-+|-+$/g, '')
+      .replace(/[가-힣]/g, '') // 한글 제거
+      .substring(0, CHARACTER_LIMITS.slug) // 최대 길이 제한
   }
 
   // 슬러그 중복 체크
@@ -242,31 +290,59 @@ export default function CreateCommunityForm() {
                       </div>
                     </div>
                   </div>
-                  <Input
-                    id="name"
-                    placeholder="예: React 개발자 모임"
-                    value={formData.name}
-                    onChange={(e) => {
-                      setFormData({ ...formData, name: e.target.value })
-                      if (
-                        !formData.slug ||
-                        formData.slug === generateSlug(formData.name)
-                      ) {
-                        setFormData((prev) => ({
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      placeholder="예: React 개발자 모임"
+                      value={formData.name}
+                      maxLength={CHARACTER_LIMITS.name}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData({ ...formData, name: value })
+
+                        // Real-time validation
+                        const error = validateField('name', value)
+                        setValidationErrors((prev) => ({
                           ...prev,
-                          slug: generateSlug(e.target.value),
+                          name: error,
                         }))
-                      }
-                    }}
-                    className="w-full p-3 border-3 border-black rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
-                    required
-                  />
-                  {!formData.name && (
+
+                        // Auto-generate slug if not manually modified
+                        if (
+                          !formData.slug ||
+                          formData.slug === generateSlug(formData.name)
+                        ) {
+                          const newSlug = generateSlug(value)
+                          setFormData((prev) => ({
+                            ...prev,
+                            slug: newSlug,
+                          }))
+
+                          // Validate generated slug
+                          const slugError = validateField('slug', newSlug)
+                          setValidationErrors((prev) => ({
+                            ...prev,
+                            slug: slugError,
+                          }))
+                        }
+                      }}
+                      className={`w-full p-3 border-3 rounded-lg focus:ring-2 focus:ring-blue-200 transition-colors ${
+                        validationErrors.name
+                          ? 'border-red-500 focus:border-red-600'
+                          : 'border-black focus:border-blue-600'
+                      }`}
+                      required
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                      {formData.name.length}/{CHARACTER_LIMITS.name}
+                    </div>
+                  </div>
+                  {validationErrors.name && (
                     <p className="text-sm text-red-500 mt-2 flex items-center">
                       <span className="material-icons text-base mr-1">
                         error
                       </span>
-                      커뮤니티 이름은 필수입니다.
+                      {validationErrors.name}
                     </p>
                   )}
                 </div>
@@ -296,29 +372,53 @@ export default function CreateCommunityForm() {
                         id="slug"
                         placeholder="react-developers"
                         value={formData.slug}
-                        onChange={(e) =>
-                          setFormData({ ...formData, slug: e.target.value })
-                        }
-                        className="w-full p-3 border-3 border-black rounded-r-lg pr-10 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors rounded-l-none"
+                        maxLength={CHARACTER_LIMITS.slug}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          // Only allow valid characters in real-time
+                          const cleanValue = value.replace(/[^a-z0-9-]/g, '')
+                          setFormData({ ...formData, slug: cleanValue })
+
+                          // Real-time validation
+                          const error = validateField('slug', cleanValue)
+                          setValidationErrors((prev) => ({
+                            ...prev,
+                            slug: error,
+                          }))
+                        }}
+                        className={`w-full p-3 border-3 rounded-r-lg pr-16 focus:ring-2 focus:ring-blue-200 transition-colors rounded-l-none ${
+                          validationErrors.slug || slugAvailable === false
+                            ? 'border-red-500 focus:border-red-600'
+                            : 'border-black focus:border-blue-600'
+                        }`}
                         pattern="[a-z0-9\-]*"
                         required
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {isCheckingSlug && (
-                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                        )}
-                        {!isCheckingSlug && slugAvailable === true && (
-                          <Check className="h-5 w-5 text-green-600" />
-                        )}
-                        {!isCheckingSlug && slugAvailable === false && (
-                          <X className="h-5 w-5 text-red-600" />
-                        )}
-                      </span>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {formData.slug.length}/{CHARACTER_LIMITS.slug}
+                        </span>
+                        <span>
+                          {isCheckingSlug && (
+                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                          )}
+                          {!isCheckingSlug && slugAvailable === true && (
+                            <Check className="h-5 w-5 text-green-600" />
+                          )}
+                          {!isCheckingSlug && slugAvailable === false && (
+                            <X className="h-5 w-5 text-red-600" />
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  {!isCheckingSlug && slugAvailable === false && (
-                    <p className="text-sm text-red-500 mt-2">
-                      이미 사용 중인 URL입니다.
+                  {(validationErrors.slug ||
+                    (!isCheckingSlug && slugAvailable === false)) && (
+                    <p className="text-sm text-red-500 mt-2 flex items-center">
+                      <span className="material-icons text-base mr-1">
+                        error
+                      </span>
+                      {validationErrors.slug || '이미 사용 중인 URL입니다.'}
                     </p>
                   )}
                 </div>
@@ -339,19 +439,47 @@ export default function CreateCommunityForm() {
                       </div>
                     </div>
                   </div>
-                  <Textarea
-                    id="description"
-                    placeholder="커뮤니티에 대한 간단한 소개를 작성해주세요."
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    className="w-full p-3 border-3 border-black rounded-lg min-h-[100px] focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
-                    rows={4}
-                  />
-                  <p className="text-sm text-gray-500 mt-2">
-                    어떤 주제를 다루나요? 누구를 위한 커뮤니티인가요?
-                  </p>
+                  <div className="relative">
+                    <Textarea
+                      id="description"
+                      placeholder="커뮤니티에 대한 간단한 소개를 작성해주세요."
+                      value={formData.description}
+                      maxLength={CHARACTER_LIMITS.description}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData({ ...formData, description: value })
+
+                        // Real-time validation
+                        const error = validateField('description', value)
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          description: error,
+                        }))
+                      }}
+                      className={`w-full p-3 border-3 rounded-lg min-h-[100px] focus:ring-2 focus:ring-blue-200 transition-colors pr-16 ${
+                        validationErrors.description
+                          ? 'border-red-500 focus:border-red-600'
+                          : 'border-black focus:border-blue-600'
+                      }`}
+                      rows={4}
+                    />
+                    <div className="absolute right-3 bottom-3 text-xs text-gray-500">
+                      {formData.description.length}/
+                      {CHARACTER_LIMITS.description}
+                    </div>
+                  </div>
+                  {validationErrors.description ? (
+                    <p className="text-sm text-red-500 mt-2 flex items-center">
+                      <span className="material-icons text-base mr-1">
+                        error
+                      </span>
+                      {validationErrors.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-2">
+                      어떤 주제를 다루나요? 누구를 위한 커뮤니티인가요?
+                    </p>
+                  )}
                 </div>
 
                 {/* 규칙 */}
@@ -370,16 +498,42 @@ export default function CreateCommunityForm() {
                       </div>
                     </div>
                   </div>
-                  <Textarea
-                    id="rules"
-                    placeholder="커뮤니티 멤버들이 지켜야 할 규칙을 작성해주세요."
-                    value={formData.rules}
-                    onChange={(e) =>
-                      setFormData({ ...formData, rules: e.target.value })
-                    }
-                    className="w-full p-3 border-3 border-black rounded-lg min-h-[100px] focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
-                    rows={4}
-                  />
+                  <div className="relative">
+                    <Textarea
+                      id="rules"
+                      placeholder="커뮤니티 멤버들이 지켜야 할 규칙을 작성해주세요."
+                      value={formData.rules}
+                      maxLength={CHARACTER_LIMITS.rules}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData({ ...formData, rules: value })
+
+                        // Real-time validation
+                        const error = validateField('rules', value)
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          rules: error,
+                        }))
+                      }}
+                      className={`w-full p-3 border-3 rounded-lg min-h-[100px] focus:ring-2 focus:ring-blue-200 transition-colors pr-20 ${
+                        validationErrors.rules
+                          ? 'border-red-500 focus:border-red-600'
+                          : 'border-black focus:border-blue-600'
+                      }`}
+                      rows={4}
+                    />
+                    <div className="absolute right-3 bottom-3 text-xs text-gray-500">
+                      {formData.rules.length}/{CHARACTER_LIMITS.rules}
+                    </div>
+                  </div>
+                  {validationErrors.rules && (
+                    <p className="text-sm text-red-500 mt-2 flex items-center">
+                      <span className="material-icons text-base mr-1">
+                        error
+                      </span>
+                      {validationErrors.rules}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -928,82 +1082,66 @@ export default function CreateCommunityForm() {
                     </div>
                   </label>
                 </div>
-
-                {/* 파일 크기 제한 */}
-                {formData.allowFileUpload && (
-                  <div className="p-4 bg-blue-50 rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="flex items-center mb-2">
-                      <Label
-                        htmlFor="maxFileSize"
-                        className="text-lg font-bold"
-                      >
-                        최대 파일 크기
-                      </Label>
-                      <div className="ml-2 group relative">
-                        <span className="material-icons text-gray-500 cursor-help text-sm">
-                          help_outline
-                        </span>
-                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                          멤버가 한 번에 업로드할 수 있는 파일의 최대 용량을
-                          설정합니다. (1MB ~ 100MB)
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="maxFileSize"
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={formData.maxFileSize / 1048576} // MB로 변환
-                        onChange={(e) => {
-                          const mb = parseInt(e.target.value) || 10
-                          setFormData({
-                            ...formData,
-                            maxFileSize: mb * 1048576,
-                          })
-                        }}
-                        className="w-24 p-3 border-3 border-black rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-colors"
-                      />
-                      <span className="text-lg font-bold">MB</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      멤버들이 업로드할 수 있는 파일의 최대 크기 (1-100MB)
-                    </p>
-                  </div>
-                )}
               </div>
             </section>
 
-            {/* 제출 버튼 */}
+            {/* 제출 버튼 - 단일 버튼으로 통일 */}
             <div className="border-t-2 border-black pt-8">
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="px-6 py-3 font-bold bg-white border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
-                >
-                  취소
-                </Button>
+              <div className="space-y-4">
+                {/* 유효성 검사 요약 */}
+                {Object.values(validationErrors).some((error) => error) && (
+                  <div className="p-4 bg-red-50 border-2 border-red-500 rounded-lg">
+                    <h3 className="font-bold text-red-700 mb-2">
+                      입력 오류가 있습니다:
+                    </h3>
+                    <ul className="text-sm text-red-600 space-y-1">
+                      {validationErrors.name && (
+                        <li>• {validationErrors.name}</li>
+                      )}
+                      {validationErrors.slug && (
+                        <li>• {validationErrors.slug}</li>
+                      )}
+                      {validationErrors.description && (
+                        <li>• {validationErrors.description}</li>
+                      )}
+                      {validationErrors.rules && (
+                        <li>• {validationErrors.rules}</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   disabled={
                     isSubmitting ||
                     !formData.name ||
                     !formData.slug ||
-                    slugAvailable === false
+                    slugAvailable === false ||
+                    Object.values(validationErrors).some((error) => error)
                   }
-                  className="flex-1 px-6 py-3 font-bold text-white bg-blue-500 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 text-xl font-bold text-white bg-blue-500 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      만드는 중...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      커뮤니티 만드는 중...
                     </>
                   ) : (
-                    '커뮤니티 만들기'
+                    '🚀 커뮤니티 만들기'
                   )}
                 </Button>
+
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => router.back()}
+                    className="text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    취소하고 돌아가기
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
