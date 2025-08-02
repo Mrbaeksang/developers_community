@@ -83,14 +83,17 @@ export function getDefaultBannerById(id: string) {
   return defaultBanners.find((banner) => banner.id === id)
 }
 
-// 배너 타입 확인
-export function getBannerType(banner: string): 'default' | 'upload' | 'none' {
+// 배너 타입 확인 (Unsplash 지원 추가)
+export function getBannerType(
+  banner: string
+): 'default' | 'upload' | 'unsplash' | 'none' {
   if (!banner) return 'none'
   if (banner.startsWith('default:')) return 'default'
+  if (banner.startsWith('unsplash:')) return 'unsplash'
   return 'upload'
 }
 
-// 배너 URL 생성
+// 배너 URL 생성 (Unsplash 지원 추가)
 export function getBannerUrl(banner: string): string {
   if (!banner) {
     // 랜덤 기본 배너 반환
@@ -101,6 +104,11 @@ export function getBannerUrl(banner: string): string {
     const bannerId = banner.replace('default:', '')
     const defaultBanner = getDefaultBannerById(bannerId)
     return defaultBanner?.url || getRandomDefaultBanner().url
+  }
+
+  if (banner.startsWith('unsplash:')) {
+    // Unsplash 이미지는 unsplash: 접두사를 제거하고 URL 반환
+    return banner.replace('unsplash:', '')
   }
 
   return banner // 업로드된 이미지 URL

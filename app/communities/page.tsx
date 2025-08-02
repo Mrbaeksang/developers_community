@@ -305,6 +305,19 @@ export default async function CommunitiesPage({
                             }
                           }
 
+                          // Unsplash 이미지인 경우
+                          if (bannerType === 'unsplash' && community.banner) {
+                            const unsplashUrl = getBannerUrl(community.banner)
+                            return (
+                              <Image
+                                src={unsplashUrl}
+                                alt={`${community.name} banner preview`}
+                                fill
+                                className="object-cover"
+                              />
+                            )
+                          }
+
                           // 업로드된 이미지인 경우
                           if (bannerType === 'upload' && community.banner) {
                             return (

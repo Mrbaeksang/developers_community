@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 // Removed unused Card imports
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // Removed Switch import - using custom toggle
-import { Loader2, Check, X, Image as ImageIcon, Search } from 'lucide-react'
+import { Check, X, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community-utils'
 import { defaultBanners } from '@/lib/banner-utils'
+import { RECOMMENDED_BANNER_IMAGES } from '@/lib/unsplash-utils'
 
 export default function CreateCommunityForm() {
   const router = useRouter()
@@ -21,23 +22,22 @@ export default function CreateCommunityForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingSlug, setIsCheckingSlug] = useState(false)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [bannerPreview, setBannerPreview] = useState<string>('')
   const [selectedDefaultAvatar, setSelectedDefaultAvatar] = useState<
     (typeof DEFAULT_AVATARS)[0] | null
   >(null)
-  const [avatarType, setAvatarType] = useState<'default' | 'upload' | 'search'>(
-    'default'
-  )
-  const [bannerType, setBannerType] = useState<'default' | 'upload' | 'none'>(
-    'none'
-  )
+  const [bannerType, setBannerType] = useState<
+    'default' | 'upload' | 'unsplash' | 'none'
+  >('none')
   const [selectedDefaultBanner, setSelectedDefaultBanner] = useState<
     (typeof defaultBanners)[0] | null
   >(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<
-    Array<{ url: string; alt: string }>
+  const [selectedUnsplashImage, setSelectedUnsplashImage] = useState<
+    (typeof RECOMMENDED_BANNER_IMAGES)[0] | null
+  >(null)
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('')
+  const [unsplashSearchResults, setUnsplashSearchResults] = useState<
+    typeof RECOMMENDED_BANNER_IMAGES
   >([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -104,11 +104,11 @@ export default function CreateCommunityForm() {
 
   // 커뮤니티 이름 변경시 자동으로 기본 아바타 선택
   useEffect(() => {
-    if (formData.name && avatarType === 'default' && !selectedDefaultAvatar) {
+    if (formData.name && !selectedDefaultAvatar) {
       const avatar = getAvatarFromName(formData.name)
       setSelectedDefaultAvatar(avatar)
     }
-  }, [formData.name, avatarType, selectedDefaultAvatar])
+  }, [formData.name, selectedDefaultAvatar])
 
   // 폼 데이터 변경 감지
   useEffect(() => {
@@ -158,29 +158,47 @@ export default function CreateCommunityForm() {
     fileInputRef.current?.click()
   }
 
-  // 이미지 검색 핸들러
-  const handleImageSearch = async () => {
-    if (!searchQuery) return
-
-    setIsSearching(true)
-    try {
-      // Lorem Picsum을 사용한 랜덤 이미지
-      const dummyResults = Array.from({ length: 8 }, (_, idx) => ({
-        url: `https://picsum.photos/200/200?random=${Date.now()}_${idx}_${searchQuery}`,
-        alt: `${searchQuery} ${idx + 1}`,
-      }))
-
-      await new Promise((resolve) => setTimeout(resolve, 500)) // 시뮬레이션 딜레이
-      setSearchResults(dummyResults)
-    } catch {
+  const handleUnsplashSearch = () => {
+    if (!unsplashSearchQuery.trim()) {
       toast({
-        title: '오류',
-        description: '이미지 검색에 실패했습니다.',
+        title: '검색어를 입력하세요',
+        description: '검색어를 입력한 후 검색해주세요.',
         variant: 'destructive',
       })
-    } finally {
-      setIsSearching(false)
+      return
     }
+
+    setIsSearching(true)
+
+    // 시뮬레이션된 검색 결과 (실제로는 API 호출)
+    setTimeout(() => {
+      const searchResults = RECOMMENDED_BANNER_IMAGES.filter(
+        (img) =>
+          img.tags.some((tag) =>
+            tag.toLowerCase().includes(unsplashSearchQuery.toLowerCase())
+          ) ||
+          img.description
+            .toLowerCase()
+            .includes(unsplashSearchQuery.toLowerCase())
+      )
+
+      if (searchResults.length === 0) {
+        // 검색 결과가 없을 때는 기본 추천 이미지 표시
+        setUnsplashSearchResults(RECOMMENDED_BANNER_IMAGES)
+        toast({
+          title: '검색 결과가 없습니다',
+          description: '다른 키워드로 검색해보세요. 추천 이미지를 표시합니다.',
+        })
+      } else {
+        setUnsplashSearchResults(searchResults)
+        toast({
+          title: '검색 완료',
+          description: `${searchResults.length}개의 이미지를 찾았습니다.`,
+        })
+      }
+
+      setIsSearching(false)
+    }, 500)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -201,6 +219,14 @@ export default function CreateCommunityForm() {
       finalAvatar = `default:${selectedDefaultAvatar.name}`
     }
 
+    // 배너 설정
+    let finalBanner = formData.banner
+    if (bannerType === 'default' && selectedDefaultBanner) {
+      finalBanner = `default:${selectedDefaultBanner.id}`
+    } else if (bannerType === 'unsplash' && selectedUnsplashImage) {
+      finalBanner = `unsplash:${selectedUnsplashImage.url}`
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -210,6 +236,7 @@ export default function CreateCommunityForm() {
         body: JSON.stringify({
           ...formData,
           avatar: finalAvatar,
+          banner: finalBanner,
         }),
       })
 
@@ -324,7 +351,7 @@ export default function CreateCommunityForm() {
                       placeholder="예: React 개발자 모임"
                       value={formData.name}
                       maxLength={CHARACTER_LIMITS.name}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const value = e.target.value
                         setFormData({ ...formData, name: value })
 
@@ -391,8 +418,8 @@ export default function CreateCommunityForm() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-gray-500 p-3 bg-gray-100 border-l-3 border-t-3 border-b-3 border-black rounded-l-lg">
+                  <div className="flex items-stretch">
+                    <span className="flex items-center text-gray-500 px-3 bg-gray-100 border-l-3 border-t-3 border-b-3 border-black rounded-l-lg">
                       /communities/
                     </span>
                     <div className="relative flex-1">
@@ -401,7 +428,7 @@ export default function CreateCommunityForm() {
                         placeholder="react-developers"
                         value={formData.slug}
                         maxLength={CHARACTER_LIMITS.slug}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const value = e.target.value
                           // Only allow valid characters in real-time
                           const cleanValue = value.replace(/[^a-z0-9-]/g, '')
@@ -587,168 +614,57 @@ export default function CreateCommunityForm() {
               {/* 아바타 미리보기 */}
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-20 h-20 rounded-lg border-2 border-black overflow-hidden bg-gray-50 flex items-center justify-center">
-                  {avatarType === 'default' && selectedDefaultAvatar ? (
+                  {selectedDefaultAvatar ? (
                     <div
                       className="w-full h-full flex items-center justify-center text-4xl"
                       style={{ backgroundColor: selectedDefaultAvatar.color }}
                     >
                       {selectedDefaultAvatar.emoji}
                     </div>
-                  ) : avatarPreview ||
-                    (avatarType === 'search' &&
-                      formData.avatar &&
-                      !formData.avatar.startsWith('default:')) ? (
-                    avatarPreview?.startsWith('blob:') ||
-                    formData.avatar?.startsWith('blob:') ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatarPreview || formData.avatar}
-                        alt="Avatar preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Image
-                        src={avatarPreview || formData.avatar}
-                        alt="Avatar preview"
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
-                      />
-                    )
                   ) : (
                     <ImageIcon className="h-8 w-8 text-gray-400" />
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {avatarType === 'default' && selectedDefaultAvatar
+                  {selectedDefaultAvatar
                     ? '기본 아바타가 자동으로 선택되었습니다'
                     : '아바타를 선택해주세요'}
                 </div>
               </div>
 
-              {/* 아바타 선택 탭 */}
-              <div className="flex border-b-2 border-black">
-                <button
-                  type="button"
-                  className={`flex-1 p-3 font-bold ${
-                    avatarType === 'default'
-                      ? 'bg-white border-t-2 border-l-2 border-r-2 border-black -mb-[2px]'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                  onClick={() => setAvatarType('default')}
-                >
-                  기본 아바타
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 p-3 font-bold ${
-                    avatarType === 'search'
-                      ? 'bg-white border-t-2 border-l-2 border-r-2 border-black -mb-[2px]'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                  onClick={() => setAvatarType('search')}
-                >
-                  이미지 검색
-                </button>
+              {/* 아바타 선택 섹션 */}
+              <div className="border-b-2 border-black">
+                <div className="p-3 bg-white border-t-2 border-l-2 border-r-2 border-black font-bold text-center">
+                  다양한 기본 아바타 선택
+                </div>
               </div>
 
               {/* 기본 아바타 선택 그리드 */}
-              {avatarType === 'default' && (
-                <div className="p-4 border-2 border-black border-t-0">
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
-                    {DEFAULT_AVATARS.map((avatar) => (
-                      <button
-                        key={avatar.name}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDefaultAvatar(avatar)
-                          setFormData({
-                            ...formData,
-                            avatar: `default:${avatar.name}`,
-                          })
-                        }}
-                        className={`w-16 h-16 text-4xl flex items-center justify-center rounded-lg border-2 border-black transition-all ${
-                          selectedDefaultAvatar?.name === avatar.name
-                            ? 'ring-4 ring-blue-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                            : 'hover:scale-105 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                        }`}
-                        style={{ backgroundColor: avatar.color }}
-                      >
-                        {avatar.emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 이미지 검색 */}
-              {avatarType === 'search' && (
-                <div className="p-4 border-2 border-black border-t-0">
-                  <div className="flex gap-2 mb-3">
-                    <Input
-                      type="text"
-                      placeholder="검색어를 입력하세요 (예: technology, nature, abstract)"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleImageSearch()
-                        }
-                      }}
-                      className="border-2 border-black"
-                    />
-                    <Button
+              <div className="p-4 border-2 border-black border-t-0">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
+                  {DEFAULT_AVATARS.map((avatar) => (
+                    <button
+                      key={avatar.name}
                       type="button"
-                      onClick={handleImageSearch}
-                      disabled={!searchQuery || isSearching}
-                      className="border-2 border-black"
+                      onClick={() => {
+                        setSelectedDefaultAvatar(avatar)
+                        setFormData({
+                          ...formData,
+                          avatar: `default:${avatar.name}`,
+                        })
+                      }}
+                      className={`w-16 h-16 text-4xl flex items-center justify-center rounded-lg border-2 border-black transition-all ${
+                        selectedDefaultAvatar?.name === avatar.name
+                          ? 'ring-4 ring-blue-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                          : 'hover:scale-105 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                      }`}
+                      style={{ backgroundColor: avatar.color }}
                     >
-                      {isSearching ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {searchResults.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {searchResults.map((result, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            setAvatarPreview(result.url)
-                            setFormData({ ...formData, avatar: result.url })
-                          }}
-                          className={`aspect-square rounded-md border-2 overflow-hidden transition-all hover:scale-105 ${
-                            formData.avatar === result.url
-                              ? 'border-blue-600 ring-2 ring-blue-300'
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          <Image
-                            src={result.url}
-                            alt={result.alt}
-                            width={100}
-                            height={100}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {searchResults.length === 0 &&
-                    searchQuery &&
-                    !isSearching && (
-                      <p className="text-sm text-center text-muted-foreground py-4">
-                        검색 결과가 없습니다. 다른 키워드로 시도해보세요.
-                      </p>
-                    )}
+                      {avatar.emoji}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </section>
 
             {/* 구분선 */}
@@ -800,6 +716,8 @@ export default function CreateCommunityForm() {
                         width={1200}
                         height={300}
                         className="w-full h-full object-cover"
+                        priority
+                        unoptimized
                       />
                     )}
                     <Button
@@ -848,6 +766,17 @@ export default function CreateCommunityForm() {
                 </button>
                 <button
                   type="button"
+                  className={`flex-1 p-3 font-bold border-t-2 border-l border-r border-black transition-all ${
+                    bannerType === 'unsplash'
+                      ? 'bg-white -mb-px z-10'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                  onClick={() => setBannerType('unsplash')}
+                >
+                  Unsplash
+                </button>
+                <button
+                  type="button"
                   className={`flex-1 p-3 font-bold border-t-2 border-l border-r-2 border-black transition-all ${
                     bannerType === 'none'
                       ? 'bg-white -mb-px z-10'
@@ -857,6 +786,7 @@ export default function CreateCommunityForm() {
                     setBannerType('none')
                     setBannerPreview('')
                     setSelectedDefaultBanner(null)
+                    setSelectedUnsplashImage(null)
                     setFormData({ ...formData, banner: '' })
                   }}
                 >
@@ -881,7 +811,7 @@ export default function CreateCommunityForm() {
                         }`}
                         onClick={() => {
                           setSelectedDefaultBanner(banner)
-                          setBannerPreview(banner.preview)
+                          setBannerPreview(banner.url)
                           setFormData({
                             ...formData,
                             banner: `default:${banner.id}`,
@@ -907,7 +837,7 @@ export default function CreateCommunityForm() {
                       onClick={handleUploadClick}
                     >
                       <span className="material-icons">upload</span>
-                      <span>배너 이미지 업로드</span>
+                      <span>파일 업로드 - 배너 이미지</span>
                     </Button>
                     <input
                       ref={fileInputRef}
@@ -923,6 +853,98 @@ export default function CreateCommunityForm() {
                     <p className="text-sm text-gray-500 mt-2 text-center">
                       권장 크기: 1200x300px (가로형 이미지)
                     </p>
+                  </div>
+                )}
+
+                {bannerType === 'unsplash' && (
+                  <div className="space-y-4">
+                    {/* Unsplash 검색 */}
+                    <div>
+                      <h3 className="text-lg font-bold mb-3">Unsplash 검색</h3>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="예: technology, nature, minimal..."
+                          className="flex-1 p-3 border-2 border-black rounded-lg font-medium"
+                          value={unsplashSearchQuery}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setUnsplashSearchQuery(e.target.value)
+                          }
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleUnsplashSearch()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          className="bg-black text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
+                          onClick={handleUnsplashSearch}
+                        >
+                          검색
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* 추천 Unsplash 이미지들 */}
+                    <div>
+                      <h3 className="text-lg font-bold mb-3">
+                        {unsplashSearchResults.length > 0
+                          ? '검색 결과'
+                          : '추천 배너 이미지'}
+                        {isSearching && (
+                          <span className="ml-2 text-sm font-normal text-gray-500">
+                            검색 중...
+                          </span>
+                        )}
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {(unsplashSearchResults.length > 0
+                          ? unsplashSearchResults
+                          : RECOMMENDED_BANNER_IMAGES
+                        ).map((image) => (
+                          <div
+                            key={image.id}
+                            className={`relative h-32 w-full rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all overflow-hidden cursor-pointer group ${
+                              selectedUnsplashImage?.id === image.id
+                                ? 'ring-4 ring-blue-500'
+                                : ''
+                            }`}
+                            onClick={() => {
+                              setSelectedUnsplashImage(image)
+                              setBannerPreview(image.url)
+                              setFormData({
+                                ...formData,
+                                banner: `unsplash:${image.url}`,
+                              })
+                            }}
+                          >
+                            <Image
+                              src={image.url}
+                              alt={image.description}
+                              width={1200}
+                              height={300}
+                              className="w-full h-full object-cover"
+                              priority
+                              unoptimized
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all" />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {image.description}
+                            </div>
+                            {selectedUnsplashImage?.id === image.id && (
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 border-2 border-black rounded-full flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2 text-center">
+                        고화질 이미지들이 자동으로 커뮤니티에 맞게 조정됩니다
+                      </p>
+                    </div>
                   </div>
                 )}
 
