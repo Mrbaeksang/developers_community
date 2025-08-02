@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 // Removed unused Card imports
@@ -40,6 +40,8 @@ export default function CreateCommunityForm() {
     Array<{ url: string; alt: string }>
   >([])
   const [isSearching, setIsSearching] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -50,7 +52,7 @@ export default function CreateCommunityForm() {
     banner: '',
     visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
     allowFileUpload: true,
-    allowChat: false,
+    allowChat: true,
     maxFileSize: 10485760, // 10MB default - fixed value
   })
 
@@ -108,6 +110,27 @@ export default function CreateCommunityForm() {
     }
   }, [formData.name, avatarType, selectedDefaultAvatar])
 
+  // 폼 데이터 변경 감지
+  useEffect(() => {
+    const hasData =
+      formData.name || formData.slug || formData.description || formData.rules
+    setHasUnsavedChanges(hasData)
+  }, [formData])
+
+  // 페이지 이탈 방지
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && !isSubmitting) {
+        e.preventDefault()
+        e.returnValue =
+          '작성 중인 내용이 있습니다. 정말 페이지를 떠나시겠습니까?'
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges, isSubmitting])
+
   // 파일 업로드 핸들러 (배너 전용)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -128,6 +151,11 @@ export default function CreateCommunityForm() {
     const url = URL.createObjectURL(file)
     setBannerPreview(url)
     setFormData({ ...formData, banner: url })
+  }
+
+  // 파일 업로드 버튼 핸들러
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
   }
 
   // 이미지 검색 핸들러
@@ -386,7 +414,7 @@ export default function CreateCommunityForm() {
                             slug: error,
                           }))
                         }}
-                        className={`w-full p-3 border-3 rounded-r-lg pr-16 focus:ring-2 focus:ring-blue-200 transition-colors rounded-l-none ${
+                        className={`w-full p-3 border-3 border-l-0 rounded-r-lg pr-16 focus:ring-2 focus:ring-blue-200 transition-colors rounded-l-none ${
                           validationErrors.slug || slugAvailable === false
                             ? 'border-red-500 focus:border-red-600'
                             : 'border-black focus:border-blue-600'
@@ -874,15 +902,13 @@ export default function CreateCommunityForm() {
                     <Button
                       type="button"
                       className="w-full p-4 font-bold bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
-                      onClick={() =>
-                        document.getElementById('banner-upload')?.click()
-                      }
+                      onClick={handleUploadClick}
                     >
                       <span className="material-icons">upload</span>
                       <span>배너 이미지 업로드</span>
                     </Button>
-                    <Input
-                      id="banner-upload"
+                    <input
+                      ref={fileInputRef}
                       type="file"
                       accept="image/*"
                       className="hidden"
@@ -1146,13 +1172,21 @@ export default function CreateCommunityForm() {
             </div>
           </form>
 
-          {/* 로딩 오버레이 */}
+          {/* 로딩 오버레이 - 개선된 스피너 */}
           {isSubmitting && (
-            <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-              <p className="mt-4 text-xl font-bold text-gray-700">
-                커뮤니티를 만들고 있습니다...
-              </p>
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
+              </div>
+              <div className="mt-6 text-center">
+                <p className="text-xl font-bold text-gray-700 mb-2">
+                  커뮤니티 생성 중...
+                </p>
+                <p className="text-sm text-gray-500">
+                  잠시만 기다려주세요. 페이지를 벗어나지 마세요.
+                </p>
+              </div>
             </div>
           )}
         </main>
