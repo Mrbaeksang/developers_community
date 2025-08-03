@@ -56,8 +56,9 @@ export function RecentPosts() {
       // 메인 사이트의 모든 카테고리 게시글 가져오기 (커뮤니티 글 제외)
       const response = await fetch('/api/main/posts?limit=10&sort=latest')
       if (!response.ok) throw new Error('Failed to fetch')
-      const data = await response.json()
-      setPosts(data.posts)
+      const result = await response.json()
+      // paginatedResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+      setPosts(result.data || [])
     } catch (error) {
       console.error('Failed to fetch recent posts:', error)
     } finally {

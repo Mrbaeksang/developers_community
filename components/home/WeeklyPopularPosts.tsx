@@ -64,8 +64,9 @@ export function WeeklyPopularPosts() {
     try {
       const response = await fetch('/api/main/posts/weekly-trending?limit=5')
       if (!response.ok) throw new Error('Failed to fetch')
-      const data = await response.json()
-      setPosts(data.posts)
+      const result = await response.json()
+      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+      setPosts(result.data?.posts || [])
     } catch (error) {
       console.error('Failed to fetch weekly trending:', error)
     } finally {

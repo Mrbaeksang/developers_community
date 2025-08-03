@@ -50,16 +50,17 @@ export function PostEditor() {
         // 카테고리 로드
         const categoriesRes = await fetch('/api/main/categories')
         if (categoriesRes.ok) {
-          const data = await categoriesRes.json()
-          setCategories(data)
+          const result = await categoriesRes.json()
+          // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+          setCategories(result.data || result)
         }
 
         // 태그 로드
         const tagsRes = await fetch('/api/main/tags')
         if (tagsRes.ok) {
-          const data = await tagsRes.json()
-          setExistingTags(data)
-        }
+          const result = await tagsRes.json()
+          // successResponse 형식으로 오는 경우 data.tags 필드에서 실제 데이터 추출
+          setExistingTags(result.data?.tags || [])
       } catch (error) {
         console.error('Failed to load data:', error)
       }

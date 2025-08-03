@@ -109,9 +109,12 @@ export function NotificationProvider({
     try {
       const res = await fetch('/api/notifications?limit=10')
       if (res.ok) {
-        const data = await res.json()
-        setNotifications(data.notifications)
-        setUnreadCount(data.unreadCount)
+        const result = await res.json()
+        // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+        if (result.data) {
+          setNotifications(result.data.notifications || [])
+          setUnreadCount(result.data.unreadCount || 0)
+        }
       }
     } catch (error) {
       console.error('Failed to refresh notifications:', error)

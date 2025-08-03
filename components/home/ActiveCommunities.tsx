@@ -31,8 +31,9 @@ export function ActiveCommunities() {
     try {
       const response = await fetch('/api/communities/active?limit=5')
       if (!response.ok) throw new Error('Failed to fetch')
-      const data = await response.json()
-      setCommunities(data.communities)
+      const result = await response.json()
+      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+      setCommunities(result.data?.communities || [])
     } catch (error) {
       console.error('Failed to fetch active communities:', error)
     } finally {

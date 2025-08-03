@@ -24,8 +24,9 @@ export function CategoryGrid() {
       try {
         const res = await fetch('/api/main/categories')
         if (res.ok) {
-          const data = await res.json()
-          setCategories(data)
+          const result = await res.json()
+          // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+          setCategories(result.data || result)
         }
       } catch (error) {
         console.error('카테고리 조회 실패:', error)
