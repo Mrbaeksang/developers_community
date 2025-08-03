@@ -52,7 +52,10 @@
       "mcp__sequential-thinking__sequentialthinking",
       "mcp__playwright__browser_resize",
       "WebFetch(domain:deepwiki.org)",
-      "WebFetch(domain:deepwiki.com)"
+      "WebFetch(domain:deepwiki.com)",
+      "mcp__exa__deep_researcher_start",
+      "mcp__exa__deep_researcher_check",
+      "mcp__github__search_repositories"
     ],
     "deny": []
   }

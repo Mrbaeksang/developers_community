@@ -3,6 +3,7 @@
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import remarkGfm from 'remark-gfm'
+import Image from 'next/image'
 
 // Lazy load ReactMarkdown only
 const ReactMarkdown = lazy(() => import('react-markdown'))
@@ -70,13 +71,40 @@ export function MarkdownPreview({ content, className }: MarkdownPreviewProps) {
                 {children}
               </a>
             ),
-            img: ({ src, alt }) => (
-              <img
-                src={src}
-                alt={alt}
-                className="max-w-full h-auto rounded mb-4"
-              />
-            ),
+            img: ({ src, alt }) => {
+              // src가 string인지 확인
+              const imageSrc = typeof src === 'string' ? src : ''
+
+              // 외부 이미지 URL인 경우 일반 img 태그 사용
+              if (imageSrc.startsWith('http')) {
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageSrc}
+                    alt={alt || ''}
+                    className="max-w-full h-auto rounded mb-4"
+                  />
+                )
+              }
+
+              // 내부 이미지는 Next.js Image 컴포넌트 사용
+              return (
+                <div className="relative w-full mb-4">
+                  <Image
+                    src={imageSrc || '/placeholder.svg'}
+                    alt={alt || ''}
+                    width={800}
+                    height={600}
+                    className="rounded"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                    }}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
+                  />
+                </div>
+              )
+            },
           }}
         >
           {content}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -1001,14 +1002,41 @@ export function PostEditor({ userRole }: PostEditorProps) {
                                     {children}
                                   </a>
                                 ),
-                                img: ({ src, alt }) => (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={src}
-                                    alt={alt}
-                                    className="max-w-full h-auto rounded-lg my-4"
-                                  />
-                                ),
+                                img: ({ src, alt }) => {
+                                  // src가 string인지 확인
+                                  const imageSrc =
+                                    typeof src === 'string' ? src : ''
+
+                                  // 외부 이미지 URL인 경우 일반 img 태그 사용
+                                  if (imageSrc.startsWith('http')) {
+                                    return (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={imageSrc}
+                                        alt={alt || ''}
+                                        className="max-w-full h-auto rounded-lg my-4"
+                                      />
+                                    )
+                                  }
+
+                                  // 내부 이미지는 Next.js Image 컴포넌트 사용
+                                  return (
+                                    <div className="relative w-full my-4">
+                                      <Image
+                                        src={imageSrc || '/placeholder.svg'}
+                                        alt={alt || ''}
+                                        width={800}
+                                        height={600}
+                                        className="rounded-lg"
+                                        style={{
+                                          width: '100%',
+                                          height: 'auto',
+                                        }}
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
+                                      />
+                                    </div>
+                                  )
+                                },
                               }}
                             >
                               {content ||
