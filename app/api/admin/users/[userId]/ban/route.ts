@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 export async function POST(
   req: Request,
@@ -8,25 +9,19 @@ export async function POST(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { userId } = await params
     const adminUserId = result.user.id
 
     // 자기 자신을 차단하는 것 방지
     if (userId === adminUserId) {
-      return NextResponse.json(
-        { error: 'Cannot ban yourself' },
-        { status: 400 }
-      )
+      throw throwValidationError('자신을 차단할 수 없습니다.')
     }
 
     const { banReason, banUntil } = await req.json()
 
     if (!banReason) {
-      return NextResponse.json(
-        { error: 'Ban reason is required' },
-        { status: 400 }
-      )
+      throw throwValidationError('차단 사유를 입력해주세요.')
     }
 
     // 사용자 차단
@@ -41,9 +36,8 @@ export async function POST(
       },
     })
 
-    return NextResponse.json(user)
+    return successResponse(user)
   } catch (error) {
-    console.error('Error banning user:', error)
-    return NextResponse.json({ error: 'Failed to ban user' }, { status: 500 })
+    return handleError(error)
   }
 }

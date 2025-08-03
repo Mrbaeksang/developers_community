@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function POST(
   req: Request,
@@ -8,7 +9,7 @@ export async function POST(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { userId } = await params
 
     // 사용자 차단 해제
@@ -23,9 +24,8 @@ export async function POST(
       },
     })
 
-    return NextResponse.json(user)
+    return successResponse(user)
   } catch (error) {
-    console.error('Error unbanning user:', error)
-    return NextResponse.json({ error: 'Failed to unban user' }, { status: 500 })
+    return handleError(error)
   }
 }

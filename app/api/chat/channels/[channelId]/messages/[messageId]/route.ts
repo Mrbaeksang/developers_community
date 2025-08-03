@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { z } from 'zod'
@@ -6,6 +5,12 @@ import {
   broadcastMessageUpdate,
   broadcastMessageDelete,
 } from '@/lib/chat-broadcast'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 const updateMessageSchema = z.object({
   content: z.string().min(1).max(1000),
@@ -21,7 +26,7 @@ export async function PATCH(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -45,18 +50,12 @@ export async function PATCH(
     })
 
     if (!message) {
-      return NextResponse.json(
-        { error: '메시지를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('메시지를 찾을 수 없습니다.')
     }
 
     // 본인 메시지인지 확인
     if (message.authorId !== userId) {
-      return NextResponse.json(
-        { error: '본인의 메시지만 수정할 수 있습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('본인의 메시지만 수정할 수 있습니다.')
     }
 
     // 요청 본문 검증
@@ -114,22 +113,11 @@ export async function PATCH(
     // 실시간으로 다른 사용자들에게 업데이트 브로드캐스트
     broadcastMessageUpdate(channelId, messageResponse)
 
-    return NextResponse.json({
+    return successResponse({
       message: messageResponse,
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: '잘못된 요청입니다.', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('Failed to update message:', error)
-    return NextResponse.json(
-      { error: '메시지 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -143,7 +131,7 @@ export async function DELETE(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -159,18 +147,12 @@ export async function DELETE(
     })
 
     if (!message) {
-      return NextResponse.json(
-        { error: '메시지를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('메시지를 찾을 수 없습니다.')
     }
 
     // 본인 메시지인지 확인
     if (message.authorId !== userId) {
-      return NextResponse.json(
-        { error: '본인의 메시지만 삭제할 수 있습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('본인의 메시지만 삭제할 수 있습니다.')
     }
 
     // 메시지 삭제
@@ -184,14 +166,10 @@ export async function DELETE(
     // 실시간으로 다른 사용자들에게 삭제 이벤트 브로드캐스트
     broadcastMessageDelete(channelId, messageId)
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
     })
   } catch (error) {
-    console.error('Failed to delete message:', error)
-    return NextResponse.json(
-      { error: '메시지 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

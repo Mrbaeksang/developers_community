@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
     const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -37,12 +38,8 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(users)
+    return successResponse(users)
   } catch (error) {
-    console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

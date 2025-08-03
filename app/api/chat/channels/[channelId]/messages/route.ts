@@ -1,9 +1,15 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { broadcastMessage } from '@/lib/chat-broadcast'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 const messageSchema = z.object({
   content: z.string().min(1).max(1000),
@@ -27,19 +33,13 @@ export async function GET(
     })
 
     if (!channel) {
-      return NextResponse.json(
-        { error: '채널을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('채널을 찾을 수 없습니다.')
     }
 
     // GLOBAL 채널이 아닌 경우에만 인증 및 멤버 확인
     if (channel.type !== 'GLOBAL') {
       if (!session?.user?.id) {
-        return NextResponse.json(
-          { error: '로그인이 필요합니다.' },
-          { status: 401 }
-        )
+        throw throwAuthorizationError('로그인이 필요합니다.')
       }
 
       // 채널 멤버 확인 (여기서는 userId가 확실히 있음)
@@ -53,10 +53,7 @@ export async function GET(
       })
 
       if (!channelMember) {
-        return NextResponse.json(
-          { error: '채팅방에 참여하지 않았습니다.' },
-          { status: 403 }
-        )
+        throw throwAuthorizationError('채팅방에 참여하지 않았습니다.')
       }
     }
 
@@ -124,7 +121,7 @@ export async function GET(
       })
     }
 
-    return NextResponse.json({
+    return successResponse({
       messages: messages.map((message) => {
         return {
           id: message.id,
@@ -157,11 +154,7 @@ export async function GET(
       nextCursor,
     })
   } catch (error) {
-    console.error('Failed to fetch messages:', error)
-    return NextResponse.json(
-      { error: '메시지를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -175,7 +168,7 @@ export async function POST(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -187,10 +180,7 @@ export async function POST(
     })
 
     if (!channel) {
-      return NextResponse.json(
-        { error: '채널을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('채널을 찾을 수 없습니다.')
     }
 
     // GLOBAL 채널이 아닌 경우에만 멤버 확인
@@ -205,10 +195,7 @@ export async function POST(
       })
 
       if (!channelMember) {
-        return NextResponse.json(
-          { error: '채팅방에 참여하지 않았습니다.' },
-          { status: 403 }
-        )
+        throw throwAuthorizationError('채팅방에 참여하지 않았습니다.')
       }
     }
 
@@ -223,10 +210,7 @@ export async function POST(
       })
 
       if (!file || file.uploaderId !== userId) {
-        return NextResponse.json(
-          { error: '파일을 찾을 수 없거나 권한이 없습니다.' },
-          { status: 400 }
-        )
+        throw throwValidationError('파일을 찾을 수 없거나 권한이 없습니다.')
       }
     }
 
@@ -298,21 +282,10 @@ export async function POST(
     // 실시간으로 다른 사용자들에게 메시지 브로드캐스트
     broadcastMessage(channelId, messageResponse)
 
-    return NextResponse.json({
+    return successResponse({
       message: messageResponse,
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: '잘못된 요청입니다.', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('Failed to send message:', error)
-    return NextResponse.json(
-      { error: '메시지 전송에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { GlobalRole } from '@prisma/client'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 export async function PUT(
   req: Request,
@@ -9,22 +10,19 @@ export async function PUT(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { userId } = await params
     const adminUserId = result.user.id
 
     const { role } = await req.json()
 
     if (!role || !Object.values(GlobalRole).includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+      throw throwValidationError('유효하지 않은 역할입니다.')
     }
 
     // 자기 자신의 역할 변경 방지
     if (userId === adminUserId && role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Cannot change your own role' },
-        { status: 400 }
-      )
+      throw throwValidationError('자신의 역할은 변경할 수 없습니다.')
     }
 
     // 역할 변경
@@ -35,12 +33,8 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(user)
+    return successResponse(user)
   } catch (error) {
-    console.error('Error changing user role:', error)
-    return NextResponse.json(
-      { error: 'Failed to change user role' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

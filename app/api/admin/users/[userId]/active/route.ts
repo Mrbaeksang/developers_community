@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 export async function PUT(
   req: Request,
@@ -8,16 +9,13 @@ export async function PUT(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN', 'MANAGER'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { userId } = await params
     const adminUserId = result.user.id
 
     // 자기 자신의 활성 상태 변경 방지
     if (userId === adminUserId) {
-      return NextResponse.json(
-        { error: 'Cannot change your own active status' },
-        { status: 400 }
-      )
+      throw throwValidationError('자신의 활성 상태는 변경할 수 없습니다.')
     }
 
     const { isActive } = await req.json()
@@ -29,10 +27,7 @@ export async function PUT(
     })
 
     if (targetUser?.isBanned && isActive) {
-      return NextResponse.json(
-        { error: 'Cannot activate banned user' },
-        { status: 400 }
-      )
+      throw throwValidationError('차단된 사용자는 활성화할 수 없습니다.')
     }
 
     // 활성 상태 변경
@@ -43,12 +38,8 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(user)
+    return successResponse(user)
   } catch (error) {
-    console.error('Error changing user active status:', error)
-    return NextResponse.json(
-      { error: 'Failed to change user active status' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
