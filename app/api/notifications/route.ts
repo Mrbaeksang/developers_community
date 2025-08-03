@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { NotificationType } from '@prisma/client'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
+import { requireAuthAPI } from '@/lib/auth-utils'
 import { formatTimeAgo } from '@/lib/date-utils'
 
 // 알림 타입 필터 스키마
@@ -18,9 +18,9 @@ const notificationFilterSchema = z.object({
 // GET: 알림 목록 조회
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return errorResponse('로그인이 필요합니다.', 401)
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const { searchParams } = new URL(req.url)
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return errorResponse(error.issues[0].message, 400)
+      throw throwValidationError(error.issues[0].message)
     }
     return handleError(error)
   }

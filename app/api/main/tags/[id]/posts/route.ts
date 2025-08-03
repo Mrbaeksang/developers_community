@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { paginatedResponse } from '@/lib/api-response'
+import { handleError, throwNotFoundError } from '@/lib/error-handler'
 
 // 태그별 게시글 조회
 export async function GET(
@@ -21,10 +22,7 @@ export async function GET(
     })
 
     if (!tag) {
-      return NextResponse.json(
-        { error: '태그를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('태그를 찾을 수 없습니다.')
     }
 
     // 태그별 게시글 조회 (게시된 글만)
@@ -99,21 +97,8 @@ export async function GET(
       tags: post.tags.map((postTag) => postTag.tag),
     }))
 
-    return NextResponse.json({
-      tag,
-      posts: formattedPosts,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
-    })
+    return paginatedResponse(formattedPosts, page, limit, totalCount)
   } catch (error) {
-    console.error('태그별 게시글 조회 실패:', error)
-    return NextResponse.json(
-      { error: '태그별 게시글 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

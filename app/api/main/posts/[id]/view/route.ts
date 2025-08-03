@@ -20,8 +20,7 @@ export async function POST(
     await redis().expire(viewKey, 86400)
 
     return successResponse({ viewed: true })
-  } catch (error) {
-    console.error('Failed to increment view count:', error)
+  } catch {
     // Redis 오류 시에도 정상 응답 (사용자 경험 우선)
     return successResponse({ viewed: true })
   }

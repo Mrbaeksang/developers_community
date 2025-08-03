@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // GET: 사용자가 접근 가능한 채팅 채널 목록 조회
 export async function GET() {
@@ -129,12 +130,8 @@ export async function GET() {
       return 0
     })
 
-    return NextResponse.json({ channels: sortedChannels })
+    return successResponse({ channels: sortedChannels })
   } catch (error) {
-    console.error('Failed to fetch chat channels:', error)
-    return NextResponse.json(
-      { error: '채팅 채널 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

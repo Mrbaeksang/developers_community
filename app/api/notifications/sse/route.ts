@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { notificationEmitter } from '@/lib/notification-emitter'
+import { handleError } from '@/lib/error-handler'
+import { requireAuthAPI } from '@/lib/auth-utils'
 
 // GET: SSE로 실시간 알림 스트리밍
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const userId = session.user.id
@@ -141,11 +139,7 @@ export async function GET(req: NextRequest) {
         'X-Accel-Buffering': 'no',
       },
     })
-  } catch {
-    // 에러 로깅은 이미 다른 곳에서 처리됨
-    return NextResponse.json(
-      { error: '알림 스트리밍에 실패했습니다.' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleError(error)
   }
 }

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -6,6 +5,10 @@ import {
   removeConnection,
   broadcastOnlineCount,
 } from '@/lib/chat-broadcast'
+import {
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // GET: SSE 스트림 연결
 export async function GET(
@@ -23,20 +26,14 @@ export async function GET(
   })
 
   if (!channel) {
-    return NextResponse.json(
-      { error: '채널을 찾을 수 없습니다.' },
-      { status: 404 }
-    )
+    throw throwNotFoundError('채널을 찾을 수 없습니다.')
   }
 
   // GLOBAL 채널이 아닌 경우에만 멤버 확인
   if (channel.type !== 'GLOBAL') {
     // 로그인하지 않은 사용자는 GLOBAL이 아닌 채널에 접근 불가
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      throw throwAuthorizationError('로그인이 필요합니다.')
     }
 
     const channelMember = await prisma.chatChannelMember.findUnique({
@@ -49,10 +46,7 @@ export async function GET(
     })
 
     if (!channelMember) {
-      return NextResponse.json(
-        { error: '채팅방에 참여하지 않았습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('채팅방에 참여하지 않았습니다.')
     }
   }
 

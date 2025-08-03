@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { del } from '@vercel/blob'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwAuthorizationError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
+import { requireAuthAPI } from '@/lib/auth-utils'
 
 // 파일 상세 조회 - GET /api/files/[id]
 export async function GET(
@@ -9,12 +16,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const { id } = await params
@@ -46,10 +50,7 @@ export async function GET(
     })
 
     if (!file) {
-      return NextResponse.json(
-        { error: '파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('파일을 찾을 수 없습니다.')
     }
 
     // 파일 접근 권한 확인 (업로더이거나 관련 게시글/채팅에 접근 가능한 경우)
@@ -71,14 +72,11 @@ export async function GET(
       })
 
       if (!membership || membership.status !== 'ACTIVE') {
-        return NextResponse.json(
-          { error: '파일에 접근할 수 없습니다.' },
-          { status: 403 }
-        )
+        throw throwAuthorizationError('파일에 접근할 수 없습니다.')
       }
     }
 
-    return NextResponse.json({
+    return successResponse({
       id: file.id,
       filename: file.filename,
       mimeType: file.mimeType,
@@ -104,11 +102,7 @@ export async function GET(
       usageCount: file._count.chatMessages + (file.post ? 1 : 0),
     })
   } catch (error) {
-    console.error('File fetch error:', error)
-    return NextResponse.json(
-      { error: '파일 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -118,12 +112,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const { id } = await params
@@ -149,10 +140,7 @@ export async function DELETE(
     })
 
     if (!file) {
-      return NextResponse.json(
-        { error: '파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('파일을 찾을 수 없습니다.')
     }
 
     // 삭제 권한 확인
@@ -179,18 +167,12 @@ export async function DELETE(
     }
 
     if (!isUploader && !isAdmin && !isCommunityAdmin) {
-      return NextResponse.json(
-        { error: '파일 삭제 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('파일 삭제 권한이 없습니다.')
     }
 
     // 파일이 사용 중인지 확인
     if (file.post || file._count.chatMessages > 0) {
-      return NextResponse.json(
-        { error: '사용 중인 파일은 삭제할 수 없습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('사용 중인 파일은 삭제할 수 없습니다.')
     }
 
     // Vercel Blob에서 파일 삭제
@@ -208,12 +190,8 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
+    return successResponse({ success: true })
   } catch (error) {
-    console.error('File deletion error:', error)
-    return NextResponse.json(
-      { error: '파일 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

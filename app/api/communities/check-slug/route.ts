@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 const checkSlugSchema = z.object({
   slug: z
@@ -16,10 +18,7 @@ export async function POST(req: NextRequest) {
     const validation = checkSlugSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      )
+      throw throwValidationError(validation.error.issues[0].message)
     }
 
     const { slug } = validation.data
@@ -29,14 +28,10 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     })
 
-    return NextResponse.json({
+    return successResponse({
       available: !existingCommunity,
     })
   } catch (error) {
-    console.error('Failed to check slug:', error)
-    return NextResponse.json(
-      { error: '슬러그 확인에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

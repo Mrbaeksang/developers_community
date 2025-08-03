@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { redis } from '@/lib/redis'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { throwNotFoundError } from '@/lib/error-handler'
 
 // POST /api/communities/[id]/posts/[postId]/view - 조회수 증가 (Redis 버퍼링)
 export async function POST(
@@ -21,10 +23,7 @@ export async function POST(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: 'Community not found' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('Community not found')
     }
 
     // 게시글 확인 (작성자 확인용)
@@ -37,12 +36,12 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      throw throwNotFoundError('Post not found')
     }
 
     // 작성자 본인은 조회수 증가 안함
     if (session?.user?.id === post.authorId) {
-      return NextResponse.json({ success: true })
+      return successResponse({ success: true })
     }
 
     // Redis에 조회수 버퍼링
@@ -54,10 +53,9 @@ export async function POST(
     // TTL 설정 (24시간)
     await redis().expire(viewKey, 86400)
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Failed to increment view count:', error)
+    return successResponse({ success: true })
+  } catch {
     // Redis 오류 시에도 정상 응답 (사용자 경험 우선)
-    return NextResponse.json({ success: true })
+    return successResponse({ success: true })
   }
 }

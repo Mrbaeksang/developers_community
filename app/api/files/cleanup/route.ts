@@ -1,25 +1,17 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { del } from '@vercel/blob'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { requireRoleAPI } from '@/lib/auth-utils'
 
 // 파일 정리 배치 작업 - POST /api/files/cleanup
 export async function POST() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자만 실행 가능
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      )
+    // 관리자 권한 확인
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     const now = new Date()
@@ -140,8 +132,7 @@ export async function POST() {
     const totalSizeGB = (remainingFiles._sum.size || 0) / (1024 * 1024 * 1024)
     const monthlyCost = totalSizeGB * 0.15 // $0.15/GB/month
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       cleanupResults,
       storage: {
         totalFiles: remainingFiles._count,
@@ -155,31 +146,17 @@ export async function POST() {
       }개 파일 삭제`,
     })
   } catch (error) {
-    console.error('File cleanup error:', error)
-    return NextResponse.json(
-      { error: '파일 정리 작업에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
 // 스토리지 사용량 조회 - GET /api/files/cleanup
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    // 관리자만 조회 가능
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      )
+    // 관리자 권한 확인
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof NextResponse) {
+      return session
     }
 
     // 전체 파일 통계
@@ -228,7 +205,7 @@ export async function GET() {
     const totalSizeGB = (totalStats._sum.size || 0) / (1024 * 1024 * 1024)
     const monthlyCost = totalSizeGB * 0.15
 
-    return NextResponse.json({
+    return successResponse({
       summary: {
         totalFiles: totalStats._count,
         totalSizeGB: totalSizeGB.toFixed(2),
@@ -246,10 +223,6 @@ export async function GET() {
       })),
     })
   } catch (error) {
-    console.error('Storage stats error:', error)
-    return NextResponse.json(
-      { error: '스토리지 통계 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

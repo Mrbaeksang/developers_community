@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { syncAllViewCounts } from '@/lib/redis-sync'
+import { successResponse, errorResponse } from '@/lib/api-response'
 
 // Vercel Cron Job 또는 수동 실행을 위한 API
 // GET /api/cron/sync-views
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       process.env.CRON_SECRET &&
       authHeader !== `Bearer ${process.env.CRON_SECRET}`
     ) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', 401)
     }
 
     // 조회수 동기화 실행
@@ -19,15 +20,10 @@ export async function GET(request: NextRequest) {
 
     console.error(`View counts synced:`, results)
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       results,
     })
-  } catch (error) {
-    console.error('Failed to sync view counts:', error)
-    return NextResponse.json(
-      { error: 'Failed to sync view counts' },
-      { status: 500 }
-    )
+  } catch {
+    return errorResponse('Failed to sync view counts', 500)
   }
 }

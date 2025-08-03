@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 // 검색 스키마
 const searchSchema = z.object({
@@ -254,23 +256,16 @@ export async function GET(req: NextRequest) {
     const totalResults =
       results.posts.length + results.users.length + results.communities.length
 
-    return NextResponse.json({
+    return successResponse({
       query: q,
       type,
       totalResults,
       results,
     })
   } catch (error) {
-    console.error('Search failed:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
+      throw throwValidationError(error.issues[0].message)
     }
-    return NextResponse.json(
-      { error: '검색 중 오류가 발생했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  handleError,
+  throwValidationError,
+  throwNotFoundError,
+} from '@/lib/error-handler'
 
 // GET: 파일 다운로드 처리
 export async function GET(req: NextRequest) {
@@ -8,25 +13,19 @@ export async function GET(req: NextRequest) {
     const filename = searchParams.get('filename')
 
     if (!url || !filename) {
-      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+      throw throwValidationError('잘못된 요청입니다.')
     }
 
     // Vercel Blob URL 검증 (보안)
     if (!url.includes('blob.vercel-storage.com')) {
-      return NextResponse.json(
-        { error: '유효하지 않은 파일 URL입니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('유효하지 않은 파일 URL입니다.')
     }
 
     // 파일 fetch
     const response = await fetch(url)
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: '파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('파일을 찾을 수 없습니다.')
     }
 
     // Response headers 설정
@@ -52,10 +51,6 @@ export async function GET(req: NextRequest) {
       headers,
     })
   } catch (error) {
-    console.error('Download error:', error)
-    return NextResponse.json(
-      { error: '파일 다운로드에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
