@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import * as Icons from 'lucide-react'
 
 interface Category {
@@ -15,30 +15,34 @@ interface Category {
   postCount: number
 }
 
+// 카테고리 가져오기 함수
+const fetchCategories = async (): Promise<Category[]> => {
+  const res = await fetch('/api/main/categories')
+  if (!res.ok) throw new Error('Failed to fetch categories')
+
+  const result = await res.json()
+  // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+  return result.data || result
+}
+
 export function CategoryGrid() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
+  // React Query로 카테고리 목록 관리
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['mainCategories'],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60 * 1000, // 5분간 fresh
+    gcTime: 10 * 60 * 1000, // 10분간 캐시
+  })
 
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch('/api/main/categories')
-        if (res.ok) {
-          const result = await res.json()
-          // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-          setCategories(result.data || result)
-        }
-      } catch (error) {
-        console.error('카테고리 조회 실패:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  if (error) {
+    console.error('카테고리 조회 실패:', error)
+  }
 
-    fetchCategories()
-  }, [])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         {[...Array(6)].map((_, i) => (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,28 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // 알림 삭제
+  const queryClient = useQueryClient()
+
+  // 알림 삭제 mutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const res = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
+      return res.json()
+    },
+    onSuccess: () => {
+      // 알림 목록 새로고침
+      refreshNotifications()
+      toast.success('알림이 삭제되었습니다.')
+    },
+    onError: () => {
+      toast.error('알림 삭제에 실패했습니다.')
+    },
+  })
+
+  // 알림 삭제 핸들러
   const deleteNotification = async (
     e: React.MouseEvent,
     notificationId: string
@@ -38,19 +60,7 @@ export default function NotificationDropdown() {
     e.stopPropagation() // 부모 클릭 이벤트 전파 방지
     e.preventDefault() // 링크 이동 방지
 
-    try {
-      const res = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
-
-      // 알림 목록 새로고침
-      refreshNotifications()
-
-      toast.success('알림이 삭제되었습니다.')
-    } catch {
-      toast.error('알림 삭제에 실패했습니다.')
-    }
+    deleteNotificationMutation.mutate(notificationId)
   }
 
   // 알림 링크 생성
@@ -125,9 +135,7 @@ export default function NotificationDropdown() {
   // 드롭다운이 열릴 때 알림 목록 새로고침
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true)
       refreshNotifications()
-      setIsLoading(false)
     }
   }, [isOpen, refreshNotifications])
 
@@ -166,11 +174,7 @@ export default function NotificationDropdown() {
         <DropdownMenuSeparator />
 
         <ScrollArea className="h-[400px]">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : notifications.length === 0 ? (
+          {notifications.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               알림이 없습니다.
             </div>
@@ -226,8 +230,13 @@ export default function NotificationDropdown() {
                         size="icon"
                         className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
                         onClick={(e) => deleteNotification(e, notification.id)}
+                        disabled={deleteNotificationMutation.isPending}
                       >
-                        <X className="h-4 w-4" />
+                        {deleteNotificationMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

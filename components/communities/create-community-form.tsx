@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useMutation, useQuery } from '@tanstack/react-query'
 // Removed unused Card imports
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -19,10 +20,7 @@ import { RECOMMENDED_BANNER_IMAGES } from '@/lib/unsplash-utils'
 export default function CreateCommunityForm() {
   const router = useRouter()
   const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isCheckingSlug, setIsCheckingSlug] = useState(false)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
-  const [isCheckingName, setIsCheckingName] = useState(false)
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string>('')
   const [selectedDefaultAvatar, setSelectedDefaultAvatar] = useState<
@@ -205,6 +203,51 @@ export default function CreateCommunityForm() {
     }, 500)
   }
 
+  // 커뮤니티 생성 mutation
+  const createCommunityMutation = useMutation({
+    mutationFn: async (
+      data: typeof formData & { avatar: string; banner: string }
+    ) => {
+      const res = await fetch('/api/communities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        console.error('커뮤니티 생성 실패:', error)
+        throw new Error(
+          error.error || error.message || '커뮤니티 생성에 실패했습니다.'
+        )
+      }
+
+      return res.json()
+    },
+    onSuccess: (result) => {
+      toast({
+        title: '성공',
+        description: '커뮤니티가 생성되었습니다.',
+      })
+
+      // API 응답 구조에 맞게 slug 추출
+      const createdSlug = result.data?.slug || result.slug || formData.slug
+
+      // 사용자가 생성 완료를 인지할 수 있도록 약간의 딜레이 추가
+      setTimeout(() => {
+        router.push(`/communities/${createdSlug}`)
+      }, 500)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: '오류',
+        description: error.message,
+        variant: 'destructive',
+      })
+      setIsCreating(false)
+    },
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -250,55 +293,12 @@ export default function CreateCommunityForm() {
       finalBanner = `unsplash:${selectedUnsplashImage.url}`
     }
 
-    setIsSubmitting(true)
     setIsCreating(true)
-
-    try {
-      const res = await fetch('/api/communities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          avatar: finalAvatar,
-          banner: finalBanner,
-        }),
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        console.error('커뮤니티 생성 실패:', error)
-        throw new Error(
-          error.error || error.message || '커뮤니티 생성에 실패했습니다.'
-        )
-      }
-
-      const result = await res.json()
-
-      toast({
-        title: '성공',
-        description: '커뮤니티가 생성되었습니다.',
-      })
-
-      // API 응답 구조에 맞게 slug 추출
-      const createdSlug = result.data?.slug || result.slug || formData.slug
-
-      // 사용자가 생성 완료를 인지할 수 있도록 약간의 딜레이 추가
-      setTimeout(() => {
-        router.push(`/communities/${createdSlug}`)
-      }, 500)
-    } catch (error) {
-      toast({
-        title: '오류',
-        description:
-          error instanceof Error
-            ? error.message
-            : '커뮤니티 생성에 실패했습니다.',
-        variant: 'destructive',
-      })
-      setIsCreating(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    createCommunityMutation.mutate({
+      ...formData,
+      avatar: finalAvatar,
+      banner: finalBanner,
+    })
   }
 
   // 슬러그 자동 생성 - 패턴 검증 포함
@@ -312,72 +312,56 @@ export default function CreateCommunityForm() {
   }
 
   // 슬러그 중복 체크
-  useEffect(() => {
-    const checkSlug = async () => {
-      if (!formData.slug || formData.slug.length < 2) {
-        setSlugAvailable(null)
-        return
+  const { isLoading: isCheckingSlug } = useQuery({
+    queryKey: ['checkSlug', formData.slug],
+    queryFn: async () => {
+      const res = await fetch('/api/communities/check-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: formData.slug }),
+      })
+
+      if (!res.ok) throw new Error('Failed to check slug')
+      return res.json()
+    },
+    enabled: !!formData.slug && formData.slug.length >= 2,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    onSuccess: (result) => {
+      if (result.success && result.data) {
+        setSlugAvailable(!result.data.duplicates.slug)
       }
-
-      setIsCheckingSlug(true)
-      try {
-        const res = await fetch('/api/communities/check-duplicate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug: formData.slug }),
-        })
-
-        if (res.ok) {
-          const result = await res.json()
-          // API 응답 구조에 맞게 수정
-          if (result.success && result.data) {
-            setSlugAvailable(!result.data.duplicates.slug)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check slug:', error)
-      } finally {
-        setIsCheckingSlug(false)
-      }
-    }
-
-    const timer = setTimeout(checkSlug, 500) // 디바운스
-    return () => clearTimeout(timer)
-  }, [formData.slug])
+    },
+    onError: (error) => {
+      console.error('Failed to check slug:', error)
+    },
+  })
 
   // 이름 중복 체크
-  useEffect(() => {
-    const checkName = async () => {
-      if (!formData.name || formData.name.length < 2) {
-        setNameAvailable(null)
-        return
+  const { isLoading: isCheckingName } = useQuery({
+    queryKey: ['checkName', formData.name],
+    queryFn: async () => {
+      const res = await fetch('/api/communities/check-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.name }),
+      })
+
+      if (!res.ok) throw new Error('Failed to check name')
+      return res.json()
+    },
+    enabled: !!formData.name && formData.name.length >= 2,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    onSuccess: (result) => {
+      if (result.success && result.data) {
+        setNameAvailable(!result.data.duplicates.name)
       }
-
-      setIsCheckingName(true)
-      try {
-        const res = await fetch('/api/communities/check-duplicate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formData.name }),
-        })
-
-        if (res.ok) {
-          const result = await res.json()
-          // API 응답 구조에 맞게 수정
-          if (result.success && result.data) {
-            setNameAvailable(!result.data.duplicates.name)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check name:', error)
-      } finally {
-        setIsCheckingName(false)
-      }
-    }
-
-    const timer = setTimeout(checkName, 500) // 디바운스
-    return () => clearTimeout(timer)
-  }, [formData.name])
+    },
+    onError: (error) => {
+      console.error('Failed to check name:', error)
+    },
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 p-4 sm:p-8">
@@ -1265,7 +1249,7 @@ export default function CreateCommunityForm() {
                 <Button
                   type="submit"
                   disabled={
-                    isSubmitting ||
+                    createCommunityMutation.isPending ||
                     isCreating ||
                     !formData.name ||
                     !formData.slug ||
@@ -1275,10 +1259,10 @@ export default function CreateCommunityForm() {
                   }
                   className="w-full px-6 py-4 text-xl font-bold text-white bg-blue-500 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
                 >
-                  {isSubmitting || isCreating ? (
+                  {createCommunityMutation.isPending || isCreating ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      {isCreating ? '커뮤니티 생성 중...' : '처리 중...'}
+                      커뮤니티 생성 중...
                     </>
                   ) : (
                     '🚀 커뮤니티 만들기'
@@ -1300,7 +1284,7 @@ export default function CreateCommunityForm() {
           </form>
 
           {/* 로딩 오버레이 - 개선된 스피너 */}
-          {(isSubmitting || isCreating) && (
+          {(createCommunityMutation.isPending || isCreating) && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
               <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
                 <div className="flex flex-col items-center">

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface CommunityActionsProps {
   community: {
@@ -28,11 +28,11 @@ export function CommunityActions({
   isAuthenticated,
 }: CommunityActionsProps) {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const queryClient = useQueryClient()
 
-  const handleJoin = async () => {
-    setIsLoading(true)
-    try {
+  // 커뮤니티 가입 mutation
+  const joinCommunityMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch(`/api/communities/${community.id}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,8 +43,15 @@ export function CommunityActions({
         throw new Error(error.error || '가입 실패')
       }
 
-      const data = await res.json()
+      return res.json()
+    },
+    onSuccess: (data) => {
       toast.success(data.data?.message || data.message || '가입되었습니다')
+
+      // 커뮤니티 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['community', community.id] })
+      queryClient.invalidateQueries({ queryKey: ['community', community.slug] })
+      queryClient.invalidateQueries({ queryKey: ['communities'] })
 
       // 강제로 라우터 리프레시
       router.refresh()
@@ -52,22 +59,15 @@ export function CommunityActions({
       setTimeout(() => {
         router.refresh()
       }, 100)
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : '가입에 실패했습니다'
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '가입에 실패했습니다')
+    },
+  })
 
-  const handleLeave = async () => {
-    if (!confirm('정말로 커뮤니티에서 탈퇴하시겠습니까?')) {
-      return
-    }
-
-    setIsLoading(true)
-    try {
+  // 커뮤니티 탈퇴 mutation
+  const leaveCommunityMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch(`/api/communities/${community.id}/join`, {
         method: 'DELETE',
       })
@@ -77,8 +77,15 @@ export function CommunityActions({
         throw new Error(error.error || '탈퇴 실패')
       }
 
-      const data = await res.json()
+      return res.json()
+    },
+    onSuccess: (data) => {
       toast.success(data.data?.message || data.message || '탈퇴되었습니다')
+
+      // 커뮤니티 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['community', community.id] })
+      queryClient.invalidateQueries({ queryKey: ['community', community.slug] })
+      queryClient.invalidateQueries({ queryKey: ['communities'] })
 
       // 강제로 라우터 리프레시
       router.refresh()
@@ -86,13 +93,21 @@ export function CommunityActions({
       setTimeout(() => {
         router.refresh()
       }, 100)
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : '탈퇴에 실패했습니다'
-      )
-    } finally {
-      setIsLoading(false)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '탈퇴에 실패했습니다')
+    },
+  })
+
+  const handleJoin = () => {
+    joinCommunityMutation.mutate()
+  }
+
+  const handleLeave = () => {
+    if (!confirm('정말로 커뮤니티에서 탈퇴하시겠습니까?')) {
+      return
     }
+    leaveCommunityMutation.mutate()
   }
 
   return (
@@ -115,11 +130,11 @@ export function CommunityActions({
           variant="outline"
           size="sm"
           onClick={handleLeave}
-          disabled={isLoading}
+          disabled={leaveCommunityMutation.isPending}
           className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
           <LogOut className="h-4 w-4 mr-2" />
-          {isLoading ? '처리중...' : '탈퇴'}
+          {leaveCommunityMutation.isPending ? '처리중...' : '탈퇴'}
         </Button>
       )}
       {isPending && (
@@ -136,10 +151,10 @@ export function CommunityActions({
         <Button
           size="sm"
           onClick={handleJoin}
-          disabled={isLoading}
+          disabled={joinCommunityMutation.isPending}
           className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
-          {isLoading ? '처리중...' : '가입하기'}
+          {joinCommunityMutation.isPending ? '처리중...' : '가입하기'}
         </Button>
       )}
       {!isAuthenticated && (
