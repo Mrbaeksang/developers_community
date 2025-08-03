@@ -39,7 +39,6 @@ import {
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useDropzone } from 'react-dropzone'
-
 interface Category {
   id: string
   name: string

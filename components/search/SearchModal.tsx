@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, X, FileText, Loader2 } from 'lucide-react'
 import {
@@ -64,6 +64,29 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   >('all')
   const debouncedQuery = useDebounce(query, 300)
   const router = useRouter()
+
+  // 검색 타입별 className 메모이제이션
+  const searchTypeClassNames = useMemo(
+    () => ({
+      all:
+        searchType === 'all'
+          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+          : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+      title:
+        searchType === 'title'
+          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+          : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+      content:
+        searchType === 'content'
+          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+          : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+      tag:
+        searchType === 'tag'
+          ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+          : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+    }),
+    [searchType]
+  )
 
   // 검색 실행
   const performSearch = useCallback(
@@ -159,44 +182,28 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           <div className="mt-4 flex gap-3">
             <Badge
               variant={searchType === 'all' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
-                searchType === 'all'
-                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.all}`}
               onClick={() => setSearchType('all')}
             >
               🔍 전체
             </Badge>
             <Badge
               variant={searchType === 'title' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
-                searchType === 'title'
-                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.title}`}
               onClick={() => setSearchType('title')}
             >
               📝 제목
             </Badge>
             <Badge
               variant={searchType === 'content' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
-                searchType === 'content'
-                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.content}`}
               onClick={() => setSearchType('content')}
             >
               📄 내용
             </Badge>
             <Badge
               variant={searchType === 'tag' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${
-                searchType === 'tag'
-                  ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-white text-black border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
+              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.tag}`}
               onClick={() => setSearchType('tag')}
             >
               #️⃣ 태그
