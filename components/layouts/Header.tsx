@@ -84,12 +84,14 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex flex-1 items-center justify-center gap-3 text-sm font-bold">
+        <nav className="hidden lg:flex flex-1 items-center justify-center gap-1 xl:gap-3 text-sm font-bold">
           {navigation.map((item) => (
             <Link key={item.name} href={item.href} className="relative group">
-              <div className="relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] bg-white">
-                <item.icon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-black">{item.name}</span>
+              <div className="relative flex items-center gap-1 xl:gap-2 px-2 xl:px-4 py-2 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] bg-white whitespace-nowrap">
+                <item.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-black text-xs xl:text-sm">
+                  {item.name}
+                </span>
               </div>
             </Link>
           ))}
@@ -101,9 +103,11 @@ export function Header() {
                   href={item.href}
                   className="relative group"
                 >
-                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] bg-white">
-                    <item.icon className="h-4 w-4 text-destructive" />
-                    <span className="text-black">{item.name}</span>
+                  <div className="relative flex items-center gap-1 xl:gap-2 px-2 xl:px-4 py-2 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] bg-white whitespace-nowrap">
+                    <item.icon className="h-4 w-4 text-destructive flex-shrink-0" />
+                    <span className="text-black text-xs xl:text-sm">
+                      {item.name}
+                    </span>
                   </div>
                 </Link>
               ))
@@ -111,15 +115,15 @@ export function Header() {
         </nav>
 
         {/* Search */}
-        <div className="w-80 mx-4">
+        <div className="flex-1 max-w-xs lg:max-w-sm xl:max-w-md mx-2 lg:mx-4">
           <Button
             variant="outline"
             className="w-full justify-start font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] bg-white"
             onClick={() => setIsSearchOpen(true)}
           >
-            <Search className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span className="text-muted-foreground">검색하기...</span>
-            <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border-2 border-black bg-muted px-1.5 font-mono text-[10px] font-bold text-muted-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <Search className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground truncate">검색하기...</span>
+            <kbd className="pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border-2 border-black bg-muted px-1.5 font-mono text-[10px] font-bold text-muted-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hidden sm:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </Button>
@@ -235,7 +239,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px]"
+            className="lg:hidden border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px]"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Menu className="h-5 w-5" />
@@ -245,7 +249,7 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t-4 border-black bg-white">
+        <div className="lg:hidden border-t-4 border-black bg-white">
           <nav className="container py-4 space-y-2">
             {navigation.map((item) => (
               <Link

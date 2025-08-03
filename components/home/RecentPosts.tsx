@@ -170,6 +170,7 @@ export function RecentPosts() {
                           color: post.category.color || '#808080',
                         }}
                         icon={CategoryIcon || undefined}
+                        clickable={false}
                         className="text-xs px-2.5 py-0.5"
                       />
                     </div>
