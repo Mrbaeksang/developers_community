@@ -101,8 +101,9 @@ export default function AdminUsersPage() {
       setLoading(true)
       const response = await fetch('/api/admin/users')
       if (!response.ok) throw new Error('Failed to fetch users')
-      const data = await response.json()
-      setUsers(data)
+      const result = await response.json()
+      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+      setUsers(result.data || result)
     } catch (error) {
       toast.error('사용자 목록을 불러오는 중 오류가 발생했습니다.')
       console.error(error)

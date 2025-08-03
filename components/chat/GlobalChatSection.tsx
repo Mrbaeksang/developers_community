@@ -30,8 +30,9 @@ export default function GlobalChatSection() {
       if (!res.ok) {
         throw new Error('Failed to fetch global channel')
       }
-      const data = await res.json()
-      setChannel(data.channel)
+      const result = await res.json()
+      // successResponse 형식으로 오는 경우 data.channel 필드에서 실제 데이터 추출
+      setChannel(result.data?.channel || result.channel)
     } catch (error) {
       console.error('Failed to fetch global channel:', error)
     } finally {

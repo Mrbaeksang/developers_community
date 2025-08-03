@@ -53,7 +53,9 @@ export function TestCenterContent({ initialStats }: TestCenterContentProps) {
     try {
       const response = await fetch('/api/admin/stats')
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
+        const data = result.data || result
         setStats({
           userCount: data.users,
           mainPostCount: data.mainPosts,

@@ -61,6 +61,7 @@ export function PostEditor() {
           const result = await tagsRes.json()
           // successResponse 형식으로 오는 경우 data.tags 필드에서 실제 데이터 추출
           setExistingTags(result.data?.tags || [])
+        }
       } catch (error) {
         console.error('Failed to load data:', error)
       }
