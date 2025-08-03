@@ -41,7 +41,7 @@ async function getSidebarData() {
   }
 }
 
-export const revalidate = 0 // 캐싱 비활성화
+export const revalidate = 300 // 5분마다 재검증
 
 export default async function Home() {
   const sidebarData = await getSidebarData()
