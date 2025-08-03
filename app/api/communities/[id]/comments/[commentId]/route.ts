@@ -1,8 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -15,10 +22,10 @@ const updateCommentSchema = z.object({
 // 댓글 수정 - PATCH /api/communities/[id]/comments/[commentId]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; commentId: string }> }
+  context: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
-    const resolvedParams = await params
+    const resolvedParams = await context.params
     const communityId = resolvedParams.id
     const commentId = resolvedParams.commentId
 
@@ -31,10 +38,7 @@ export async function PATCH(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     const actualCommunityId = community.id
@@ -43,7 +47,7 @@ export async function PATCH(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -65,23 +69,17 @@ export async function PATCH(
     })
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: '댓글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('댓글을 찾을 수 없습니다')
     }
 
     // 커뮤니티 ID 일치 확인
     if (existingComment.post.communityId !== actualCommunityId) {
-      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+      throwValidationError('잘못된 요청입니다')
     }
 
     // 작성자 확인
     if (existingComment.authorId !== userId) {
-      return NextResponse.json(
-        { error: '댓글 수정 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('댓글 수정 권한이 없습니다')
     }
 
     // 요청 데이터 검증
@@ -108,47 +106,38 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json({
-      comment: {
-        id: updatedComment.id,
-        content: updatedComment.content,
-        isEdited: updatedComment.isEdited,
-        createdAt: updatedComment.createdAt.toISOString(),
-        updatedAt: updatedComment.updatedAt.toISOString(),
-        author: {
-          id: updatedComment.author.id,
-          name: updatedComment.author.name || 'Unknown',
-          username: updatedComment.author.username,
-          image: updatedComment.author.image || undefined,
+    return successResponse(
+      {
+        comment: {
+          id: updatedComment.id,
+          content: updatedComment.content,
+          isEdited: updatedComment.isEdited,
+          createdAt: updatedComment.createdAt.toISOString(),
+          updatedAt: updatedComment.updatedAt.toISOString(),
+          author: {
+            id: updatedComment.author.id,
+            name: updatedComment.author.name || 'Unknown',
+            username: updatedComment.author.username,
+            image: updatedComment.author.image || undefined,
+          },
+          parentId: updatedComment.parentId,
+          authorRole: updatedComment.authorRole,
         },
-        parentId: updatedComment.parentId,
-        authorRole: updatedComment.authorRole,
       },
-    })
-  } catch (error) {
-    console.error('커뮤니티 댓글 수정 실패:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: '댓글 수정에 실패했습니다.' },
-      { status: 500 }
+      '댓글이 수정되었습니다'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }
 
 // 댓글 삭제 - DELETE /api/communities/[id]/comments/[commentId]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; commentId: string }> }
+  context: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
-    const resolvedParams = await params
+    const resolvedParams = await context.params
     const communityId = resolvedParams.id
     const commentId = resolvedParams.commentId
 
@@ -161,10 +150,7 @@ export async function DELETE(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     const actualCommunityId = community.id
@@ -173,7 +159,7 @@ export async function DELETE(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -202,15 +188,12 @@ export async function DELETE(
     })
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: '댓글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('댓글을 찾을 수 없습니다')
     }
 
     // 커뮤니티 ID 일치 확인
     if (existingComment.post.communityId !== actualCommunityId) {
-      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+      throwValidationError('잘못된 요청입니다')
     }
 
     // 작성자 또는 커뮤니티 관리자 확인
@@ -221,10 +204,7 @@ export async function DELETE(
 
     // 삭제 권한 체크: 작성자 또는 관리진
     if (!isAuthor && !isOwner && !isAdmin && !isModerator) {
-      return NextResponse.json(
-        { error: '댓글 삭제 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('댓글 삭제 권한이 없습니다')
     }
 
     // 대댓글이 있는 경우 처리
@@ -254,12 +234,8 @@ export async function DELETE(
       })
     }
 
-    return NextResponse.json({ success: true })
+    return successResponse({}, '댓글이 삭제되었습니다')
   } catch (error) {
-    console.error('커뮤니티 댓글 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '댓글 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

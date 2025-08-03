@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { CommunityVisibility, MembershipStatus } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // GET: 커뮤니티 상세 조회
 export async function GET(
@@ -131,10 +137,7 @@ export async function GET(
       })
 
       if (!community) {
-        return NextResponse.json(
-          { error: '커뮤니티를 찾을 수 없습니다.' },
-          { status: 404 }
-        )
+        throwNotFoundError('커뮤니티를 찾을 수 없습니다')
       }
     }
 
@@ -156,17 +159,11 @@ export async function GET(
           (!membership || membership.status !== 'ACTIVE') &&
           community.ownerId !== session.user.id
         ) {
-          return NextResponse.json(
-            { error: '비공개 커뮤니티입니다.' },
-            { status: 403 }
-          )
+          throwAuthorizationError('비공개 커뮤니티입니다')
         }
       } else {
         // 로그인하지 않은 경우
-        return NextResponse.json(
-          { error: '비공개 커뮤니티입니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('비공개 커뮤니티입니다')
       }
     }
 
@@ -199,7 +196,7 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       ...communityData,
       currentMembership,
       announcements,
@@ -209,11 +206,8 @@ export async function GET(
         currentMembership?.status === MembershipStatus.ACTIVE ||
         session?.user?.id === community.ownerId,
     })
-  } catch {
-    return NextResponse.json(
-      { error: '커뮤니티 정보를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -225,7 +219,7 @@ export async function PUT(
   try {
     const { id } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -236,18 +230,12 @@ export async function PUT(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // OWNER만 수정 가능
     if (community.ownerId !== session.user.id) {
-      return NextResponse.json(
-        { error: '커뮤니티 소유자만 설정을 변경할 수 있습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('커뮤니티 소유자만 설정을 변경할 수 있습니다')
     }
 
     const body = await req.json()
@@ -287,12 +275,9 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(updatedCommunity)
-  } catch {
-    return NextResponse.json(
-      { error: '커뮤니티 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse(updatedCommunity, '커뮤니티가 수정되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -304,7 +289,7 @@ export async function DELETE(
   try {
     const { id } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -321,10 +306,7 @@ export async function DELETE(
     ])
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 커뮤니티 소유자 또는 사이트 관리자만 삭제 가능
@@ -332,10 +314,7 @@ export async function DELETE(
     const isGlobalAdmin = user?.globalRole === 'ADMIN'
 
     if (!isOwner && !isGlobalAdmin) {
-      return NextResponse.json(
-        { error: '커뮤니티를 삭제할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('커뮤니티를 삭제할 권한이 없습니다')
     }
 
     // 커뮤니티 삭제
@@ -343,11 +322,8 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ message: '커뮤니티가 삭제되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '커뮤니티 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ deleted: true }, '커뮤니티가 삭제되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }

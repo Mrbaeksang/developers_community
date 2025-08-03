@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkCommunityBan } from '@/lib/auth-utils'
 import { createNotification } from '@/lib/notifications'
@@ -7,6 +7,13 @@ import {
   CommunityVisibility,
   CommunityRole,
 } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // POST: 커뮤니티 가입
 export async function POST(
@@ -16,7 +23,7 @@ export async function POST(
   try {
     const { id } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -34,10 +41,7 @@ export async function POST(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 이미 멤버인지 확인
@@ -53,17 +57,11 @@ export async function POST(
     if (existingMember) {
       // 상태에 따른 처리
       if (existingMember.status === MembershipStatus.ACTIVE) {
-        return NextResponse.json(
-          { error: '이미 가입한 커뮤니티입니다.' },
-          { status: 400 }
-        )
+        throwValidationError('이미 가입한 커뮤니티입니다')
       }
 
       if (existingMember.status === MembershipStatus.PENDING) {
-        return NextResponse.json(
-          { error: '가입 승인 대기 중입니다.' },
-          { status: 400 }
-        )
+        throwValidationError('가입 승인 대기 중입니다')
       }
 
       if (existingMember.status === MembershipStatus.BANNED) {
@@ -155,19 +153,14 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({
-      message:
-        community.visibility === CommunityVisibility.PRIVATE
-          ? '가입 신청이 완료되었습니다. 승인을 기다려주세요.'
-          : '커뮤니티에 가입했습니다.',
-      membership,
-    })
-  } catch (error) {
-    console.error('Failed to join community:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 가입에 실패했습니다.' },
-      { status: 500 }
+    return successResponse(
+      { membership },
+      community.visibility === CommunityVisibility.PRIVATE
+        ? '가입 신청이 완료되었습니다. 승인을 기다려주세요.'
+        : '커뮤니티에 가입했습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -179,7 +172,7 @@ export async function DELETE(
   try {
     const { id } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -201,10 +194,7 @@ export async function DELETE(
     })
 
     if (!membership) {
-      return NextResponse.json(
-        { error: '가입하지 않은 커뮤니티입니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('가입하지 않은 커뮤니티입니다')
     }
 
     // ACTIVE 상태가 아니면 탈퇴 불가
@@ -215,23 +205,15 @@ export async function DELETE(
         [MembershipStatus.LEFT]: '이미 탈퇴한 커뮤니티입니다.',
       }
 
-      return NextResponse.json(
-        {
-          error:
-            statusMessages[membership.status] || '탈퇴할 수 없는 상태입니다.',
-        },
-        { status: 400 }
+      throwValidationError(
+        statusMessages[membership.status] || '탈퇴할 수 없는 상태입니다.'
       )
     }
 
     // 소유자는 탈퇴할 수 없음
     if (membership.community.ownerId === userId) {
-      return NextResponse.json(
-        {
-          error:
-            '커뮤니티 소유자는 탈퇴할 수 없습니다. 소유권을 이전하거나 커뮤니티를 삭제해주세요.',
-        },
-        { status: 400 }
+      throwAuthorizationError(
+        '커뮤니티 소유자는 탈퇴할 수 없습니다. 소유권을 이전하거나 커뮤니티를 삭제해주세요.'
       )
     }
 
@@ -255,17 +237,15 @@ export async function DELETE(
       data: { memberCount: { decrement: 1 } },
     })
 
-    return NextResponse.json({
-      message: '커뮤니티에서 탈퇴했습니다.',
-      membership: {
-        status: MembershipStatus.LEFT,
+    return successResponse(
+      {
+        membership: {
+          status: MembershipStatus.LEFT,
+        },
       },
-    })
-  } catch (error) {
-    console.error('Failed to leave community:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 탈퇴에 실패했습니다.' },
-      { status: 500 }
+      '커뮤니티에서 탈퇴했습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

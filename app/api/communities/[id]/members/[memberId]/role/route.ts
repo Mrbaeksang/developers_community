@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
 import { z } from 'zod'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // 역할 변경 요청 스키마
 const updateRoleSchema = z.object({
@@ -19,7 +25,7 @@ export async function PATCH(
 
     // 요청자의 권한 확인 (ADMIN 이상)
     const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -42,26 +48,17 @@ export async function PATCH(
     })
 
     if (!targetMember || targetMember.communityId !== id) {
-      return NextResponse.json(
-        { error: '멤버를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('멤버를 찾을 수 없습니다')
     }
 
     // OWNER 역할은 변경할 수 없음
     if (targetMember.role === CommunityRole.OWNER) {
-      return NextResponse.json(
-        { error: '소유자의 역할은 변경할 수 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('소유자의 역할은 변경할 수 없습니다')
     }
 
     // 자기 자신의 역할도 변경할 수 없음
     if (targetMember.userId === session.session.user.id) {
-      return NextResponse.json(
-        { error: '자신의 역할은 변경할 수 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('자신의 역할은 변경할 수 없습니다')
     }
 
     // 역할 업데이트
@@ -83,32 +80,24 @@ export async function PATCH(
 
     // TODO: 알림 생성 - 역할이 변경되었음을 알림
 
-    return NextResponse.json({
-      id: updatedMember.id,
-      userId: updatedMember.userId,
-      role: updatedMember.role,
-      status: updatedMember.status,
-      joinedAt: updatedMember.joinedAt,
-      user: {
-        id: updatedMember.user.id,
-        name: updatedMember.user.name || undefined,
-        username: updatedMember.user.username || undefined,
-        email: updatedMember.user.email,
-        image: updatedMember.user.image || undefined,
+    return successResponse(
+      {
+        id: updatedMember.id,
+        userId: updatedMember.userId,
+        role: updatedMember.role,
+        status: updatedMember.status,
+        joinedAt: updatedMember.joinedAt,
+        user: {
+          id: updatedMember.user.id,
+          name: updatedMember.user.name || undefined,
+          username: updatedMember.user.username || undefined,
+          email: updatedMember.user.email,
+          image: updatedMember.user.image || undefined,
+        },
       },
-    })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: '유효하지 않은 역할입니다.' },
-        { status: 400 }
-      )
-    }
-
-    console.error('Failed to update member role:', error)
-    return NextResponse.json(
-      { error: '역할 변경에 실패했습니다.' },
-      { status: 500 }
+      '역할이 변경되었습니다'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

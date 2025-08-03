@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, canAccessPrivateCommunity } from '@/lib/auth-utils'
 import {
@@ -6,6 +6,12 @@ import {
   MembershipStatus,
   CommunityRole,
 } from '@prisma/client'
+import { paginatedResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // GET: 커뮤니티 멤버 목록 조회
 export async function GET(
@@ -29,20 +35,14 @@ export async function GET(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 비공개 커뮤니티 접근 확인
     if (community.visibility === CommunityVisibility.PRIVATE) {
       const canAccess = await canAccessPrivateCommunity(session?.user?.id, id)
       if (!canAccess) {
-        return NextResponse.json(
-          { error: '비공개 커뮤니티입니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('비공개 커뮤니티입니다')
       }
     }
 
@@ -139,17 +139,8 @@ export async function GET(
       },
     }))
 
-    return NextResponse.json({
-      members: formattedMembers,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    })
+    return paginatedResponse(formattedMembers, page, limit, total)
   } catch (error) {
-    console.error('Failed to fetch community members:', error)
-    return NextResponse.json(
-      { error: '멤버 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

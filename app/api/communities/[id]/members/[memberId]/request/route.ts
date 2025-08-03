@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // 가입 신청 처리 스키마
 const handleRequestSchema = z.object({
@@ -19,7 +25,7 @@ export async function PATCH(
 
     // 요청자의 권한 확인 (MODERATOR 이상)
     const session = await requireCommunityRoleAPI(id, [CommunityRole.MODERATOR])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -37,10 +43,7 @@ export async function PATCH(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 대상 멤버 확인 (PENDING 상태여야 함)
@@ -58,17 +61,11 @@ export async function PATCH(
     })
 
     if (!targetMember || targetMember.communityId !== id) {
-      return NextResponse.json(
-        { error: '가입 신청을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('가입 신청을 찾을 수 없습니다')
     }
 
     if (targetMember.status !== MembershipStatus.PENDING) {
-      return NextResponse.json(
-        { error: '이미 처리된 가입 신청입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('이미 처리된 가입 신청입니다')
     }
 
     if (action === 'approve') {
@@ -102,23 +99,25 @@ export async function PATCH(
       //   },
       // })
 
-      return NextResponse.json({
-        message: '가입 신청이 승인되었습니다.',
-        member: {
-          id: updatedMember.id,
-          userId: updatedMember.userId,
-          role: updatedMember.role,
-          status: updatedMember.status,
-          joinedAt: updatedMember.joinedAt,
-          user: {
-            id: updatedMember.user.id,
-            name: updatedMember.user.name || undefined,
-            username: updatedMember.user.username || undefined,
-            email: updatedMember.user.email,
-            image: updatedMember.user.image || undefined,
+      return successResponse(
+        {
+          member: {
+            id: updatedMember.id,
+            userId: updatedMember.userId,
+            role: updatedMember.role,
+            status: updatedMember.status,
+            joinedAt: updatedMember.joinedAt,
+            user: {
+              id: updatedMember.user.id,
+              name: updatedMember.user.name || undefined,
+              username: updatedMember.user.username || undefined,
+              email: updatedMember.user.email,
+              image: updatedMember.user.image || undefined,
+            },
           },
         },
-      })
+        '가입 신청이 승인되었습니다'
+      )
     } else {
       // 거절: 멤버십 삭제
       await prisma.communityMember.delete({
@@ -135,19 +134,9 @@ export async function PATCH(
       //   },
       // })
 
-      return NextResponse.json({
-        message: '가입 신청이 거절되었습니다.',
-      })
+      return successResponse({}, '가입 신청이 거절되었습니다')
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
-    }
-
-    console.error('Failed to handle join request:', error)
-    return NextResponse.json(
-      { error: '가입 신청 처리에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

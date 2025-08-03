@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -18,7 +24,7 @@ export async function PUT(
 ) {
   try {
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -39,18 +45,12 @@ export async function PUT(
     })
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: '댓글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('댓글을 찾을 수 없습니다')
     }
 
     // 작성자 확인
     if (existingComment.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: '댓글 수정 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('댓글 수정 권한이 없습니다')
     }
 
     // 요청 데이터 검증
@@ -76,7 +76,7 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       comment: {
         id: updatedComment.id,
         content: updatedComment.content,
@@ -92,19 +92,7 @@ export async function PUT(
       },
     })
   } catch (error) {
-    console.error('댓글 수정 실패:', error)
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: '댓글 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -115,7 +103,7 @@ export async function DELETE(
 ) {
   try {
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -142,10 +130,7 @@ export async function DELETE(
     })
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: '댓글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('댓글을 찾을 수 없습니다')
     }
 
     // 작성자 또는 관리자 확인
@@ -159,10 +144,7 @@ export async function DELETE(
       user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER'
 
     if (!isAuthor && !isAdmin) {
-      return NextResponse.json(
-        { error: '댓글 삭제 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('댓글 삭제 권한이 없습니다')
     }
 
     // 대댓글이 있는 경우 처리
@@ -192,12 +174,8 @@ export async function DELETE(
       })
     }
 
-    return NextResponse.json({ success: true })
+    return successResponse({ deleted: true }, '댓글이 삭제되었습니다')
   } catch (error) {
-    console.error('댓글 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '댓글 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

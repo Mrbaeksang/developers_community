@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { MembershipStatus } from '@prisma/client'
+import { paginatedResponse } from '@/lib/api-response'
+import { handleError, throwNotFoundError } from '@/lib/error-handler'
 
 // GET: 사용자가 가입한 커뮤니티 목록 조회
 export async function GET(
@@ -21,10 +23,7 @@ export async function GET(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('사용자를 찾을 수 없습니다')
     }
 
     // 쿼리 조건 설정
@@ -81,20 +80,8 @@ export async function GET(
       joinedAt: membership.joinedAt,
     }))
 
-    return NextResponse.json({
-      communities,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
-      },
-    })
+    return paginatedResponse(communities, total, page, limit)
   } catch (error) {
-    console.error('Failed to fetch user communities:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

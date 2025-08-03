@@ -1,15 +1,13 @@
-import { NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 export async function POST(request: Request) {
   try {
     const { sessionId, pathname } = await request.json()
 
     if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Session ID is required' },
-        { status: 400 }
-      )
+      throwValidationError('세션 ID는 필수입니다')
     }
 
     const client = redis()
@@ -33,12 +31,8 @@ export async function POST(request: Request) {
     const today = new Date().toISOString().split('T')[0]
     await client.hincrby('daily_views', today, 1)
 
-    return NextResponse.json({ success: true })
+    return successResponse({ tracked: true }, '방문자 추적이 완료되었습니다')
   } catch (error) {
-    console.error('Error tracking visitor:', error)
-    return NextResponse.json(
-      { error: 'Failed to track visitor' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

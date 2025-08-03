@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 관리자용 전체 카테고리 조회 (비활성 포함)
 export async function GET() {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
 
     const categories = await prisma.mainCategory.findMany({
       orderBy: {
@@ -21,7 +22,7 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(
+    return successResponse(
       categories.map((category) => ({
         id: category.id,
         name: category.name,
@@ -36,10 +37,6 @@ export async function GET() {
       }))
     )
   } catch (error) {
-    console.error('카테고리 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

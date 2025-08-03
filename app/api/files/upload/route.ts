@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
 import { FileType } from '@prisma/client'
 import { put } from '@vercel/blob'
 import {
@@ -8,6 +7,13 @@ import {
   checkBanStatus,
   getCommunityMembership,
 } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwValidationError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -41,7 +47,7 @@ async function getImageDimensions(): Promise<{
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -54,16 +60,13 @@ export async function POST(req: NextRequest) {
     const postId = formData.get('postId') as string | null
 
     if (!file) {
-      return NextResponse.json({ error: '파일이 필요합니다.' }, { status: 400 })
+      throwValidationError('파일이 필요합니다')
     }
 
     // 파일 크기 체크 (기본 10MB)
     const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: '파일 크기는 10MB를 초과할 수 없습니다.' },
-        { status: 400 }
-      )
+      throwValidationError('파일 크기는 10MB를 초과할 수 없습니다')
     }
 
     // 커뮤니티별 파일 크기 제한 체크
@@ -74,10 +77,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (!community) {
-        return NextResponse.json(
-          { error: '커뮤니티를 찾을 수 없습니다.' },
-          { status: 404 }
-        )
+        throwNotFoundError('커뮤니티를 찾을 수 없습니다')
       }
 
       // 커뮤니티 멤버십 확인
@@ -86,25 +86,16 @@ export async function POST(req: NextRequest) {
         communityId
       )
       if (!membership) {
-        return NextResponse.json(
-          { error: '커뮤니티 멤버가 아닙니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('커뮤니티 멤버가 아닙니다')
       }
 
       if (!community.allowFileUpload) {
-        return NextResponse.json(
-          { error: '이 커뮤니티는 파일 업로드를 허용하지 않습니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('이 커뮤니티는 파일 업로드를 허용하지 않습니다')
       }
 
       if (file.size > community.maxFileSize) {
-        return NextResponse.json(
-          {
-            error: `파일 크기는 ${community.maxFileSize / 1024 / 1024}MB를 초과할 수 없습니다.`,
-          },
-          { status: 400 }
+        throwValidationError(
+          `파일 크기는 ${community.maxFileSize / 1024 / 1024}MB를 초과할 수 없습니다`
         )
       }
     }
@@ -154,30 +145,24 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({
-      id: savedFile.id,
-      filename: savedFile.filename,
-      url: savedFile.url,
-      downloadUrl: savedFile.downloadUrl,
-      mimeType: savedFile.mimeType,
-      size: savedFile.size,
-      type: savedFile.type,
-      width: savedFile.width,
-      height: savedFile.height,
-      uploadedAt: savedFile.createdAt,
-      uploader: savedFile.uploader,
-    })
-  } catch (error) {
-    console.error('Failed to upload file:', error)
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
-    }
-    return NextResponse.json(
-      { error: '파일 업로드에 실패했습니다.' },
-      { status: 500 }
+    return successResponse(
+      {
+        id: savedFile.id,
+        filename: savedFile.filename,
+        url: savedFile.url,
+        downloadUrl: savedFile.downloadUrl,
+        mimeType: savedFile.mimeType,
+        size: savedFile.size,
+        type: savedFile.type,
+        width: savedFile.width,
+        height: savedFile.height,
+        uploadedAt: savedFile.createdAt,
+        uploader: savedFile.uploader,
+      },
+      undefined,
+      201
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // POST: 커뮤니티 게시글 북마크
 export async function POST(
@@ -10,7 +16,7 @@ export async function POST(
   try {
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -20,10 +26,7 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 이미 북마크 했는지 확인
@@ -37,10 +40,7 @@ export async function POST(
     })
 
     if (existingBookmark) {
-      return NextResponse.json(
-        { error: '이미 북마크한 게시글입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('이미 북마크한 게시글입니다')
     }
 
     // 북마크 생성
@@ -51,12 +51,9 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ message: '북마크에 저장되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '북마크 처리에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ bookmarked: true }, '북마크에 저장되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -68,7 +65,7 @@ export async function DELETE(
   try {
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -81,17 +78,11 @@ export async function DELETE(
     })
 
     if (result.count === 0) {
-      return NextResponse.json(
-        { error: '북마크하지 않은 게시글입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('북마크하지 않은 게시글입니다')
     }
 
-    return NextResponse.json({ message: '북마크가 해제되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '북마크 해제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ bookmarked: false }, '북마크가 해제되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }

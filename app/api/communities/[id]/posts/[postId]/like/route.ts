@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // POST: 커뮤니티 게시글 좋아요
 export async function POST(
@@ -10,7 +16,7 @@ export async function POST(
   try {
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -20,10 +26,7 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 이미 좋아요 했는지 확인
@@ -37,10 +40,7 @@ export async function POST(
     })
 
     if (existingLike) {
-      return NextResponse.json(
-        { error: '이미 좋아요한 게시글입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('이미 좋아요한 게시글입니다')
     }
 
     // 좋아요 생성
@@ -57,12 +57,9 @@ export async function POST(
       data: { likeCount: { increment: 1 } },
     })
 
-    return NextResponse.json({ message: '좋아요를 눌렀습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '좋아요 처리에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ liked: true }, '좋아요를 눌렀습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -74,7 +71,7 @@ export async function DELETE(
   try {
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -87,10 +84,7 @@ export async function DELETE(
     })
 
     if (result.count === 0) {
-      return NextResponse.json(
-        { error: '좋아요하지 않은 게시글입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('좋아요하지 않은 게시글입니다')
     }
 
     // 좋아요 수 업데이트
@@ -99,11 +93,8 @@ export async function DELETE(
       data: { likeCount: { decrement: 1 } },
     })
 
-    return NextResponse.json({ message: '좋아요가 취소되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '좋아요 취소에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ liked: false }, '좋아요가 취소되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }

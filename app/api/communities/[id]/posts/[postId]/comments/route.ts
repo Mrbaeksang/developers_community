@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse, createdResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(
@@ -21,10 +27,7 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 댓글 조회 (계층 구조)
@@ -55,12 +58,9 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ comments })
-  } catch {
-    return NextResponse.json(
-      { error: '댓글을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ comments })
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -86,10 +86,7 @@ export async function POST(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     const actualCommunityId = community.id
@@ -98,7 +95,7 @@ export async function POST(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -110,20 +107,14 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     const body = await req.json()
     const validation = createCommentSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      )
+      throwValidationError(validation.error.issues[0].message)
     }
 
     const { content, parentId } = validation.data
@@ -135,10 +126,7 @@ export async function POST(
       })
 
       if (!parentComment) {
-        return NextResponse.json(
-          { error: '부모 댓글을 찾을 수 없습니다.' },
-          { status: 400 }
-        )
+        throwValidationError('부모 댓글을 찾을 수 없습니다')
       }
 
       // 대댓글의 대댓글까지만 허용 (depth 2)
@@ -147,10 +135,7 @@ export async function POST(
           where: { id: parentComment.parentId },
         })
         if (grandParent?.parentId) {
-          return NextResponse.json(
-            { error: '더 이상 답글을 작성할 수 없습니다.' },
-            { status: 400 }
-          )
+          throwValidationError('더 이상 답글을 작성할 수 없습니다')
         }
       }
     }
@@ -177,11 +162,8 @@ export async function POST(
       data: { commentCount: { increment: 1 } },
     })
 
-    return NextResponse.json(comment, { status: 201 })
-  } catch {
-    return NextResponse.json(
-      { error: '댓글 작성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return createdResponse(comment, '댓글이 작성되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }

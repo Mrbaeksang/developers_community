@@ -1,9 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { CommunityVisibility, CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(
@@ -23,10 +30,7 @@ export async function GET(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: 'Community not found' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 커뮤니티 및 게시글 확인
@@ -80,10 +84,7 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
@@ -101,17 +102,11 @@ export async function GET(
 
         if (!membership || membership.status !== 'ACTIVE') {
           if (post.community.ownerId !== session.user.id) {
-            return NextResponse.json(
-              { error: '비공개 커뮤니티의 게시글입니다.' },
-              { status: 403 }
-            )
+            throwAuthorizationError('비공개 커뮤니티의 게시글입니다')
           }
         }
       } else {
-        return NextResponse.json(
-          { error: '비공개 커뮤니티의 게시글입니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('비공개 커뮤니티의 게시글입니다')
       }
     }
 
@@ -126,12 +121,9 @@ export async function GET(
       bookmarks: undefined,
     }
 
-    return NextResponse.json(formattedPost)
-  } catch {
-    return NextResponse.json(
-      { error: '게시글을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse(formattedPost)
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -150,7 +142,7 @@ export async function PATCH(
   try {
     const { id, postId } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -163,10 +155,7 @@ export async function PATCH(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: 'Community not found' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 게시글 확인
@@ -180,38 +169,26 @@ export async function PATCH(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 권한 확인 (작성자 본인만 수정 가능)
     if (post.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: '게시글을 수정할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('게시글을 수정할 권한이 없습니다')
     }
 
     const body = await req.json()
     const validation = updatePostSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      )
+      throwValidationError(validation.error.issues[0].message)
     }
 
     const { title, content, categoryId, fileIds } = validation.data
 
     // 파일 업로드 권한 확인
     if (fileIds && fileIds.length > 0 && !post.community.allowFileUpload) {
-      return NextResponse.json(
-        { error: '이 커뮤니티는 파일 업로드를 허용하지 않습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('이 커뮤니티는 파일 업로드를 허용하지 않습니다')
     }
 
     // 카테고리 확인
@@ -222,10 +199,7 @@ export async function PATCH(
         })
 
         if (!category) {
-          return NextResponse.json(
-            { error: '유효하지 않은 카테고리입니다.' },
-            { status: 400 }
-          )
+          throwValidationError('유효하지 않은 카테고리입니다')
         }
       }
     }
@@ -254,12 +228,9 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(updatedPost)
-  } catch {
-    return NextResponse.json(
-      { error: '게시글 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse(updatedPost, '게시글이 수정되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -271,7 +242,7 @@ export async function DELETE(
   try {
     const { id, postId } = await context.params
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -284,10 +255,7 @@ export async function DELETE(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: 'Community not found' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 게시글 및 멤버십 확인
@@ -308,10 +276,7 @@ export async function DELETE(
     ])
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 권한 확인 (작성자 본인 또는 ADMIN/OWNER만 삭제 가능)
@@ -321,10 +286,7 @@ export async function DELETE(
       membership?.role === CommunityRole.OWNER
 
     if (!canDelete) {
-      return NextResponse.json(
-        { error: '게시글을 삭제할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('게시글을 삭제할 권한이 없습니다')
     }
 
     // 게시글 하드 삭제
@@ -338,11 +300,8 @@ export async function DELETE(
       data: { postCount: { decrement: 1 } },
     })
 
-    return NextResponse.json({ message: '게시글이 삭제되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '게시글 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ deleted: true }, '게시글이 삭제되었습니다')
+  } catch (error) {
+    return handleError(error)
   }
 }

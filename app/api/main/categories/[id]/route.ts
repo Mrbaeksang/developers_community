@@ -1,6 +1,11 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // 카테고리 상세 조회
 export async function GET(
@@ -22,22 +27,15 @@ export async function GET(
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('카테고리를 찾을 수 없습니다')
     }
 
-    return NextResponse.json({
+    return successResponse({
       ...category,
       postCount: category._count.posts,
     })
   } catch (error) {
-    console.error('카테고리 조회 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -48,7 +46,7 @@ export async function PUT(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { id } = await params
     const body = await req.json()
     const { name, slug, description, color, icon, order, isActive } = body
@@ -63,10 +61,7 @@ export async function PUT(
       })
 
       if (existing) {
-        return NextResponse.json(
-          { error: '이미 존재하는 카테고리입니다.' },
-          { status: 400 }
-        )
+        throwValidationError('이미 존재하는 카테고리입니다')
       }
     }
 
@@ -83,13 +78,9 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(category)
+    return successResponse(category, '카테고리가 수정되었습니다')
   } catch (error) {
-    console.error('카테고리 수정 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -100,7 +91,7 @@ export async function DELETE(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { id } = await params
 
     // 게시글이 있는지 확인
@@ -116,29 +107,19 @@ export async function DELETE(
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('카테고리를 찾을 수 없습니다')
     }
 
     if (category._count.posts > 0) {
-      return NextResponse.json(
-        { error: '게시글이 있는 카테고리는 삭제할 수 없습니다.' },
-        { status: 400 }
-      )
+      throwValidationError('게시글이 있는 카테고리는 삭제할 수 없습니다')
     }
 
     await prisma.mainCategory.delete({
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
+    return successResponse({ deleted: true }, '카테고리가 삭제되었습니다')
   } catch (error) {
-    console.error('카테고리 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

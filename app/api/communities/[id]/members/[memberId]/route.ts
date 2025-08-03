@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // 추방/차단 요청 스키마
 const deleteMemberSchema = z.object({
@@ -19,7 +25,7 @@ export async function DELETE(
 
     // 요청자의 권한 확인 (MODERATOR 이상)
     const session = await requireCommunityRoleAPI(id, [CommunityRole.MODERATOR])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -42,33 +48,24 @@ export async function DELETE(
     })
 
     if (!targetMember || targetMember.communityId !== id) {
-      return NextResponse.json(
-        { error: '멤버를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('멤버를 찾을 수 없습니다')
     }
 
     // OWNER는 추방/차단할 수 없음
     if (targetMember.role === CommunityRole.OWNER) {
-      return NextResponse.json(
-        { error: '소유자는 추방할 수 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('소유자는 추방할 수 없습니다')
     }
 
     // 자기 자신은 추방할 수 없음
     if (targetMember.userId === session.session.user.id) {
-      return NextResponse.json(
-        { error: '자신을 추방할 수 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('자신을 추방할 수 없습니다')
     }
 
     // 요청자의 역할은 이미 requireCommunityRoleAPI에서 확인됨
     const requesterMember = session.membership
 
     if (!requesterMember) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+      throwAuthorizationError('권한이 없습니다')
     }
 
     // 역할 계층 확인 (상위 역할만 하위 역할을 추방할 수 있음)
@@ -82,9 +79,8 @@ export async function DELETE(
     if (
       roleHierarchy[requesterMember.role] <= roleHierarchy[targetMember.role]
     ) {
-      return NextResponse.json(
-        { error: '동일하거나 상위 역할의 멤버는 추방할 수 없습니다.' },
-        { status: 403 }
+      throwAuthorizationError(
+        '동일하거나 상위 역할의 멤버는 추방할 수 없습니다'
       )
     }
 
@@ -109,15 +105,11 @@ export async function DELETE(
       // TODO: 알림 생성 - 추방되었음을 알림
     }
 
-    return NextResponse.json({
-      message: ban ? '멤버가 차단되었습니다.' : '멤버가 추방되었습니다.',
-    })
+    return successResponse(
+      {},
+      ban ? '멤버가 차단되었습니다' : '멤버가 추방되었습니다'
+    )
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
-    }
-
-    console.error('Failed to kick/ban member:', error)
-    return NextResponse.json({ error: '작업에 실패했습니다.' }, { status: 500 })
+    return handleError(error)
   }
 }

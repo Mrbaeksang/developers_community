@@ -1,9 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
-import { CommunityRole } from '@prisma/client'
+import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { createNotification } from '@/lib/notifications'
-import { MembershipStatus } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // POST: 가입 승인 (비공개 커뮤니티)
 export async function POST(
@@ -22,10 +27,7 @@ export async function POST(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     const actualCommunityId = community.id
@@ -34,7 +36,7 @@ export async function POST(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MODERATOR,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -47,10 +49,7 @@ export async function POST(
     })
 
     if (!communityInfo) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 대기 중인 멤버십 확인
@@ -68,10 +67,7 @@ export async function POST(
     })
 
     if (pendingMembers.length === 0) {
-      return NextResponse.json(
-        { error: '승인 대기 중인 멤버가 없습니다.' },
-        { status: 400 }
-      )
+      throwValidationError('승인 대기 중인 멤버가 없습니다')
     }
 
     // 승인 처리
@@ -107,18 +103,16 @@ export async function POST(
       )
     )
 
-    return NextResponse.json({
-      message: `${updated.count}명의 가입이 승인되었습니다.`,
-      approved: pendingMembers.map((m) => ({
-        userId: m.userId,
-        userName: m.user.name,
-      })),
-    })
-  } catch (error) {
-    console.error('Failed to approve members:', error)
-    return NextResponse.json(
-      { error: '멤버 승인에 실패했습니다.' },
-      { status: 500 }
+    return successResponse(
+      {
+        approved: pendingMembers.map((m) => ({
+          userId: m.userId,
+          userName: m.user.name,
+        })),
+      },
+      `${updated.count}명의 가입이 승인되었습니다`
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

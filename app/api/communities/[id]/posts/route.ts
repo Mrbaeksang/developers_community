@@ -1,10 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
 import { CommunityVisibility } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { successResponse, paginatedResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -29,10 +36,7 @@ export async function GET(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
     // 비공개 커뮤니티의 경우 멤버만 접근 가능
@@ -50,17 +54,11 @@ export async function GET(
 
         if (!membership || membership.status !== 'ACTIVE') {
           if (community.ownerId !== session.user.id) {
-            return NextResponse.json(
-              { error: '비공개 커뮤니티입니다.' },
-              { status: 403 }
-            )
+            throwAuthorizationError('비공개 커뮤니티입니다')
           }
         }
       } else {
-        return NextResponse.json(
-          { error: '비공개 커뮤니티입니다.' },
-          { status: 403 }
-        )
+        throwAuthorizationError('비공개 커뮤니티입니다')
       }
     }
 
@@ -155,21 +153,9 @@ export async function GET(
       })
     )
 
-    return NextResponse.json({
-      posts: formattedPosts,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
-      },
-    })
+    return paginatedResponse(formattedPosts, total, page, limit)
   } catch (error) {
-    console.error('Failed to fetch community posts:', error)
-    return NextResponse.json(
-      { error: '게시글 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -188,7 +174,7 @@ export async function POST(
   try {
     const { id } = await context.params
     const session = await requireCommunityMembershipAPI(id)
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -213,10 +199,7 @@ export async function POST(
     const validation = createPostSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      )
+      throwValidationError(validation.error.issues[0].message)
     }
 
     const { title, content, categoryId, fileIds } = validation.data
@@ -228,10 +211,7 @@ export async function POST(
       membership &&
       !membership.community.allowFileUpload
     ) {
-      return NextResponse.json(
-        { error: '이 커뮤니티는 파일 업로드를 허용하지 않습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('이 커뮤니티는 파일 업로드를 허용하지 않습니다')
     }
 
     // 카테고리 확인
@@ -241,10 +221,7 @@ export async function POST(
       })
 
       if (!category) {
-        return NextResponse.json(
-          { error: '유효하지 않은 카테고리입니다.' },
-          { status: 400 }
-        )
+        throwValidationError('유효하지 않은 카테고리입니다')
       }
     }
 
@@ -257,10 +234,7 @@ export async function POST(
     })
 
     if (!userMembership) {
-      return NextResponse.json(
-        { error: '커뮤니티 멤버가 아닙니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('커뮤니티 멤버가 아닙니다')
     }
 
     // 게시글 생성
@@ -295,12 +269,8 @@ export async function POST(
       data: { postCount: { increment: 1 } },
     })
 
-    return NextResponse.json(post, { status: 201 })
+    return successResponse(post, '게시글이 작성되었습니다', 201)
   } catch (error) {
-    console.error('Failed to create community post:', error)
-    return NextResponse.json(
-      { error: '게시글 작성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
