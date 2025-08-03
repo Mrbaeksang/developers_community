@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Users, FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
+import { getAvatarUrl } from '@/lib/community-utils'
 
 interface Community {
   id: string
@@ -103,19 +104,27 @@ export function ActiveCommunities() {
             >
               <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors">
                 <div className="flex-shrink-0">
-                  {community.logo ? (
-                    <Image
-                      src={community.logo}
-                      alt={community.name}
-                      width={40}
-                      height={40}
-                      className="rounded-lg border-2 border-black"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border-2 border-black">
-                      <Users className="h-5 w-5" />
-                    </div>
-                  )}
+                  {(() => {
+                    const avatarUrl = community.logo
+                      ? getAvatarUrl(community.logo)
+                      : ''
+                    if (avatarUrl) {
+                      return (
+                        <Image
+                          src={avatarUrl}
+                          alt={community.name}
+                          width={40}
+                          height={40}
+                          className="rounded-lg border-2 border-black"
+                        />
+                      )
+                    }
+                    return (
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border-2 border-black">
+                        <Users className="h-5 w-5" />
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-sm truncate group-hover:text-primary transition-colors">

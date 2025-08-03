@@ -48,6 +48,7 @@ import {
   Megaphone,
   UserCog,
 } from 'lucide-react'
+import { getAvatarUrl } from '@/lib/community-utils'
 import { CommunityVisibility } from '@prisma/client'
 
 interface Community {
@@ -302,18 +303,26 @@ export default function AdminCommunitiesPage() {
                 <TableRow key={community.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {community.avatar ? (
-                        <div
-                          className="w-10 h-10 rounded-full bg-cover bg-center"
-                          style={{
-                            backgroundImage: `url(${community.avatar})`,
-                          }}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-gray-500" />
-                        </div>
-                      )}
+                      {(() => {
+                        const avatarUrl = community.avatar
+                          ? getAvatarUrl(community.avatar)
+                          : ''
+                        if (avatarUrl) {
+                          return (
+                            <div
+                              className="w-10 h-10 rounded-full bg-cover bg-center"
+                              style={{
+                                backgroundImage: `url(${avatarUrl})`,
+                              }}
+                            />
+                          )
+                        }
+                        return (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-gray-500" />
+                          </div>
+                        )
+                      })()}
                       <div>
                         <div className="font-medium">{community.name}</div>
                         <div className="text-sm text-muted-foreground">
