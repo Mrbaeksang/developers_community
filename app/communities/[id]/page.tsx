@@ -141,224 +141,269 @@ export default async function CommunityDetailPage({
     !!session?.user?.id
 
   return (
-    <div className="container max-w-7xl py-8">
-      {/* Banner */}
-      <div className="relative h-48 md:h-64 -mx-4 sm:-mx-6 lg:-mx-8 mb-8">
-        {(() => {
-          const bannerType = getBannerType(community.banner || '')
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
+      <div className="container max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
+        {/* Banner */}
+        <div className="relative h-48 md:h-64 mb-8 rounded-lg overflow-hidden border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          {(() => {
+            const bannerType = getBannerType(community.banner || '')
 
-          // 배너가 없는 경우 랜덤 기본 배너 적용
-          if (bannerType === 'none') {
-            const randomBanner = getBannerUrl('')
-            return (
-              <Image
-                src={randomBanner}
-                alt={`${community.name} banner`}
-                fill
-                className="object-cover"
-              />
-            )
-          }
-
-          // 기본 배너인 경우 그라데이션 또는 단색 배경 적용
-          if (bannerType === 'default') {
-            const bannerId = community.banner?.replace('default:', '')
-            const defaultBanner = getDefaultBannerById(bannerId || '')
-
-            if (defaultBanner) {
+            // 배너가 없는 경우 랜덤 기본 배너 적용
+            if (bannerType === 'none') {
+              const randomBanner = getBannerUrl('')
               return (
-                <div className={`absolute inset-0 ${defaultBanner.gradient}`} />
+                <Image
+                  src={randomBanner}
+                  alt={`${community.name} banner`}
+                  fill
+                  className="object-cover"
+                />
               )
             }
-          }
 
-          // 업로드된 이미지인 경우
-          if (bannerType === 'upload' && community.banner) {
-            return (
-              <Image
-                src={community.banner}
-                alt={`${community.name} banner`}
-                fill
-                className="object-cover"
-              />
-            )
-          }
+            // 기본 배너인 경우 그라데이션 또는 단색 배경 적용
+            if (bannerType === 'default') {
+              const bannerId = community.banner?.replace('default:', '')
+              const defaultBanner = getDefaultBannerById(bannerId || '')
 
-          // 기본 그라데이션 (fallback)
-          return (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
-          )
-        })()}
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -mt-16 md:-mt-20 bg-white">
-          <AvatarImage
-            src={
-              community.avatar?.startsWith('default:')
-                ? undefined
-                : community.avatar || undefined
+              if (defaultBanner) {
+                return (
+                  <div
+                    className={`absolute inset-0 ${defaultBanner.gradient}`}
+                  />
+                )
+              }
             }
-          />
-          <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
-            {community.name[0].toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
 
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-black mb-2">{community.name}</h1>
-              <p className="text-muted-foreground mb-4">@{community.slug}</p>
-              <div className="flex items-center gap-4 text-sm">
-                <Badge
-                  variant={
-                    community.visibility === 'PUBLIC' ? 'default' : 'secondary'
-                  }
-                  className="gap-1"
-                >
-                  {community.visibility === 'PUBLIC' ? (
-                    <Globe className="h-3 w-3" />
-                  ) : (
-                    <Lock className="h-3 w-3" />
-                  )}
-                  {community.visibility === 'PUBLIC' ? '공개' : '비공개'}
-                </Badge>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-bold">{community._count.members}</span>
-                  <span className="text-muted-foreground">멤버</span>
+            // 업로드된 이미지인 경우
+            if (bannerType === 'upload' && community.banner) {
+              return (
+                <Image
+                  src={community.banner}
+                  alt={`${community.name} banner`}
+                  fill
+                  className="object-cover"
+                />
+              )
+            }
+
+            // Unsplash 이미지인 경우
+            if (bannerType === 'unsplash' && community.banner) {
+              const unsplashUrl = getBannerUrl(community.banner)
+              return (
+                <Image
+                  src={unsplashUrl}
+                  alt={`${community.name} banner`}
+                  fill
+                  className="object-cover"
+                />
+              )
+            }
+
+            // 기본 그라데이션 (fallback)
+            return (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
+            )
+          })()}
+        </div>
+
+        {/* Header */}
+        <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-6">
+            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -mt-16 md:-mt-20 bg-white">
+              <AvatarImage
+                src={
+                  community.avatar?.startsWith('default:')
+                    ? undefined
+                    : community.avatar || undefined
+                }
+              />
+              <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
+                {community.name[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-black mb-2">
+                    {community.name}
+                  </h1>
+                  <p className="text-gray-600 text-lg mb-4">
+                    @{community.slug}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <Badge
+                      variant={
+                        community.visibility === 'PUBLIC'
+                          ? 'default'
+                          : 'secondary'
+                      }
+                      className="gap-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] font-bold"
+                    >
+                      {community.visibility === 'PUBLIC' ? (
+                        <Globe className="h-3 w-3" />
+                      ) : (
+                        <Lock className="h-3 w-3" />
+                      )}
+                      {community.visibility === 'PUBLIC' ? '공개' : '비공개'}
+                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-gray-600" />
+                      <span className="font-bold">
+                        {community._count.members}
+                      </span>
+                      <span className="text-gray-600">멤버</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageSquare className="h-4 w-4 text-gray-600" />
+                      <span className="font-bold">
+                        {community._count.posts}
+                      </span>
+                      <span className="text-gray-600">게시글</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-gray-600" />
+                      <span className="text-gray-600">
+                        {new Date(community.createdAt).toLocaleDateString(
+                          'ko-KR'
+                        )}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-bold">{community._count.posts}</span>
-                  <span className="text-muted-foreground">게시글</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    {new Date(community.createdAt).toLocaleDateString('ko-KR')}
-                  </span>
-                </div>
+
+                {/* Action Buttons */}
+                <CommunityActions
+                  community={community}
+                  isOwner={isOwner}
+                  isMember={isMember}
+                  isPending={isPending}
+                  canJoin={canJoin}
+                  isAuthenticated={!!session?.user?.id}
+                />
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <CommunityActions
-              community={community}
-              isOwner={isOwner}
-              isMember={isMember}
-              isPending={isPending}
-              canJoin={canJoin}
-              isAuthenticated={!!session?.user?.id}
-            />
           </div>
         </div>
-      </div>
 
-      {/* Description */}
-      {community.description && (
-        <Card className="mb-8 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-6">
-            <p className="whitespace-pre-wrap">{community.description}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Content Tabs */}
-      <Tabs defaultValue="posts" className="space-y-6">
-        <TabsList
-          className={`grid w-full ${community.announcements.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
-        >
-          <TabsTrigger value="posts" className="font-bold">
-            게시글
-          </TabsTrigger>
-          <TabsTrigger value="members" className="font-bold">
-            멤버
-          </TabsTrigger>
-          {community.announcements.length > 0 && (
-            <TabsTrigger value="announcements" className="font-bold">
-              공지사항
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="rules" className="font-bold">
-            규칙
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="posts" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2">
-              {community.categories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                  style={{
-                    backgroundColor: category.color || undefined,
-                    color: category.color ? 'white' : undefined,
-                  }}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-            {isMember && (
-              <Button
-                asChild
-                className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-              >
-                <Link href={`/communities/${community.slug}/write`}>
-                  게시글 작성
-                </Link>
-              </Button>
-            )}
-          </div>
-          <CommunityPostList
-            communityId={community.id}
-            communitySlug={community.slug}
-            page={1}
-          />
-        </TabsContent>
-
-        <TabsContent value="members" className="space-y-4">
-          <CommunityMemberList communityId={community.id} />
-        </TabsContent>
-
-        {community.announcements.length > 0 && (
-          <TabsContent value="announcements" className="space-y-4">
-            <CommunityAnnouncements announcements={community.announcements} />
-          </TabsContent>
-        )}
-
-        <TabsContent value="rules" className="space-y-4">
-          <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <CardHeader>
-              <h3 className="font-bold text-lg">커뮤니티 규칙</h3>
-            </CardHeader>
-            <CardContent>
-              {community.rules ? (
-                <div className="prose prose-sm max-w-none">
-                  <p className="whitespace-pre-wrap">{community.rules}</p>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  아직 규칙이 설정되지 않았습니다.
-                </p>
-              )}
+        {/* Description */}
+        {community.description && (
+          <Card className="mb-8 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
+            <CardContent className="pt-6">
+              <p className="whitespace-pre-wrap text-gray-700">
+                {community.description}
+              </p>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
 
-      {/* Floating Chat Button - 멤버이고 채팅이 활성화된 경우에만 표시 */}
-      <CommunityChatSection
-        communityId={community.id}
-        isMember={isMember}
-        allowChat={community.allowChat}
-      />
+        {/* Content Tabs */}
+        <Tabs defaultValue="posts" className="space-y-6">
+          <TabsList
+            className={`grid w-full ${community.announcements.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-gray-100 p-1 gap-1`}
+          >
+            <TabsTrigger
+              value="posts"
+              className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+            >
+              게시글
+            </TabsTrigger>
+            <TabsTrigger
+              value="members"
+              className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+            >
+              멤버
+            </TabsTrigger>
+            {community.announcements.length > 0 && (
+              <TabsTrigger
+                value="announcements"
+                className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+              >
+                공지사항
+              </TabsTrigger>
+            )}
+            <TabsTrigger
+              value="rules"
+              className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+            >
+              규칙
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex gap-2">
+                {community.categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant="outline"
+                    size="sm"
+                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all font-bold"
+                    style={{
+                      backgroundColor: category.color || undefined,
+                      color: category.color ? 'white' : undefined,
+                    }}
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+              {isMember && (
+                <Button
+                  asChild
+                  className="bg-blue-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
+                >
+                  <Link href={`/communities/${community.slug}/write`}>
+                    게시글 작성
+                  </Link>
+                </Button>
+              )}
+            </div>
+            <CommunityPostList
+              communityId={community.id}
+              communitySlug={community.slug}
+              page={1}
+            />
+          </TabsContent>
+
+          <TabsContent value="members" className="space-y-4">
+            <CommunityMemberList communityId={community.id} />
+          </TabsContent>
+
+          {community.announcements.length > 0 && (
+            <TabsContent value="announcements" className="space-y-4">
+              <CommunityAnnouncements announcements={community.announcements} />
+            </TabsContent>
+          )}
+
+          <TabsContent value="rules" className="space-y-4">
+            <Card className="border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
+              <CardHeader className="border-b-2 border-dashed border-gray-300">
+                <h3 className="font-black text-xl">커뮤니티 규칙</h3>
+              </CardHeader>
+              <CardContent>
+                {community.rules ? (
+                  <div className="prose prose-sm max-w-none">
+                    <p className="whitespace-pre-wrap">{community.rules}</p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    아직 규칙이 설정되지 않았습니다.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Floating Chat Button - 멤버이고 채팅이 활성화된 경우에만 표시 */}
+        <CommunityChatSection
+          communityId={community.id}
+          isMember={isMember}
+          allowChat={community.allowChat}
+        />
+      </div>
     </div>
   )
 }

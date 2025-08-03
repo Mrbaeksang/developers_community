@@ -118,15 +118,17 @@ export default function CommunityMemberList({
         const data = await res.json()
 
         // 새로운 응답 형식 처리: { success: true, data: { members } }
-        const members = data.success && data.data ? data.data.members : []
+        const membersData =
+          data.success && data.data ? data.data.members : data.members || []
+        const membersList = Array.isArray(membersData) ? membersData : []
 
         if (reset) {
-          setMembers(members)
+          setMembers(membersList)
         } else {
-          setMembers((prev) => [...prev, ...members])
+          setMembers((prev) => [...prev, ...membersList])
         }
 
-        setHasMore(members.length === 20)
+        setHasMore(membersList.length === 20)
         setPage(pageNum)
       } catch (error) {
         console.error('Failed to fetch members:', error)
@@ -206,69 +208,71 @@ export default function CommunityMemberList({
 
       {/* 멤버 목록 */}
       <div className="grid gap-4 md:grid-cols-2">
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className="bg-white border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-          >
-            <div className="flex items-start gap-4">
-              <Avatar className="h-12 w-12 border-2 border-black">
-                <AvatarImage src={member.user.image || undefined} />
-                <AvatarFallback className="font-bold text-lg">
-                  {member.user.name?.[0] || member.user.username?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
+        {members &&
+          members.length > 0 &&
+          members.map((member) => (
+            <div
+              key={member.id}
+              className="bg-white border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+            >
+              <div className="flex items-start gap-4">
+                <Avatar className="h-12 w-12 border-2 border-black">
+                  <AvatarImage src={member.user.image || undefined} />
+                  <AvatarFallback className="font-bold text-lg">
+                    {member.user.name?.[0] || member.user.username?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold truncate">
-                    {member.user.name || member.user.username || 'Unknown'}
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    className={cn('text-xs', roleColors[member.role])}
-                  >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold truncate">
+                      {member.user.name || member.user.username || 'Unknown'}
+                    </h3>
+                    <Badge
+                      variant="secondary"
+                      className={cn('text-xs', roleColors[member.role])}
+                    >
+                      <span className="flex items-center gap-1">
+                        {roleIcons[member.role]}
+                        {roleLabels[member.role]}
+                      </span>
+                    </Badge>
+                  </div>
+
+                  {member.user.username && member.user.name && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      @{member.user.username}
+                    </p>
+                  )}
+
+                  {member.user.bio && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                      {member.user.bio}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      {roleIcons[member.role]}
-                      {roleLabels[member.role]}
+                      <FileText className="h-3 w-3" />
+                      {member.user.postCount} 게시글
                     </span>
-                  </Badge>
-                </div>
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="h-3 w-3" />
+                      {member.user.commentCount} 댓글
+                    </span>
+                  </div>
 
-                {member.user.username && member.user.name && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    @{member.user.username}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {formatDistanceToNow(new Date(member.joinedAt), {
+                      addSuffix: true,
+                      locale: ko,
+                    })}{' '}
+                    가입
                   </p>
-                )}
-
-                {member.user.bio && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                    {member.user.bio}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
-                    {member.user.postCount} 게시글
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    {member.user.commentCount} 댓글
-                  </span>
                 </div>
-
-                <p className="text-xs text-muted-foreground mt-2">
-                  {formatDistanceToNow(new Date(member.joinedAt), {
-                    addSuffix: true,
-                    locale: ko,
-                  })}{' '}
-                  가입
-                </p>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
 
         {/* 로딩 인디케이터 */}
         {isLoading && (
