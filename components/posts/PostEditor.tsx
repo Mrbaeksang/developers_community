@@ -589,7 +589,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
+  }, [hasUnsavedChanges, isSubmitting])
 
   // Note: Categories and tags are already loaded via React Query at the top of the component
 

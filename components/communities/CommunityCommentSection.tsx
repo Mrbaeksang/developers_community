@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { MessageSquare, Send, MoreVertical, Edit, Trash2 } from 'lucide-react'
@@ -24,43 +25,85 @@ interface CommunityCommentSectionProps {
   currentUserId?: string | undefined
 }
 
+// 댓글 가져오기 함수
+const fetchComments = async ({
+  postId,
+  communityId,
+}: {
+  postId: string
+  communityId: string
+}): Promise<Comment[]> => {
+  const res = await fetch(
+    `/api/communities/${communityId}/posts/${postId}/comments`
+  )
+  if (!res.ok) throw new Error('Failed to fetch comments')
+
+  const data = await res.json()
+  // 새로운 응답 형식 처리: { success: true, data: { comments } }
+  return data.success && data.data ? data.data.comments : []
+}
+
 export function CommunityCommentSection({
   postId,
   communityId,
   currentUserId,
 }: CommunityCommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    fetchComments()
-  }, [postId, communityId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 댓글 목록 React Query로 관리
+  const {
+    data: comments = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['communityComments', communityId, postId],
+    queryFn: () => fetchComments({ postId, communityId }),
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
-  const fetchComments = async () => {
-    try {
+  if (error) {
+    console.error('Failed to fetch comments:', error)
+    toast.error('댓글을 불러오는데 실패했습니다.')
+  }
+
+  // 댓글 작성 mutation
+  const createCommentMutation = useMutation({
+    mutationFn: async (content: string) => {
       const res = await fetch(
-        `/api/communities/${communityId}/posts/${postId}/comments`
+        `/api/communities/${communityId}/posts/${postId}/comments`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        }
       )
-      if (!res.ok) throw new Error('Failed to fetch comments')
+
+      if (!res.ok) throw new Error('Failed to create comment')
 
       const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { comments } }
-      const comments = data.success && data.data ? data.data.comments : []
-      setComments(comments)
-    } catch (error) {
-      console.error('Failed to fetch comments:', error)
-      toast.error('댓글을 불러오는데 실패했습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      // 새로운 응답 형식 처리: { success: true, data: commentData }
+      return data.success && data.data ? data.data : data
+    },
+    onSuccess: (newCommentData) => {
+      // 댓글 목록 캐시 업데이트
+      queryClient.setQueryData(
+        ['communityComments', communityId, postId],
+        (old: Comment[] = []) => [newCommentData, ...old]
+      )
+      setNewComment('')
+      toast.success('댓글이 작성되었습니다.')
+    },
+    onError: (error) => {
+      console.error('Failed to create comment:', error)
+      toast.error('댓글 작성에 실패했습니다.')
+    },
+  })
 
   const handleSubmitComment = async () => {
     if (!currentUserId) {
@@ -73,33 +116,45 @@ export function CommunityCommentSection({
       return
     }
 
-    setIsSubmitting(true)
-    try {
+    createCommentMutation.mutate(newComment.trim())
+  }
+
+  // 답글 작성 mutation
+  const createReplyMutation = useMutation({
+    mutationFn: async ({
+      content,
+      parentId,
+    }: {
+      content: string
+      parentId: string
+    }) => {
       const res = await fetch(
         `/api/communities/${communityId}/posts/${postId}/comments`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: newComment.trim() }),
+          body: JSON.stringify({ content, parentId }),
         }
       )
 
-      if (!res.ok) throw new Error('Failed to create comment')
-
+      if (!res.ok) throw new Error('Failed to create reply')
       const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: commentData }
-      const commentData = data.success && data.data ? data.data : data
-      setComments([commentData, ...comments])
-      setNewComment('')
-      toast.success('댓글이 작성되었습니다.')
-    } catch (error) {
-      console.error('Failed to create comment:', error)
-      toast.error('댓글 작성에 실패했습니다.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+      return data
+    },
+    onSuccess: () => {
+      // 댓글 목록 다시 불러오기
+      queryClient.invalidateQueries({
+        queryKey: ['communityComments', communityId, postId],
+      })
+      setReplyTo(null)
+      setReplyContent('')
+      toast.success('답글이 작성되었습니다.')
+    },
+    onError: (error) => {
+      console.error('Failed to create reply:', error)
+      toast.error('답글 작성에 실패했습니다.')
+    },
+  })
 
   const handleSubmitReply = async (parentId: string) => {
     if (!currentUserId) {
@@ -112,33 +167,45 @@ export function CommunityCommentSection({
       return
     }
 
-    setIsSubmitting(true)
-    try {
+    createReplyMutation.mutate({ content: replyContent.trim(), parentId })
+  }
+
+  // 댓글 수정 mutation
+  const updateCommentMutation = useMutation({
+    mutationFn: async ({
+      commentId,
+      content,
+    }: {
+      commentId: string
+      content: string
+    }) => {
       const res = await fetch(
-        `/api/communities/${communityId}/posts/${postId}/comments`,
+        `/api/communities/${communityId}/comments/${commentId}`,
         {
-          method: 'POST',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: replyContent.trim(),
-            parentId,
-          }),
+          body: JSON.stringify({ content }),
         }
       )
 
-      if (!res.ok) throw new Error('Failed to create reply')
-
-      await fetchComments()
-      setReplyTo(null)
-      setReplyContent('')
-      toast.success('답글이 작성되었습니다.')
-    } catch (error) {
-      console.error('Failed to create reply:', error)
-      toast.error('답글 작성에 실패했습니다.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+      if (!res.ok) throw new Error('Failed to update comment')
+      const data = await res.json()
+      return data
+    },
+    onSuccess: () => {
+      // 댓글 목록 다시 불러오기
+      queryClient.invalidateQueries({
+        queryKey: ['communityComments', communityId, postId],
+      })
+      setEditingId(null)
+      setEditContent('')
+      toast.success('댓글이 수정되었습니다.')
+    },
+    onError: (error) => {
+      console.error('Failed to update comment:', error)
+      toast.error('댓글 수정에 실패했습니다.')
+    },
+  })
 
   const handleUpdateComment = async (commentId: string) => {
     if (!editContent.trim()) {
@@ -146,37 +213,12 @@ export function CommunityCommentSection({
       return
     }
 
-    setIsSubmitting(true)
-    try {
-      const res = await fetch(
-        `/api/communities/${communityId}/comments/${commentId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: editContent.trim() }),
-        }
-      )
-
-      if (!res.ok) throw new Error('Failed to update comment')
-
-      await fetchComments()
-      setEditingId(null)
-      setEditContent('')
-      toast.success('댓글이 수정되었습니다.')
-    } catch (error) {
-      console.error('Failed to update comment:', error)
-      toast.error('댓글 수정에 실패했습니다.')
-    } finally {
-      setIsSubmitting(false)
-    }
+    updateCommentMutation.mutate({ commentId, content: editContent.trim() })
   }
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
-      return
-    }
-
-    try {
+  // 댓글 삭제 mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
       const res = await fetch(
         `/api/communities/${communityId}/comments/${commentId}`,
         {
@@ -185,13 +227,28 @@ export function CommunityCommentSection({
       )
 
       if (!res.ok) throw new Error('Failed to delete comment')
-
-      await fetchComments()
+      const data = await res.json()
+      return data
+    },
+    onSuccess: () => {
+      // 댓글 목록 다시 불러오기
+      queryClient.invalidateQueries({
+        queryKey: ['communityComments', communityId, postId],
+      })
       toast.success('댓글이 삭제되었습니다.')
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Failed to delete comment:', error)
       toast.error('댓글 삭제에 실패했습니다.')
+    },
+  })
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+      return
     }
+
+    deleteCommentMutation.mutate(commentId)
   }
 
   const renderComment = (comment: Comment, level: number = 0) => {
@@ -266,7 +323,7 @@ export function CommunityCommentSection({
                   <Button
                     size="sm"
                     onClick={() => handleUpdateComment(comment.id)}
-                    disabled={isSubmitting}
+                    disabled={updateCommentMutation.isPending}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
                     수정
@@ -317,7 +374,7 @@ export function CommunityCommentSection({
                   <Button
                     size="sm"
                     onClick={() => handleSubmitReply(comment.id)}
-                    disabled={isSubmitting}
+                    disabled={createReplyMutation.isPending}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
                     답글 작성
@@ -394,7 +451,7 @@ export function CommunityCommentSection({
             />
             <Button
               onClick={handleSubmitComment}
-              disabled={isSubmitting || !newComment.trim()}
+              disabled={createCommentMutation.isPending || !newComment.trim()}
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
             >
               <Send className="h-4 w-4 mr-2" />

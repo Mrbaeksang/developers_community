@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Search, X, FileText, Loader2 } from 'lucide-react'
@@ -137,10 +137,10 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   )
 
   // 키보드 이벤트 리스너 등록
-  useState(() => {
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  })
+  }, [handleKeyDown])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
