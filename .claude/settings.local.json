@@ -50,7 +50,9 @@
       "mcp__desktop-commander__list_directory",
       "mcp__filesystem__read_multiple_files",
       "mcp__sequential-thinking__sequentialthinking",
-      "mcp__playwright__browser_resize"
+      "mcp__playwright__browser_resize",
+      "WebFetch(domain:deepwiki.org)",
+      "WebFetch(domain:deepwiki.com)"
     ],
     "deny": []
   }
