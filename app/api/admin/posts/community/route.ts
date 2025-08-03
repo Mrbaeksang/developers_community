@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 커뮤니티 게시글 목록 조회 (관리자용)
 export async function GET() {
   try {
     const session = await requireRoleAPI(['ADMIN'])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -44,12 +45,8 @@ export async function GET() {
       take: 500, // 최대 500개까지만 조회
     })
 
-    return NextResponse.json(posts)
+    return successResponse(posts)
   } catch (error) {
-    console.error('커뮤니티 게시글 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 게시글 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

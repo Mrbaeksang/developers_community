@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { CommunityVisibility } from '@prisma/client'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse, deletedResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function PUT(
   req: Request,
@@ -52,13 +54,9 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(community)
+    return successResponse(community)
   } catch (error) {
-    console.error('Error updating community:', error)
-    return NextResponse.json(
-      { error: 'Failed to update community' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -77,12 +75,8 @@ export async function DELETE(
       where: { id: communityId },
     })
 
-    return NextResponse.json({ message: 'Community deleted successfully' })
+    return deletedResponse('커뮤니티가 삭제되었습니다.')
   } catch (error) {
-    console.error('Error deleting community:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete community' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

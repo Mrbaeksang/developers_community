@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
 import { subMinutes } from 'date-fns'
 import type { ActivityType } from '@/types/activity'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 내부 활동 타입 (Date 객체 사용)
 interface InternalActivity {
@@ -276,16 +277,12 @@ export async function GET() {
     // 최대 15개만 반환
     const limitedActivities = activities.slice(0, 15)
 
-    return NextResponse.json({
+    return successResponse({
       activities: limitedActivities,
       count: limitedActivities.length,
       timestamp: now.toISOString(),
     })
   } catch (error) {
-    console.error('Realtime activity error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch activities' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

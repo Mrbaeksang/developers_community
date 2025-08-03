@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse, createdResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 // 카테고리 목록 조회 + 새 카테고리 생성
 export async function GET() {
@@ -18,7 +20,7 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       categories: categories.map((category) => ({
         id: category.id,
         name: category.name,
@@ -33,11 +35,7 @@ export async function GET() {
       })),
     })
   } catch (error) {
-    console.error('카테고리 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -52,10 +50,7 @@ export async function POST(req: NextRequest) {
 
     // 필수 필드 검증
     if (!name || !slug) {
-      return NextResponse.json(
-        { error: '카테고리 이름과 슬러그는 필수입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('카테고리 이름과 슬러그는 필수입니다.')
     }
 
     // 슬러그 중복 확인
@@ -64,10 +59,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (existingCategory) {
-      return NextResponse.json(
-        { error: '이미 존재하는 슬러그입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('이미 존재하는 슬러그입니다.')
     }
 
     // 최대 order 값 조회
@@ -89,12 +81,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ category })
+    return createdResponse({ category }, '카테고리가 생성되었습니다.')
   } catch (error) {
-    console.error('카테고리 생성 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

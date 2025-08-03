@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -32,12 +34,8 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(communities)
+    return successResponse(communities)
   } catch (error) {
-    console.error('Error fetching communities:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch communities' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

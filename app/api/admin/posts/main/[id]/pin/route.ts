@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // GET: 현재 고정 상태 조회
 export async function GET(
@@ -9,7 +15,7 @@ export async function GET(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { id } = await params
 
     const post = await prisma.mainPost.findUnique({
@@ -18,19 +24,12 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다.')
     }
 
-    return NextResponse.json({ isPinned: post.isPinned })
+    return successResponse({ isPinned: post.isPinned })
   } catch (error) {
-    console.error('고정 상태 조회 실패:', error)
-    return NextResponse.json(
-      { error: '고정 상태 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -41,7 +40,7 @@ export async function PATCH(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
     const { id } = await params
 
     // 현재 고정 상태 확인
@@ -51,18 +50,12 @@ export async function PATCH(
     })
 
     if (!currentPost) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다.')
     }
 
     // PUBLISHED 상태인 게시글만 고정 가능
     if (currentPost.status !== 'PUBLISHED') {
-      return NextResponse.json(
-        { error: '게시된 글만 고정할 수 있습니다.' },
-        { status: 400 }
-      )
+      throwValidationError('게시된 글만 고정할 수 있습니다.')
     }
 
     // 고정 상태 토글
@@ -75,7 +68,7 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       isPinned: updatedPost.isPinned,
       message: updatedPost.isPinned
@@ -83,10 +76,6 @@ export async function PATCH(
         : '게시글 고정이 해제되었습니다.',
     })
   } catch (error) {
-    console.error('고정 상태 변경 실패:', error)
-    return NextResponse.json(
-      { error: '고정 상태 변경에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

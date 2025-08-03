@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { deletedResponse } from '@/lib/api-response'
+import { handleError, throwNotFoundError } from '@/lib/error-handler'
 
 // 커뮤니티 게시글 삭제 (관리자만)
 export async function DELETE(
@@ -9,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
-    if (result instanceof NextResponse) return result
+    if (result instanceof Response) return result
 
     const { id } = await params
 
@@ -29,10 +30,7 @@ export async function DELETE(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다.')
     }
 
     // 트랜잭션으로 관련 데이터 모두 삭제
@@ -64,12 +62,8 @@ export async function DELETE(
       }),
     ])
 
-    return NextResponse.json({ success: true })
+    return deletedResponse('커뮤니티 게시글이 삭제되었습니다.')
   } catch (error) {
-    console.error('커뮤니티 게시글 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 게시글 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

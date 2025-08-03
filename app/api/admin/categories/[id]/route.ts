@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse, deletedResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 interface Context {
   params: Promise<{ id: string }>
@@ -9,19 +15,9 @@ interface Context {
 // 카테고리 수정
 export async function PATCH(req: NextRequest, context: Context) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof Response) {
+      return session
     }
 
     const { id } = await context.params
@@ -43,10 +39,7 @@ export async function PATCH(req: NextRequest, context: Context) {
     })
 
     if (!existingCategory) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('카테고리를 찾을 수 없습니다.')
     }
 
     // 슬러그 변경 시 중복 확인
@@ -56,10 +49,7 @@ export async function PATCH(req: NextRequest, context: Context) {
       })
 
       if (duplicateSlug) {
-        return NextResponse.json(
-          { error: '이미 존재하는 슬러그입니다.' },
-          { status: 400 }
-        )
+        throwValidationError('이미 존재하는 슬러그입니다.')
       }
     }
 
@@ -83,7 +73,7 @@ export async function PATCH(req: NextRequest, context: Context) {
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       category: {
         id: category.id,
         name: category.name,
@@ -98,30 +88,16 @@ export async function PATCH(req: NextRequest, context: Context) {
       },
     })
   } catch (error) {
-    console.error('카테고리 수정 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
 // 카테고리 삭제
 export async function DELETE(req: NextRequest, context: Context) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (user?.globalRole !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const session = await requireRoleAPI(['ADMIN'])
+    if (session instanceof Response) {
+      return session
     }
 
     const { id } = await context.params
@@ -137,19 +113,13 @@ export async function DELETE(req: NextRequest, context: Context) {
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('카테고리를 찾을 수 없습니다.')
     }
 
     // 게시글이 있는 카테고리는 삭제 불가
     if (category._count.posts > 0) {
-      return NextResponse.json(
-        {
-          error: `이 카테고리에 ${category._count.posts}개의 게시글이 있습니다. 게시글을 먼저 삭제하거나 다른 카테고리로 이동하세요.`,
-        },
-        { status: 400 }
+      throwValidationError(
+        `이 카테고리에 ${category._count.posts}개의 게시글이 있습니다. 게시글을 먼저 삭제하거나 다른 카테고리로 이동하세요.`
       )
     }
 
@@ -158,12 +128,8 @@ export async function DELETE(req: NextRequest, context: Context) {
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
+    return deletedResponse('카테고리가 삭제되었습니다.')
   } catch (error) {
-    console.error('카테고리 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

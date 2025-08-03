@@ -1,6 +1,8 @@
-import { NextResponse, NextRequest } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 // Prisma 모델명 매핑 (camelCase)
 const TABLE_MAP: Record<string, string> = {
@@ -31,26 +33,14 @@ export async function GET(
   context: { params: Promise<{ table: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
-    if (!user || !['ADMIN', 'MANAGER'].includes(user.globalRole)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    const result = await requireRoleAPI(['ADMIN', 'MANAGER'])
+    if (result instanceof Response) return result
 
     const { table } = await context.params
     const modelName = TABLE_MAP[table]
 
     if (!modelName) {
-      return NextResponse.json({ error: 'Invalid table' }, { status: 400 })
+      throwValidationError('Invalid table')
     }
 
     // 쿼리 파라미터 추출
@@ -376,7 +366,7 @@ export async function GET(
 
     columns = sortedColumns
 
-    return NextResponse.json({
+    return successResponse({
       data,
       columns,
       page,
@@ -384,7 +374,6 @@ export async function GET(
       total,
     })
   } catch (error) {
-    console.error('Data viewer error:', error)
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })
+    return handleError(error)
   }
 }
