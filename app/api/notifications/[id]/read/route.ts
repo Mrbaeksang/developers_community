@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // PUT: 특정 알림 읽음 처리
 export async function PUT(
@@ -9,7 +11,7 @@ export async function PUT(
 ) {
   try {
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -26,24 +28,15 @@ export async function PUT(
     })
 
     if (!notification) {
-      return NextResponse.json(
-        { error: '알림을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('알림을 찾을 수 없습니다.', 404)
     }
 
     if (notification.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: '알림에 액세스할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      return errorResponse('알림에 액세스할 권한이 없습니다.', 403)
     }
 
     if (notification.isRead) {
-      return NextResponse.json({
-        message: '이미 읽은 알림입니다.',
-        isRead: true,
-      })
+      return successResponse({ isRead: true }, '이미 읽은 알림입니다.')
     }
 
     // 읽음 처리
@@ -60,16 +53,11 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json({
-      message: '알림을 읽음 처리했습니다.',
-      isRead: true,
-      unreadCount,
-    })
-  } catch (error) {
-    console.error('Failed to mark notification as read:', error)
-    return NextResponse.json(
-      { error: '알림 읽음 처리에 실패했습니다.' },
-      { status: 500 }
+    return successResponse(
+      { isRead: true, unreadCount },
+      '알림을 읽음 처리했습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

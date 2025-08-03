@@ -1,9 +1,14 @@
 import { NextRequest } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { requireAuthAPI } from '@/lib/auth-utils'
+import { successResponse, updatedResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // 프로필 수정 스키마
 const updateProfileSchema = z.object({
@@ -24,9 +29,9 @@ const updateProfileSchema = z.object({
 // 내 정보 조회 - GET /api/users/me
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return errorResponse('로그인이 필요합니다.', 401)
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
     }
 
     // 사용자 정보 조회
@@ -57,7 +62,7 @@ export async function GET() {
     })
 
     if (!user) {
-      return errorResponse('사용자를 찾을 수 없습니다.', 404)
+      throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
     return successResponse({
@@ -71,6 +76,7 @@ export async function GET() {
         role: user.globalRole,
         showEmail: user.showEmail,
         joinedAt: user.createdAt.toISOString(),
+        joinedTimeAgo: formatTimeAgo(user.createdAt),
         stats: {
           postCount: user._count.mainPosts,
           commentCount: user._count.mainComments,
@@ -86,14 +92,20 @@ export async function GET() {
 // 내 정보 수정 - PUT /api/users/me
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return errorResponse('로그인이 필요합니다.', 401)
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
     }
 
     // 요청 데이터 검증
     const body = await request.json()
-    const validatedData = updateProfileSchema.parse(body)
+    const validation = updateProfileSchema.safeParse(body)
+
+    if (!validation.success) {
+      throwValidationError(validation.error.issues[0].message)
+    }
+
+    const validatedData = validation.data
 
     // 사용자명 중복 확인 (변경하는 경우만)
     if (validatedData.username) {
@@ -105,7 +117,7 @@ export async function PUT(request: NextRequest) {
       })
 
       if (existingUser) {
-        return errorResponse('이미 사용 중인 사용자명입니다.', 400)
+        throwValidationError('이미 사용 중인 사용자명입니다.')
       }
     }
 
@@ -146,29 +158,29 @@ export async function PUT(request: NextRequest) {
       },
     })
 
-    return successResponse({
-      user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        name: updatedUser.name || 'Unknown',
-        username: updatedUser.username,
-        image: updatedUser.image || undefined,
-        bio: updatedUser.bio,
-        role: updatedUser.globalRole,
-        showEmail: updatedUser.showEmail,
-        joinedAt: updatedUser.createdAt.toISOString(),
-        stats: {
-          postCount: updatedUser._count.mainPosts,
-          commentCount: updatedUser._count.mainComments,
-          likeCount: updatedUser._count.mainLikes,
+    return updatedResponse(
+      {
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name || 'Unknown',
+          username: updatedUser.username,
+          image: updatedUser.image || undefined,
+          bio: updatedUser.bio,
+          role: updatedUser.globalRole,
+          showEmail: updatedUser.showEmail,
+          joinedAt: updatedUser.createdAt.toISOString(),
+          joinedTimeAgo: formatTimeAgo(updatedUser.createdAt),
+          stats: {
+            postCount: updatedUser._count.mainPosts,
+            commentCount: updatedUser._count.mainComments,
+            likeCount: updatedUser._count.mainLikes,
+          },
         },
       },
-    })
+      '프로필이 업데이트되었습니다.'
+    )
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(error.issues[0].message, 400)
-    }
-
     return handleError(error)
   }
 }

@@ -1,16 +1,14 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAuthAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // PUT: 모든 알림 읽음 처리
 export async function PUT() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
     }
 
     // 읽지 않은 알림 개수 확인
@@ -22,10 +20,7 @@ export async function PUT() {
     })
 
     if (unreadCount === 0) {
-      return NextResponse.json({
-        message: '읽지 않은 알림이 없습니다.',
-        updatedCount: 0,
-      })
+      return successResponse({ updatedCount: 0 }, '읽지 않은 알림이 없습니다.')
     }
 
     // 모든 알림 읽음 처리
@@ -39,15 +34,11 @@ export async function PUT() {
       },
     })
 
-    return NextResponse.json({
-      message: `${result.count}개의 알림을 읽음 처리했습니다.`,
-      updatedCount: result.count,
-    })
-  } catch (error) {
-    console.error('Failed to mark all notifications as read:', error)
-    return NextResponse.json(
-      { error: '알림 읽음 처리에 실패했습니다.' },
-      { status: 500 }
+    return successResponse(
+      { updatedCount: result.count },
+      `${result.count}개의 알림을 읽음 처리했습니다.`
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

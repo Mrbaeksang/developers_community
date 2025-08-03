@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwNotFoundError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // 사용자 프로필 조회 - GET /api/users/[id]
 export async function GET(
@@ -40,21 +43,15 @@ export async function GET(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
     // 비활성화되거나 밴된 사용자 처리
     if (!user.isActive || user.isBanned) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         id: user.id,
         name: user.name || 'Unknown',
@@ -63,6 +60,7 @@ export async function GET(
         bio: user.bio,
         role: user.globalRole,
         joinedAt: user.createdAt.toISOString(),
+        joinedTimeAgo: formatTimeAgo(user.createdAt),
         // 이메일은 showEmail 설정에 따라 공개
         ...(user.showEmail && { email: user.email }),
         stats: {
@@ -73,10 +71,6 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('사용자 프로필 조회 실패:', error)
-    return NextResponse.json(
-      { error: '사용자 프로필 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

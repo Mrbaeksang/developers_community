@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuthAPI } from '@/lib/auth-utils'
+import { deletedResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // DELETE: 특정 알림 삭제
 export async function DELETE(
@@ -8,12 +14,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
     }
 
     const resolvedParams = await params
@@ -26,14 +29,11 @@ export async function DELETE(
     })
 
     if (!notification) {
-      return NextResponse.json(
-        { error: '알림을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('알림을 찾을 수 없습니다.')
     }
 
     if (notification.userId !== session.user.id) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+      throwAuthorizationError('권한이 없습니다.')
     }
 
     // 알림 삭제
@@ -41,14 +41,8 @@ export async function DELETE(
       where: { id: notificationId },
     })
 
-    return NextResponse.json({
-      message: '알림이 삭제되었습니다.',
-    })
+    return deletedResponse('알림이 삭제되었습니다.')
   } catch (error) {
-    console.error('Failed to delete notification:', error)
-    return NextResponse.json(
-      { error: '알림 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

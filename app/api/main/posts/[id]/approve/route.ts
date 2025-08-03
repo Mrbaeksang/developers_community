@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import {
   createPostApprovedNotification,
   createPostRejectedNotification,
 } from '@/lib/notifications'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function POST(
   request: Request,
@@ -13,7 +14,7 @@ export async function POST(
   try {
     const { id } = await params
     const session = await requireRoleAPI(['ADMIN', 'MANAGER'])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -32,10 +33,7 @@ export async function POST(
     })
 
     if (!currentPost) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('게시글을 찾을 수 없습니다.', 404)
     }
 
     // 게시글 상태 업데이트
@@ -85,23 +83,20 @@ export async function POST(
       )
     }
 
-    return NextResponse.json({
-      message:
-        action === 'approve'
-          ? '게시글이 승인되었습니다.'
-          : '게시글이 거부되었습니다.',
-      post: {
-        id: post.id,
-        status: post.status,
-        approvedAt: post.approvedAt,
-        rejectedReason: post.rejectedReason,
+    return successResponse(
+      {
+        post: {
+          id: post.id,
+          status: post.status,
+          approvedAt: post.approvedAt?.toISOString() || undefined,
+          rejectedReason: post.rejectedReason,
+        },
       },
-    })
-  } catch (error) {
-    console.error('게시글 승인/거부 실패:', error)
-    return NextResponse.json(
-      { error: '승인/거부 처리에 실패했습니다.' },
-      { status: 500 }
+      action === 'approve'
+        ? '게시글이 승인되었습니다.'
+        : '게시글이 거부되었습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

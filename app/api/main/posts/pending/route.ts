@@ -1,16 +1,14 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAuthAPI } from '@/lib/auth-utils'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 export async function GET() {
   try {
-    const session = await auth()
-
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
     }
 
     // 관리자 권한 확인
@@ -23,10 +21,7 @@ export async function GET() {
       !user ||
       (user.globalRole !== 'ADMIN' && user.globalRole !== 'MANAGER')
     ) {
-      return NextResponse.json(
-        { error: '승인 권한이 없습니다.' },
-        { status: 403 }
-      )
+      return errorResponse('승인 권한이 없습니다.', 403)
     }
 
     // 승인 대기 게시글 조회
@@ -73,30 +68,27 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json({
-      posts: pendingPosts.map((post) => ({
-        id: post.id,
-        title: post.title,
-        excerpt: post.excerpt,
-        createdAt: post.createdAt,
-        author: {
-          id: post.author.id,
-          name: post.author.name || 'Unknown',
-          email: post.author.email,
-          image: post.author.image || undefined,
-        },
-        category: post.category,
-        tags: post.tags.map((t) => t.tag),
-        commentCount: post._count.comments,
-        likeCount: post._count.likes,
-        viewCount: post.viewCount,
-      })),
-    })
+    const formattedPosts = pendingPosts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      excerpt: post.excerpt,
+      createdAt: post.createdAt.toISOString(),
+      timeAgo: formatTimeAgo(post.createdAt),
+      author: {
+        id: post.author.id,
+        name: post.author.name || 'Unknown',
+        email: post.author.email,
+        image: post.author.image || undefined,
+      },
+      category: post.category,
+      tags: post.tags.map((t) => t.tag),
+      commentCount: post._count.comments,
+      likeCount: post._count.likes,
+      viewCount: post.viewCount,
+    }))
+
+    return successResponse({ posts: formattedPosts })
   } catch (error) {
-    console.error('승인 대기 게시글 조회 실패:', error)
-    return NextResponse.json(
-      { error: '승인 대기 게시글 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

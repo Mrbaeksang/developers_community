@@ -1,16 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { paginatedResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // 내 북마크 목록 조회 - GET /api/users/bookmarks
 export async function GET(request: NextRequest) {
   try {
-    const result = await requireAuthAPI()
-    if (result instanceof NextResponse) return result
-    const userId = result.user.id
+    const session = await requireAuthAPI()
+    if (session instanceof Response) {
+      return session
+    }
+    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
 
@@ -97,6 +100,7 @@ export async function GET(request: NextRequest) {
         return {
           bookmarkId: bookmark.id,
           bookmarkedAt: bookmark.createdAt.toISOString(),
+          bookmarkedTimeAgo: formatTimeAgo(bookmark.createdAt),
           post: {
             id: bookmark.post.id,
             title: bookmark.post.title,
@@ -109,7 +113,8 @@ export async function GET(request: NextRequest) {
             commentCount: bookmark.post.commentCount,
             createdAt: bookmark.post.createdAt.toISOString(),
             updatedAt: bookmark.post.updatedAt.toISOString(),
-            approvedAt: bookmark.post.approvedAt?.toISOString() || null,
+            approvedAt: bookmark.post.approvedAt?.toISOString() || undefined,
+            timeAgo: formatTimeAgo(bookmark.post.createdAt),
             author: {
               id: bookmark.post.author.id,
               name: bookmark.post.author.name || 'Unknown',

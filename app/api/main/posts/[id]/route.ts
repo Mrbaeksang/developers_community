@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
@@ -6,6 +6,19 @@ import { requireAuthAPI } from '@/lib/auth-utils'
 import { PostStatus, Prisma } from '@prisma/client'
 import { canModifyMainContent } from '@/lib/role-hierarchy'
 import { markdownToHtml } from '@/lib/markdown'
+import {
+  successResponse,
+  errorResponse,
+  updatedResponse,
+  deletedResponse,
+} from '@/lib/api-response'
+import {
+  handleError,
+  throwValidationError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -75,7 +88,7 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('Post not found', 404)
     }
 
     // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
@@ -86,12 +99,14 @@ export async function GET(
       content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
       tags: post.tags.map((postTag) => postTag.tag),
       status: post.status, // 상태 정보 포함
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+      timeAgo: formatTimeAgo(post.createdAt),
     }
 
-    return NextResponse.json(formattedPost)
+    return successResponse(formattedPost)
   } catch (error) {
-    console.error('Failed to fetch post:', error)
-    return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 })
+    return handleError(error)
   }
 }
 
@@ -112,7 +127,7 @@ export async function PUT(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -127,10 +142,7 @@ export async function PUT(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다.')
     }
 
     // 현재 사용자의 전역 역할 확인
@@ -141,10 +153,7 @@ export async function PUT(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
     // 권한 확인 (역할 계층 기반)
@@ -156,20 +165,14 @@ export async function PUT(
     )
 
     if (!canModify) {
-      return NextResponse.json(
-        { error: '게시글을 수정할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('게시글을 수정할 권한이 없습니다.')
     }
 
     const body = await request.json()
     const validation = updatePostSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
-      )
+      throwValidationError(validation.error.issues[0].message)
     }
 
     const { title, content, categoryId, tagIds } = validation.data
@@ -180,10 +183,7 @@ export async function PUT(
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '유효하지 않은 카테고리입니다.' },
-        { status: 400 }
-      )
+      throwValidationError('유효하지 않은 카테고리입니다.')
     }
 
     // 태그 확인
@@ -193,10 +193,7 @@ export async function PUT(
       })
 
       if (tags.length !== tagIds.length) {
-        return NextResponse.json(
-          { error: '유효하지 않은 태그가 포함되어 있습니다.' },
-          { status: 400 }
-        )
+        throwValidationError('유효하지 않은 태그가 포함되어 있습니다.')
       }
     }
 
@@ -266,13 +263,9 @@ export async function PUT(
       }
     })
 
-    return NextResponse.json(updatedPost)
+    return updatedResponse(updatedPost, '게시글이 수정되었습니다.')
   } catch (error) {
-    console.error('Failed to update post:', error)
-    return NextResponse.json(
-      { error: '게시글 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -286,7 +279,7 @@ export async function DELETE(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -300,10 +293,7 @@ export async function DELETE(
     })
 
     if (!post) {
-      return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('게시글을 찾을 수 없습니다.')
     }
 
     // 현재 사용자의 전역 역할 확인
@@ -314,10 +304,7 @@ export async function DELETE(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
     // 권한 확인 (역할 계층 기반)
@@ -329,10 +316,7 @@ export async function DELETE(
     )
 
     if (!canDelete) {
-      return NextResponse.json(
-        { error: '게시글을 삭제할 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throwAuthorizationError('게시글을 삭제할 권한이 없습니다.')
     }
 
     // 게시글 삭제 (관련 데이터는 CASCADE로 자동 삭제)
@@ -340,12 +324,8 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ success: true })
+    return deletedResponse('게시글이 삭제되었습니다.')
   } catch (error) {
-    console.error('Failed to delete post:', error)
-    return NextResponse.json(
-      { error: '게시글 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
