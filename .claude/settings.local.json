@@ -46,7 +46,10 @@
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_press_key",
-      "mcp__playwright__browser_snapshot"
+      "mcp__playwright__browser_snapshot",
+      "mcp__desktop-commander__list_directory",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": []
   }

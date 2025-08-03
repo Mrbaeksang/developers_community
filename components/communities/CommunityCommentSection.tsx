@@ -16,23 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
-
-interface Author {
-  id: string
-  name: string | null
-  email: string
-  image: string | null
-}
-
-interface Comment {
-  id: string
-  content: string
-  isEdited: boolean
-  createdAt: string
-  author: Author
-  parentId: string | null
-  replies?: Comment[]
-}
+import type { Comment } from '@/lib/types'
 
 interface CommunityCommentSectionProps {
   postId: string
@@ -222,7 +206,8 @@ export function CommunityCommentSection({
             <AvatarImage src={comment.author.image || undefined} />
             <AvatarFallback className="font-bold text-xs">
               {comment.author.name?.[0] ||
-                comment.author.email[0].toUpperCase()}
+                comment.author.email?.[0]?.toUpperCase() ||
+                '?'}
             </AvatarFallback>
           </Avatar>
 

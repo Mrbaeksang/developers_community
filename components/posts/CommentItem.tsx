@@ -12,20 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-interface Comment {
-  id: string
-  content: string
-  createdAt: string
-  isEdited?: boolean
-  author: {
-    id: string
-    name: string | null
-    email: string | null
-    image: string | null
-  }
-  replies?: Comment[]
-}
+import type { Comment } from '@/lib/types'
 
 interface CommentItemProps {
   comment: Comment

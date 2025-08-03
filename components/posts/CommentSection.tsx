@@ -16,20 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
-
-interface Comment {
-  id: string
-  content: string
-  createdAt: string
-  isEdited?: boolean
-  author: {
-    id: string
-    name: string | null
-    email: string | null
-    image: string | null
-  }
-  replies?: Comment[]
-}
+import type { Comment } from '@/lib/types'
 
 interface CommentSectionProps {
   postId: string

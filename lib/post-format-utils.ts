@@ -6,28 +6,8 @@ export const formatCount = (count: number): string => {
   return count.toLocaleString()
 }
 
-// RGB로 변환
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : { r: 0, g: 0, b: 0 }
-}
-
-// Luminance 계산
-export const getLuminance = (color: string): number => {
-  const rgb = hexToRgb(color)
-  return 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b
-}
-
-// 배경색에 따른 텍스트 색상 결정
-export const getTextColor = (backgroundColor: string): string => {
-  return getLuminance(backgroundColor) > 128 ? '#000000' : '#FFFFFF'
-}
+// 색상 관련 함수는 color-utils.ts로 이동됨
+export { hexToRgb, getLuminance, getTextColor } from './color-utils'
 
 // 읽기 시간 계산
 export const calculateReadingTime = (text: string): number => {

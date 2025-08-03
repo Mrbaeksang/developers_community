@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, Eye, MessageCircle, Heart, User } from 'lucide-react'
+import { Clock, type LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { formatCount, getLuminance } from '@/lib/post-format-utils'
+import { CategoryBadge } from '@/components/shared/CategoryBadge'
+import { TagBadge } from '@/components/shared/TagBadge'
+import { PostStats } from '@/components/shared/PostStats'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 
 interface Post {
   id: string
@@ -135,15 +136,15 @@ export function RecentPosts() {
           {posts.slice(0, 5).map((post) => {
             const CategoryIcon =
               post.category.icon &&
-              Icons[post.category.icon as keyof typeof Icons]
+              Icons[post.category.icon as keyof typeof Icons] &&
+              typeof Icons[post.category.icon as keyof typeof Icons] ===
+                'function'
                 ? (Icons[
                     post.category.icon as keyof typeof Icons
-                  ] as React.ComponentType<{ className?: string }>)
-                : null
+                  ] as LucideIcon)
+                : undefined
 
-            const categoryBgColor = post.category.color || '#6366f1'
-            const categoryTextColor =
-              getLuminance(categoryBgColor) > 128 ? '#000000' : '#FFFFFF'
+            // Remove unused variables since CategoryBadge handles colors internally
 
             return (
               <Link
@@ -153,31 +154,25 @@ export function RecentPosts() {
               >
                 <div className="flex items-start gap-4">
                   {/* 작성자 아바타 */}
-                  <Avatar className="h-10 w-10 border-2 border-gray-200 flex-shrink-0">
-                    <AvatarImage src={post.author.image || undefined} />
-                    <AvatarFallback className="text-sm bg-gray-100 font-bold">
-                      {post.author.name ? (
-                        post.author.name[0].toUpperCase()
-                      ) : (
-                        <User className="h-5 w-5" />
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
+                  <AuthorAvatar
+                    author={post.author}
+                    size="lg"
+                    avatarClassName="border-gray-200"
+                  />
 
                   {/* 게시글 정보 */}
                   <div className="flex-1 min-w-0">
                     {/* 카테고리 뱃지 */}
-                    <Badge
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mb-2 hover:scale-105 transition-transform"
-                      style={{
-                        backgroundColor: categoryBgColor,
-                        color: categoryTextColor,
-                        borderColor: '#000',
-                      }}
-                    >
-                      {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
-                      {post.category.name}
-                    </Badge>
+                    <div className="mb-2">
+                      <CategoryBadge
+                        category={{
+                          ...post.category,
+                          color: post.category.color || '#808080',
+                        }}
+                        icon={CategoryIcon || undefined}
+                        className="text-xs px-2.5 py-0.5"
+                      />
+                    </div>
 
                     {/* 제목 */}
                     <h3 className="font-bold text-base mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
@@ -187,28 +182,19 @@ export function RecentPosts() {
                     {/* 태그 */}
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
-                        {post.tags.slice(0, 3).map((tag) => {
-                          const tagBgColor = tag.color || '#6366f1'
-                          const tagTextColor =
-                            getLuminance(tagBgColor) > 128
-                              ? '#000000'
-                              : '#FFFFFF'
-
-                          return (
-                            <span
-                              key={tag.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border-2 hover:scale-105 transition-all duration-200"
-                              style={{
-                                backgroundColor: tagBgColor,
-                                color: tagTextColor,
-                                borderColor: tagBgColor,
-                                boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
-                              }}
-                            >
-                              #<span>{tag.name}</span>
-                            </span>
-                          )
-                        })}
+                        {post.tags.slice(0, 3).map((tag) => (
+                          <TagBadge
+                            key={tag.id}
+                            tag={{
+                              ...tag,
+                              color: tag.color || '#808080',
+                            }}
+                            size="sm"
+                            showIcon={false}
+                            clickable={false}
+                            className="text-[10px] px-2 py-0.5"
+                          />
+                        ))}
                         {post.tags.length > 3 && (
                           <span className="px-2 py-0.5 text-[10px] font-semibold text-gray-500">
                             +{post.tags.length - 3}
@@ -236,26 +222,14 @@ export function RecentPosts() {
                     </div>
 
                     {/* 통계 정보 */}
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1 text-xs text-gray-600">
-                        <Eye className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="font-medium">
-                          {formatCount(post.viewCount)}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-600">
-                        <MessageCircle className="h-3.5 w-3.5 text-green-500" />
-                        <span className="font-medium">
-                          {formatCount(post._count?.comments || 0)}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-600">
-                        <Heart className="h-3.5 w-3.5 text-red-500" />
-                        <span className="font-medium">
-                          {formatCount(post._count?.likes || 0)}
-                        </span>
-                      </span>
-                    </div>
+                    <PostStats
+                      viewCount={post.viewCount}
+                      likeCount={post._count?.likes || 0}
+                      commentCount={post._count?.comments || 0}
+                      size="sm"
+                      variant="minimal"
+                      className="mt-2"
+                    />
                   </div>
                 </div>
 

@@ -2,17 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Search,
-  X,
-  FileText,
-  Hash,
-  User,
-  Loader2,
-  Eye,
-  Heart,
-  MessageSquare,
-} from 'lucide-react'
+import { Search, X, FileText, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -21,12 +11,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useDebounce } from '@/hooks/use-debounce'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { formatCount, getTextColor } from '@/lib/post-format-utils'
+import { PostStats } from '@/components/shared/PostStats'
+import { CategoryBadge } from '@/components/shared/CategoryBadge'
+import { TagBadge } from '@/components/shared/TagBadge'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 
 interface SearchResult {
   id: string
@@ -232,18 +224,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       {/* 카테고리 뱃지 */}
-                      <Badge
-                        variant="secondary"
-                        style={{
-                          backgroundColor: result.category.color,
-                          color: getTextColor(result.category.color),
-                          borderColor: '#000',
-                          boxShadow: '2px 2px 0px 0px rgba(0,0,0,1)',
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold border-2 mb-2"
-                      >
-                        {result.category.name}
-                      </Badge>
+                      <div className="mb-2">
+                        <CategoryBadge
+                          category={result.category}
+                          className="text-xs px-2.5 py-0.5"
+                          clickable={false}
+                        />
+                      </div>
 
                       {/* 제목 */}
                       <h4 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">
@@ -259,23 +246,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
                       {/* 메타 정보 */}
                       <div className="flex items-center gap-4 text-xs">
-                        <span className="flex items-center gap-1.5">
-                          <Avatar className="h-5 w-5 border border-black">
-                            <AvatarImage
-                              src={result.author.image || undefined}
-                            />
-                            <AvatarFallback className="text-[10px] bg-gray-100">
-                              {result.author.name?.[0]?.toUpperCase() || (
-                                <User className="h-3 w-3" />
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">
-                            {result.author.name ||
-                              result.author.username ||
-                              'Unknown'}
-                          </span>
-                        </span>
+                        <AuthorAvatar
+                          author={result.author}
+                          size="xs"
+                          showName
+                          avatarClassName="border border-black"
+                          textClassName="font-medium"
+                        />
 
                         <span className="text-gray-400">•</span>
 
@@ -288,39 +265,26 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       </div>
 
                       {/* 통계 정보 */}
-                      <div className="flex items-center gap-4 mt-3">
-                        <span className="flex items-center gap-1 text-xs">
-                          <Eye className="h-4 w-4 text-orange-500" />
-                          <span className="font-semibold">
-                            {formatCount(result.viewCount)}
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-1 text-xs">
-                          <Heart className="h-4 w-4 text-red-500" />
-                          <span className="font-semibold">
-                            {formatCount(result._count.likes)}
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-1 text-xs">
-                          <MessageSquare className="h-4 w-4 text-blue-500" />
-                          <span className="font-semibold">
-                            {formatCount(result._count.comments)}
-                          </span>
-                        </span>
-                      </div>
+                      <PostStats
+                        viewCount={result.viewCount}
+                        likeCount={result._count.likes}
+                        commentCount={result._count.comments}
+                        size="sm"
+                        variant="minimal"
+                        className="mt-3"
+                      />
 
                       {/* 태그 */}
                       {result.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-3">
                           {result.tags.map((tag) => (
-                            <Badge
+                            <TagBadge
                               key={tag.id}
-                              variant="outline"
-                              className="text-xs px-2 py-0.5 border-2 border-gray-300 font-semibold hover:border-black transition-colors"
-                            >
-                              <Hash className="mr-0.5 h-3 w-3" />
-                              {tag.name}
-                            </Badge>
+                              tag={{ ...tag, color: '#E5E7EB' }}
+                              size="sm"
+                              clickable={false}
+                              className="text-xs px-2 py-0.5 border-gray-300"
+                            />
                           ))}
                         </div>
                       )}

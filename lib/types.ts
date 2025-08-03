@@ -47,17 +47,19 @@ export interface Tag {
 export interface Comment {
   id: string
   content: string
-  authorId: string
+  authorId?: string
   author: {
     id: string
     name: string | null
-    email: string
+    email: string | null
     image: string | null
   }
-  postId: string
+  postId?: string
   parentId?: string | null
   createdAt: Date | string
-  updatedAt: Date | string
+  updatedAt?: Date | string
+  isEdited?: boolean
+  replies?: Comment[]
   _count?: {
     replies: number
     commentLikes: number
