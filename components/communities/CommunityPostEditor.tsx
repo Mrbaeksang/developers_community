@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -56,12 +57,42 @@ export function CommunityPostEditor({
   maxFileSize,
 }: CommunityPostEditorProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [files, setFiles] = useState<UploadedFile[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 파일 업로드 mutation
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error('Failed to upload file')
+
+      const data = await res.json()
+      return data.success && data.data ? data.data : data
+    },
+    onSuccess: (fileData) => {
+      setFiles((prev) => [...prev, fileData])
+      toast.success('파일이 업로드되었습니다.')
+    },
+    onError: (error) => {
+      console.error('File upload error:', error)
+      toast.error('파일 업로드에 실패했습니다.')
+    },
+    onSettled: () => {
+      setIsUploading(false)
+    },
+  })
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files
@@ -77,33 +108,11 @@ export function CommunityPostEditor({
     }
 
     setIsUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!res.ok) throw new Error('Failed to upload file')
-
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: fileInfo }
-      const fileData = data.success && data.data ? data.data : data
-      setFiles([...files, fileData])
-      toast.success('파일이 업로드되었습니다.')
-    } catch (error) {
-      console.error('File upload error:', error)
-      toast.error('파일 업로드에 실패했습니다.')
-    } finally {
-      setIsUploading(false)
-    }
+    uploadFileMutation.mutate(file)
   }
 
   const removeFile = (fileId: string) => {
-    setFiles(files.filter((f) => f.id !== fileId))
+    setFiles((prev) => prev.filter((f) => f.id !== fileId))
   }
 
   const getFileIcon = (type: string) => {
@@ -114,6 +123,49 @@ export function CommunityPostEditor({
       return <Archive className="h-4 w-4" />
     return <FileText className="h-4 w-4" />
   }
+
+  // 게시글 작성 mutation
+  const submitMutation = useMutation({
+    mutationFn: async (data: {
+      title: string
+      content: string
+      categoryId?: string | null
+      files: UploadedFile[]
+    }) => {
+      const res = await fetch(`/api/communities/${communityId}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          content: data.content,
+          categoryId: data.categoryId,
+          fileIds: data.files.map((f) => f.id),
+        }),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || '게시글 작성 실패')
+      }
+      const result = await res.json()
+      return result.success && result.data ? result.data : result
+    },
+    onSuccess: (data) => {
+      toast.success('게시글이 작성되었습니다.')
+      queryClient.invalidateQueries({
+        queryKey: ['communityPosts', communityId],
+      })
+      router.push(
+        `/communities/${communitySlug || communityId}/posts/${data.id}`
+      )
+    },
+    onError: (error) => {
+      console.error('Failed to create post:', error)
+      toast.error('게시글 작성에 실패했습니다.')
+    },
+    onSettled: () => {
+      setIsSubmitting(false)
+    },
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,40 +181,12 @@ export function CommunityPostEditor({
     }
 
     setIsSubmitting(true)
-    try {
-      const res = await fetch(`/api/communities/${communityId}/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          categoryId:
-            categoryId === 'none' ? undefined : categoryId || undefined,
-          fileIds: files.map((f) => f.id),
-        }),
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to create post')
-      }
-
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { id, ... } }
-      const postData = data.success && data.data ? data.data : data
-      toast.success('게시글이 작성되었습니다.')
-      router.push(
-        `/communities/${communitySlug || communityId}/posts/${postData.id}`
-      )
-    } catch (error) {
-      console.error('Failed to create post:', error)
-      toast.error(
-        error instanceof Error ? error.message : '게시글 작성에 실패했습니다.'
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    submitMutation.mutate({
+      title,
+      content,
+      categoryId: categoryId === 'none' ? null : categoryId || null,
+      files,
+    })
   }
 
   return (

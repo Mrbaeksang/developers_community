@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,29 +20,24 @@ interface Community {
   weeklyPosts: number
 }
 
+// 활발한 커뮤니티 가져오기 함수
+const fetchActiveCommunities = async (): Promise<Community[]> => {
+  const response = await fetch('/api/communities/active?limit=5')
+  if (!response.ok) throw new Error('Failed to fetch active communities')
+  const result = await response.json()
+  return result.data?.communities || []
+}
+
 export function ActiveCommunities() {
-  const [communities, setCommunities] = useState<Community[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: communities = [], isLoading } = useQuery({
+    queryKey: ['activeCommunities'],
+    queryFn: fetchActiveCommunities,
+    staleTime: 5 * 60 * 1000, // 5분간 fresh
+    gcTime: 10 * 60 * 1000, // 10분간 캐시
+    refetchInterval: 5 * 60 * 1000, // 5분마다 자동 새로고침
+  })
 
-  useEffect(() => {
-    fetchActiveCommunities()
-  }, [])
-
-  const fetchActiveCommunities = async () => {
-    try {
-      const response = await fetch('/api/communities/active?limit=5')
-      if (!response.ok) throw new Error('Failed to fetch')
-      const result = await response.json()
-      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-      setCommunities(result.data?.communities || [])
-    } catch (error) {
-      console.error('Failed to fetch active communities:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="border-b-2 border-black bg-purple-50">

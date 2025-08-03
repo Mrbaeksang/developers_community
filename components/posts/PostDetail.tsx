@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
 import ShareModal from './ShareModal'
@@ -53,42 +54,103 @@ interface PostDetailProps {
 }
 
 export default function PostDetail({ post }: PostDetailProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
   const [likeCount, setLikeCount] = useState(post._count?.likes || 0)
   const [showShareModal, setShowShareModal] = useState(false)
   const { toast } = useToast()
   const { status } = useSession()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
-  // 로그인한 경우 좋아요/북마크 상태 확인
+  // 좋아요 상태 확인
+  const { data: likeData } = useQuery({
+    queryKey: ['postLike', post.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/main/posts/${post.id}/like`)
+      const data = await res.json()
+      return data.data?.liked || data.liked || false
+    },
+    enabled: status === 'authenticated',
+    staleTime: Infinity,
+  })
+
+  // 북마크 상태 확인
+  const { data: bookmarkData } = useQuery({
+    queryKey: ['postBookmark', post.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/main/posts/${post.id}/bookmark`)
+      const data = await res.json()
+      return data.data?.bookmarked || data.bookmarked || false
+    },
+    enabled: status === 'authenticated',
+    staleTime: Infinity,
+  })
+
+  const isLiked = likeData || false
+  const isBookmarked = bookmarkData || false
+
+  // 조회수 증가 mutation
+  const viewMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/main/posts/${post.id}/view`, {
+        method: 'POST',
+      })
+      if (!res.ok) throw new Error('Failed to increment view')
+      return res.json()
+    },
+  })
+
+  // 조회수 증가
   useEffect(() => {
-    if (status === 'authenticated') {
-      // 좋아요 상태 확인
-      fetch(`/api/main/posts/${post.id}/like`)
-        .then((res) => res.json())
-        .then((data) => setIsLiked(data.data?.liked || data.liked))
-        .catch(console.error)
+    viewMutation.mutate()
+  }, [viewMutation])
 
-      // 북마크 상태 확인
-      fetch(`/api/main/posts/${post.id}/bookmark`)
-        .then((res) => res.json())
-        .then((data) =>
-          setIsBookmarked(data.data?.bookmarked || data.bookmarked)
-        )
-        .catch(console.error)
-    }
-  }, [status, post.id])
+  // 좋아요 토글 mutation
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/main/posts/${post.id}/like`, {
+        method: 'POST',
+      })
+      if (!res.ok) throw new Error('Failed to toggle like')
+      const data = await res.json()
+      return data.success && data.data ? data.data : data
+    },
+    onMutate: async () => {
+      // 캐시 업데이트 전에 현재 상태 백업
+      await queryClient.cancelQueries({ queryKey: ['postLike', post.id] })
+      const previousLike = queryClient.getQueryData(['postLike', post.id])
 
-  // 조회수 증가 (Redis 버퍼링)
-  useEffect(() => {
-    // 조회수 증가 API 호출
-    fetch(`/api/main/posts/${post.id}/view`, {
-      method: 'POST',
-    }).catch(console.error)
-  }, [post.id])
+      // Optimistic update
+      queryClient.setQueryData(['postLike', post.id], !isLiked)
+      setLikeCount((prev) => (!isLiked ? prev + 1 : prev - 1))
 
-  const handleLike = async () => {
+      return { previousLike }
+    },
+    onError: (err, variables, context) => {
+      // 에러 시 이전 상태로 롤백
+      if (context?.previousLike !== undefined) {
+        queryClient.setQueryData(['postLike', post.id], context.previousLike)
+        setLikeCount((prev) => (context.previousLike ? prev : prev - 1))
+      }
+      toast({
+        title: '오류가 발생했습니다',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    },
+    onSuccess: (data) => {
+      // 서버 응답으로 최종 상태 업데이트
+      queryClient.setQueryData(['postLike', post.id], data.liked)
+      setLikeCount((prev) => {
+        const currentIsLiked = queryClient.getQueryData(['postLike', post.id])
+        return currentIsLiked ? prev : prev - 1
+      })
+      toast({
+        title: data.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
+      })
+    },
+  })
+
+  const handleLike = () => {
     if (status === 'unauthenticated') {
       toast({
         title: '로그인이 필요합니다',
@@ -99,34 +161,58 @@ export default function PostDetail({ post }: PostDetailProps) {
       return
     }
 
-    try {
-      const res = await fetch(`/api/main/posts/${post.id}/like`, {
+    likeMutation.mutate()
+  }
+
+  // 북마크 토글 mutation
+  const bookmarkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/main/posts/${post.id}/bookmark`, {
         method: 'POST',
       })
-
-      if (!res.ok) throw new Error('Failed to toggle like')
-
+      if (!res.ok) throw new Error('Failed to toggle bookmark')
       const data = await res.json()
+      return data.success && data.data ? data.data : data
+    },
+    onMutate: async () => {
+      // 캐시 업데이트 전에 현재 상태 백업
+      await queryClient.cancelQueries({ queryKey: ['postBookmark', post.id] })
+      const previousBookmark = queryClient.getQueryData([
+        'postBookmark',
+        post.id,
+      ])
 
-      // 새로운 응답 형식 처리: { success: true, data: { liked } }
-      const likeData = data.success && data.data ? data.data : data
-      setIsLiked(likeData.liked)
-      setLikeCount((prev) => (likeData.liked ? prev + 1 : prev - 1))
+      // Optimistic update
+      queryClient.setQueryData(['postBookmark', post.id], !isBookmarked)
 
-      toast({
-        title: likeData.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
-      })
-    } catch (error) {
-      console.error('Failed to toggle like:', error)
+      return { previousBookmark }
+    },
+    onError: (err, variables, context) => {
+      // 에러 시 이전 상태로 롤백
+      if (context?.previousBookmark !== undefined) {
+        queryClient.setQueryData(
+          ['postBookmark', post.id],
+          context.previousBookmark
+        )
+      }
       toast({
         title: '오류가 발생했습니다',
         description: '잠시 후 다시 시도해주세요.',
         variant: 'destructive',
       })
-    }
-  }
+    },
+    onSuccess: (data) => {
+      // 서버 응답으로 최종 상태 업데이트
+      queryClient.setQueryData(['postBookmark', post.id], data.bookmarked)
+      toast({
+        title: data.bookmarked
+          ? '북마크에 저장했습니다'
+          : '북마크를 취소했습니다',
+      })
+    },
+  })
 
-  const handleBookmark = async () => {
+  const handleBookmark = () => {
     if (status === 'unauthenticated') {
       toast({
         title: '로그인이 필요합니다',
@@ -137,32 +223,7 @@ export default function PostDetail({ post }: PostDetailProps) {
       return
     }
 
-    try {
-      const res = await fetch(`/api/main/posts/${post.id}/bookmark`, {
-        method: 'POST',
-      })
-
-      if (!res.ok) throw new Error('Failed to toggle bookmark')
-
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { bookmarked } }
-      const bookmarkData = data.success && data.data ? data.data : data
-      setIsBookmarked(bookmarkData.bookmarked)
-
-      toast({
-        title: bookmarkData.bookmarked
-          ? '북마크에 저장했습니다'
-          : '북마크를 취소했습니다',
-      })
-    } catch (error) {
-      console.error('Failed to toggle bookmark:', error)
-      toast({
-        title: '오류가 발생했습니다',
-        description: '잠시 후 다시 시도해주세요.',
-        variant: 'destructive',
-      })
-    }
+    bookmarkMutation.mutate()
   }
 
   const handleShare = () => {

@@ -4,6 +4,7 @@ import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { KakaoProvider } from '@/components/providers/KakaoProvider'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
+import { QueryProvider } from '@/components/providers/QueryProvider'
 import { Header } from '@/components/layouts/Header'
 import { Toaster } from '@/components/ui/sonner'
 import { ChatProvider } from '@/components/providers/ChatProvider'
@@ -41,17 +42,19 @@ export default function RootLayout({
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <AsyncErrorBoundary>
-          <SessionProvider>
-            <NotificationProvider>
-              <KakaoProvider>
-                <Header />
-                <main>{children}</main>
-                <Toaster richColors position="bottom-right" />
-                <ChatProvider />
-                <VisitorTracker />
-              </KakaoProvider>
-            </NotificationProvider>
-          </SessionProvider>
+          <QueryProvider>
+            <SessionProvider>
+              <NotificationProvider>
+                <KakaoProvider>
+                  <Header />
+                  <main>{children}</main>
+                  <Toaster richColors position="bottom-right" />
+                  <ChatProvider />
+                  <VisitorTracker />
+                </KakaoProvider>
+              </NotificationProvider>
+            </SessionProvider>
+          </QueryProvider>
         </AsyncErrorBoundary>
         <Analytics />
         <SpeedInsights />

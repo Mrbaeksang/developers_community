@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Clock, type LucideIcon } from 'lucide-react'
@@ -44,30 +44,24 @@ interface Post {
   }
 }
 
+// 최근 게시글 가져오기 함수
+const fetchRecentPosts = async (): Promise<Post[]> => {
+  const response = await fetch('/api/main/posts?limit=10&sort=latest')
+  if (!response.ok) throw new Error('Failed to fetch recent posts')
+  const result = await response.json()
+  return result.data?.posts || []
+}
+
 export function RecentPosts() {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ['recentPosts'],
+    queryFn: fetchRecentPosts,
+    staleTime: 2 * 60 * 1000, // 2분간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+    refetchInterval: 2 * 60 * 1000, // 2분마다 자동 새로고침
+  })
 
-  useEffect(() => {
-    fetchRecentPosts()
-  }, [])
-
-  const fetchRecentPosts = async () => {
-    try {
-      // 메인 사이트의 모든 카테고리 게시글 가져오기 (커뮤니티 글 제외)
-      const response = await fetch('/api/main/posts?limit=10&sort=latest')
-      if (!response.ok) throw new Error('Failed to fetch')
-      const result = await response.json()
-      // paginatedResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-      setPosts(result.data || [])
-    } catch (error) {
-      console.error('Failed to fetch recent posts:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="border-b-2 border-black bg-gradient-to-r from-blue-50 to-indigo-50 p-5">

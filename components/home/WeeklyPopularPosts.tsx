@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -52,29 +52,30 @@ interface Post {
   }
 }
 
-export function WeeklyPopularPosts() {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchWeeklyTrending()
-  }, [])
-
-  const fetchWeeklyTrending = async () => {
-    try {
-      const response = await fetch('/api/main/posts/weekly-trending?limit=5')
-      if (!response.ok) throw new Error('Failed to fetch')
-      const result = await response.json()
-      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-      setPosts(result.data?.posts || [])
-    } catch (error) {
-      console.error('Failed to fetch weekly trending:', error)
-    } finally {
-      setLoading(false)
-    }
+// 주간 인기 게시글 가져오기
+const fetchWeeklyTrending = async (): Promise<Post[]> => {
+  const response = await fetch('/api/main/posts/weekly-trending?limit=5')
+  if (!response.ok) {
+    throw new Error('Failed to fetch weekly trending posts')
   }
+  const result = await response.json()
+  return result.data?.posts || []
+}
 
-  if (loading) {
+export function WeeklyPopularPosts() {
+  const {
+    data: posts = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['weeklyTrending'],
+    queryFn: fetchWeeklyTrending,
+    staleTime: 5 * 60 * 1000, // 5분간 fresh 상태 유지
+    gcTime: 10 * 60 * 1000, // 10분간 캐시 유지
+    refetchInterval: 5 * 60 * 1000, // 5분마다 자동 새로고침
+  })
+
+  if (isLoading) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="border-b-2 border-black bg-gradient-to-r from-orange-50 to-yellow-50">
@@ -96,7 +97,27 @@ export function WeeklyPopularPosts() {
     )
   }
 
-  if (posts.length === 0) {
+  // 에러 처리
+  if (error) {
+    return (
+      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <CardHeader className="border-b-2 border-black bg-gradient-to-r from-orange-50 to-yellow-50">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-600 animate-pulse" />
+            <h2 className="text-xl font-bold">주간 인기 게시글 🔥</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 text-center text-muted-foreground">
+          <div className="flex flex-col items-center gap-3">
+            <Flame className="h-12 w-12 text-gray-300" />
+            <p>게시글을 불러오는 중 오류가 발생했습니다.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!posts || posts.length === 0) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="border-b-2 border-black bg-gradient-to-r from-orange-50 to-yellow-50">

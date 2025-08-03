@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { Search, X, FileText, Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -55,15 +56,42 @@ interface SearchModalProps {
   onClose: () => void
 }
 
+// 검색 함수
+const searchPosts = async (
+  query: string,
+  searchType: 'all' | 'title' | 'content' | 'tag'
+): Promise<SearchResult[]> => {
+  if (!query.trim()) return []
+
+  const params = new URLSearchParams({
+    q: query,
+    type: searchType,
+    limit: '10',
+  })
+
+  const res = await fetch(`/api/main/posts/search?${params}`)
+  if (!res.ok) throw new Error('Search failed')
+
+  const data = await res.json()
+  return data.data?.results || data.results || []
+}
+
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [searchType, setSearchType] = useState<
     'all' | 'title' | 'content' | 'tag'
   >('all')
   const debouncedQuery = useDebounce(query, 300)
   const router = useRouter()
+
+  // React Query로 검색 관리
+  const { data: results = [], isLoading } = useQuery({
+    queryKey: ['search', debouncedQuery, searchType],
+    queryFn: () => searchPosts(debouncedQuery, searchType),
+    enabled: !!debouncedQuery.trim(),
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
   // 검색 타입별 className 메모이제이션
   const searchTypeClassNames = useMemo(
@@ -88,67 +116,31 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     [searchType]
   )
 
-  // 검색 실행
-  const performSearch = useCallback(
-    async (searchQuery: string) => {
-      if (!searchQuery.trim()) {
-        setResults([])
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        const params = new URLSearchParams({
-          q: searchQuery,
-          type: searchType,
-          limit: '10',
-        })
-
-        const res = await fetch(`/api/main/posts/search?${params}`)
-        if (res.ok) {
-          const data = await res.json()
-          setResults(data.data?.results || data.results || [])
-        } else {
-          console.error('Search failed')
-          setResults([])
-        }
-      } catch (error) {
-        console.error('Search error:', error)
-        setResults([])
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [searchType]
-  )
-
-  // 디바운스된 검색
-  useEffect(() => {
-    performSearch(debouncedQuery)
-  }, [debouncedQuery, performSearch])
-
   // 검색 결과 클릭 처리
   const handleResultClick = (id: string) => {
     router.push(`/main/posts/${id}`)
     onClose()
     setQuery('')
-    setResults([])
   }
 
   // 키보드 단축키
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         if (isOpen) {
           onClose()
         }
       }
-    }
+    },
+    [isOpen, onClose]
+  )
 
+  // 키보드 이벤트 리스너 등록
+  useState(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  })
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

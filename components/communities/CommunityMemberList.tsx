@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {
@@ -42,6 +43,11 @@ interface Member {
   }
 }
 
+interface MemberPage {
+  members: Member[]
+  nextPage: number | null
+}
+
 interface CommunityMemberListProps {
   communityId: string
 }
@@ -67,13 +73,50 @@ const roleLabels = {
   MEMBER: '멤버',
 }
 
+// 멤버 가져오기 함수
+const fetchMembers = async ({
+  pageParam = 1,
+  search,
+  roleFilter,
+  communityId,
+}: {
+  pageParam?: number
+  search: string
+  roleFilter: string | null
+  communityId: string
+}) => {
+  const params = new URLSearchParams({
+    page: pageParam.toString(),
+    limit: '20',
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  if (roleFilter) {
+    params.append('role', roleFilter)
+  }
+
+  const res = await fetch(`/api/communities/${communityId}/members?${params}`)
+  if (!res.ok) throw new Error('Failed to fetch members')
+
+  const data = await res.json()
+
+  // 새로운 응답 형식 처리: { success: true, data: { members } }
+  const membersData =
+    data.success && data.data ? data.data.members : data.members || []
+  const membersList = Array.isArray(membersData) ? membersData : []
+
+  return {
+    members: membersList,
+    nextPage: membersList.length === 20 ? pageParam + 1 : null,
+  }
+}
+
 export default function CommunityMemberList({
   communityId,
 }: CommunityMemberListProps) {
-  const [members, setMembers] = useState<Member[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string | null>(null)
@@ -92,67 +135,37 @@ export default function CommunityMemberList({
     return () => clearTimeout(timer)
   }, [search])
 
-  const fetchMembers = useCallback(
-    async (pageNum: number, reset = false) => {
-      setIsLoading(true)
+  // React Query 무한 스크롤
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery<MemberPage>({
+    queryKey: ['communityMembers', communityId, debouncedSearch, roleFilter],
+    queryFn: ({ pageParam }) =>
+      fetchMembers({
+        pageParam: pageParam as number,
+        search: debouncedSearch,
+        roleFilter,
+        communityId,
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 1,
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
-      try {
-        const params = new URLSearchParams({
-          page: pageNum.toString(),
-          limit: '20',
-        })
-
-        if (debouncedSearch) {
-          params.append('search', debouncedSearch)
-        }
-
-        if (roleFilter) {
-          params.append('role', roleFilter)
-        }
-
-        const res = await fetch(
-          `/api/communities/${communityId}/members?${params}`
-        )
-        if (!res.ok) throw new Error('Failed to fetch members')
-
-        const data = await res.json()
-
-        // 새로운 응답 형식 처리: { success: true, data: { members } }
-        const membersData =
-          data.success && data.data ? data.data.members : data.members || []
-        const membersList = Array.isArray(membersData) ? membersData : []
-
-        if (reset) {
-          setMembers(membersList)
-        } else {
-          setMembers((prev) => [...prev, ...membersList])
-        }
-
-        setHasMore(membersList.length === 20)
-        setPage(pageNum)
-      } catch (error) {
-        console.error('Failed to fetch members:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [communityId, debouncedSearch, roleFilter]
-  )
-
-  // 초기 로드 및 필터 변경 시
-  useEffect(() => {
-    setMembers([])
-    setPage(1)
-    setHasMore(true)
-    fetchMembers(1, true)
-  }, [debouncedSearch, roleFilter, communityId, fetchMembers])
+  const members = data?.pages.flatMap((page) => page.members) || []
 
   // 무한 스크롤
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
-      fetchMembers(page + 1)
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
     }
-  }, [inView, hasMore, isLoading, page, fetchMembers])
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const roleOptions = [
     { value: null, label: '전체 역할' },
@@ -230,11 +243,14 @@ export default function CommunityMemberList({
                     </h3>
                     <Badge
                       variant="secondary"
-                      className={cn('text-xs', roleColors[member.role])}
+                      className={cn(
+                        'text-xs',
+                        roleColors[member.role as keyof typeof roleColors]
+                      )}
                     >
                       <span className="flex items-center gap-1">
-                        {roleIcons[member.role]}
-                        {roleLabels[member.role]}
+                        {roleIcons[member.role as keyof typeof roleIcons]}
+                        {roleLabels[member.role as keyof typeof roleLabels]}
                       </span>
                     </Badge>
                   </div>
@@ -281,20 +297,36 @@ export default function CommunityMemberList({
           </div>
         )}
 
+        {/* 무한 스크롤 로딩 */}
+        {isFetchingNextPage && (
+          <div className="col-span-full flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+
         {/* 무한 스크롤 트리거 */}
-        {hasMore && !isLoading && (
+        {hasNextPage && !isFetchingNextPage && (
           <div ref={ref} className="h-1 col-span-full" />
         )}
 
         {/* 더 이상 멤버가 없을 때 */}
-        {!hasMore && members.length > 0 && (
+        {!hasNextPage && members.length > 0 && (
           <p className="col-span-full text-center text-muted-foreground py-8">
             모든 멤버를 불러왔습니다.
           </p>
         )}
 
+        {/* 에러 상태 */}
+        {isError && (
+          <div className="col-span-full text-center py-12">
+            <p className="text-destructive">
+              멤버 목록을 불러오는데 실패했습니다.
+            </p>
+          </div>
+        )}
+
         {/* 멤버가 없을 때 */}
-        {!isLoading && members.length === 0 && (
+        {!isLoading && !isError && members.length === 0 && (
           <div className="col-span-full text-center py-12">
             <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">

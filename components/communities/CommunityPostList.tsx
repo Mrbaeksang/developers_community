@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { MessageSquare, Heart, Eye, User } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,6 +50,46 @@ interface CommunityPostListProps {
   sort?: string
 }
 
+// 커뮤니티 게시글 가져오기
+const fetchCommunityPosts = async ({
+  communityId,
+  page,
+  category,
+  search,
+  sort,
+}: {
+  communityId: string
+  page: number
+  category?: string
+  search?: string
+  sort?: string
+}) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: '10',
+  })
+
+  if (category) params.append('category', category)
+  if (search) params.append('search', search)
+  if (sort) params.append('sort', sort)
+
+  const res = await fetch(`/api/communities/${communityId}/posts?${params}`)
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch posts')
+  }
+
+  const data = await res.json()
+
+  // 새로운 응답 형식 처리: { success: true, data: { posts, pagination } }
+  if (data.success && data.data) {
+    return data.data
+  } else {
+    // 실패 응답 처리
+    throw new Error(data.message || 'Failed to fetch posts')
+  }
+}
+
 export function CommunityPostList({
   communityId,
   communitySlug,
@@ -58,52 +98,20 @@ export function CommunityPostList({
   search,
   sort,
 }: CommunityPostListProps) {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [pagination, setPagination] = useState({
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['communityPosts', communityId, page, category, search, sort],
+    queryFn: () =>
+      fetchCommunityPosts({ communityId, page, category, search, sort }),
+    staleTime: 2 * 60 * 1000, // 2분간 fresh 상태
+    gcTime: 5 * 60 * 1000, // 5분간 캐시 유지
+  })
+
+  const posts = data?.posts || []
+  const pagination = data?.pagination || {
     total: 0,
     page: 1,
     limit: 10,
     pages: 1,
-  })
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    fetchPosts()
-  }, [communityId, page, category, search, sort]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchPosts = async () => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-      })
-
-      if (category) params.append('category', category)
-      if (search) params.append('search', search)
-      if (sort) params.append('sort', sort)
-
-      const res = await fetch(`/api/communities/${communityId}/posts?${params}`)
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch posts')
-      }
-
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { posts, pagination } }
-      if (data.success && data.data) {
-        setPosts(data.data.posts)
-        setPagination(data.data.pagination)
-      } else {
-        // 실패 응답 처리
-        throw new Error(data.message || 'Failed to fetch posts')
-      }
-    } catch (error) {
-      console.error('Failed to fetch posts:', error)
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   if (isLoading) {
@@ -132,7 +140,22 @@ export function CommunityPostList({
     )
   }
 
-  if (!posts || posts.length === 0) {
+  // 에러 처리
+  if (error) {
+    return (
+      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <CardContent className="py-12 text-center">
+          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-bold text-lg mb-2">
+            게시글을 불러올 수 없습니다
+          </h3>
+          <p className="text-muted-foreground">잠시 후 다시 시도해주세요.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!isLoading && (!posts || posts.length === 0)) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardContent className="py-12 text-center">
@@ -150,7 +173,7 @@ export function CommunityPostList({
 
   return (
     <div className="space-y-4">
-      {posts?.map((post) => (
+      {posts?.map((post: Post) => (
         <Card
           key={post.id}
           className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"

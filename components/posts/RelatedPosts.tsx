@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Eye, Heart, MessageSquare, TrendingUp, User } from 'lucide-react'
@@ -32,31 +32,23 @@ interface RelatedPostsProps {
   postId: string
 }
 
+// 관련 게시글 가져오기 함수
+const fetchRelatedPosts = async (postId: string): Promise<RelatedPost[]> => {
+  const res = await fetch(`/api/main/posts/${postId}/related?limit=5`)
+  if (!res.ok) throw new Error('Failed to fetch related posts')
+  const data = await res.json()
+  // 새로운 응답 형식 처리: { success: true, data: { posts } }
+  return data.success && data.data ? data.data.posts : data.posts || []
+}
+
 export default function RelatedPosts({ postId }: RelatedPostsProps) {
-  const [posts, setPosts] = useState<RelatedPost[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchRelatedPosts = async () => {
-      try {
-        const res = await fetch(`/api/main/posts/${postId}/related?limit=5`)
-        if (res.ok) {
-          const data = await res.json()
-
-          // 새로운 응답 형식 처리: { success: true, data: { posts } }
-          const posts =
-            data.success && data.data ? data.data.posts : data.posts || []
-          setPosts(posts)
-        }
-      } catch (error) {
-        console.error('Failed to fetch related posts:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchRelatedPosts()
-  }, [postId])
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ['relatedPosts', postId],
+    queryFn: () => fetchRelatedPosts(postId),
+    staleTime: 10 * 60 * 1000, // 10분간 fresh
+    gcTime: 30 * 60 * 1000, // 30분간 캐시
+    enabled: !!postId, // postId가 있을 때만 실행
+  })
 
   if (isLoading) {
     return (

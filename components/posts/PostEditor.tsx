@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -66,18 +67,33 @@ const CHARACTER_LIMITS = {
   tag: 50,
 }
 
+// 카테고리 가져오기 함수
+const fetchCategories = async (): Promise<Category[]> => {
+  const res = await fetch('/api/main/categories')
+  if (!res.ok) throw new Error('Failed to fetch categories')
+  const result = await res.json()
+  return result.data || result
+}
+
+// 태그 가져오기 함수
+const fetchTags = async (): Promise<Tag[]> => {
+  const res = await fetch('/api/main/tags?limit=15')
+  if (!res.ok) throw new Error('Failed to fetch tags')
+  const result = await res.json()
+  return result.data?.tags || []
+}
+
 export function PostEditor({ userRole }: PostEditorProps) {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const queryClient = useQueryClient()
   const [submitState, setSubmitState] = useState<
     'idle' | 'submitting' | 'redirecting'
   >('idle')
-  const [categories, setCategories] = useState<Category[]>([])
-  const [existingTags, setExistingTags] = useState<Tag[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // 폼 상태
@@ -131,11 +147,33 @@ export function PostEditor({ userRole }: PostEditorProps) {
     }
   }, [])
 
-  // Auto-save function (defined before usage)
-  const handleAutoSave = useCallback(async () => {
-    try {
+  // 카테고리 조회
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000, // 10분간 fresh
+    gcTime: 30 * 60 * 1000, // 30분간 캐시
+  })
+
+  // 태그 조회
+  const { data: existingTags = [] } = useQuery({
+    queryKey: ['tags', 'popular'],
+    queryFn: fetchTags,
+    staleTime: 5 * 60 * 1000, // 5분간 fresh
+    gcTime: 10 * 60 * 1000, // 10분간 캐시
+  })
+
+  // Auto-save mutation
+  const autoSaveMutation = useMutation({
+    mutationFn: async (data: {
+      title: string
+      content: string
+      excerpt: string
+      categoryId: string
+      tags: string[]
+    }) => {
       const slug =
-        title
+        data.title
           .toLowerCase()
           .replace(/[^a-z0-9가-힣\s-]/g, '')
           .replace(/\s+/g, '-')
@@ -143,31 +181,140 @@ export function PostEditor({ userRole }: PostEditorProps) {
         '-' +
         Date.now()
 
-      await fetch('/api/main/posts', {
+      const res = await fetch('/api/main/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          content,
-          excerpt: excerpt || content.substring(0, 200),
+          ...data,
           slug,
-          categoryId,
           status: 'DRAFT',
-          tags: selectedTags,
         }),
       })
 
+      if (!res.ok) throw new Error('Auto-save failed')
+      return res.json()
+    },
+    onSuccess: () => {
       sonnerToast.success('자동 저장되었습니다.', {
         duration: 2000,
       })
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Auto-save failed:', error)
-    }
-  }, [title, content, excerpt, categoryId, selectedTags])
+    },
+  })
+
+  // Auto-save function (defined before usage)
+  const handleAutoSave = useCallback(() => {
+    if (!title || !content || !categoryId) return
+
+    autoSaveMutation.mutate({
+      title,
+      content,
+      excerpt: excerpt || content.substring(0, 200),
+      categoryId,
+      tags: selectedTags,
+    })
+  }, [title, content, excerpt, categoryId, selectedTags, autoSaveMutation])
+
+  // 게시글 작성 mutation
+  const createPostMutation = useMutation({
+    mutationFn: async (data: {
+      title: string
+      content: string
+      excerpt: string
+      categoryId: string
+      tags: string[]
+      status: 'DRAFT' | 'PENDING'
+    }) => {
+      // Generate slug
+      const baseSlug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9가-힣\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 100)
+
+      // Check for duplicate slug
+      const checkSlugRes = await fetch(
+        `/api/main/posts/check-slug?slug=${baseSlug}`
+      )
+      const { exists } = await checkSlugRes.json()
+
+      const slug = exists ? `${baseSlug}-${Date.now()}` : baseSlug
+
+      // Auto-generate SEO metadata
+      const metaTitle =
+        data.title.length > 60
+          ? data.title.substring(0, 57) + '...'
+          : data.title
+      const metaDescription =
+        data.excerpt || data.content.substring(0, 155).replace(/\n/g, ' ')
+
+      const response = await fetch('/api/main/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          excerpt: data.excerpt || data.content.substring(0, 200),
+          slug,
+          metaTitle,
+          metaDescription,
+          isPinned: false,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || '게시글 작성에 실패했습니다')
+      }
+
+      const result = await response.json()
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || '게시글 작성에 실패했습니다')
+      }
+
+      return { post: result.data, status: data.status }
+    },
+    onSuccess: ({ post, status }) => {
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['mainPosts'] })
+      queryClient.invalidateQueries({ queryKey: ['recentPosts'] })
+
+      if (status === 'DRAFT') {
+        sonnerToast.success('게시글이 임시저장되었습니다.')
+      } else if (userRole === 'ADMIN') {
+        sonnerToast.success('게시글이 성공적으로 작성되었습니다.')
+      } else {
+        sonnerToast.info('게시글이 관리자 승인을 기다리고 있습니다.')
+      }
+
+      // 게시글 상세 페이지로 이동
+      if (post && post.id) {
+        setSubmitState('redirecting')
+        sonnerToast.loading('게시글 페이지로 이동 중...')
+        setTimeout(() => {
+          router.push(`/main/posts/${post.id}`)
+        }, 500)
+      }
+    },
+    onError: (error) => {
+      console.error('Failed to create post:', error)
+      sonnerToast.error(
+        error instanceof Error ? error.message : '게시글 작성에 실패했습니다'
+      )
+    },
+    onSettled: () => {
+      if (submitState !== 'redirecting') {
+        setSubmitState('idle')
+      }
+      setIsSubmitting(false)
+    },
+  })
 
   // Submit handler (defined before usage)
   const handleSubmit = useCallback(
-    async (submitStatus: 'DRAFT' | 'PENDING') => {
+    (submitStatus: 'DRAFT' | 'PENDING') => {
       // Validate all fields
       const errors = {
         title: validateField('title', title),
@@ -184,88 +331,16 @@ export function PostEditor({ userRole }: PostEditorProps) {
         return
       }
 
-      setIsSubmitting(true)
       setSubmitState('submitting')
-
-      try {
-        // Generate slug
-        const baseSlug = title
-          .toLowerCase()
-          .replace(/[^a-z0-9가-힣\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .substring(0, 100)
-
-        // Check for duplicate slug
-        const checkSlugRes = await fetch(
-          `/api/main/posts/check-slug?slug=${baseSlug}`
-        )
-        const { exists } = await checkSlugRes.json()
-
-        const slug = exists ? `${baseSlug}-${Date.now()}` : baseSlug
-
-        // Auto-generate SEO metadata
-        const metaTitle =
-          title.length > 60 ? title.substring(0, 57) + '...' : title
-        const metaDescription =
-          excerpt || content.substring(0, 155).replace(/\n/g, ' ')
-
-        const response = await fetch('/api/main/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            content,
-            excerpt: excerpt || content.substring(0, 200),
-            slug,
-            categoryId,
-            status: submitStatus,
-            tags: selectedTags,
-            metaTitle,
-            metaDescription,
-            isPinned: false, // Admin can change this later
-          }),
-        })
-
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.message || '게시글 작성에 실패했습니다')
-        }
-
-        const result = await response.json()
-
-        if (!result.success || !result.data) {
-          throw new Error(result.error || '게시글 작성에 실패했습니다')
-        }
-
-        const post = result.data
-
-        if (submitStatus === 'DRAFT') {
-          sonnerToast.success('게시글이 임시저장되었습니다.')
-        } else if (userRole === 'ADMIN') {
-          sonnerToast.success('게시글이 성공적으로 작성되었습니다.')
-        } else {
-          sonnerToast.info('게시글이 관리자 승인을 기다리고 있습니다.')
-        }
-
-        // 게시글 상세 페이지로 이동
-        if (post && post.id) {
-          setSubmitState('redirecting')
-          sonnerToast.loading('게시글 페이지로 이동 중...')
-          setTimeout(() => {
-            router.push(`/main/posts/${post.id}`)
-          }, 500)
-        }
-      } catch (error) {
-        console.error('Failed to create post:', error)
-        sonnerToast.error(
-          error instanceof Error ? error.message : '게시글 작성에 실패했습니다'
-        )
-      } finally {
-        if (submitState !== 'redirecting') {
-          setIsSubmitting(false)
-          setSubmitState('idle')
-        }
-      }
+      setIsSubmitting(true)
+      createPostMutation.mutate({
+        title,
+        content,
+        excerpt,
+        categoryId,
+        tags: selectedTags,
+        status: submitStatus,
+      })
     },
     [
       title,
@@ -273,10 +348,8 @@ export function PostEditor({ userRole }: PostEditorProps) {
       excerpt,
       categoryId,
       selectedTags,
-      userRole,
-      router,
-      submitState,
       validateField,
+      createPostMutation,
     ]
   )
 
@@ -516,32 +589,9 @@ export function PostEditor({ userRole }: PostEditorProps) {
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges, isSubmitting])
+  }, [hasUnsavedChanges])
 
-  // 카테고리와 태그 로드
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // 카테고리 로드
-        const categoriesRes = await fetch('/api/main/categories')
-        if (categoriesRes.ok) {
-          const result = await categoriesRes.json()
-          setCategories(result.data || result)
-        }
-
-        // 태그 로드 (인기 태그 상위 15개)
-        const tagsRes = await fetch('/api/main/tags?limit=15')
-        if (tagsRes.ok) {
-          const result = await tagsRes.json()
-          setExistingTags(result.data?.tags || [])
-        }
-      } catch (error) {
-        console.error('Failed to load data:', error)
-      }
-    }
-
-    loadData()
-  }, [])
+  // Note: Categories and tags are already loaded via React Query at the top of the component
 
   // 태그 추가
   const handleAddTag = () => {

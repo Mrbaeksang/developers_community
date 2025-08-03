@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { PostCard } from '@/components/posts/PostCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -40,10 +41,32 @@ interface PostListProps {
   currentCategory?: string
 }
 
+// 메인 게시글 가져오기 함수
+const fetchMainPosts = async ({
+  category,
+  sort,
+  page = '1',
+}: {
+  category?: string
+  sort?: string
+  page?: string
+}) => {
+  const params = new URLSearchParams()
+  if (category && category !== 'all') params.append('category', category)
+  if (sort && sort !== 'latest') params.append('sort', sort)
+  params.append('page', page)
+
+  const res = await fetch(`/api/main/posts?${params}`)
+  if (!res.ok) throw new Error('Failed to fetch posts')
+
+  const data = await res.json()
+  return data.data || { posts: [], categories: [] }
+}
+
 export function PostList({
   initialPosts = [],
-  categories = [],
-  isLoading = false,
+  categories: initialCategories = [],
+  isLoading: externalLoading = false,
   currentCategory,
 }: PostListProps) {
   const router = useRouter()
@@ -55,7 +78,23 @@ export function PostList({
     currentCategory || searchParams.get('category') || 'all'
   )
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [posts] = useState<Post[]>(initialPosts)
+  const page = searchParams.get('page') || '1'
+
+  // React Query로 데이터 가져오기
+  const { data, isLoading } = useQuery({
+    queryKey: ['mainPosts', selectedCategory, sortBy, page],
+    queryFn: () =>
+      fetchMainPosts({ category: selectedCategory, sort: sortBy, page }),
+    staleTime: 3 * 60 * 1000, // 3분간 fresh
+    gcTime: 10 * 60 * 1000, // 10분간 캐시
+    initialData:
+      initialPosts.length > 0
+        ? { posts: initialPosts, categories: initialCategories }
+        : undefined,
+  })
+
+  const posts = data?.posts || initialPosts || []
+  const categories = data?.categories || initialCategories || []
 
   // URL 업데이트 함수
   const updateURL = (params: Record<string, string>) => {
@@ -77,7 +116,7 @@ export function PostList({
     if (!slug || slug === 'all') return '모든 카테고리'
     if (slug === 'free') return '자유게시판'
     if (slug === 'qna') return 'Q&A'
-    const category = categories.find((c) => c.slug === slug)
+    const category = categories.find((c: Category) => c.slug === slug)
     return category?.name || '모든 카테고리'
   }
 
@@ -85,7 +124,7 @@ export function PostList({
   const filteredPosts =
     selectedCategory === 'all'
       ? posts
-      : posts.filter((post) => post.category?.slug === selectedCategory)
+      : posts.filter((post: Post) => post.category?.slug === selectedCategory)
 
   // 정렬된 게시물 목록 (고정 게시글 우선 정렬)
   const sortedPosts = [...filteredPosts].sort((a, b) => {
@@ -116,7 +155,7 @@ export function PostList({
     return new Date(post.createdAt) > dayAgo
   })
 
-  if (isLoading) {
+  if (isLoading || externalLoading) {
     return <PostListSkeleton />
   }
 
@@ -219,7 +258,7 @@ export function PostList({
                     모든 카테고리
                   </div>
                 </SelectItem>
-                {categories.map((category) => (
+                {categories.map((category: Category) => (
                   <SelectItem key={category.id} value={category.slug}>
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
@@ -313,7 +352,9 @@ export function PostList({
             }
           >
             {sortedPosts.length > 0 ? (
-              sortedPosts.map((post) => <PostCard key={post.id} post={post} />)
+              sortedPosts.map((post: Post) => (
+                <PostCard key={post.id} post={post} />
+              ))
             ) : (
               <EmptyState />
             )}
@@ -327,7 +368,7 @@ export function PostList({
             }
           >
             {trendingPosts.length > 0 ? (
-              trendingPosts.map((post) => (
+              trendingPosts.map((post: Post) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
@@ -343,7 +384,9 @@ export function PostList({
             }
           >
             {recentPosts.length > 0 ? (
-              recentPosts.map((post) => <PostCard key={post.id} post={post} />)
+              recentPosts.map((post: Post) => (
+                <PostCard key={post.id} post={post} />
+              ))
             ) : (
               <EmptyState message="최근 24시간 동안 작성된 게시물이 없습니다." />
             )}
