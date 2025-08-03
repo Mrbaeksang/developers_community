@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 // GET /api/communities/[id]/announcements - 공지사항 목록 조회
 export async function GET(
@@ -38,7 +39,7 @@ export async function GET(
       }),
     ])
 
-    return NextResponse.json({
+    return successResponse({
       announcements,
       pagination: {
         page,
@@ -48,11 +49,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('공지사항 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '공지사항 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -69,7 +66,7 @@ export async function POST(
     const session = await requireCommunityRoleAPI(communityId, [
       CommunityRole.MODERATOR,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -77,10 +74,7 @@ export async function POST(
     const { title, content, isPinned = false } = body
 
     if (!title?.trim() || !content?.trim()) {
-      return NextResponse.json(
-        { error: '제목과 내용은 필수입니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('제목과 내용은 필수입니다.')
     }
 
     const announcement = await prisma.communityAnnouncement.create({
@@ -103,12 +97,8 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ announcement }, { status: 201 })
+    return successResponse({ announcement }, 201)
   } catch (error) {
-    console.error('공지사항 작성 실패:', error)
-    return NextResponse.json(
-      { error: '공지사항 작성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   try {
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -41,27 +42,18 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File
 
     if (!file) {
-      return NextResponse.json(
-        { error: '파일이 선택되지 않았습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('파일이 선택되지 않았습니다.')
     }
 
     // 파일 크기 검증
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: '파일 크기는 10MB를 초과할 수 없습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('파일 크기는 10MB를 초과할 수 없습니다.')
     }
 
     // 파일 타입 검증
     const fileType = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES]
     if (!fileType) {
-      return NextResponse.json(
-        { error: '지원하지 않는 파일 형식입니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('지원하지 않는 파일 형식입니다.')
     }
 
     // 파일명 생성
@@ -105,7 +97,7 @@ export async function POST(req: Request) {
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       file: {
         id: savedFile.id,
         filename: savedFile.filename,
@@ -121,10 +113,6 @@ export async function POST(req: Request) {
       fileId: savedFile.id, // 편의를 위해 fileId도 추가
     })
   } catch (error) {
-    console.error('파일 업로드 실패:', error)
-    return NextResponse.json(
-      { error: '파일 업로드에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

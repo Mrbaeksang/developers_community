@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // PATCH /api/communities/[id]/categories/[categoryId] - 카테고리 수정
 export async function PATCH(
@@ -22,10 +27,7 @@ export async function PATCH(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     // 실제 ID로 업데이트
@@ -33,7 +35,7 @@ export async function PATCH(
 
     // 관리자 권한 확인
     const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -46,10 +48,7 @@ export async function PATCH(
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('카테고리를 찾을 수 없습니다.')
     }
 
     const body = await request.json()
@@ -57,26 +56,17 @@ export async function PATCH(
 
     // 입력값 검증
     if (name !== undefined && !name.trim()) {
-      return NextResponse.json(
-        { error: '카테고리 이름은 비어있을 수 없습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('카테고리 이름은 비어있을 수 없습니다.')
     }
 
     if (slug !== undefined && !slug.trim()) {
-      return NextResponse.json(
-        { error: '슬러그는 비어있을 수 없습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('슬러그는 비어있을 수 없습니다.')
     }
 
     if (color !== undefined) {
       const colorRegex = /^#[0-9A-Fa-f]{6}$/
       if (!colorRegex.test(color)) {
-        return NextResponse.json(
-          { error: '올바른 색상 형식이 아닙니다. (#RRGGBB)' },
-          { status: 400 }
-        )
+        throw throwValidationError('올바른 색상 형식이 아닙니다. (#RRGGBB)')
       }
     }
 
@@ -94,10 +84,7 @@ export async function PATCH(
       })
 
       if (existing) {
-        return NextResponse.json(
-          { error: '이미 사용 중인 이름 또는 슬러그입니다.' },
-          { status: 409 }
-        )
+        throw throwValidationError('이미 사용 중인 이름 또는 슬러그입니다.')
       }
     }
 
@@ -112,13 +99,9 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(updatedCategory)
+    return successResponse(updatedCategory)
   } catch (error) {
-    console.error('카테고리 수정 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -141,10 +124,7 @@ export async function DELETE(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     // 실제 ID로 업데이트
@@ -152,7 +132,7 @@ export async function DELETE(
 
     // 관리자 권한 확인
     const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -170,21 +150,13 @@ export async function DELETE(
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '카테고리를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('카테고리를 찾을 수 없습니다.')
     }
 
     // 게시글이 있는 경우 경고
     if (category._count.posts > 0) {
-      return NextResponse.json(
-        {
-          error: `이 카테고리에 ${category._count.posts}개의 게시글이 있습니다. 정말 삭제하시겠습니까?`,
-          postCount: category._count.posts,
-          requireConfirmation: true,
-        },
-        { status: 400 }
+      throw throwValidationError(
+        `이 카테고리에 ${category._count.posts}개의 게시글이 있습니다. 정말 삭제하시겠습니까?`
       )
     }
 
@@ -194,12 +166,8 @@ export async function DELETE(
       data: { isActive: false },
     })
 
-    return NextResponse.json({ message: '카테고리가 삭제되었습니다.' })
+    return successResponse({ message: '카테고리가 삭제되었습니다.' })
   } catch (error) {
-    console.error('카테고리 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

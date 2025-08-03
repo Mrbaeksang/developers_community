@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { broadcastTyping } from '@/lib/chat-broadcast'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 const typingSchema = z.object({
   isTyping: z.boolean(),
@@ -18,7 +23,7 @@ export async function POST(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -30,10 +35,7 @@ export async function POST(
     })
 
     if (!channel) {
-      return NextResponse.json(
-        { error: '채널을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('채널을 찾을 수 없습니다.')
     }
 
     // GLOBAL 채널이 아닌 경우에만 멤버 확인
@@ -48,10 +50,7 @@ export async function POST(
       })
 
       if (!channelMember) {
-        return NextResponse.json(
-          { error: '채팅방에 참여하지 않았습니다.' },
-          { status: 403 }
-        )
+        throw throwAuthorizationError('채팅방에 참여하지 않았습니다.')
       }
     }
 
@@ -62,19 +61,8 @@ export async function POST(
     // 타이핑 상태 브로드캐스트
     broadcastTyping(channelId, userId, isTyping)
 
-    return NextResponse.json({ success: true })
+    return successResponse({ success: true })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: '잘못된 요청입니다.', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('타이핑 상태 업데이트 실패:', error)
-    return NextResponse.json(
-      { error: '타이핑 상태 업데이트에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

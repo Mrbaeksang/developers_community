@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
 import { canModifyCommunityContent } from '@/lib/role-hierarchy'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwAuthorizationError,
+} from '@/lib/error-handler'
 
 // GET /api/communities/[id]/announcements/[announcementId] - 공지사항 상세 조회
 export async function GET(
@@ -30,19 +35,12 @@ export async function GET(
     })
 
     if (!announcement) {
-      return NextResponse.json(
-        { error: '공지사항을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('공지사항을 찾을 수 없습니다.')
     }
 
-    return NextResponse.json({ announcement })
+    return successResponse({ announcement })
   } catch (error) {
-    console.error('공지사항 조회 실패:', error)
-    return NextResponse.json(
-      { error: '공지사항 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -64,10 +62,7 @@ export async function PUT(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     const actualCommunityId = community.id
@@ -76,7 +71,7 @@ export async function PUT(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -91,10 +86,7 @@ export async function PUT(
     })
 
     if (!announcement) {
-      return NextResponse.json(
-        { error: '공지사항을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('공지사항을 찾을 수 없습니다.')
     }
 
     // 수정 권한 확인
@@ -106,10 +98,7 @@ export async function PUT(
     )
 
     if (!canModify) {
-      return NextResponse.json(
-        { error: '수정 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('수정 권한이 없습니다.')
     }
 
     const body = await request.json()
@@ -133,13 +122,9 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json({ announcement: updated })
+    return successResponse({ announcement: updated })
   } catch (error) {
-    console.error('공지사항 수정 실패:', error)
-    return NextResponse.json(
-      { error: '공지사항 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -161,10 +146,7 @@ export async function DELETE(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     const actualCommunityId = community.id
@@ -173,7 +155,7 @@ export async function DELETE(
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
     ])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -188,10 +170,7 @@ export async function DELETE(
     })
 
     if (!announcement) {
-      return NextResponse.json(
-        { error: '공지사항을 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('공지사항을 찾을 수 없습니다.')
     }
 
     // 삭제 권한 확인
@@ -203,22 +182,15 @@ export async function DELETE(
     )
 
     if (!canDelete) {
-      return NextResponse.json(
-        { error: '삭제 권한이 없습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('삭제 권한이 없습니다.')
     }
 
     await prisma.communityAnnouncement.delete({
       where: { id: announcementId },
     })
 
-    return NextResponse.json({ success: true })
+    return successResponse({ success: true })
   } catch (error) {
-    console.error('공지사항 삭제 실패:', error)
-    return NextResponse.json(
-      { error: '공지사항 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

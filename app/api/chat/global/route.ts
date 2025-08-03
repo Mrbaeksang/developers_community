@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // GET: 전체 사이트 채팅 채널 정보 조회
 export async function GET() {
   try {
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -54,7 +55,7 @@ export async function GET() {
       })
     }
 
-    return NextResponse.json({
+    return successResponse({
       channel: {
         id: channel.id,
         name: channel.name,
@@ -63,10 +64,6 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Failed to fetch global channel:', error)
-    return NextResponse.json(
-      { error: '채널 정보를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

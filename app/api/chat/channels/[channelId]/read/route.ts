@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api-response'
+import { handleError, throwAuthorizationError } from '@/lib/error-handler'
 
 // POST: 메시지 읽음 상태 업데이트
 export async function POST(
@@ -12,7 +13,7 @@ export async function POST(
 
     // 인증 확인
     const session = await requireAuthAPI()
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -29,10 +30,7 @@ export async function POST(
     })
 
     if (!channelMember) {
-      return NextResponse.json(
-        { error: '채팅방에 참여하지 않았습니다.' },
-        { status: 403 }
-      )
+      throw throwAuthorizationError('채팅방에 참여하지 않았습니다.')
     }
 
     // 마지막 읽은 시간 업데이트
@@ -48,12 +46,8 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ success: true })
+    return successResponse({ success: true })
   } catch (error) {
-    console.error('Failed to update read status:', error)
-    return NextResponse.json(
-      { error: '읽음 상태 업데이트에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

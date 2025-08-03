@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // PATCH /api/communities/[id]/categories/reorder - 카테고리 순서 변경
 export async function PATCH(
@@ -21,10 +26,7 @@ export async function PATCH(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     // 실제 ID로 업데이트
@@ -32,7 +34,7 @@ export async function PATCH(
 
     // 관리자 권한 확인
     const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -40,10 +42,7 @@ export async function PATCH(
     const { categoryIds } = body
 
     if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
-      return NextResponse.json(
-        { error: '카테고리 ID 목록이 필요합니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('카테고리 ID 목록이 필요합니다.')
     }
 
     // 모든 카테고리가 해당 커뮤니티에 속하는지 확인
@@ -56,10 +55,7 @@ export async function PATCH(
     })
 
     if (categories.length !== categoryIds.length) {
-      return NextResponse.json(
-        { error: '유효하지 않은 카테고리가 포함되어 있습니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('유효하지 않은 카테고리가 포함되어 있습니다.')
     }
 
     // 트랜잭션으로 순서 업데이트
@@ -72,12 +68,8 @@ export async function PATCH(
       )
     )
 
-    return NextResponse.json({ message: '카테고리 순서가 변경되었습니다.' })
+    return successResponse({ message: '카테고리 순서가 변경되었습니다.' })
   } catch (error) {
-    console.error('카테고리 순서 변경 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 순서 변경에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

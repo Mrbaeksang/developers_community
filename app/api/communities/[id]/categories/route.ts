@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
+import { successResponse } from '@/lib/api-response'
+import {
+  handleError,
+  throwNotFoundError,
+  throwValidationError,
+} from '@/lib/error-handler'
 
 // GET /api/communities/[id]/categories - 카테고리 목록 조회
 export async function GET(
@@ -21,10 +26,7 @@ export async function GET(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     // 활성화된 카테고리만 조회 (순서대로)
@@ -51,7 +53,7 @@ export async function GET(
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     })
 
-    return NextResponse.json(
+    return successResponse(
       categories.map((cat) => ({
         id: cat.id,
         name: cat.name,
@@ -64,11 +66,7 @@ export async function GET(
       }))
     )
   } catch (error) {
-    console.error('카테고리 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -90,10 +88,7 @@ export async function POST(
     })
 
     if (!community) {
-      return NextResponse.json(
-        { error: '커뮤니티를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('커뮤니티를 찾을 수 없습니다.')
     }
 
     // 실제 ID로 업데이트
@@ -101,7 +96,7 @@ export async function POST(
 
     // 관리자 권한 확인 (OWNER, ADMIN만 가능)
     const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
-    if (session instanceof NextResponse) {
+    if (session instanceof Response) {
       return session
     }
 
@@ -115,10 +110,7 @@ export async function POST(
     } = body
 
     if (!name?.trim()) {
-      return NextResponse.json(
-        { error: '카테고리 이름은 필수입니다.' },
-        { status: 400 }
-      )
+      throw throwValidationError('카테고리 이름은 필수입니다.')
     }
 
     // slug 생성 또는 사용자 지정 slug 사용
@@ -133,10 +125,7 @@ export async function POST(
     // 색상 형식 검증
     const colorRegex = /^#[0-9A-Fa-f]{6}$/
     if (!colorRegex.test(color)) {
-      return NextResponse.json(
-        { error: '올바른 색상 형식이 아닙니다. (#RRGGBB)' },
-        { status: 400 }
-      )
+      throw throwValidationError('올바른 색상 형식이 아닙니다. (#RRGGBB)')
     }
 
     // 중복 확인 (같은 커뮤니티 내에서)
@@ -148,10 +137,7 @@ export async function POST(
     })
 
     if (existing) {
-      return NextResponse.json(
-        { error: '이미 존재하는 카테고리입니다.' },
-        { status: 409 }
-      )
+      throw throwValidationError('이미 존재하는 카테고리입니다.')
     }
 
     const category = await prisma.communityCategory.create({
@@ -165,12 +151,8 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ category }, { status: 201 })
+    return successResponse({ category }, 201)
   } catch (error) {
-    console.error('카테고리 생성 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
