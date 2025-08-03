@@ -80,7 +80,7 @@ async function getCommunity(idOrSlug: string) {
     const cookieStore = await cookies()
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
+      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
       {
         cache: 'no-store',
         next: { revalidate: 0 },
@@ -142,7 +142,7 @@ export default async function CommunityDetailPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
-      <div className="container max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
+      <div className="container max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Banner */}
         <div className="relative h-48 md:h-64 mb-8 rounded-lg overflow-hidden border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           {(() => {
@@ -219,7 +219,7 @@ export default async function CommunityDetailPage({
                 }
               />
               <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
-                {community.name[0].toUpperCase()}
+                {community.name?.[0]?.toUpperCase() || 'C'}
               </AvatarFallback>
             </Avatar>
 

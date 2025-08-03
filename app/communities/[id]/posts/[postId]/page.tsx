@@ -48,9 +48,17 @@ interface Post {
 
 async function getPost(communityId: string, postId: string) {
   try {
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/communities/${communityId}/posts/${postId}`,
-      { cache: 'no-store' }
+      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${communityId}/posts/${postId}`,
+      {
+        cache: 'no-store',
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+      }
     )
 
     if (!res.ok) {
@@ -61,7 +69,8 @@ async function getPost(communityId: string, postId: string) {
     }
 
     const data = await res.json()
-    return data as Post
+    // API가 중첩된 응답 구조를 반환할 수 있음
+    return (data.success && data.data ? data.data : data) as Post
   } catch (error) {
     console.error('Failed to fetch post:', error)
     notFound()
@@ -80,34 +89,36 @@ export default async function CommunityPostDetailPage({
   // 비공개 커뮤니티 접근 체크는 API에서 처리됨
 
   return (
-    <div className="container max-w-4xl py-8">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href="/communities" className="hover:text-foreground">
-          커뮤니티
-        </Link>
-        <span>/</span>
-        <Link
-          href={`/communities/${post.community.slug}`}
-          className="hover:text-foreground"
-        >
-          {post.community.name}
-        </Link>
-        <span>/</span>
-        <Link
-          href={`/communities/${post.community.slug}/posts`}
-          className="hover:text-foreground"
-        >
-          게시글
-        </Link>
-        <span>/</span>
-        <span className="text-foreground truncate max-w-[200px]">
-          {post.title}
-        </span>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
+      <div className="container max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <Link href="/communities" className="hover:text-foreground">
+            커뮤니티
+          </Link>
+          <span>/</span>
+          <Link
+            href={`/communities/${post.community.slug}`}
+            className="hover:text-foreground"
+          >
+            {post.community.name}
+          </Link>
+          <span>/</span>
+          <Link
+            href={`/communities/${post.community.slug}/posts`}
+            className="hover:text-foreground"
+          >
+            게시글
+          </Link>
+          <span>/</span>
+          <span className="text-foreground truncate max-w-[200px]">
+            {post.title}
+          </span>
+        </nav>
 
-      {/* Post Detail */}
-      <CommunityPostDetail post={post} currentUserId={session?.user?.id} />
+        {/* Post Detail */}
+        <CommunityPostDetail post={post} currentUserId={session?.user?.id} />
+      </div>
     </div>
   )
 }

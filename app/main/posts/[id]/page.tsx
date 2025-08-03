@@ -13,7 +13,8 @@ interface PageProps {
 
 async function getPost(id: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const baseUrl =
+      process.env['NEXT_PUBLIC_BASE_URL'] || 'http://localhost:3000'
     const res = await fetch(`${baseUrl}/api/main/posts/${id}`, {
       cache: 'no-store',
     })

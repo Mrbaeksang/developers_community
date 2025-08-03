@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { Home } from 'lucide-react'
+import { Home, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default function NotFound() {
   const router = useRouter()
@@ -16,7 +17,7 @@ export default function NotFound() {
             404
           </h1>
           {/* 노란색 악센트 바 - 404 텍스트 아래로 더 내리고 길게 */}
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 h-4 w-64 bg-yellow-400 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 h-4 w-64 bg-yellow-400 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" />
         </div>
 
         {/* 메시지 */}
@@ -29,15 +30,52 @@ export default function NotFound() {
           </p>
         </div>
 
-        {/* 버튼 */}
-        <Button
-          onClick={() => router.push('/')}
-          size="lg"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-        >
-          <Home className="mr-2 h-5 w-5" />
-          홈으로 돌아가기
-        </Button>
+        {/* 버튼들 */}
+        <div className="space-y-3">
+          <Button
+            onClick={() => router.push('/')}
+            size="lg"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
+            <Home className="mr-2 h-5 w-5" />
+            홈으로 돌아가기
+          </Button>
+
+          <Button
+            onClick={() => router.back()}
+            variant="outline"
+            size="lg"
+            className="w-full border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
+            <ArrowLeft className="mr-2 h-5 w-5" />
+            이전 페이지
+          </Button>
+        </div>
+
+        {/* 자주 찾는 페이지 */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-muted-foreground mb-3">자주 찾는 페이지</p>
+          <div className="space-y-2">
+            <Link
+              href="/communities"
+              className="block text-primary hover:text-primary/80 text-sm underline transition-colors"
+            >
+              커뮤니티
+            </Link>
+            <Link
+              href="/posts"
+              className="block text-primary hover:text-primary/80 text-sm underline transition-colors"
+            >
+              게시글
+            </Link>
+            <Link
+              href="/profile"
+              className="block text-primary hover:text-primary/80 text-sm underline transition-colors"
+            >
+              프로필
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

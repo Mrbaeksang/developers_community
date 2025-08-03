@@ -94,7 +94,7 @@ async function getCommunities(searchParams: {
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/communities?page=${page}&search=${search}`,
+      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities?page=${page}&search=${search}`,
       { cache: 'no-store' }
     )
 
@@ -273,7 +273,7 @@ export default async function CommunitiesPage({
                     href={`/communities/${community.slug}`}
                   >
                     <Card
-                      className={`h-full ${theme.card} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 cursor-pointer group overflow-hidden`}
+                      className={`h-full ${theme?.card || ''} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 cursor-pointer group overflow-hidden`}
                     >
                       {/* Banner Preview */}
                       <div className="relative h-20 w-full">
@@ -342,7 +342,7 @@ export default async function CommunitiesPage({
                           // 기본 그라데이션 (fallback)
                           return (
                             <div
-                              className={`absolute inset-0 ${theme.bg} opacity-20`}
+                              className={`absolute inset-0 ${theme?.bg || ''} opacity-20`}
                             />
                           )
                         })()}
@@ -392,7 +392,7 @@ export default async function CommunitiesPage({
                               // 아바타 없음
                               return (
                                 <div
-                                  className={`w-10 h-10 ${theme.bg} border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-white font-bold rounded-lg`}
+                                  className={`w-10 h-10 ${theme?.bg || ''} border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-white font-bold rounded-lg`}
                                 >
                                   <Users className="h-5 w-5" />
                                 </div>
@@ -429,7 +429,9 @@ export default async function CommunitiesPage({
                         <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
                           {community.name}
                         </h3>
-                        <p className={`text-sm ${theme.text} font-medium`}>
+                        <p
+                          className={`text-sm ${theme?.text || ''} font-medium`}
+                        >
                           @{community.slug}
                         </p>
                       </CardHeader>
@@ -475,7 +477,8 @@ export default async function CommunitiesPage({
                               />
                               <AvatarFallback className="bg-primary/10 font-bold">
                                 {community.owner.name?.[0] ||
-                                  community.owner.email[0].toUpperCase()}
+                                  community.owner.email?.[0]?.toUpperCase() ||
+                                  'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">

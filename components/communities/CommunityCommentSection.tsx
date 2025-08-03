@@ -37,7 +37,7 @@ interface Comment {
 interface CommunityCommentSectionProps {
   postId: string
   communityId: string
-  currentUserId?: string
+  currentUserId?: string | undefined
 }
 
 export function CommunityCommentSection({

@@ -10,6 +10,7 @@ import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VisitorTracker } from '@/components/VisitorTracker'
+import { AsyncErrorBoundary } from '@/components/error-boundary'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -32,23 +33,26 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Icons"
+          href="https://fonts.googleapis.com/css2?family=Material+Icons&display=optional"
           rel="stylesheet"
         />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
-        <SessionProvider>
-          <NotificationProvider>
-            <KakaoProvider>
-              <Header />
-              <main>{children}</main>
-              <Toaster richColors position="bottom-right" />
-              <ChatProvider />
-              <VisitorTracker />
-            </KakaoProvider>
-          </NotificationProvider>
-        </SessionProvider>
+        <AsyncErrorBoundary>
+          <SessionProvider>
+            <NotificationProvider>
+              <KakaoProvider>
+                <Header />
+                <main>{children}</main>
+                <Toaster richColors position="bottom-right" />
+                <ChatProvider />
+                <VisitorTracker />
+              </KakaoProvider>
+            </NotificationProvider>
+          </SessionProvider>
+        </AsyncErrorBoundary>
         <Analytics />
         <SpeedInsights />
       </body>

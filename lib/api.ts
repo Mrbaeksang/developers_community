@@ -11,11 +11,11 @@ export function getApiUrl() {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+    return process.env['NEXT_PUBLIC_API_URL'] || 'http://localhost:3000'
   }
 
   return (
-    process.env.NEXTAUTH_URL || 'https://developers-community-two.vercel.app'
+    process.env['NEXTAUTH_URL'] || 'https://developers-community-two.vercel.app'
   )
 }
 

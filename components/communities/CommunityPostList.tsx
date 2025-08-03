@@ -45,8 +45,8 @@ interface CommunityPostListProps {
   communityId: string
   communitySlug: string
   page: number
-  category?: string
-  search?: string
+  category?: string | undefined
+  search?: string | undefined
   sort?: string
 }
 
@@ -195,7 +195,7 @@ export function CommunityPostList({
                         {post.author.image
                           ? null
                           : post.author.name?.[0]?.toUpperCase() ||
-                            post.author.email[0].toUpperCase() || (
+                            post.author.email?.[0]?.toUpperCase() || (
                               <User className="h-4 w-4" />
                             )}
                       </AvatarFallback>

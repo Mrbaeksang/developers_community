@@ -28,7 +28,7 @@ interface Community {
 async function getCommunity(idOrSlug: string) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
+      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
       { cache: 'no-store' }
     )
 

@@ -74,24 +74,29 @@ export class ApiError extends Error {
 function getDefaultMessage(type: ErrorType): string {
   switch (type) {
     case 'VALIDATION_ERROR':
-      return ERROR_MESSAGES.INVALID_INPUT
+      return ERROR_MESSAGES['INVALID_INPUT'] || '입력값이 올바르지 않습니다.'
     case 'AUTHENTICATION_ERROR':
-      return ERROR_MESSAGES.UNAUTHORIZED
+      return ERROR_MESSAGES['UNAUTHORIZED'] || '로그인이 필요합니다.'
     case 'AUTHORIZATION_ERROR':
-      return ERROR_MESSAGES.FORBIDDEN
+      return ERROR_MESSAGES['FORBIDDEN'] || '권한이 없습니다.'
     case 'NOT_FOUND':
-      return ERROR_MESSAGES.NOT_FOUND
+      return ERROR_MESSAGES['NOT_FOUND'] || '요청한 리소스를 찾을 수 없습니다.'
     case 'CONFLICT':
-      return ERROR_MESSAGES.ALREADY_EXISTS
+      return ERROR_MESSAGES['ALREADY_EXISTS'] || '이미 존재하는 리소스입니다.'
     case 'DATABASE_ERROR':
-      return ERROR_MESSAGES.DATABASE_ERROR
+      return (
+        ERROR_MESSAGES['DATABASE_ERROR'] || '데이터베이스 오류가 발생했습니다.'
+      )
     case 'EXTERNAL_SERVICE_ERROR':
-      return ERROR_MESSAGES.SERVICE_UNAVAILABLE
+      return (
+        ERROR_MESSAGES['SERVICE_UNAVAILABLE'] ||
+        '서비스를 일시적으로 사용할 수 없습니다.'
+      )
     case 'RATE_LIMIT_ERROR':
-      return ERROR_MESSAGES.RATE_LIMIT
+      return ERROR_MESSAGES['RATE_LIMIT'] || '요청 횟수를 초과했습니다.'
     case 'INTERNAL_ERROR':
     default:
-      return ERROR_MESSAGES.INTERNAL_ERROR
+      return ERROR_MESSAGES['INTERNAL_ERROR'] || '서버 오류가 발생했습니다.'
   }
 }
 
@@ -137,7 +142,7 @@ export function handleError(error: unknown): NextResponse {
   if (error instanceof z.ZodError) {
     return createErrorResponse(
       'VALIDATION_ERROR',
-      ERROR_MESSAGES.INVALID_INPUT,
+      ERROR_MESSAGES['INVALID_INPUT'] || '입력값이 올바르지 않습니다.',
       400,
       error.issues.map((issue) => ({
         field: issue.path.join('.'),
@@ -175,8 +180,8 @@ export function handleError(error: unknown): NextResponse {
     // 기본 에러
     return createErrorResponse(
       'INTERNAL_ERROR',
-      process.env.NODE_ENV === 'production'
-        ? ERROR_MESSAGES.INTERNAL_ERROR
+      process.env['NODE_ENV'] === 'production'
+        ? ERROR_MESSAGES['INTERNAL_ERROR'] || '서버 오류가 발생했습니다.'
         : error.message,
       500
     )
@@ -185,7 +190,7 @@ export function handleError(error: unknown): NextResponse {
   // 알 수 없는 에러
   return createErrorResponse(
     'INTERNAL_ERROR',
-    ERROR_MESSAGES.INTERNAL_ERROR,
+    ERROR_MESSAGES['INTERNAL_ERROR'] || '서버 오류가 발생했습니다.',
     500
   )
 }
@@ -200,7 +205,7 @@ function handlePrismaError(
         'CONFLICT',
         '이미 존재하는 데이터입니다.',
         409,
-        { field: error.meta?.target }
+        { field: error.meta?.['target'] }
       )
 
     case 'P2025': // Record not found
@@ -216,9 +221,9 @@ function handlePrismaError(
     default:
       return createErrorResponse(
         'DATABASE_ERROR',
-        ERROR_MESSAGES.DATABASE_ERROR,
+        ERROR_MESSAGES['DATABASE_ERROR'] || '데이터베이스 오류가 발생했습니다.',
         500,
-        process.env.NODE_ENV === 'development'
+        process.env['NODE_ENV'] === 'development'
           ? { code: error.code, meta: error.meta }
           : undefined
       )
@@ -272,29 +277,36 @@ export function throwValidationError(
 ): never {
   throwApiError(
     'VALIDATION_ERROR',
-    message || ERROR_MESSAGES.INVALID_INPUT,
+    message || ERROR_MESSAGES['INVALID_INPUT'],
     details
   )
 }
 
 export function throwAuthenticationError(message?: string): never {
-  throwApiError('AUTHENTICATION_ERROR', message || ERROR_MESSAGES.UNAUTHORIZED)
+  throwApiError(
+    'AUTHENTICATION_ERROR',
+    message || ERROR_MESSAGES['UNAUTHORIZED']
+  )
 }
 
 export function throwAuthorizationError(message?: string): never {
-  throwApiError('AUTHORIZATION_ERROR', message || ERROR_MESSAGES.FORBIDDEN)
+  throwApiError('AUTHORIZATION_ERROR', message || ERROR_MESSAGES['FORBIDDEN'])
 }
 
 export function throwNotFoundError(message?: string): never {
-  throwApiError('NOT_FOUND', message || ERROR_MESSAGES.NOT_FOUND)
+  throwApiError('NOT_FOUND', message || ERROR_MESSAGES['NOT_FOUND'])
 }
 
 export function throwConflictError(message?: string, details?: unknown): never {
-  throwApiError('CONFLICT', message || ERROR_MESSAGES.ALREADY_EXISTS, details)
+  throwApiError(
+    'CONFLICT',
+    message || ERROR_MESSAGES['ALREADY_EXISTS'],
+    details
+  )
 }
 
 export function throwRateLimitError(message?: string): never {
-  throwApiError('RATE_LIMIT_ERROR', message || ERROR_MESSAGES.RATE_LIMIT)
+  throwApiError('RATE_LIMIT_ERROR', message || ERROR_MESSAGES['RATE_LIMIT'])
 }
 
 // try-catch 래퍼

@@ -6,11 +6,11 @@ let redisClient: Redis | null = null
 // Redis 클라이언트 생성 함수
 function createRedisClient() {
   // 프로덕션 환경 변수 체크
-  if (!process.env.REDIS_URL) {
+  if (!process.env['REDIS_URL']) {
     throw new Error('REDIS_URL is not defined in environment variables')
   }
 
-  const client = new Redis(process.env.REDIS_URL, {
+  const client = new Redis(process.env['REDIS_URL'], {
     // 프로덕션 최적화 설정
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
@@ -146,9 +146,9 @@ export async function getViewCounts(
     if (results) {
       results.forEach((result, index) => {
         const [err, value] = result
-        if (!err && value) {
+        if (!err && value && postIds[index]) {
           viewCounts.set(postIds[index], parseInt(value as string))
-        } else {
+        } else if (postIds[index]) {
           viewCounts.set(postIds[index], 0)
         }
       })

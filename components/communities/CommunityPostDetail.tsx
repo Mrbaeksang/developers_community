@@ -73,7 +73,7 @@ interface Post {
 
 interface CommunityPostDetailProps {
   post: Post
-  currentUserId?: string
+  currentUserId?: string | undefined
 }
 
 export function CommunityPostDetail({
@@ -237,7 +237,7 @@ export function CommunityPostDetail({
                     {post.author.image
                       ? null
                       : post.author.name?.[0]?.toUpperCase() ||
-                        post.author.email[0].toUpperCase() || (
+                        post.author.email?.[0]?.toUpperCase() || (
                           <User className="h-5 w-5" />
                         )}
                   </AvatarFallback>
