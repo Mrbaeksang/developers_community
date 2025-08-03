@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,30 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { toast as sonnerToast } from 'sonner'
-import { X, Loader2, AlertCircle } from 'lucide-react'
+import {
+  X,
+  Loader2,
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+  Eye,
+  EyeOff,
+  Upload,
+  Image as ImageIcon,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Link,
+  Code,
+  Quote,
+  Heading1,
+  Heading2,
+  Heading3,
+} from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { useDropzone } from 'react-dropzone'
 
 interface Category {
   id: string
@@ -43,6 +66,17 @@ const CHARACTER_LIMITS = {
   tag: 50,
 }
 
+// Keyboard shortcuts
+const KEYBOARD_SHORTCUTS = {
+  'Ctrl+B': 'bold',
+  'Ctrl+I': 'italic',
+  'Ctrl+K': 'link',
+  'Ctrl+Enter': 'submit',
+  'Ctrl+S': 'save',
+  F11: 'fullscreen',
+  'Ctrl+/': 'preview',
+}
+
 export function PostEditor({ userRole }: PostEditorProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,6 +86,10 @@ export function PostEditor({ userRole }: PostEditorProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [existingTags, setExistingTags] = useState<Tag[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // 폼 상태
   const [title, setTitle] = useState('')
@@ -70,8 +108,8 @@ export function PostEditor({ userRole }: PostEditorProps) {
     tag: '',
   })
 
-  // Validate input field in real-time
-  const validateField = (field: string, value: string): string => {
+  // Validate input field in real-time (defined early for use in other functions)
+  const validateField = useCallback((field: string, value: string): string => {
     switch (field) {
       case 'title':
         if (!value) return '제목은 필수입니다.'
@@ -102,7 +140,374 @@ export function PostEditor({ userRole }: PostEditorProps) {
       default:
         return ''
     }
+  }, [])
+
+  // Auto-save function (defined before usage)
+  const handleAutoSave = useCallback(async () => {
+    try {
+      const slug =
+        title
+          .toLowerCase()
+          .replace(/[^a-z0-9가-힣\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .substring(0, 100) +
+        '-' +
+        Date.now()
+
+      await fetch('/api/main/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          content,
+          excerpt: excerpt || content.substring(0, 200),
+          slug,
+          categoryId,
+          status: 'DRAFT',
+          tags: selectedTags,
+        }),
+      })
+
+      sonnerToast.success('자동 저장되었습니다.', {
+        duration: 2000,
+      })
+    } catch (error) {
+      console.error('Auto-save failed:', error)
+    }
+  }, [title, content, excerpt, categoryId, selectedTags])
+
+  // Submit handler (defined before usage)
+  const handleSubmit = useCallback(
+    async (submitStatus: 'DRAFT' | 'PENDING') => {
+      // Validate all fields
+      const errors = {
+        title: validateField('title', title),
+        content: validateField('content', content),
+        excerpt: validateField('excerpt', excerpt),
+        category: validateField('category', categoryId),
+        tag: '',
+      }
+
+      setValidationErrors(errors)
+
+      if (Object.values(errors).some((error) => error)) {
+        sonnerToast.error('입력한 내용을 확인해주세요.')
+        return
+      }
+
+      setIsSubmitting(true)
+      setSubmitState('submitting')
+
+      try {
+        // Generate slug
+        const baseSlug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9가-힣\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .substring(0, 100)
+
+        // Check for duplicate slug
+        const checkSlugRes = await fetch(
+          `/api/main/posts/check-slug?slug=${baseSlug}`
+        )
+        const { exists } = await checkSlugRes.json()
+
+        const slug = exists ? `${baseSlug}-${Date.now()}` : baseSlug
+
+        // Auto-generate SEO metadata
+        const metaTitle =
+          title.length > 60 ? title.substring(0, 57) + '...' : title
+        const metaDescription =
+          excerpt || content.substring(0, 155).replace(/\n/g, ' ')
+
+        const response = await fetch('/api/main/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content,
+            excerpt: excerpt || content.substring(0, 200),
+            slug,
+            categoryId,
+            status: submitStatus,
+            tags: selectedTags,
+            metaTitle,
+            metaDescription,
+            isPinned: false, // Admin can change this later
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.message || '게시글 작성에 실패했습니다')
+        }
+
+        const result = await response.json()
+
+        if (!result.success || !result.data) {
+          throw new Error(result.error || '게시글 작성에 실패했습니다')
+        }
+
+        const post = result.data
+
+        if (submitStatus === 'DRAFT') {
+          sonnerToast.success('게시글이 임시저장되었습니다.')
+        } else if (userRole === 'ADMIN') {
+          sonnerToast.success('게시글이 성공적으로 작성되었습니다.')
+        } else {
+          sonnerToast.info('게시글이 관리자 승인을 기다리고 있습니다.')
+        }
+
+        // 게시글 상세 페이지로 이동
+        if (post && post.id) {
+          setSubmitState('redirecting')
+          sonnerToast.loading('게시글 페이지로 이동 중...')
+          setTimeout(() => {
+            router.push(`/main/posts/${post.id}`)
+          }, 500)
+        }
+      } catch (error) {
+        console.error('Failed to create post:', error)
+        sonnerToast.error(
+          error instanceof Error ? error.message : '게시글 작성에 실패했습니다'
+        )
+      } finally {
+        if (submitState !== 'redirecting') {
+          setIsSubmitting(false)
+          setSubmitState('idle')
+        }
+      }
+    },
+    [
+      title,
+      content,
+      excerpt,
+      categoryId,
+      selectedTags,
+      userRole,
+      router,
+      submitState,
+      validateField,
+    ]
+  )
+
+  // Common image upload handler (defined after validateField but before useEffect)
+  const handleImageUpload = useCallback(
+    async (file: File) => {
+      // Check if file is an image
+      if (!file.type.startsWith('image/')) {
+        sonnerToast.error('이미지 파일만 업로드할 수 있습니다.')
+        return
+      }
+
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        sonnerToast.error('파일 크기는 10MB 이하여야 합니다.')
+        return
+      }
+
+      setUploadingImage(true)
+
+      try {
+        // Upload to server
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(
+            error.error?.message || '이미지 업로드에 실패했습니다.'
+          )
+        }
+
+        const result = await response.json()
+        const imageUrl = result.data.url
+        const markdownImage = `\n![${file.name}](${imageUrl})\n`
+
+        if (contentRef.current) {
+          const position = contentRef.current.selectionStart
+          const newContent =
+            content.slice(0, position) + markdownImage + content.slice(position)
+          setContent(newContent)
+
+          // Set cursor position after the image
+          setTimeout(() => {
+            contentRef.current?.focus()
+            const newPosition = position + markdownImage.length
+            contentRef.current?.setSelectionRange(newPosition, newPosition)
+          }, 0)
+        }
+
+        sonnerToast.success('이미지가 업로드되었습니다.')
+      } catch (error) {
+        console.error('Image upload failed:', error)
+        sonnerToast.error(
+          error instanceof Error
+            ? error.message
+            : '이미지 업로드에 실패했습니다.'
+        )
+      } finally {
+        setUploadingImage(false)
+      }
+    },
+    [content]
+  )
+
+  // Auto-save functionality
+  useEffect(() => {
+    const autoSave = setInterval(() => {
+      if (hasUnsavedChanges && title && content) {
+        handleAutoSave()
+      }
+    }, 300000) // 5 minutes
+
+    return () => clearInterval(autoSave)
+  }, [hasUnsavedChanges, title, content, handleAutoSave])
+
+  // Keyboard shortcuts and clipboard paste
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Enter: Submit
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault()
+        handleSubmit('PENDING')
+      }
+      // Ctrl+S: Save draft
+      else if (e.ctrlKey && e.key === 's') {
+        e.preventDefault()
+        handleSubmit('DRAFT')
+      }
+      // F11: Toggle fullscreen
+      else if (e.key === 'F11') {
+        e.preventDefault()
+        setIsFullscreen(!isFullscreen)
+      }
+      // Ctrl+/: Toggle preview
+      else if (e.ctrlKey && e.key === '/') {
+        e.preventDefault()
+        setShowPreview(!showPreview)
+      }
+    }
+
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            await handleImageUpload(file)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('paste', handlePaste)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('paste', handlePaste)
+    }
+  }, [isFullscreen, showPreview, handleImageUpload, handleSubmit])
+
+  // Markdown toolbar functions
+  const insertMarkdown = (type: string) => {
+    if (!contentRef.current) return
+
+    const textarea = contentRef.current
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = content.substring(start, end)
+
+    let newText = ''
+    let cursorOffset = 0
+
+    switch (type) {
+      case 'bold':
+        newText = `**${selectedText || '굵은 텍스트'}**`
+        cursorOffset = selectedText ? newText.length : 2
+        break
+      case 'italic':
+        newText = `*${selectedText || '기울임 텍스트'}*`
+        cursorOffset = selectedText ? newText.length : 1
+        break
+      case 'h1':
+        newText = `# ${selectedText || '제목 1'}`
+        cursorOffset = 2
+        break
+      case 'h2':
+        newText = `## ${selectedText || '제목 2'}`
+        cursorOffset = 3
+        break
+      case 'h3':
+        newText = `### ${selectedText || '제목 3'}`
+        cursorOffset = 4
+        break
+      case 'ul':
+        newText = `- ${selectedText || '목록 항목'}`
+        cursorOffset = 2
+        break
+      case 'ol':
+        newText = `1. ${selectedText || '번호 목록 항목'}`
+        cursorOffset = 3
+        break
+      case 'link':
+        newText = `[${selectedText || '링크 텍스트'}](URL)`
+        cursorOffset = selectedText ? newText.length - 5 : 1
+        break
+      case 'code':
+        if (selectedText.includes('\n')) {
+          newText = `\`\`\`\n${selectedText}\n\`\`\``
+          cursorOffset = 4
+        } else {
+          newText = `\`${selectedText || '코드'}\``
+          cursorOffset = selectedText ? newText.length : 1
+        }
+        break
+      case 'quote':
+        newText = `> ${selectedText || '인용문'}`
+        cursorOffset = 2
+        break
+    }
+
+    const newContent =
+      content.substring(0, start) + newText + content.substring(end)
+    setContent(newContent)
+
+    // Set cursor position
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+    }, 0)
   }
+
+  // Image upload handler for drag & drop
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0]
+      if (file) {
+        await handleImageUpload(file)
+      }
+    },
+    [handleImageUpload]
+  )
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+    },
+    multiple: false,
+    noClick: true,
+  })
 
   // 폼 데이터 변경 감지
   useEffect(() => {
@@ -132,7 +537,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
         const categoriesRes = await fetch('/api/main/categories')
         if (categoriesRes.ok) {
           const result = await categoriesRes.json()
-          // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
           setCategories(result.data || result)
         }
 
@@ -140,7 +544,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
         const tagsRes = await fetch('/api/main/tags?limit=15')
         if (tagsRes.ok) {
           const result = await tagsRes.json()
-          // successResponse 형식으로 오는 경우 data.tags 필드에서 실제 데이터 추출
           setExistingTags(result.data?.tags || [])
         }
       } catch (error) {
@@ -165,18 +568,14 @@ export function PostEditor({ userRole }: PostEditorProps) {
     const tagSlug = tagInput.toLowerCase().replace(/\s+/g, '-')
     if (!selectedTags.includes(tagSlug)) {
       if (selectedTags.length >= 10) {
-        sonnerToast.error('태그는 최대 10개까지 추가할 수 있습니다.', {
-          description: '태그 제한',
-        })
+        sonnerToast.error('태그는 최대 10개까지 추가할 수 있습니다.')
         return
       }
       setSelectedTags([...selectedTags, tagSlug])
       setTagInput('')
       setValidationErrors((prev) => ({ ...prev, tag: '' }))
     } else {
-      sonnerToast.error('이미 추가된 태그입니다.', {
-        description: '중복 태그',
-      })
+      sonnerToast.error('이미 추가된 태그입니다.')
     }
   }
 
@@ -185,120 +584,12 @@ export function PostEditor({ userRole }: PostEditorProps) {
     setSelectedTags(selectedTags.filter((slug) => slug !== tagSlug))
   }
 
-  // 게시글 저장
-  const handleSubmit = async (submitStatus: 'DRAFT' | 'PENDING') => {
-    // Validate all fields
-    const errors = {
-      title: validateField('title', title),
-      content: validateField('content', content),
-      excerpt: validateField('excerpt', excerpt),
-      category: validateField('category', categoryId),
-      tag: '',
-    }
-
-    setValidationErrors(errors)
-
-    if (Object.values(errors).some((error) => error)) {
-      sonnerToast.error('입력한 내용을 확인해주세요.', {
-        description: '입력 오류',
-      })
-      return
-    }
-
-    setIsSubmitting(true)
-    setSubmitState('submitting')
-
-    try {
-      // slug 생성 (제목 기반)
-      const slug =
-        title
-          .toLowerCase()
-          .replace(/[^a-z0-9가-힣\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .substring(0, 100) +
-        '-' +
-        Date.now()
-
-      const response = await fetch('/api/main/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          excerpt: excerpt || content.substring(0, 200),
-          slug,
-          categoryId,
-          status: submitStatus,
-          tags: selectedTags,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || '게시글 작성에 실패했습니다')
-      }
-
-      const result = await response.json()
-
-      // API 응답 구조 처리: { success: true, data: post }
-      if (!result.success || !result.data) {
-        throw new Error(result.error || '게시글 작성에 실패했습니다')
-      }
-
-      const post = result.data
-
-      if (submitStatus === 'DRAFT') {
-        sonnerToast.success('게시글이 임시저장되었습니다.', {
-          description: '임시저장 완료',
-        })
-      } else if (userRole === 'ADMIN') {
-        sonnerToast.success('게시글이 성공적으로 작성되었습니다.', {
-          description: '게시글 작성 완료',
-        })
-      } else {
-        sonnerToast.info('게시글이 관리자 승인을 기다리고 있습니다.', {
-          description: '승인 대기',
-        })
-      }
-
-      // 게시글 상세 페이지로 이동
-      if (post && post.id) {
-        setSubmitState('redirecting')
-        sonnerToast.loading('게시글 페이지로 이동 중...', {
-          id: 'redirecting',
-        })
-        setTimeout(() => {
-          router.push(`/main/posts/${post.id}`)
-        }, 500) // 사용자가 피드백을 볼 수 있도록 약간의 지연
-      } else {
-        console.error('Post ID not found in response:', result)
-        setSubmitState('redirecting')
-        sonnerToast.loading('게시글 목록으로 이동 중...', {
-          id: 'redirecting',
-        })
-        setTimeout(() => {
-          router.push('/main/posts')
-        }, 500)
-      }
-    } catch (error) {
-      console.error('Failed to create post:', error)
-      sonnerToast.error(
-        error instanceof Error ? error.message : '게시글 작성에 실패했습니다',
-        {
-          description: '오류',
-        }
-      )
-    } finally {
-      // 리다이렉트 중이 아닐 때만 상태 초기화
-      if (submitState !== 'redirecting') {
-        setIsSubmitting(false)
-        setSubmitState('idle')
-      }
-    }
-  }
+  const editorClasses = isFullscreen
+    ? 'fixed inset-0 z-50 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 overflow-auto'
+    : 'min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 p-4 sm:p-8 relative'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 p-4 sm:p-8 relative">
+    <div className={editorClasses}>
       {/* Loading Overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -316,7 +607,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto">
+      <div className={`${isFullscreen ? 'p-8' : ''} max-w-7xl mx-auto`}>
         {/* Header */}
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-black mb-2">
@@ -329,6 +620,59 @@ export function PostEditor({ userRole }: PostEditorProps) {
 
         {/* Main Card */}
         <main className="bg-white p-6 sm:p-8 rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative">
+          {/* Toolbar */}
+          <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-200">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+                className="font-bold"
+              >
+                {showPreview ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {showPreview ? '편집' : '미리보기'}
+                </span>
+              </Button>
+              <div className="h-6 w-px bg-gray-300" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="font-bold"
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {isFullscreen ? '일반' : '전체화면'}
+                </span>
+              </Button>
+            </div>
+            <div className="text-sm text-gray-500">
+              단축키:{' '}
+              {Object.entries(KEYBOARD_SHORTCUTS)
+                .map(([key, action]) => (
+                  <span key={key} className="ml-2">
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded">
+                      {key}
+                    </kbd>{' '}
+                    {action}
+                  </span>
+                ))
+                .slice(0, 3)}
+              ...
+            </div>
+          </div>
+
           <form className="space-y-8">
             {/* 기본 정보 섹션 */}
             <section>
@@ -336,19 +680,9 @@ export function PostEditor({ userRole }: PostEditorProps) {
               <div className="space-y-6">
                 {/* 카테고리 선택 */}
                 <div>
-                  <div className="flex items-center mb-2">
-                    <Label htmlFor="category" className="text-lg font-bold">
-                      카테고리 <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="ml-2 group relative">
-                      <span className="material-icons text-gray-500 cursor-help text-sm">
-                        help_outline
-                      </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                        게시글의 주제에 맞는 카테고리를 선택해주세요.
-                      </div>
-                    </div>
-                  </div>
+                  <Label htmlFor="category" className="text-lg font-bold">
+                    카테고리 <span className="text-red-500">*</span>
+                  </Label>
                   <Select
                     value={categoryId}
                     onValueChange={(value) => {
@@ -387,20 +721,9 @@ export function PostEditor({ userRole }: PostEditorProps) {
 
                 {/* 제목 */}
                 <div>
-                  <div className="flex items-center mb-2">
-                    <Label htmlFor="title" className="text-lg font-bold">
-                      제목 <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="ml-2 group relative">
-                      <span className="material-icons text-gray-500 cursor-help text-sm">
-                        help_outline
-                      </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                        독자의 관심을 끌 수 있는 명확하고 구체적인 제목을
-                        작성해주세요.
-                      </div>
-                    </div>
-                  </div>
+                  <Label htmlFor="title" className="text-lg font-bold">
+                    제목 <span className="text-red-500">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="title"
@@ -435,76 +758,269 @@ export function PostEditor({ userRole }: PostEditorProps) {
                   )}
                 </div>
 
-                {/* 내용 */}
+                {/* 내용 with Preview */}
                 <div>
-                  <div className="flex items-center mb-2">
+                  <div className="flex items-center justify-between mb-2">
                     <Label htmlFor="content" className="text-lg font-bold">
                       내용 <span className="text-red-500">*</span>
                     </Label>
-                    <div className="ml-2 group relative">
-                      <span className="material-icons text-gray-500 cursor-help text-sm">
-                        help_outline
-                      </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                        마크다운 문법을 사용하여 풍부한 내용을 작성할 수
-                        있습니다.
+                    {!showPreview && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('bold')}
+                          title="굵게 (Ctrl+B)"
+                        >
+                          <Bold className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('italic')}
+                          title="기울임 (Ctrl+I)"
+                        >
+                          <Italic className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('h1')}
+                          title="제목 1"
+                        >
+                          <Heading1 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('h2')}
+                          title="제목 2"
+                        >
+                          <Heading2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('h3')}
+                          title="제목 3"
+                        >
+                          <Heading3 className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('ul')}
+                          title="목록"
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('ol')}
+                          title="번호 목록"
+                        >
+                          <ListOrdered className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-gray-300 mx-1" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('link')}
+                          title="링크 (Ctrl+K)"
+                        >
+                          <Link className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('code')}
+                          title="코드"
+                        >
+                          <Code className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertMarkdown('quote')}
+                          title="인용"
+                        >
+                          <Quote className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`grid ${showPreview ? 'grid-cols-2 gap-4' : 'grid-cols-1'}`}
+                  >
+                    {/* Editor */}
+                    <div className="relative" {...getRootProps()}>
+                      <input {...getInputProps()} />
+                      <Textarea
+                        ref={contentRef}
+                        id="content"
+                        value={content}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setContent(value)
+                          const error = validateField('content', value)
+                          setValidationErrors((prev) => ({
+                            ...prev,
+                            content: error,
+                          }))
+                        }}
+                        placeholder="게시글 내용을 작성해주세요.\n\n마크다운 문법을 지원합니다:\n- # 제목\n- **굵은 글씨**\n- *기울임*\n- `코드`\n- ```코드 블록```\n\n이미지는 드래그 앤 드롭으로 추가할 수 있습니다."
+                        rows={25}
+                        maxLength={CHARACTER_LIMITS.content}
+                        className={`w-full p-4 border-3 rounded-lg resize-none focus:ring-2 focus:ring-blue-200 transition-colors font-mono text-sm ${
+                          validationErrors.content
+                            ? 'border-red-500 focus:border-red-600'
+                            : 'border-black focus:border-blue-600'
+                        } ${isDragActive ? 'bg-blue-50' : ''}`}
+                        required
+                      />
+                      {isDragActive && (
+                        <div className="absolute inset-0 bg-blue-500/10 border-3 border-dashed border-blue-500 rounded-lg flex items-center justify-center">
+                          <div className="bg-white p-4 rounded-lg border-2 border-blue-500">
+                            <ImageIcon className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                            <p className="text-sm font-bold text-blue-600">
+                              이미지를 놓아주세요
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {uploadingImage && (
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        </div>
+                      )}
+                      <div className="absolute right-3 bottom-3 text-xs text-gray-500">
+                        {content.length}/{CHARACTER_LIMITS.content}
                       </div>
                     </div>
+
+                    {/* Preview */}
+                    {showPreview && (
+                      <div className="border-3 border-black rounded-lg p-4 bg-gray-50 overflow-auto max-h-[600px]">
+                        <div className="prose prose-lg max-w-none">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ children }) => (
+                                <h1 className="text-3xl font-bold mb-4">
+                                  {children}
+                                </h1>
+                              ),
+                              h2: ({ children }) => (
+                                <h2 className="text-2xl font-bold mb-3">
+                                  {children}
+                                </h2>
+                              ),
+                              h3: ({ children }) => (
+                                <h3 className="text-xl font-bold mb-2">
+                                  {children}
+                                </h3>
+                              ),
+                              p: ({ children }) => (
+                                <p className="mb-4">{children}</p>
+                              ),
+                              ul: ({ children }) => (
+                                <ul className="list-disc pl-6 mb-4">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="list-decimal pl-6 mb-4">
+                                  {children}
+                                </ol>
+                              ),
+                              li: ({ children }) => (
+                                <li className="mb-1">{children}</li>
+                              ),
+                              blockquote: ({ children }) => (
+                                <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">
+                                  {children}
+                                </blockquote>
+                              ),
+                              code: ({ children, ...props }) => {
+                                const className = props.className || ''
+                                const isInline =
+                                  !className.includes('language-')
+                                return isInline ? (
+                                  <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4">
+                                    <code className="text-sm">{children}</code>
+                                  </pre>
+                                )
+                              },
+                              a: ({ href, children }) => (
+                                <a
+                                  href={href}
+                                  className="text-blue-600 underline hover:text-blue-800"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {children}
+                                </a>
+                              ),
+                              img: ({ src, alt }) => (
+                                <img
+                                  src={src}
+                                  alt={alt}
+                                  className="max-w-full h-auto rounded-lg my-4"
+                                />
+                              ),
+                            }}
+                          >
+                            {content ||
+                              '*내용을 입력하면 여기에 미리보기가 표시됩니다.*'}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="relative">
-                    <Textarea
-                      id="content"
-                      value={content}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setContent(value)
-                        const error = validateField('content', value)
-                        setValidationErrors((prev) => ({
-                          ...prev,
-                          content: error,
-                        }))
-                      }}
-                      placeholder="게시글 내용을 작성해주세요.\n\n마크다운 문법을 지원합니다:\n- # 제목\n- **굵은 글씨**\n- *기울임*\n- `코드`\n- ```코드 블록```"
-                      rows={15}
-                      maxLength={CHARACTER_LIMITS.content}
-                      className={`w-full p-3 border-3 rounded-lg resize-none focus:ring-2 focus:ring-blue-200 transition-colors pr-20 ${
-                        validationErrors.content
-                          ? 'border-red-500 focus:border-red-600'
-                          : 'border-black focus:border-blue-600'
-                      }`}
-                      required
-                    />
-                    <div className="absolute right-3 bottom-3 text-xs text-gray-500">
-                      {content.length}/{CHARACTER_LIMITS.content}
-                    </div>
-                  </div>
+
                   {validationErrors.content && (
                     <p className="text-sm text-red-500 mt-2 flex items-center">
                       <AlertCircle className="h-4 w-4 mr-1" />
                       {validationErrors.content}
                     </p>
                   )}
+
+                  {/* Image upload hint */}
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                    <Upload className="h-4 w-4" />
+                    <span>
+                      이미지를 드래그 앤 드롭하거나 클립보드에서
+                      붙여넣기(Ctrl+V)할 수 있습니다.
+                    </span>
+                  </div>
                 </div>
 
                 {/* 요약 */}
                 <div>
-                  <div className="flex items-center mb-2">
-                    <Label htmlFor="excerpt" className="text-lg font-bold">
-                      요약
-                      <span className="text-base font-medium text-gray-500 ml-2">
-                        (선택사항)
-                      </span>
-                    </Label>
-                    <div className="ml-2 group relative">
-                      <span className="material-icons text-gray-500 cursor-help text-sm">
-                        help_outline
-                      </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                        게시글의 핵심 내용을 간략하게 요약해주세요. 비워두면
-                        본문에서 자동으로 추출됩니다.
-                      </div>
-                    </div>
-                  </div>
+                  <Label htmlFor="excerpt" className="text-lg font-bold">
+                    요약
+                    <span className="text-base font-medium text-gray-500 ml-2">
+                      (선택사항)
+                    </span>
+                  </Label>
                   <div className="relative">
                     <Textarea
                       id="excerpt"
@@ -548,20 +1064,9 @@ export function PostEditor({ userRole }: PostEditorProps) {
             <section>
               <h2 className="text-2xl font-bold mb-4">태그</h2>
               <div>
-                <div className="flex items-center mb-2">
-                  <Label htmlFor="tags" className="text-lg font-bold">
-                    태그 추가
-                  </Label>
-                  <div className="ml-2 group relative">
-                    <span className="material-icons text-gray-500 cursor-help text-sm">
-                      help_outline
-                    </span>
-                    <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                      게시글과 관련된 키워드를 태그로 추가하세요. 최대 10개까지
-                      추가할 수 있습니다.
-                    </div>
-                  </div>
-                </div>
+                <Label htmlFor="tags" className="text-lg font-bold">
+                  태그 추가
+                </Label>
                 <div className="flex gap-2 mb-3">
                   <div className="relative flex-1">
                     <Input
@@ -672,10 +1177,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
                                 setSelectedTags([...selectedTags, tag.slug])
                               } else if (selectedTags.length >= 10) {
                                 sonnerToast.error(
-                                  '태그는 최대 10개까지 추가할 수 있습니다.',
-                                  {
-                                    description: '태그 제한',
-                                  }
+                                  '태그는 최대 10개까지 추가할 수 있습니다.'
                                 )
                               }
                             }}
@@ -742,7 +1244,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     }
                     className="flex-1 sm:flex-initial px-6 py-3 font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    📝 임시저장
+                    📝 임시저장 (Ctrl+S)
                   </Button>
                   <Button
                     type="button"
@@ -759,9 +1261,9 @@ export function PostEditor({ userRole }: PostEditorProps) {
                         저장 중...
                       </>
                     ) : userRole === 'ADMIN' ? (
-                      '✨ 게시글 발행'
+                      '✨ 게시글 발행 (Ctrl+Enter)'
                     ) : (
-                      '📤 게시 요청'
+                      '📤 게시 요청 (Ctrl+Enter)'
                     )}
                   </Button>
                 </div>
@@ -771,6 +1273,8 @@ export function PostEditor({ userRole }: PostEditorProps) {
                   {userRole === 'ADMIN'
                     ? '관리자는 게시글이 즉시 발행됩니다.'
                     : '게시글은 관리자 검토 후 발행됩니다.'}
+                  <br />
+                  5분마다 자동으로 임시저장됩니다.
                 </p>
               </div>
             </div>

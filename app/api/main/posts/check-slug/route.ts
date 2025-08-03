@@ -1,0 +1,27 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { handleError } from '@/lib/error-handler'
+
+export async function GET(req: NextRequest) {
+  try {
+    const searchParams = req.nextUrl.searchParams
+    const slug = searchParams.get('slug')
+
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug is required' }, { status: 400 })
+    }
+
+    // Check if slug exists in database
+    const existingPost = await prisma.mainPost.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+
+    return NextResponse.json({
+      success: true,
+      exists: !!existingPost,
+    })
+  } catch (error) {
+    return handleError(error)
+  }
+}
