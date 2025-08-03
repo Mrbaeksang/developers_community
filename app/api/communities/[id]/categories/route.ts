@@ -151,7 +151,7 @@ export async function POST(
       },
     })
 
-    return successResponse({ category }, 201)
+    return successResponse({ category }, undefined, 201)
   } catch (error) {
     return handleError(error)
   }

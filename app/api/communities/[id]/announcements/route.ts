@@ -97,7 +97,7 @@ export async function POST(
       },
     })
 
-    return successResponse({ announcement }, 201)
+    return successResponse({ announcement }, undefined, 201)
   } catch (error) {
     return handleError(error)
   }
