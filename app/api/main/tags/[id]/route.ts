@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 태그 수정 (관리자/모더레이터만 가능)
 export async function PUT(
@@ -25,10 +27,7 @@ export async function PUT(
     })
 
     if (!existingTag) {
-      return NextResponse.json(
-        { error: '태그를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('태그를 찾을 수 없습니다.', 404)
     }
 
     // 업데이트할 데이터 준비
@@ -62,10 +61,7 @@ export async function PUT(
       })
 
       if (duplicate) {
-        return NextResponse.json(
-          { error: '이미 존재하는 태그 이름입니다.' },
-          { status: 409 }
-        )
+        return errorResponse('이미 존재하는 태그 이름입니다.', 409)
       }
     }
 
@@ -82,12 +78,9 @@ export async function PUT(
       data: updateData,
     })
 
-    return NextResponse.json({ tag: updatedTag })
-  } catch {
-    return NextResponse.json(
-      { error: '태그 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ tag: updatedTag })
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -117,19 +110,14 @@ export async function DELETE(
     })
 
     if (!existingTag) {
-      return NextResponse.json(
-        { error: '태그를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('태그를 찾을 수 없습니다.', 404)
     }
 
     // 사용 중인 태그는 삭제 불가
     if (existingTag._count.posts > 0) {
-      return NextResponse.json(
-        {
-          error: `이 태그는 ${existingTag._count.posts}개의 게시글에서 사용 중입니다. 먼저 게시글에서 태그를 제거해주세요.`,
-        },
-        { status: 400 }
+      return errorResponse(
+        `이 태그는 ${existingTag._count.posts}개의 게시글에서 사용 중입니다. 먼저 게시글에서 태그를 제거해주세요.`,
+        400
       )
     }
 
@@ -137,11 +125,8 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ message: '태그가 삭제되었습니다.' })
-  } catch {
-    return NextResponse.json(
-      { error: '태그 삭제에 실패했습니다.' },
-      { status: 500 }
-    )
+    return successResponse({ message: '태그가 삭제되었습니다.' })
+  } catch (error) {
+    return handleError(error)
   }
 }

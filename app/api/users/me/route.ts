@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 프로필 수정 스키마
 const updateProfileSchema = z.object({
@@ -24,10 +26,7 @@ export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return errorResponse('로그인이 필요합니다.', 401)
     }
 
     // 사용자 정보 조회
@@ -58,13 +57,10 @@ export async function GET() {
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         id: user.id,
         email: user.email,
@@ -83,11 +79,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('내 정보 조회 실패:', error)
-    return NextResponse.json(
-      { error: '내 정보 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -96,10 +88,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return errorResponse('로그인이 필요합니다.', 401)
     }
 
     // 요청 데이터 검증
@@ -116,10 +105,7 @@ export async function PUT(request: NextRequest) {
       })
 
       if (existingUser) {
-        return NextResponse.json(
-          { error: '이미 사용 중인 사용자명입니다.' },
-          { status: 400 }
-        )
+        return errorResponse('이미 사용 중인 사용자명입니다.', 400)
       }
     }
 
@@ -160,7 +146,7 @@ export async function PUT(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
@@ -179,18 +165,10 @@ export async function PUT(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('프로필 수정 실패:', error)
-
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
+      return errorResponse(error.issues[0].message, 400)
     }
 
-    return NextResponse.json(
-      { error: '프로필 수정에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

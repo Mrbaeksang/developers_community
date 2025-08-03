@@ -3,6 +3,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createPostLikeNotification } from '@/lib/notifications'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // POST /api/main/posts/[id]/like - 좋아요 토글
 export async function POST(
@@ -27,7 +29,7 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('Post not found', 404)
     }
 
     // 이미 좋아요했는지 확인
@@ -54,7 +56,7 @@ export async function POST(
         data: { likeCount: { decrement: 1 } },
       })
 
-      return NextResponse.json({ liked: false })
+      return successResponse({ liked: false })
     } else {
       // 좋아요 추가
       await prisma.mainLike.create({
@@ -85,14 +87,10 @@ export async function POST(
         )
       }
 
-      return NextResponse.json({ liked: true })
+      return successResponse({ liked: true })
     }
   } catch (error) {
-    console.error('Failed to toggle like:', error)
-    return NextResponse.json(
-      { error: 'Failed to toggle like' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -105,7 +103,7 @@ export async function GET(
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json({ liked: false })
+      return successResponse({ liked: false })
     }
 
     const { id } = await params
@@ -120,9 +118,8 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({ liked: !!like })
+    return successResponse({ liked: !!like })
   } catch (error) {
-    console.error('Failed to check like status:', error)
-    return NextResponse.json({ liked: false })
+    return handleError(error)
   }
 }

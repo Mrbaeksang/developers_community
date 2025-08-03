@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { redis } from '@/lib/redis'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -44,7 +46,7 @@ export async function GET() {
       // Redis 오류 시에도 기본 통계는 반환
     }
 
-    return NextResponse.json({
+    return successResponse({
       users,
       mainPosts,
       mainComments,
@@ -54,10 +56,6 @@ export async function GET() {
       realtime,
     })
   } catch (error) {
-    console.error('Failed to fetch stats:', error)
-    return NextResponse.json(
-      { error: '통계 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

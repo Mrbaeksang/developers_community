@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET(request: Request) {
   try {
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
       take: limit,
     })
 
-    return NextResponse.json({
+    return successResponse({
       users: activeUsers.map((user) => ({
         id: user.id,
         name: user.name || user.email?.split('@')[0] || 'Unknown',
@@ -54,10 +55,6 @@ export async function GET(request: Request) {
       })),
     })
   } catch (error) {
-    console.error('활발한 사용자 조회 실패:', error)
-    return NextResponse.json(
-      { error: '활발한 사용자 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

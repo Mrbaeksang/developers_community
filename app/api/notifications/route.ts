@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { NotificationType } from '@prisma/client'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // 알림 타입 필터 스키마
 const notificationFilterSchema = z.object({
@@ -17,10 +20,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return errorResponse('로그인이 필요합니다.', 401)
     }
 
     const { searchParams } = new URL(req.url)
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 알림 조회
-    const [notifications, total] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
         include: {
@@ -72,25 +72,25 @@ export async function GET(req: NextRequest) {
         take: validatedLimit,
       }),
       prisma.notification.count({ where }),
+      prisma.notification.count({
+        where: {
+          userId: session.user.id,
+          isRead: false,
+        },
+      }),
     ])
 
-    // 읽지 않은 알림 개수
-    const unreadCount = await prisma.notification.count({
-      where: {
-        userId: session.user.id,
-        isRead: false,
-      },
-    })
-
-    // resourceIds JSON 파싱
+    // resourceIds JSON 파싱 및 날짜 포맷팅
     const formattedNotifications = notifications.map((notification) => ({
       ...notification,
       resourceIds: notification.resourceIds
         ? JSON.parse(notification.resourceIds)
         : null,
+      createdAt: notification.createdAt.toISOString(),
+      timeAgo: formatTimeAgo(notification.createdAt),
     }))
 
-    return NextResponse.json({
+    return successResponse({
       notifications: formattedNotifications,
       pagination: {
         total,
@@ -101,17 +101,10 @@ export async function GET(req: NextRequest) {
       unreadCount,
     })
   } catch (error) {
-    console.error('Failed to fetch notifications:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      )
+      return errorResponse(error.issues[0].message, 400)
     }
-    return NextResponse.json(
-      { error: '알림 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 

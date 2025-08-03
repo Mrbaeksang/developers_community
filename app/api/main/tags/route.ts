@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import {
+  successResponse,
+  errorResponse,
+  createdResponse,
+} from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +35,7 @@ export async function GET(request: Request) {
       }))
       .sort((a, b) => b.publishedCount - a.publishedCount)
 
-    return NextResponse.json({
+    return successResponse({
       tags: sortedTags.map((tag) => ({
         id: tag.id,
         name: tag.name,
@@ -38,11 +44,8 @@ export async function GET(request: Request) {
         color: tag.color,
       })),
     })
-  } catch {
-    return NextResponse.json(
-      { error: '태그 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleError(error)
   }
 }
 
@@ -58,10 +61,7 @@ export async function POST(request: Request) {
     const { name, description, color } = body
 
     if (!name?.trim()) {
-      return NextResponse.json(
-        { error: '태그 이름은 필수입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('태그 이름은 필수입니다.', 400)
     }
 
     // 슬러그 생성 (한글 지원)
@@ -79,10 +79,7 @@ export async function POST(request: Request) {
     })
 
     if (existing) {
-      return NextResponse.json(
-        { error: '이미 존재하는 태그입니다.' },
-        { status: 409 }
-      )
+      return errorResponse('이미 존재하는 태그입니다.', 409)
     }
 
     const tag = await prisma.mainTag.create({
@@ -94,11 +91,8 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ tag }, { status: 201 })
-  } catch {
-    return NextResponse.json(
-      { error: '태그 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return createdResponse({ tag })
+  } catch (error) {
+    return handleError(error)
   }
 }

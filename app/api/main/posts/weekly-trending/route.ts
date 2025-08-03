@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
 import { markdownToHtml } from '@/lib/markdown'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,6 +91,9 @@ export async function GET(request: NextRequest) {
           content: markdownToHtml(post.content),
           tags: post.tags.map((postTag) => postTag.tag),
           weeklyViews,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString(),
+          timeAgo: formatTimeAgo(post.createdAt),
         }
       })
     )
@@ -98,15 +104,11 @@ export async function GET(request: NextRequest) {
       .slice(0, limit)
       .filter((post) => post.weeklyViews > 0) // 조회수 0인 게시글 제외
 
-    return NextResponse.json({
+    return successResponse({
       posts: trendingPosts,
       period: 'weekly',
     })
   } catch (error) {
-    console.error('Failed to fetch weekly trending posts:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch trending posts' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

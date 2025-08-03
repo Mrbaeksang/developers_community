@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // POST /api/main/posts/[id]/bookmark - 북마크 토글
 export async function POST(
@@ -26,7 +28,7 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('Post not found', 404)
     }
 
     // 이미 북마크했는지 확인
@@ -47,7 +49,7 @@ export async function POST(
         },
       })
 
-      return NextResponse.json({ bookmarked: false })
+      return successResponse({ bookmarked: false })
     } else {
       // 북마크 추가
       await prisma.mainBookmark.create({
@@ -57,14 +59,10 @@ export async function POST(
         },
       })
 
-      return NextResponse.json({ bookmarked: true })
+      return successResponse({ bookmarked: true })
     }
   } catch (error) {
-    console.error('Failed to toggle bookmark:', error)
-    return NextResponse.json(
-      { error: 'Failed to toggle bookmark' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -77,7 +75,7 @@ export async function GET(
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json({ bookmarked: false })
+      return successResponse({ bookmarked: false })
     }
 
     const { id } = await params
@@ -92,9 +90,8 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({ bookmarked: !!bookmark })
+    return successResponse({ bookmarked: !!bookmark })
   } catch (error) {
-    console.error('Failed to check bookmark status:', error)
-    return NextResponse.json({ bookmarked: false })
+    return handleError(error)
   }
 }

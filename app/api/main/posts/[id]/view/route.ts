@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { redis } from '@/lib/redis'
+import { successResponse } from '@/lib/api-response'
 
 // POST /api/main/posts/[id]/view - 조회수 증가 (Redis 버퍼링)
 export async function POST(
@@ -18,10 +19,10 @@ export async function POST(
     // TTL 설정 (24시간)
     await redis().expire(viewKey, 86400)
 
-    return NextResponse.json({ success: true })
+    return successResponse({ viewed: true })
   } catch (error) {
     console.error('Failed to increment view count:', error)
     // Redis 오류 시에도 정상 응답 (사용자 경험 우선)
-    return NextResponse.json({ success: true })
+    return successResponse({ viewed: true })
   }
 }

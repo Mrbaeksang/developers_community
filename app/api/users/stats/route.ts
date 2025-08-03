@@ -1,16 +1,14 @@
-import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 내 활동 통계 조회 - GET /api/users/stats
 export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      )
+      return errorResponse('로그인이 필요합니다.', 401)
     }
 
     const userId = session.user.id
@@ -134,7 +132,7 @@ export async function GET() {
       {}
     )
 
-    return NextResponse.json({
+    return successResponse({
       stats: {
         posts: {
           total: totalPosts,
@@ -156,10 +154,6 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('활동 통계 조회 실패:', error)
-    return NextResponse.json(
-      { error: '활동 통계 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

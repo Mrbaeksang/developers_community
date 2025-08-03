@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // GET /api/main/posts/[id]/related - 관련 게시글 조회
 export async function GET(
@@ -26,7 +28,7 @@ export async function GET(
     })
 
     if (!currentPost) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('Post not found', 404)
     }
 
     const tagIds = currentPost.tags.map((tag) => tag.tagId)
@@ -128,12 +130,8 @@ export async function GET(
         return postWithoutScore
       }) // score 필드 제거
 
-    return NextResponse.json({ posts: sortedPosts })
+    return successResponse({ posts: sortedPosts })
   } catch (error) {
-    console.error('Failed to fetch related posts:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch related posts' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

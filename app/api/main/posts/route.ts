@@ -3,6 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 import { markdownToHtml } from '@/lib/markdown'
 import { redis } from '@/lib/redis'
+import {
+  errorResponse,
+  paginatedResponse,
+  createdResponse,
+} from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -121,25 +128,16 @@ export async function GET(request: NextRequest) {
           content: markdownToHtml(post.content),
           tags: post.tags.map((postTag) => postTag.tag),
           viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString(),
+          timeAgo: formatTimeAgo(post.createdAt),
         }
       })
     )
 
-    return NextResponse.json({
-      posts: formattedPosts,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    })
+    return paginatedResponse(formattedPosts, page, limit, total)
   } catch (error) {
-    console.error('게시글 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '게시글 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -166,18 +164,12 @@ export async function POST(request: NextRequest) {
 
     // 필수 필드 검증
     if (!title || !content || !categoryId || !slug) {
-      return NextResponse.json(
-        { error: '필수 정보가 누락되었습니다.' },
-        { status: 400 }
-      )
+      return errorResponse('필수 정보가 누락되었습니다.', 400)
     }
 
     // 상태 검증
     if (!['DRAFT', 'PENDING'].includes(status)) {
-      return NextResponse.json(
-        { error: '잘못된 상태값입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('잘못된 상태값입니다.', 400)
     }
 
     // 카테고리 존재 여부 확인
@@ -186,10 +178,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!category) {
-      return NextResponse.json(
-        { error: '존재하지 않는 카테고리입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('존재하지 않는 카테고리입니다.', 400)
     }
 
     // 태그 처리 - slug 기반으로 기존 태그 찾거나 새로 생성
@@ -239,10 +228,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
     // 디버깅 로그 (필요시 활성화)
@@ -315,12 +301,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(post, { status: 201 })
+    return createdResponse(post, '게시글이 생성되었습니다.')
   } catch (error) {
-    console.error('게시글 생성 실패:', error)
-    return NextResponse.json(
-      { error: '게시글 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

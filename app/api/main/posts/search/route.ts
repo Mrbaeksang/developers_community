@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
 
     if (!query || query.trim().length === 0) {
-      return NextResponse.json({ results: [] })
+      return successResponse({ results: [] })
     }
 
     // 검색 조건 구성
@@ -149,9 +151,8 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    return NextResponse.json({ results: resultsWithRedisViews })
+    return successResponse({ results: resultsWithRedisViews })
   } catch (error) {
-    console.error('검색 실패:', error)
-    return NextResponse.json({ error: '검색에 실패했습니다.' }, { status: 500 })
+    return handleError(error)
   }
 }

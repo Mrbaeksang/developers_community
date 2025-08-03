@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,15 +67,11 @@ export async function GET(request: NextRequest) {
       weeklyPosts: community.posts.length, // 최근 7일간 게시글 수
     }))
 
-    return NextResponse.json({
+    return successResponse({
       communities: formattedCommunities,
       period: 'weekly',
     })
   } catch (error) {
-    console.error('Failed to fetch active communities:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch active communities' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

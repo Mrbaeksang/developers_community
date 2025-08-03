@@ -5,6 +5,13 @@ import {
   createCommentReplyNotification,
 } from '@/lib/notifications'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import {
+  successResponse,
+  errorResponse,
+  createdResponse,
+} from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -20,7 +27,7 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('게시글을 찾을 수 없습니다.', 404)
     }
 
     // 댓글 목록 조회 (계층형 구조)
@@ -59,13 +66,23 @@ export async function GET(
       },
     })
 
-    return NextResponse.json({ comments })
+    // 날짜 포맷팅 추가
+    const formattedComments = comments.map((comment) => ({
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      timeAgo: formatTimeAgo(comment.createdAt),
+      replies: comment.replies.map((reply) => ({
+        ...reply,
+        createdAt: reply.createdAt.toISOString(),
+        updatedAt: reply.updatedAt.toISOString(),
+        timeAgo: formatTimeAgo(reply.createdAt),
+      })),
+    }))
+
+    return successResponse({ comments: formattedComments })
   } catch (error) {
-    console.error('Failed to fetch comments:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch comments' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -88,10 +105,7 @@ export async function POST(
 
     // 입력값 검증
     if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Content is required' },
-        { status: 400 }
-      )
+      return errorResponse('댓글 내용을 입력해주세요.', 400)
     }
 
     // 게시글 존재 확인
@@ -100,7 +114,7 @@ export async function POST(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return errorResponse('게시글을 찾을 수 없습니다.', 404)
     }
 
     // 대댓글인 경우 부모 댓글 확인
@@ -116,10 +130,7 @@ export async function POST(
       })
 
       if (!parentComment || parentComment.postId !== id) {
-        return NextResponse.json(
-          { error: 'Parent comment not found' },
-          { status: 404 }
-        )
+        return errorResponse('부모 댓글을 찾을 수 없습니다.', 404)
       }
     }
 
@@ -130,10 +141,7 @@ export async function POST(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
     // 댓글 생성
@@ -193,12 +201,19 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ comment }, { status: 201 })
-  } catch (error) {
-    console.error('Failed to create comment:', error)
-    return NextResponse.json(
-      { error: 'Failed to create comment' },
-      { status: 500 }
+    // 날짜 포맷팅 추가
+    const formattedComment = {
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      timeAgo: formatTimeAgo(comment.createdAt),
+    }
+
+    return createdResponse(
+      { comment: formattedComment },
+      '댓글이 작성되었습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

@@ -7,6 +7,12 @@ import {
   CommunityRole,
   MembershipStatus,
 } from '@prisma/client'
+import {
+  paginatedResponse,
+  errorResponse,
+  createdResponse,
+} from '@/lib/api-response'
+import { handleError, ApiError } from '@/lib/error-handler'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -78,21 +84,9 @@ export async function GET(req: NextRequest) {
       prisma.community.count({ where }),
     ])
 
-    return NextResponse.json({
-      communities,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    })
+    return paginatedResponse(communities, page, limit, total)
   } catch (error) {
-    console.error('Failed to fetch communities:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -128,9 +122,10 @@ export async function POST(req: NextRequest) {
     const validation = createCommunitySchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.issues[0].message },
-        { status: 400 }
+      throw new ApiError(
+        'VALIDATION_ERROR',
+        400,
+        validation.error.issues[0].message
       )
     }
 
@@ -155,10 +150,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (existingCommunity) {
-      return NextResponse.json(
-        { error: '이미 존재하는 커뮤니티 이름 또는 URL입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('이미 존재하는 커뮤니티 이름 또는 URL입니다.', 400)
     }
 
     // session.user.id는 checkAuth에서 이미 확인됨
@@ -228,12 +220,8 @@ export async function POST(req: NextRequest) {
       data: { memberCount: 1 },
     })
 
-    return NextResponse.json(community, { status: 201 })
+    return createdResponse(community, '커뮤니티가 생성되었습니다.')
   } catch (error) {
-    console.error('Failed to create community:', error)
-    return NextResponse.json(
-      { error: '커뮤니티 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

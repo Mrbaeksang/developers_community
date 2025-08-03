@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
 import { requireAuthAPI } from '@/lib/auth-utils'
+import { paginatedResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 내 북마크 목록 조회 - GET /api/users/bookmarks
 export async function GET(request: NextRequest) {
@@ -135,23 +137,14 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    const totalPages = Math.ceil(totalCount / limit)
-
-    return NextResponse.json({
-      bookmarks: formattedBookmarks,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    })
-  } catch (error) {
-    console.error('북마크 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '북마크 목록 조회에 실패했습니다.' },
-      { status: 500 }
+    return paginatedResponse(
+      formattedBookmarks,
+      page,
+      limit,
+      totalCount,
+      '북마크 목록을 조회했습니다.'
     )
+  } catch (error) {
+    return handleError(error)
   }
 }

@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
+import { errorResponse, paginatedResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
+import { formatTimeAgo } from '@/lib/date-utils'
 
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(
@@ -38,10 +41,7 @@ export async function GET(
     })
 
     if (!userExists) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
     // 조건 설정
@@ -121,6 +121,7 @@ export async function GET(
           createdAt: post.createdAt.toISOString(),
           updatedAt: post.updatedAt.toISOString(),
           approvedAt: post.approvedAt?.toISOString() || null,
+          timeAgo: formatTimeAgo(post.createdAt),
           author: {
             id: post.author.id,
             name: post.author.name || 'Unknown',
@@ -147,23 +148,8 @@ export async function GET(
       })
     )
 
-    const totalPages = Math.ceil(totalCount / limit)
-
-    return NextResponse.json({
-      posts: formattedPosts,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    })
+    return paginatedResponse(formattedPosts, page, limit, totalCount)
   } catch (error) {
-    console.error('사용자 게시글 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '사용자 게시글 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

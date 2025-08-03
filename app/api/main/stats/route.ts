@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -83,7 +84,7 @@ export async function GET() {
       }),
     ])
 
-    return NextResponse.json({
+    return successResponse({
       stats: {
         totalUsers,
         weeklyPosts,
@@ -95,10 +96,6 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('통계 조회 실패:', error)
-    return NextResponse.json(
-      { error: '통계 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

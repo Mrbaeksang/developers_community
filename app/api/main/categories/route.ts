@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
+import {
+  successResponse,
+  errorResponse,
+  createdResponse,
+} from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -20,7 +26,7 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(
+    return successResponse(
       categories.map((category) => ({
         id: category.id,
         name: category.name,
@@ -32,11 +38,7 @@ export async function GET() {
       }))
     )
   } catch (error) {
-    console.error('카테고리 목록 조회 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 목록 조회에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -51,10 +53,7 @@ export async function POST(req: Request) {
 
     // 필수 필드 검증
     if (!name || !slug) {
-      return NextResponse.json(
-        { error: '이름과 슬러그는 필수입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('이름과 슬러그는 필수입니다.', 400)
     }
 
     // 중복 확인
@@ -65,10 +64,7 @@ export async function POST(req: Request) {
     })
 
     if (existing) {
-      return NextResponse.json(
-        { error: '이미 존재하는 카테고리입니다.' },
-        { status: 400 }
-      )
+      return errorResponse('이미 존재하는 카테고리입니다.', 400)
     }
 
     const category = await prisma.mainCategory.create({
@@ -83,12 +79,8 @@ export async function POST(req: Request) {
       },
     })
 
-    return NextResponse.json(category)
+    return createdResponse(category)
   } catch (error) {
-    console.error('카테고리 생성 실패:', error)
-    return NextResponse.json(
-      { error: '카테고리 생성에 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
