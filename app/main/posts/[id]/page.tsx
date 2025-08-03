@@ -25,7 +25,10 @@ async function getPost(id: string) {
       throw new Error('Failed to fetch post')
     }
 
-    const data = await res.json()
+    const response = await res.json()
+
+    // API 응답이 wrapped 형태인지 확인
+    const data = response.data || response
 
     // 마크다운이 아직 변환되지 않았다면 변환
     if (data && data.content && !data.content.includes('<')) {
@@ -41,8 +44,10 @@ async function getPost(id: string) {
         }
       )
       if (commentsRes.ok) {
-        const commentsData = await commentsRes.json()
-        data.comments = commentsData.comments || []
+        const commentsResponse = await commentsRes.json()
+        // 댓글도 wrapped response 처리
+        const commentsData = commentsResponse.data || commentsResponse
+        data.comments = commentsData.comments || commentsData || []
       }
     } catch (error) {
       console.error('Failed to fetch comments:', error)

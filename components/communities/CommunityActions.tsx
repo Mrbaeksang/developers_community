@@ -44,7 +44,7 @@ export function CommunityActions({
       }
 
       const data = await res.json()
-      toast.success(data.message)
+      toast.success(data.data?.message || data.message || '가입되었습니다')
 
       // 강제로 라우터 리프레시
       router.refresh()
@@ -78,7 +78,7 @@ export function CommunityActions({
       }
 
       const data = await res.json()
-      toast.success(data.message)
+      toast.success(data.data?.message || data.message || '탈퇴되었습니다')
 
       // 강제로 라우터 리프레시
       router.refresh()

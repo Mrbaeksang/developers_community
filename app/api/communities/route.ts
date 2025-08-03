@@ -119,9 +119,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+    console.error('요청 받은 데이터:', body)
+
     const validation = createCommunitySchema.safeParse(body)
 
     if (!validation.success) {
+      console.error('유효성 검사 실패:', validation.error.issues)
       throw new ApiError(
         'VALIDATION_ERROR',
         400,

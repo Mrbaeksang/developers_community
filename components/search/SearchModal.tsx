@@ -92,7 +92,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         const res = await fetch(`/api/main/posts/search?${params}`)
         if (res.ok) {
           const data = await res.json()
-          setResults(data.results || [])
+          setResults(data.data?.results || data.results || [])
         } else {
           console.error('Search failed')
           setResults([])

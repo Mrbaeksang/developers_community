@@ -16,5 +16,5 @@ export default async function WritePage() {
     redirect('/signin')
   }
 
-  return <PostEditor />
+  return <PostEditor userRole={session.user?.role} />
 }

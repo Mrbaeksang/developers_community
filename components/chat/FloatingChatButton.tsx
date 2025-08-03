@@ -72,7 +72,7 @@ export default function FloatingChatButton({
         )
         if (res.ok) {
           const data = await res.json()
-          const messages = data.messages || []
+          const messages = data.data?.messages || data.messages || []
           setUnreadCount(Math.min(messages.length, 99))
         }
       } catch (error) {

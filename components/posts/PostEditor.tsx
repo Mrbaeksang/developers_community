@@ -27,9 +27,15 @@ interface Tag {
   id: string
   name: string
   slug: string
+  count?: number
+  color?: string
 }
 
-export function PostEditor() {
+interface PostEditorProps {
+  userRole?: string
+}
+
+export function PostEditor({ userRole }: PostEditorProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -55,8 +61,8 @@ export function PostEditor() {
           setCategories(result.data || result)
         }
 
-        // 태그 로드
-        const tagsRes = await fetch('/api/main/tags')
+        // 태그 로드 (인기 태그 상위 15개)
+        const tagsRes = await fetch('/api/main/tags?limit=15')
         if (tagsRes.ok) {
           const result = await tagsRes.json()
           // successResponse 형식으로 오는 경우 data.tags 필드에서 실제 데이터 추출
@@ -133,16 +139,32 @@ export function PostEditor() {
         throw new Error(error.message || '게시글 작성에 실패했습니다')
       }
 
-      const post = await response.json()
+      const result = await response.json()
+
+      // API 응답 구조 처리: { success: true, data: post }
+      if (!result.success || !result.data) {
+        throw new Error(result.error || '게시글 작성에 실패했습니다')
+      }
+
+      const post = result.data
 
       if (submitStatus === 'DRAFT') {
         toast.success('임시저장되었습니다')
+      } else if (userRole === 'ADMIN') {
+        toast.success('게시글이 작성되었습니다')
       } else {
         toast.success('게시글이 승인 대기중입니다')
       }
 
       // 게시글 상세 페이지로 이동
-      router.push(`/main/posts/${post.id}`)
+      if (post && post.id) {
+        setTimeout(() => {
+          router.push(`/main/posts/${post.id}`)
+        }, 100) // 짧은 지연 후 이동
+      } else {
+        console.error('Post ID not found in response:', result)
+        router.push('/main/posts')
+      }
     } catch (error) {
       console.error('Failed to create post:', error)
       toast.error(
@@ -248,7 +270,7 @@ export function PostEditor() {
               ))}
             </div>
 
-            {/* 기존 태그 추천 */}
+            {/* 인기 태그 추천 */}
             {existingTags.length > 0 && (
               <div>
                 <p className="text-sm text-muted-foreground mb-2">인기 태그:</p>
@@ -257,7 +279,11 @@ export function PostEditor() {
                     <Badge
                       key={tag.id}
                       variant="outline"
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all duration-200"
+                      style={{
+                        borderColor: tag.color || '#6366f1',
+                        color: tag.color || '#6366f1',
+                      }}
                       onClick={() => {
                         if (!selectedTags.includes(tag.slug)) {
                           setSelectedTags([...selectedTags, tag.slug])
@@ -265,6 +291,11 @@ export function PostEditor() {
                       }}
                     >
                       {tag.name}
+                      {tag.count !== undefined && tag.count > 0 && (
+                        <span className="ml-1 text-xs opacity-70">
+                          ({tag.count})
+                        </span>
+                      )}
                     </Badge>
                   ))}
                 </div>

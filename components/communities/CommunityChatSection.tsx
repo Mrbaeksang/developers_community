@@ -46,7 +46,7 @@ export default function CommunityChatSection({
         throw new Error('Failed to fetch channel')
       }
       const data = await res.json()
-      setChannel(data.channel)
+      setChannel(data.data?.channel || data.channel)
     } catch (error) {
       console.error('Failed to fetch channel:', error)
     } finally {

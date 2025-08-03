@@ -103,7 +103,9 @@ export function getAvatarUrl(avatar: string): string {
           </text>
         </svg>
       `
-      return `data:image/svg+xml;base64,${btoa(svg)}`
+      // UTF-8로 인코딩 후 base64로 변환
+      const encodedSvg = btoa(unescape(encodeURIComponent(svg)))
+      return `data:image/svg+xml;base64,${encodedSvg}`
     }
 
     return '' // 기본 아바타를 찾지 못한 경우 빈 문자열

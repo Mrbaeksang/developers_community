@@ -103,7 +103,16 @@ async function getCommunities(searchParams: {
     }
 
     const data = await res.json()
-    return data
+    // paginatedResponse 형식: { success: true, data: [], pagination: {...} }
+    return {
+      communities: data.data || [],
+      pagination: data.pagination || {
+        total: 0,
+        page: 1,
+        limit: 12,
+        totalPages: 0,
+      },
+    }
   } catch (error) {
     console.error('Failed to fetch communities:', error)
     return {

@@ -98,7 +98,8 @@ async function getCommunity(idOrSlug: string) {
     }
 
     const data = await res.json()
-    return data as Community
+    // API가 중첩된 응답 구조를 반환할 수 있음
+    return (data.success && data.data ? data.data : data) as Community
   } catch (error) {
     console.error('Failed to fetch community:', error)
     notFound()
@@ -115,6 +116,21 @@ export default async function CommunityDetailPage({
   const { id } = await params
   const session = await auth()
   const community = await getCommunity(id)
+
+  if (!community) {
+    return (
+      <div className="container max-w-7xl py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">
+            커뮤니티를 찾을 수 없습니다
+          </h1>
+          <p className="mt-2 text-gray-600">
+            요청하신 커뮤니티가 존재하지 않거나 삭제되었습니다.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const isOwner = session?.user?.id === community.owner.id
   const isMember = community.currentMembership?.status === 'ACTIVE'

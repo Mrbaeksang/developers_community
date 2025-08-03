@@ -192,7 +192,7 @@ function RealtimeActivityFeed() {
       try {
         const res = await fetch('/api/activities/realtime')
         const data = await res.json()
-        setActivities(data.activities || [])
+        setActivities(data.data?.activities || data.activities || [])
       } catch (error) {
         console.error('Failed to fetch activities:', error)
       } finally {

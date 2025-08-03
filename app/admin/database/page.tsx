@@ -270,10 +270,20 @@ export default function DatabaseViewerPage() {
         }
 
         const result = await response.json()
-        setData(result.data)
-        setColumns(result.columns)
-        setTotalPages(result.totalPages)
-        setPage(pageNum)
+
+        // API 응답 구조 처리
+        if (result.success && result.data) {
+          setData(result.data.data || [])
+          setColumns(result.data.columns || [])
+          setTotalPages(result.data.totalPages || 1)
+          setPage(pageNum)
+        } else {
+          // 이전 형식 호환성
+          setData(result.data || [])
+          setColumns(result.columns || [])
+          setTotalPages(result.totalPages || 1)
+          setPage(pageNum)
+        }
       } catch {
         toast({
           title: '오류',

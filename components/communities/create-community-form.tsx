@@ -22,6 +22,8 @@ export default function CreateCommunityForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingSlug, setIsCheckingSlug] = useState(false)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
+  const [isCheckingName, setIsCheckingName] = useState(false)
+  const [nameAvailable, setNameAvailable] = useState<boolean | null>(null)
   const [bannerPreview, setBannerPreview] = useState<string>('')
   const [selectedDefaultAvatar, setSelectedDefaultAvatar] = useState<
     (typeof DEFAULT_AVATARS)[0] | null
@@ -41,6 +43,8 @@ export default function CreateCommunityForm() {
   >([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(new Set())
+  const [isCreating, setIsCreating] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
@@ -120,7 +124,7 @@ export default function CreateCommunityForm() {
   // 페이지 이탈 방지
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && !isSubmitting) {
+      if ((hasUnsavedChanges || isCreating) && !isSubmitting) {
         e.preventDefault()
         e.returnValue =
           '작성 중인 내용이 있습니다. 정말 페이지를 떠나시겠습니까?'
@@ -129,7 +133,7 @@ export default function CreateCommunityForm() {
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges, isSubmitting])
+  }, [hasUnsavedChanges, isSubmitting, isCreating])
 
   // 파일 업로드 핸들러 (배너 전용)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,6 +217,25 @@ export default function CreateCommunityForm() {
       return
     }
 
+    // 중복 체크 확인
+    if (nameAvailable === false) {
+      toast({
+        title: '오류',
+        description: '이미 사용 중인 커뮤니티 이름입니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (slugAvailable === false) {
+      toast({
+        title: '오류',
+        description: '이미 사용 중인 URL입니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     // 아바타 설정 안했으면 기본 아바타 사용
     let finalAvatar = formData.avatar
     if (!finalAvatar && selectedDefaultAvatar) {
@@ -228,6 +251,7 @@ export default function CreateCommunityForm() {
     }
 
     setIsSubmitting(true)
+    setIsCreating(true)
 
     try {
       const res = await fetch('/api/communities', {
@@ -242,17 +266,26 @@ export default function CreateCommunityForm() {
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.error || '커뮤니티 생성에 실패했습니다.')
+        console.error('커뮤니티 생성 실패:', error)
+        throw new Error(
+          error.error || error.message || '커뮤니티 생성에 실패했습니다.'
+        )
       }
 
-      const community = await res.json()
+      const result = await res.json()
 
       toast({
         title: '성공',
         description: '커뮤니티가 생성되었습니다.',
       })
 
-      router.push(`/communities/${community.slug}`)
+      // API 응답 구조에 맞게 slug 추출
+      const createdSlug = result.data?.slug || result.slug || formData.slug
+
+      // 사용자가 생성 완료를 인지할 수 있도록 약간의 딜레이 추가
+      setTimeout(() => {
+        router.push(`/communities/${createdSlug}`)
+      }, 500)
     } catch (error) {
       toast({
         title: '오류',
@@ -262,6 +295,7 @@ export default function CreateCommunityForm() {
             : '커뮤니티 생성에 실패했습니다.',
         variant: 'destructive',
       })
+      setIsCreating(false)
     } finally {
       setIsSubmitting(false)
     }
@@ -287,15 +321,18 @@ export default function CreateCommunityForm() {
 
       setIsCheckingSlug(true)
       try {
-        const res = await fetch('/api/communities/check-slug', {
+        const res = await fetch('/api/communities/check-duplicate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug: formData.slug }),
         })
 
         if (res.ok) {
-          const data = await res.json()
-          setSlugAvailable(data.available)
+          const result = await res.json()
+          // API 응답 구조에 맞게 수정
+          if (result.success && result.data) {
+            setSlugAvailable(!result.data.duplicates.slug)
+          }
         }
       } catch (error) {
         console.error('Failed to check slug:', error)
@@ -307,6 +344,40 @@ export default function CreateCommunityForm() {
     const timer = setTimeout(checkSlug, 500) // 디바운스
     return () => clearTimeout(timer)
   }, [formData.slug])
+
+  // 이름 중복 체크
+  useEffect(() => {
+    const checkName = async () => {
+      if (!formData.name || formData.name.length < 2) {
+        setNameAvailable(null)
+        return
+      }
+
+      setIsCheckingName(true)
+      try {
+        const res = await fetch('/api/communities/check-duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: formData.name }),
+        })
+
+        if (res.ok) {
+          const result = await res.json()
+          // API 응답 구조에 맞게 수정
+          if (result.success && result.data) {
+            setNameAvailable(!result.data.duplicates.name)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check name:', error)
+      } finally {
+        setIsCheckingName(false)
+      }
+    }
+
+    const timer = setTimeout(checkName, 500) // 디바운스
+    return () => clearTimeout(timer)
+  }, [formData.name])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 p-4 sm:p-8">
@@ -382,22 +453,37 @@ export default function CreateCommunityForm() {
                         }
                       }}
                       className={`w-full p-3 border-3 rounded-lg focus:ring-2 focus:ring-blue-200 transition-colors ${
-                        validationErrors.name
+                        validationErrors.name || nameAvailable === false
                           ? 'border-red-500 focus:border-red-600'
                           : 'border-black focus:border-blue-600'
                       }`}
                       required
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                      {formData.name.length}/{CHARACTER_LIMITS.name}
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {formData.name.length}/{CHARACTER_LIMITS.name}
+                      </span>
+                      <span>
+                        {isCheckingName && (
+                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                        )}
+                        {!isCheckingName && nameAvailable === true && (
+                          <Check className="h-5 w-5 text-green-600" />
+                        )}
+                        {!isCheckingName && nameAvailable === false && (
+                          <X className="h-5 w-5 text-red-600" />
+                        )}
+                      </span>
                     </div>
                   </div>
-                  {validationErrors.name && (
+                  {(validationErrors.name ||
+                    (!isCheckingName && nameAvailable === false)) && (
                     <p className="text-sm text-red-500 mt-2 flex items-center">
                       <span className="material-icons text-base mr-1">
                         error
                       </span>
-                      {validationErrors.name}
+                      {validationErrors.name ||
+                        '이미 사용 중인 커뮤니티 이름입니다.'}
                     </p>
                   )}
                 </div>
@@ -836,8 +922,8 @@ export default function CreateCommunityForm() {
                       className="w-full p-4 font-bold bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2"
                       onClick={handleUploadClick}
                     >
-                      <span className="material-icons">upload</span>
-                      <span>파일 업로드 - 배너 이미지</span>
+                      <span className="material-icons text-xl">upload</span>
+                      <span className="text-base">파일 업로드</span>
                     </Button>
                     <input
                       ref={fileInputRef}
@@ -912,25 +998,40 @@ export default function CreateCommunityForm() {
                                 : ''
                             }`}
                             onClick={() => {
-                              setSelectedUnsplashImage(image)
-                              setBannerPreview(image.url)
-                              setFormData({
-                                ...formData,
-                                banner: `unsplash:${image.url}`,
-                              })
+                              if (!imageLoadErrors.has(image.id)) {
+                                setSelectedUnsplashImage(image)
+                                setBannerPreview(image.url)
+                                setFormData({
+                                  ...formData,
+                                  banner: `unsplash:${image.url}`,
+                                })
+                              }
                             }}
                           >
-                            <Image
-                              src={image.url}
-                              alt={image.description}
-                              width={1200}
-                              height={300}
-                              className="w-full h-full object-cover"
-                              priority
-                              unoptimized
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all" />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {imageLoadErrors.has(image.id) ? (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                <span className="material-icons text-gray-400 text-4xl">
+                                  broken_image
+                                </span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={image.url}
+                                alt={image.description}
+                                width={1200}
+                                height={300}
+                                className="w-full h-full object-cover"
+                                priority
+                                unoptimized
+                                onError={() => {
+                                  setImageLoadErrors((prev) =>
+                                    new Set(prev).add(image.id)
+                                  )
+                                }}
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               {image.description}
                             </div>
                             {selectedUnsplashImage?.id === image.id && (
@@ -1165,17 +1266,19 @@ export default function CreateCommunityForm() {
                   type="submit"
                   disabled={
                     isSubmitting ||
+                    isCreating ||
                     !formData.name ||
                     !formData.slug ||
+                    nameAvailable === false ||
                     slugAvailable === false ||
                     Object.values(validationErrors).some((error) => error)
                   }
                   className="w-full px-6 py-4 text-xl font-bold text-white bg-blue-500 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isCreating ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      커뮤니티 만드는 중...
+                      {isCreating ? '커뮤니티 생성 중...' : '처리 중...'}
                     </>
                   ) : (
                     '🚀 커뮤니티 만들기'
@@ -1186,7 +1289,7 @@ export default function CreateCommunityForm() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => router.back()}
+                    onClick={() => router.push('/communities')}
                     className="text-gray-500 hover:text-gray-700 font-medium"
                   >
                     취소하고 돌아가기
@@ -1197,19 +1300,29 @@ export default function CreateCommunityForm() {
           </form>
 
           {/* 로딩 오버레이 - 개선된 스피너 */}
-          {isSubmitting && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg">
-              <div className="relative">
-                <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200"></div>
-                <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
-              </div>
-              <div className="mt-6 text-center">
-                <p className="text-xl font-bold text-gray-700 mb-2">
-                  커뮤니티 생성 중...
-                </p>
-                <p className="text-sm text-gray-500">
-                  잠시만 기다려주세요. 페이지를 벗어나지 마세요.
-                </p>
+          {(isSubmitting || isCreating) && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+              <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
+                <div className="flex flex-col items-center">
+                  <div className="relative mb-6">
+                    <div className="animate-spin rounded-full h-24 w-24 border-4 border-gray-200"></div>
+                    <div className="animate-spin rounded-full h-24 w-24 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
+                  </div>
+                  <h3 className="text-2xl font-black text-gray-800 mb-2">
+                    커뮤니티 생성 중...
+                  </h3>
+                  <p className="text-gray-600 text-center max-w-sm">
+                    잠시만 기다려주세요.
+                    <br />
+                    페이지를 떠나지 마시고 기다려주세요.
+                  </p>
+                  {isCreating && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-blue-600">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                      <span>커뮤니티를 만들고 있습니다...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

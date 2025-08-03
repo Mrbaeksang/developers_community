@@ -80,9 +80,12 @@ export default function NotificationsPage() {
         if (!res.ok) throw new Error('알림을 불러오는데 실패했습니다.')
 
         const data = await res.json()
-        setNotifications(data.notifications)
-        setPagination(data.pagination)
-        setUnreadCount(data.unreadCount)
+        setNotifications(data.data?.notifications || data.notifications || [])
+        setPagination(
+          data.data?.pagination ||
+            data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 }
+        )
+        setUnreadCount(data.data?.unreadCount || data.unreadCount || 0)
       } catch {
         toast.error('알림을 불러오는데 실패했습니다.')
       } finally {

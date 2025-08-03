@@ -132,7 +132,7 @@ export function CommunityPostList({
     )
   }
 
-  if (posts.length === 0) {
+  if (!posts || posts.length === 0) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardContent className="py-12 text-center">
@@ -150,7 +150,7 @@ export function CommunityPostList({
 
   return (
     <div className="space-y-4">
-      {posts.map((post) => (
+      {posts?.map((post) => (
         <Card
           key={post.id}
           className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
@@ -166,13 +166,15 @@ export function CommunityPostList({
                         variant="secondary"
                         className="text-xs border-2 font-bold"
                         style={{
-                          backgroundColor: post.category.color || '#6366f1',
-                          color: getTextColor(post.category.color || '#6366f1'),
-                          borderColor: post.category.color || '#6366f1',
+                          backgroundColor: post.category?.color || '#6366f1',
+                          color: getTextColor(
+                            post.category?.color || '#6366f1'
+                          ),
+                          borderColor: post.category?.color || '#6366f1',
                           boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
                         }}
                       >
-                        {post.category.name}
+                        {post.category?.name || '일반'}
                       </Badge>
                     )}
                     <h2 className="text-xl font-bold hover:text-primary transition-colors line-clamp-2 flex-1">

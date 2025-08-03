@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Eye, Heart, MessageSquare, Bookmark, Share2, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -67,13 +67,15 @@ export default function PostDetail({ post }: PostDetailProps) {
       // 좋아요 상태 확인
       fetch(`/api/main/posts/${post.id}/like`)
         .then((res) => res.json())
-        .then((data) => setIsLiked(data.liked))
+        .then((data) => setIsLiked(data.data?.liked || data.liked))
         .catch(console.error)
 
       // 북마크 상태 확인
       fetch(`/api/main/posts/${post.id}/bookmark`)
         .then((res) => res.json())
-        .then((data) => setIsBookmarked(data.bookmarked))
+        .then((data) =>
+          setIsBookmarked(data.data?.bookmarked || data.bookmarked)
+        )
         .catch(console.error)
     }
   }, [status, post.id])
@@ -175,14 +177,14 @@ export default function PostDetail({ post }: PostDetailProps) {
           <Badge
             variant="secondary"
             style={{
-              backgroundColor: post.category.color,
-              color: getTextColor(post.category.color),
-              borderColor: post.category.color,
+              backgroundColor: post.category?.color || '#e5e7eb',
+              color: getTextColor(post.category?.color || '#e5e7eb'),
+              borderColor: post.category?.color || '#e5e7eb',
               boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
             }}
             className="border-2 font-bold"
           >
-            {post.category.name}
+            {post.category?.name || '미분류'}
           </Badge>
           {post.status && post.status !== 'PUBLISHED' && (
             <Badge
@@ -204,25 +206,41 @@ export default function PostDetail({ post }: PostDetailProps) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Avatar className="h-10 w-10 border-2 border-black">
-                <AvatarImage src={post.author.image || undefined} />
+                <AvatarImage src={post.author?.image || undefined} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                  {post.author.image
+                  {post.author?.image
                     ? null
-                    : post.author.name?.[0]?.toUpperCase() ||
-                      post.author.username?.[0]?.toUpperCase() || (
+                    : post.author?.name?.[0]?.toUpperCase() ||
+                      post.author?.username?.[0]?.toUpperCase() || (
                         <User className="h-5 w-5" />
                       )}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-medium">
-                  {post.author.name || post.author.username || 'Unknown'}
+                  {post.author?.name || post.author?.username || 'Unknown'}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.createdAt), {
-                    addSuffix: true,
-                    locale: ko,
-                  })}
+                  {(() => {
+                    try {
+                      const date =
+                        typeof post.createdAt === 'string'
+                          ? parseISO(post.createdAt)
+                          : new Date(post.createdAt)
+
+                      if (!isValid(date)) {
+                        return '날짜 정보 없음'
+                      }
+
+                      return formatDistanceToNow(date, {
+                        addSuffix: true,
+                        locale: ko,
+                      })
+                    } catch (error) {
+                      console.error('Date formatting error:', error)
+                      return '날짜 정보 없음'
+                    }
+                  })()}
                 </p>
               </div>
             </div>

@@ -1,65 +1,65 @@
 // Unsplash 유틸리티 함수들
 
-// 추천 배너 이미지들 (기본 10개)
+// 추천 배너 이미지들 (기본 10개) - 밝고 선명한 이미지로 교체
 export const RECOMMENDED_BANNER_IMAGES = [
   {
     id: 'nature-1',
-    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=300&fit=crop',
-    description: '아름다운 자연 풍경',
+    url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=300&fit=crop',
+    description: '화창한 자연 풍경',
     tags: ['nature', 'landscape'],
   },
   {
     id: 'tech-1',
-    url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1200&h=300&fit=crop',
-    description: '현대적인 기술',
+    url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&h=300&fit=crop',
+    description: '밝고 화려한 기술 배경',
     tags: ['technology', 'modern'],
   },
   {
     id: 'abstract-1',
-    url: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=1200&h=300&fit=crop',
-    description: '추상적 패턴',
+    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&h=300&fit=crop',
+    description: '다채로운 그라데이션',
     tags: ['abstract', 'colorful'],
   },
   {
     id: 'city-1',
-    url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1200&h=300&fit=crop',
-    description: '도시 풍경',
+    url: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200&h=300&fit=crop',
+    description: '밝은 도시 풍경',
     tags: ['city', 'urban'],
   },
   {
     id: 'space-1',
-    url: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=1200&h=300&fit=crop',
-    description: '우주와 별',
+    url: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1200&h=300&fit=crop',
+    description: '화려한 밤하늘',
     tags: ['space', 'stars'],
   },
   {
     id: 'ocean-1',
-    url: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&h=300&fit=crop',
-    description: '바다와 파도',
-    tags: ['ocean', 'waves'],
+    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=300&fit=crop',
+    description: '맑은 바다 풍경',
+    tags: ['ocean', 'beach'],
   },
   {
     id: 'mountain-1',
-    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=300&fit=crop',
-    description: '산과 하늘',
+    url: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1200&h=300&fit=crop',
+    description: '밝은 산 풍경',
     tags: ['mountain', 'sky'],
   },
   {
     id: 'code-1',
-    url: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&h=300&fit=crop',
-    description: '코딩과 개발',
+    url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&h=300&fit=crop',
+    description: '밝은 코딩 환경',
     tags: ['coding', 'development'],
   },
   {
     id: 'minimal-1',
-    url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1200&h=300&fit=crop',
-    description: '미니멀 디자인',
+    url: 'https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?w=1200&h=300&fit=crop',
+    description: '깔끔한 워크스페이스',
     tags: ['minimal', 'clean'],
   },
   {
     id: 'creative-1',
-    url: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1200&h=300&fit=crop',
-    description: '창의적 패턴',
+    url: 'https://images.unsplash.com/photo-1567095761054-7a02e69e5c43?w=1200&h=300&fit=crop',
+    description: '화려한 색상 패턴',
     tags: ['creative', 'artistic'],
   },
 ]
