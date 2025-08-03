@@ -42,7 +42,11 @@ export default function RelatedPosts({ postId }: RelatedPostsProps) {
         const res = await fetch(`/api/main/posts/${postId}/related?limit=5`)
         if (res.ok) {
           const data = await res.json()
-          setPosts(data.posts)
+
+          // 새로운 응답 형식 처리: { success: true, data: { posts } }
+          const posts =
+            data.success && data.data ? data.data.posts : data.posts || []
+          setPosts(posts)
         }
       } catch (error) {
         console.error('Failed to fetch related posts:', error)

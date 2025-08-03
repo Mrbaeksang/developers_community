@@ -63,7 +63,11 @@ export default function CommentSection({
         const res = await fetch(`/api/main/posts/${postId}/comments`)
         if (res.ok) {
           const data = await res.json()
-          setComments(data.comments)
+
+          // 새로운 응답 형식 처리: { success: true, data: { comments } }
+          const comments =
+            data.success && data.data ? data.data.comments : data.comments || []
+          setComments(comments)
         }
       } catch (error) {
         console.error('Failed to fetch comments:', error)
@@ -111,7 +115,11 @@ export default function CommentSection({
 
       if (res.ok) {
         const data = await res.json()
-        setComments([data.comment, ...comments])
+
+        // 새로운 응답 형식 처리: { success: true, data: commentData }
+        const commentData =
+          data.success && data.data ? data.data : data.comment || data
+        setComments([commentData, ...comments])
         toast({
           title: '댓글이 작성되었습니다',
         })
@@ -173,9 +181,12 @@ export default function CommentSection({
         setComments(
           comments.map((comment) => {
             if (comment.id === parentId) {
+              // 새로운 응답 형식 처리: { success: true, data: commentData }
+              const replyData =
+                data.success && data.data ? data.data : data.comment || data
               return {
                 ...comment,
-                replies: [...(comment.replies || []), data.comment],
+                replies: [...(comment.replies || []), replyData],
               }
             }
             return comment

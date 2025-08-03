@@ -81,3 +81,42 @@ export function getAvatarFromName(communityName: string) {
   const avatarIndex = firstChar % DEFAULT_AVATARS.length
   return DEFAULT_AVATARS[avatarIndex]
 }
+
+// 아바타 URL 생성 (기본 아바타 처리)
+export function getAvatarUrl(avatar: string): string {
+  if (!avatar) {
+    return '' // 빈 문자열 반환하여 AvatarImage에서 fallback 처리
+  }
+
+  if (avatar.startsWith('default:')) {
+    const avatarName = avatar.replace('default:', '')
+    const defaultAvatar = getDefaultAvatar(avatarName)
+
+    // 기본 아바타가 있으면 이모지를 data URL로 변환
+    if (defaultAvatar) {
+      // 이모지를 SVG로 변환하여 data URL 생성
+      const svg = `
+        <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="50" fill="${defaultAvatar.color}"/>
+          <text x="50" y="65" text-anchor="middle" font-size="40" dominant-baseline="middle">
+            ${defaultAvatar.emoji}
+          </text>
+        </svg>
+      `
+      return `data:image/svg+xml;base64,${btoa(svg)}`
+    }
+
+    return '' // 기본 아바타를 찾지 못한 경우 빈 문자열
+  }
+
+  // URL 형태가 아닌 경우 빈 문자열 반환
+  if (
+    !avatar.startsWith('http') &&
+    !avatar.startsWith('/') &&
+    !avatar.startsWith('data:')
+  ) {
+    return ''
+  }
+
+  return avatar // 업로드된 이미지 URL
+}

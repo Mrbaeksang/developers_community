@@ -98,15 +98,24 @@ export function RealtimeDashboard() {
         const activitiesRes = await fetch('/api/activities/realtime')
         if (activitiesRes.ok) {
           const data = await activitiesRes.json()
-          setActivities(data.activities || [])
+
+          // 새로운 응답 형식 처리: { success: true, data: { activities } }
+          const activities =
+            data.success && data.data
+              ? data.data.activities
+              : data.activities || []
+          setActivities(activities)
         }
 
         // 관리자 통계 가져오기 (실시간 데이터 포함)
         const statsRes = await fetch('/api/admin/stats')
         if (statsRes.ok) {
           const data = await statsRes.json()
-          if (data.realtime) {
-            setStats(data.realtime)
+
+          // 새로운 응답 형식 처리: { success: true, data: { realtime } }
+          const statsData = data.success && data.data ? data.data : data
+          if (statsData.realtime) {
+            setStats(statsData.realtime)
           }
         }
       } catch (error) {

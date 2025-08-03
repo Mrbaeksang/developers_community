@@ -315,7 +315,7 @@ export default async function ProfilePage({
         <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-black">
-              {profile._count.mainPosts}
+              {profile._count?.mainPosts || 0}
             </div>
             <p className="text-sm text-muted-foreground">게시글</p>
           </CardContent>
@@ -323,7 +323,7 @@ export default async function ProfilePage({
         <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-black">
-              {profile._count.communityPosts}
+              {profile._count?.communityPosts || 0}
             </div>
             <p className="text-sm text-muted-foreground">커뮤니티 글</p>
           </CardContent>
@@ -331,7 +331,7 @@ export default async function ProfilePage({
         <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-black">
-              {profile._count.mainComments}
+              {profile._count?.mainComments || 0}
             </div>
             <p className="text-sm text-muted-foreground">댓글</p>
           </CardContent>
@@ -339,7 +339,7 @@ export default async function ProfilePage({
         <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-black">
-              {profile._count.mainLikes}
+              {profile._count?.mainLikes || 0}
             </div>
             <p className="text-sm text-muted-foreground">좋아요</p>
           </CardContent>

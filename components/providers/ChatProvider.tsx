@@ -23,8 +23,12 @@ export function ChatProvider() {
     fetch('/api/chat/channels?type=global')
       .then((res) => res.json())
       .then((data) => {
-        if (data.channels && data.channels.length > 0) {
-          setGlobalChannel(data.channels[0])
+        // 새로운 응답 형식 처리: { success: true, data: { channels } }
+        const channels =
+          data.success && data.data ? data.data.channels : data.channels || data
+
+        if (channels && channels.length > 0) {
+          setGlobalChannel(channels[0])
         }
       })
       .catch((error) => {

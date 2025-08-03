@@ -77,3 +77,11 @@ export interface CommentLike {
   commentId: string
   createdAt: Date | string
 }
+
+// API 응답 타입 정의
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
+}

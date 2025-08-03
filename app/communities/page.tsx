@@ -136,7 +136,7 @@ export default async function CommunitiesPage({
                     커뮤니티
                     <Badge className="px-3 py-1.5 bg-gradient-to-r from-green-400 to-emerald-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold text-sm flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      {communities.length}개 활성
+                      {(communities || []).length}개 활성
                     </Badge>
                   </h1>
                   <p className="text-sm text-gray-600 hidden sm:block">
@@ -151,7 +151,7 @@ export default async function CommunitiesPage({
                 <div className="hidden md:flex items-center gap-6">
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
-                      {communities
+                      {(communities || [])
                         .reduce(
                           (acc: number, c: Community) => acc + c.memberCount,
                           0
@@ -165,7 +165,7 @@ export default async function CommunitiesPage({
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
-                      {communities
+                      {(communities || [])
                         .reduce(
                           (acc: number, c: Community) => acc + c.postCount,
                           0
@@ -366,7 +366,10 @@ export default async function CommunitiesPage({
                                 }
                               }
                               // URL 아바타
-                              if (community.avatar) {
+                              if (
+                                community.avatar &&
+                                !community.avatar.startsWith('default:')
+                              ) {
                                 return (
                                   <Image
                                     src={community.avatar}

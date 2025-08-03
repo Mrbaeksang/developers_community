@@ -178,7 +178,13 @@ export default async function CommunityDetailPage({
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-6 mb-8">
         <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -mt-16 md:-mt-20 bg-white">
-          <AvatarImage src={community.avatar || undefined} />
+          <AvatarImage
+            src={
+              community.avatar?.startsWith('default:')
+                ? undefined
+                : community.avatar || undefined
+            }
+          />
           <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
             {community.name[0].toUpperCase()}
           </AvatarFallback>

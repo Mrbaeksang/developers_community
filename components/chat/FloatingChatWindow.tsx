@@ -118,9 +118,12 @@ export default function FloatingChatWindow({
       })
       if (!res.ok) throw new Error('Failed to fetch messages')
       const data = await res.json()
-      setMessages(
-        data.messages.filter((msg: ChatMessage | null) => msg !== null)
-      )
+
+      // 새로운 응답 형식 처리: { success: true, data: { messages } }
+      const messages =
+        data.success && data.data ? data.data.messages : data.messages || data
+
+      setMessages(messages.filter((msg: ChatMessage | null) => msg !== null))
       scrollToBottom()
     } catch (error) {
       console.error('Failed to fetch messages:', error)

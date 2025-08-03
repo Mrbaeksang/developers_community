@@ -103,12 +103,19 @@ export function getBannerUrl(banner: string): string {
   if (banner.startsWith('default:')) {
     const bannerId = banner.replace('default:', '')
     const defaultBanner = getDefaultBannerById(bannerId)
+    // 기본 배너 ID가 유효하지 않은 경우 (예: computer 같은 아바타 이름)
+    // 랜덤 기본 배너로 대체
     return defaultBanner?.url || getRandomDefaultBanner().url
   }
 
   if (banner.startsWith('unsplash:')) {
     // Unsplash 이미지는 unsplash: 접두사를 제거하고 URL 반환
     return banner.replace('unsplash:', '')
+  }
+
+  // URL 형태가 아닌 경우 랜덤 기본 배너로 대체
+  if (!banner.startsWith('http') && !banner.startsWith('/')) {
+    return getRandomDefaultBanner().url
   }
 
   return banner // 업로드된 이미지 URL

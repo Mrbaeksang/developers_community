@@ -1,3 +1,5 @@
+import { ApiResponse } from './types'
+
 /**
  * API URL 유틸리티
  * 개발/프로덕션 환경에 따라 올바른 API URL을 반환합니다.
@@ -5,20 +7,48 @@
 
 export function getApiUrl() {
   if (typeof window !== 'undefined') {
-    // 클라이언트 사이드에서는 상대 경로 사용
     return ''
   }
 
-  // 서버 사이드에서는 환경에 따라 절대 경로 사용
   if (process.env.NODE_ENV === 'development') {
-    // 개발 환경에서는 포트 확인
-    // Next.js는 포트가 사용 중이면 자동으로 다른 포트를 사용하므로
-    // 개발 환경에서는 고정 포트 대신 환경 변수 사용
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
   }
 
-  // 프로덕션 환경
   return (
     process.env.NEXTAUTH_URL || 'https://developers-community-two.vercel.app'
   )
+}
+
+/**
+ * API 클라이언트 함수
+ * 새로운 응답 형식(성공: { success: true, data, message }, 실패: { success: false, error, message })을 처리합니다.
+ */
+export async function apiClient<T = unknown>(
+  url: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  try {
+    const baseUrl = getApiUrl()
+    const fullUrl = `${baseUrl}${url}`
+    const response = await fetch(fullUrl, options)
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      return {
+        success: false,
+        error: errorData.error || 'API 요청 중 오류가 발생했습니다.',
+        message: errorData.message || '서버에서 오류 응답을 반환했습니다',
+      }
+    }
+
+    const data = await response.json()
+    return { success: true, ...data }
+  } catch (error) {
+    console.error('API 호출 오류:', error)
+    return {
+      success: false,
+      error: '네트워크 오류',
+      message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요',
+    }
+  }
 }

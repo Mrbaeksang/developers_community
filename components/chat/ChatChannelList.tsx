@@ -58,7 +58,12 @@ export default function ChatChannelList() {
         throw new Error('채널 목록을 불러오는데 실패했습니다.')
       }
       const data = await res.json()
-      setChannels(data.channels)
+
+      // 새로운 응답 형식 처리: { success: true, data: { channels } }
+      const channels =
+        data.success && data.data ? data.data.channels : data.channels || data
+
+      setChannels(channels)
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류')
     } finally {
@@ -120,7 +125,13 @@ export default function ChatChannelList() {
                       <Globe className="h-5 w-5 text-primary" />
                     ) : (
                       <Avatar className="h-8 w-8 border-2 border-black">
-                        <AvatarImage src={channel.community?.avatar || ''} />
+                        <AvatarImage
+                          src={
+                            channel.community?.avatar?.startsWith('default:')
+                              ? ''
+                              : channel.community?.avatar || ''
+                          }
+                        />
                         <AvatarFallback className="text-xs font-bold">
                           {channel.community?.name[0]}
                         </AvatarFallback>

@@ -535,7 +535,8 @@ export default function DatabaseViewerPage() {
     if (
       (column === 'image' || column === 'avatar' || column === 'banner') &&
       value &&
-      typeof value === 'string'
+      typeof value === 'string' &&
+      !value.startsWith('default:') // Filter out default: prefixed values
     ) {
       return (
         <div className="flex items-center gap-2">

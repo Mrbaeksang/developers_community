@@ -102,8 +102,11 @@ export default function AdminUsersPage() {
       const response = await fetch('/api/admin/users')
       if (!response.ok) throw new Error('Failed to fetch users')
       const result = await response.json()
-      // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-      setUsers(result.data || result)
+
+      // 새로운 응답 형식 처리: { success: true, data: users }
+      const users = result.success && result.data ? result.data : result
+
+      setUsers(users)
     } catch (error) {
       toast.error('사용자 목록을 불러오는 중 오류가 발생했습니다.')
       console.error(error)
@@ -370,12 +373,13 @@ export default function AdminUsersPage() {
                     <div className="text-sm">
                       <div>
                         게시글:{' '}
-                        {user._count.mainPosts + user._count.communityPosts}
+                        {(user._count?.mainPosts || 0) +
+                          (user._count?.communityPosts || 0)}
                       </div>
                       <div>
                         댓글:{' '}
-                        {user._count.mainComments +
-                          user._count.communityComments}
+                        {(user._count?.mainComments || 0) +
+                          (user._count?.communityComments || 0)}
                       </div>
                     </div>
                   </TableCell>

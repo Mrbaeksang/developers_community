@@ -150,7 +150,10 @@ export default function PostsPage() {
         throw new Error('메인 게시글 조회 실패')
       }
       const data = await res.json()
-      setMainPosts(data)
+
+      // 새로운 응답 형식 처리: { success: true, data: posts }
+      const posts = data.success && data.data ? data.data : data
+      setMainPosts(posts)
     } catch (error) {
       console.error('메인 게시글 조회 실패:', error)
       toast({
@@ -168,7 +171,10 @@ export default function PostsPage() {
         throw new Error('커뮤니티 게시글 조회 실패')
       }
       const data = await res.json()
-      setCommunityPosts(data)
+
+      // 새로운 응답 형식 처리: { success: true, data: posts }
+      const posts = data.success && data.data ? data.data : data
+      setCommunityPosts(posts)
     } catch (error) {
       console.error('커뮤니티 게시글 조회 실패:', error)
       toast({
@@ -201,8 +207,12 @@ export default function PostsPage() {
 
       const data = await res.json()
 
+      // 새로운 응답 형식 처리: { success: true, message }
+      const message = data.success
+        ? data.message
+        : data.message || '고정 상태가 변경되었습니다.'
       toast({
-        title: data.message,
+        title: message,
       })
 
       // 데이터 새로고침
@@ -235,11 +245,18 @@ export default function PostsPage() {
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.error || '삭제 실패')
+        const errorMessage =
+          error.success === false ? error.error : error.error || '삭제 실패'
+        throw new Error(errorMessage)
       }
 
+      const data = await res.json()
+      const successMessage = data.success
+        ? data.message
+        : '게시글이 삭제되었습니다.'
+
       toast({
-        title: '게시글이 삭제되었습니다.',
+        title: successMessage,
       })
 
       setIsDeleteDialogOpen(false)

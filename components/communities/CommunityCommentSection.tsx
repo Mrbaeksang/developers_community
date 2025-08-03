@@ -66,7 +66,10 @@ export function CommunityCommentSection({
       if (!res.ok) throw new Error('Failed to fetch comments')
 
       const data = await res.json()
-      setComments(data.comments)
+
+      // 새로운 응답 형식 처리: { success: true, data: { comments } }
+      const comments = data.success && data.data ? data.data.comments : []
+      setComments(comments)
     } catch (error) {
       console.error('Failed to fetch comments:', error)
       toast.error('댓글을 불러오는데 실패했습니다.')
@@ -100,7 +103,10 @@ export function CommunityCommentSection({
       if (!res.ok) throw new Error('Failed to create comment')
 
       const data = await res.json()
-      setComments([data, ...comments])
+
+      // 새로운 응답 형식 처리: { success: true, data: commentData }
+      const commentData = data.success && data.data ? data.data : data
+      setComments([commentData, ...comments])
       setNewComment('')
       toast.success('댓글이 작성되었습니다.')
     } catch (error) {

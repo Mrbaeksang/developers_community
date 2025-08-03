@@ -90,8 +90,15 @@ export function CommunityPostList({
       }
 
       const data = await res.json()
-      setPosts(data.posts)
-      setPagination(data.pagination)
+
+      // 새로운 응답 형식 처리: { success: true, data: { posts, pagination } }
+      if (data.success && data.data) {
+        setPosts(data.data.posts)
+        setPagination(data.data.pagination)
+      } else {
+        // 실패 응답 처리
+        throw new Error(data.message || 'Failed to fetch posts')
+      }
     } catch (error) {
       console.error('Failed to fetch posts:', error)
     } finally {

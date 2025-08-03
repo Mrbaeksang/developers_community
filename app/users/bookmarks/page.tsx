@@ -51,7 +51,12 @@ async function getBookmarks() {
 
     if (!res.ok) return []
     const data = await res.json()
-    return data.bookmarks || []
+
+    // 새로운 응답 형식 처리: { success: true, data: { bookmarks } }
+    const bookmarks =
+      data.success && data.data ? data.data.bookmarks : data.bookmarks || []
+
+    return bookmarks
   } catch (error) {
     console.error('Failed to fetch bookmarks:', error)
     return []

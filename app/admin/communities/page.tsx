@@ -114,7 +114,10 @@ export default function AdminCommunitiesPage() {
       const response = await fetch('/api/admin/communities')
       if (!response.ok) throw new Error('Failed to fetch communities')
       const data = await response.json()
-      setCommunities(data)
+
+      // 새로운 응답 형식 처리: { success: true, data: communities }
+      const communities = data.success && data.data ? data.data : data
+      setCommunities(communities)
     } catch (error) {
       toast.error('커뮤니티 목록을 불러오는 중 오류가 발생했습니다.')
       console.error(error)

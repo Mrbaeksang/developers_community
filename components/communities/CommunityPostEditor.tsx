@@ -89,7 +89,10 @@ export function CommunityPostEditor({
       if (!res.ok) throw new Error('Failed to upload file')
 
       const data = await res.json()
-      setFiles([...files, data])
+
+      // 새로운 응답 형식 처리: { success: true, data: fileInfo }
+      const fileData = data.success && data.data ? data.data : data
+      setFiles([...files, fileData])
       toast.success('파일이 업로드되었습니다.')
     } catch (error) {
       console.error('File upload error:', error)
@@ -145,9 +148,12 @@ export function CommunityPostEditor({
       }
 
       const data = await res.json()
+
+      // 새로운 응답 형식 처리: { success: true, data: { id, ... } }
+      const postData = data.success && data.data ? data.data : data
       toast.success('게시글이 작성되었습니다.')
       router.push(
-        `/communities/${communitySlug || communityId}/posts/${data.id}`
+        `/communities/${communitySlug || communityId}/posts/${postData.id}`
       )
     } catch (error) {
       console.error('Failed to create post:', error)

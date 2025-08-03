@@ -117,13 +117,16 @@ export default function CommunityMemberList({
 
         const data = await res.json()
 
+        // 새로운 응답 형식 처리: { success: true, data: { members } }
+        const members = data.success && data.data ? data.data.members : []
+
         if (reset) {
-          setMembers(data.members)
+          setMembers(members)
         } else {
-          setMembers((prev) => [...prev, ...data.members])
+          setMembers((prev) => [...prev, ...members])
         }
 
-        setHasMore(data.members.length === 20)
+        setHasMore(members.length === 20)
         setPage(pageNum)
       } catch (error) {
         console.error('Failed to fetch members:', error)

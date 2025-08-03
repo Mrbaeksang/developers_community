@@ -271,13 +271,13 @@ export function WeeklyPopularPosts() {
                       <span className="flex items-center gap-1 text-xs text-gray-600">
                         <MessageCircle className="h-3.5 w-3.5 text-blue-500" />
                         <span className="font-medium">
-                          {formatCount(post._count.comments)}
+                          {formatCount(post._count?.comments || 0)}
                         </span>
                       </span>
                       <span className="flex items-center gap-1 text-xs text-gray-600">
                         <Heart className="h-3.5 w-3.5 text-red-500" />
                         <span className="font-medium">
-                          {formatCount(post._count.likes)}
+                          {formatCount(post._count?.likes || 0)}
                         </span>
                       </span>
                     </div>

@@ -55,7 +55,7 @@ interface PostDetailProps {
 export default function PostDetail({ post }: PostDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
-  const [likeCount, setLikeCount] = useState(post._count.likes)
+  const [likeCount, setLikeCount] = useState(post._count?.likes || 0)
   const [showShareModal, setShowShareModal] = useState(false)
   const { toast } = useToast()
   const { status } = useSession()
@@ -105,11 +105,14 @@ export default function PostDetail({ post }: PostDetailProps) {
       if (!res.ok) throw new Error('Failed to toggle like')
 
       const data = await res.json()
-      setIsLiked(data.liked)
-      setLikeCount((prev) => (data.liked ? prev + 1 : prev - 1))
+
+      // 새로운 응답 형식 처리: { success: true, data: { liked } }
+      const likeData = data.success && data.data ? data.data : data
+      setIsLiked(likeData.liked)
+      setLikeCount((prev) => (likeData.liked ? prev + 1 : prev - 1))
 
       toast({
-        title: data.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
+        title: likeData.liked ? '좋아요를 눌렀습니다' : '좋아요를 취소했습니다',
       })
     } catch (error) {
       console.error('Failed to toggle like:', error)
@@ -140,10 +143,13 @@ export default function PostDetail({ post }: PostDetailProps) {
       if (!res.ok) throw new Error('Failed to toggle bookmark')
 
       const data = await res.json()
-      setIsBookmarked(data.bookmarked)
+
+      // 새로운 응답 형식 처리: { success: true, data: { bookmarked } }
+      const bookmarkData = data.success && data.data ? data.data : data
+      setIsBookmarked(bookmarkData.bookmarked)
 
       toast({
-        title: data.bookmarked
+        title: bookmarkData.bookmarked
           ? '북마크에 저장했습니다'
           : '북마크를 취소했습니다',
       })

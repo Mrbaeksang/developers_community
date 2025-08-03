@@ -41,18 +41,5 @@
       "mcp__playwright__browser_evaluate"
     ],
     "deny": []
-  },
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo CLAUDE.md loaded"
-          }
-        ]
-      }
-    ]
   }
 }
