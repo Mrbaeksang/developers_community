@@ -3,6 +3,7 @@
 import { User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { ProfileDropdown } from '@/components/shared/ProfileDropdown'
 
 interface AuthorAvatarProps {
   author: {
@@ -19,6 +20,8 @@ interface AuthorAvatarProps {
   className?: string
   avatarClassName?: string
   textClassName?: string
+  enableDropdown?: boolean
+  dropdownAlign?: 'start' | 'center' | 'end'
 }
 
 export function AuthorAvatar({
@@ -30,6 +33,8 @@ export function AuthorAvatar({
   className,
   avatarClassName,
   textClassName,
+  enableDropdown = false,
+  dropdownAlign = 'start',
 }: AuthorAvatarProps) {
   const sizeClasses = {
     xs: {
@@ -63,6 +68,8 @@ export function AuthorAvatar({
       className={cn(
         sizes.avatar,
         'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+        enableDropdown &&
+          'cursor-pointer hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all',
         avatarClassName
       )}
     >
@@ -77,13 +84,23 @@ export function AuthorAvatar({
     </Avatar>
   )
 
+  // 드롭다운이 활성화되고 author.id가 있을 때만 ProfileDropdown으로 감싸기
+  const wrappedAvatar =
+    enableDropdown && author.id ? (
+      <ProfileDropdown userId={author.id} align={dropdownAlign}>
+        <div className="inline-block">{avatarElement}</div>
+      </ProfileDropdown>
+    ) : (
+      avatarElement
+    )
+
   if (!showName && !showDate) {
-    return avatarElement
+    return wrappedAvatar
   }
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      {avatarElement}
+      {wrappedAvatar}
       {(showName || showDate) && (
         <div className="flex flex-col">
           {showName && (

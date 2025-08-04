@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
@@ -312,14 +312,12 @@ export default function FloatingChatWindow({
           ) : (
             messages.map((message) => (
               <div key={message.id} className="flex gap-3 group">
-                <Avatar className="h-8 w-8 border-2 border-black">
-                  <AvatarImage src={message.author.image || ''} />
-                  <AvatarFallback className="text-xs font-bold">
-                    {message.author.name?.[0] ||
-                      message.author.username?.[0] ||
-                      '?'}
-                  </AvatarFallback>
-                </Avatar>
+                <AuthorAvatar
+                  author={message.author}
+                  size="sm"
+                  enableDropdown
+                  dropdownAlign="start"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 mb-1">
                     <span className="font-bold text-sm">

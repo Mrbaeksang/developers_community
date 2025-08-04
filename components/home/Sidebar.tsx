@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import {
   TrendingUp,
   Hash,
@@ -114,7 +114,10 @@ export function Sidebar({
                 </div>
               </Link>
 
-              <Link href={`/users/${session.user.id}`} className="block group">
+              <Link
+                href={`/profile/${session.user.id}`}
+                className="block group"
+              >
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50/80 hover:bg-purple-100/80 transition-all duration-200 hover:shadow-sm border border-purple-200/50">
                   <div className="p-2 rounded-full bg-purple-500 text-white">
                     <User className="h-4 w-4" />
@@ -266,34 +269,36 @@ export function Sidebar({
 
               return (
                 <div key={user.id}>
-                  <Link href={`/profile/${user.id}`} className="block group">
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-all duration-200 hover:shadow-sm">
-                      <div className="flex-shrink-0 flex items-center gap-2">
-                        <div className={`p-1.5 rounded-full ${rankStyle}`}>
-                          <RankIcon className="h-4 w-4" />
-                        </div>
-                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                          <AvatarImage src={user.image || ''} alt={user.name} />
-                          <AvatarFallback className="text-sm font-bold bg-primary/20">
-                            {user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-all duration-200 hover:shadow-sm">
+                    <div className="flex-shrink-0 flex items-center gap-2">
+                      <div className={`p-1.5 rounded-full ${rankStyle}`}>
+                        <RankIcon className="h-4 w-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">
-                            {user.name}
-                          </p>
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                            #{index + 1}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          이번 주 {user.postCount}개 작성
-                        </p>
-                      </div>
+                      <AuthorAvatar
+                        author={{
+                          id: user.id,
+                          name: user.name,
+                          image: user.image,
+                        }}
+                        size="lg"
+                        enableDropdown
+                        dropdownAlign="start"
+                      />
                     </div>
-                  </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                          {user.name}
+                        </p>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                          #{index + 1}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        이번 주 {user.postCount}개 작성
+                      </p>
+                    </div>
+                  </div>
                   {index < 2 && (
                     <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-2" />
                   )}

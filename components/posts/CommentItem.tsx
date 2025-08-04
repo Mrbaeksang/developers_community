@@ -3,7 +3,6 @@
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Edit, Trash2, MoreVertical } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -12,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import type { Comment } from '@/lib/types'
 
 interface CommentItemProps {
@@ -65,12 +65,14 @@ export default function CommentItem({
   return (
     <div className={`${depth > 0 ? 'ml-12' : ''}`}>
       <div className="flex gap-3 mb-4">
-        <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-black">
-          <AvatarImage src={comment.author.image || undefined} />
-          <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-            {comment.author.name?.[0] || comment.author.email?.[0] || 'U'}
-          </AvatarFallback>
-        </Avatar>
+        <div className="flex-shrink-0">
+          <AuthorAvatar
+            author={comment.author}
+            size="md"
+            enableDropdown
+            dropdownAlign="start"
+          />
+        </div>
         <div className="flex-1">
           <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
             <div className="flex items-center justify-between mb-2">

@@ -3,9 +3,9 @@
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Megaphone, Pin } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 
 interface Author {
   id: string
@@ -80,36 +80,19 @@ export default function CommunityAnnouncements({
             </div>
 
             {/* 작성자 정보 */}
-            <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-gray-300">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8 border-2 border-black">
-                  <AvatarImage src={announcement.author.image || undefined} />
-                  <AvatarFallback className="font-bold">
-                    {announcement.author.name?.[0] ||
-                      announcement.author.username?.[0] ||
-                      'A'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-sm">
-                  <p className="font-medium">
-                    {announcement.author.name ||
-                      announcement.author.username ||
-                      'Admin'}
-                  </p>
-                  {announcement.author.username && announcement.author.name && (
-                    <p className="text-muted-foreground">
-                      @{announcement.author.username}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <time className="text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(announcement.createdAt), {
+            <div className="pt-4 border-t-2 border-dashed border-gray-300">
+              <AuthorAvatar
+                author={announcement.author}
+                size="md"
+                showName
+                showDate
+                date={formatDistanceToNow(new Date(announcement.createdAt), {
                   addSuffix: true,
                   locale: ko,
                 })}
-              </time>
+                enableDropdown
+                dropdownAlign="start"
+              />
             </div>
           </div>
         </div>

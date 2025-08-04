@@ -175,6 +175,7 @@ export function PostCard({ post, className }: PostCardProps) {
             showName
             showDate
             date={formattedDate}
+            enableDropdown
           />
 
           <PostStats

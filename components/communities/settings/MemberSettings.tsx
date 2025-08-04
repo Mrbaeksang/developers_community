@@ -18,8 +18,8 @@ import {
 import { apiClient } from '@/lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import {
   Select,
   SelectContent,
@@ -362,12 +362,12 @@ export function MemberSettings({
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-black">
-              <AvatarImage src={member.user.image || undefined} />
-              <AvatarFallback>
-                {member.user.name?.[0] || member.user.email[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <AuthorAvatar
+              author={member.user}
+              size="lg"
+              enableDropdown
+              dropdownAlign="start"
+            />
             <div>
               <p className="font-bold">{member.user.name || 'Unknown'}</p>
               <p className="text-sm text-muted-foreground">

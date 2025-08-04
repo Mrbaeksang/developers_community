@@ -2,9 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { MessageSquare, Heart, Eye, User } from 'lucide-react'
+import { MessageSquare, Heart, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -212,17 +212,12 @@ export function CommunityPostList({
                 {/* Author and Stats */}
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border-2 border-black">
-                      <AvatarImage src={post.author.image || undefined} />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                        {post.author.image
-                          ? null
-                          : post.author.name?.[0]?.toUpperCase() ||
-                            post.author.email?.[0]?.toUpperCase() || (
-                              <User className="h-4 w-4" />
-                            )}
-                      </AvatarFallback>
-                    </Avatar>
+                    <AuthorAvatar
+                      author={post.author}
+                      size="sm"
+                      enableDropdown
+                      dropdownAlign="start"
+                    />
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span className="font-medium text-foreground">
                         {post.author.name || 'Unknown'}
