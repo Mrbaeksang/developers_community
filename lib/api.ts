@@ -1,4 +1,4 @@
-import { ApiResponse } from './types'
+import { ApiResponse } from './api-response'
 
 /**
  * API URL 유틸리티
