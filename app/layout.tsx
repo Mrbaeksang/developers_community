@@ -18,6 +18,8 @@ const notoSansKr = Noto_Sans_KR({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-noto-sans-kr',
+  preload: true,
+  fallback: ['system-ui', 'arial'],
 })
 
 export const metadata: Metadata = {
@@ -34,11 +36,6 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Icons&display=optional"
-          rel="stylesheet"
-        />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <AsyncErrorBoundary>

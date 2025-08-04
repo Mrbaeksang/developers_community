@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import remarkGfm from 'remark-gfm'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,7 +25,6 @@ import {
   Minimize2,
   Eye,
   EyeOff,
-  Upload,
   Image as ImageIcon,
   Bold,
   Italic,
@@ -38,9 +37,16 @@ import {
   Heading2,
   Heading3,
 } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { useDropzone } from 'react-dropzone'
+import dynamic from 'next/dynamic'
+
+// Dynamic imports for heavy dependencies
+const ReactMarkdown = dynamic(() => import('react-markdown'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />,
+})
+
+// Lazy load dropzone
+const DropzoneArea = lazy(() => import('./DropzoneArea'))
+
 interface Category {
   id: string
   name: string
@@ -551,26 +557,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
     }, 0)
   }
 
-  // Image upload handler for drag & drop
-  const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0]
-      if (file) {
-        await handleImageUpload(file)
-      }
-    },
-    [handleImageUpload]
-  )
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-    },
-    multiple: false,
-    noClick: true,
-  })
-
   // 폼 데이터 변경 감지
   useEffect(() => {
     const hasData = title || content || excerpt || selectedTags.length > 0
@@ -637,784 +623,533 @@ export function PostEditor({ userRole }: PostEditorProps) {
             <div className="text-center">
               <p className="text-lg font-bold">
                 {submitState === 'submitting' &&
-                  '게시글을 저장하고 있습니다...'}
+                  '게시글을 작성하고 있습니다...'}
                 {submitState === 'redirecting' && '페이지로 이동 중...'}
               </p>
-              <p className="text-sm text-gray-600 mt-1">잠시만 기다려주세요</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className={`${isFullscreen ? 'p-8' : ''} max-w-screen-2xl mx-auto`}>
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-black mb-2">
-            새 게시글 작성
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 text-center">
+          <h1 className="mb-2 text-4xl font-bold text-black">
+            게시글 작성하기
           </h1>
-          <p className="text-gray-600">개발 지식과 경험을 공유해주세요.</p>
-        </header>
-
-        {/* Shortcuts */}
-        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6">
-          <span className="font-semibold">단축키:</span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
-              Ctrl+B
-            </kbd>{' '}
-            굵게
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
-              Ctrl+I
-            </kbd>{' '}
-            기울임
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
-              Ctrl+K
-            </kbd>{' '}
-            링크
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
-              Ctrl+S
-            </kbd>{' '}
-            임시저장
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">
-              Ctrl+Enter
-            </kbd>{' '}
-            게시
-          </span>
+          <p className="text-gray-600">당신의 이야기를 세상과 공유해보세요</p>
         </div>
 
-        {/* 2 Column Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
-          {/* Main Editor Card */}
-          <main className="bg-white p-6 lg:p-10 rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative h-fit">
-            {/* Fullscreen button */}
-            <div className="absolute -top-3 -right-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-white hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
+        <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 lg:p-10">
+          <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-2' : ''}`}>
+            {/* Editor Column */}
+            <div>
+              {/* Title input */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="title"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  제목 <span className="text-red-500">*</span>
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({title.length}/{CHARACTER_LIMITS.title})
+                  </span>
+                </Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value)
+                    const error = validateField('title', e.target.value)
+                    setValidationErrors((prev) => ({ ...prev, title: error }))
+                  }}
+                  placeholder="눈길을 끄는 멋진 제목을 작성해주세요"
+                  className={`border-2 border-black text-lg font-medium focus:ring-4 focus:ring-blue-200 ${
+                    validationErrors.title
+                      ? 'border-red-500 focus:ring-red-200'
+                      : ''
+                  }`}
+                  disabled={isSubmitting}
+                />
+                {validationErrors.title && (
+                  <p className="mt-1 text-sm text-red-500 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {validationErrors.title}
+                  </p>
                 )}
-              </Button>
-            </div>
+              </div>
 
-            <form className="space-y-8">
-              {/* 기본 정보 섹션 */}
-              <section>
-                <h2 className="text-2xl font-bold mb-4">기본 정보</h2>
-                <div className="space-y-6">
-                  {/* 카테고리 선택 */}
-                  <div>
-                    <Label htmlFor="category" className="text-lg font-bold">
-                      카테고리 <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={categoryId}
-                      onValueChange={(value) => {
-                        setCategoryId(value)
-                        const error = validateField('category', value)
+              {/* Category selection */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="category"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  카테고리 <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={categoryId}
+                  onValueChange={(value) => {
+                    setCategoryId(value)
+                    const error = validateField('category', value)
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      category: error,
+                    }))
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger
+                    id="category"
+                    className={`border-2 border-black text-lg font-medium focus:ring-4 focus:ring-blue-200 ${
+                      validationErrors.category
+                        ? 'border-red-500 focus:ring-red-200'
+                        : ''
+                    }`}
+                  >
+                    <SelectValue placeholder="카테고리를 선택해주세요" />
+                  </SelectTrigger>
+                  <SelectContent className="border-2 border-black">
+                    {categories.map((category) => (
+                      <SelectItem
+                        key={category.id}
+                        value={category.id}
+                        className="text-lg font-medium hover:bg-indigo-100"
+                      >
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {validationErrors.category && (
+                  <p className="mt-1 text-sm text-red-500 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {validationErrors.category}
+                  </p>
+                )}
+              </div>
+
+              {/* Markdown toolbar */}
+              <div className="mb-2 flex flex-wrap gap-1 border-b-2 border-gray-200 pb-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('bold')}
+                  className="hover:bg-gray-100"
+                  title="굵게 (Ctrl+B)"
+                  disabled={isSubmitting}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('italic')}
+                  className="hover:bg-gray-100"
+                  title="기울임 (Ctrl+I)"
+                  disabled={isSubmitting}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <div className="mx-1 w-px bg-gray-300" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('h1')}
+                  className="hover:bg-gray-100"
+                  title="제목 1"
+                  disabled={isSubmitting}
+                >
+                  <Heading1 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('h2')}
+                  className="hover:bg-gray-100"
+                  title="제목 2"
+                  disabled={isSubmitting}
+                >
+                  <Heading2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('h3')}
+                  className="hover:bg-gray-100"
+                  title="제목 3"
+                  disabled={isSubmitting}
+                >
+                  <Heading3 className="h-4 w-4" />
+                </Button>
+                <div className="mx-1 w-px bg-gray-300" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('ul')}
+                  className="hover:bg-gray-100"
+                  title="글머리 기호"
+                  disabled={isSubmitting}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('ol')}
+                  className="hover:bg-gray-100"
+                  title="번호 목록"
+                  disabled={isSubmitting}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+                <div className="mx-1 w-px bg-gray-300" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('link')}
+                  className="hover:bg-gray-100"
+                  title="링크"
+                  disabled={isSubmitting}
+                >
+                  <Link className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('code')}
+                  className="hover:bg-gray-100"
+                  title="코드"
+                  disabled={isSubmitting}
+                >
+                  <Code className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertMarkdown('quote')}
+                  className="hover:bg-gray-100"
+                  title="인용"
+                  disabled={isSubmitting}
+                >
+                  <Quote className="h-4 w-4" />
+                </Button>
+                <div className="mx-1 w-px bg-gray-300" />
+                <label className="flex items-center cursor-pointer hover:bg-gray-100 px-2 py-1 rounded">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file)
+                    }}
+                    disabled={isSubmitting}
+                  />
+                  {uploadingImage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="h-4 w-4" />
+                  )}
+                </label>
+              </div>
+
+              {/* Content textarea with dropzone */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="content"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  내용 <span className="text-red-500">*</span>
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({content.length}/{CHARACTER_LIMITS.content})
+                  </span>
+                </Label>
+                <Suspense
+                  fallback={
+                    <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
+                  }
+                >
+                  <DropzoneArea onDrop={handleImageUpload} isDragActive={false}>
+                    <Textarea
+                      id="content"
+                      ref={contentRef}
+                      value={content}
+                      onChange={(e) => {
+                        setContent(e.target.value)
+                        const error = validateField('content', e.target.value)
                         setValidationErrors((prev) => ({
                           ...prev,
-                          category: error,
+                          content: error,
                         }))
                       }}
-                    >
-                      <SelectTrigger
-                        className={`w-full p-3 border-3 rounded-lg focus:ring-2 focus:ring-blue-200 transition-colors ${
-                          validationErrors.category
-                            ? 'border-red-500 focus:border-red-600'
-                            : 'border-black focus:border-blue-600'
-                        }`}
-                      >
-                        <SelectValue placeholder="카테고리를 선택해주세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {validationErrors.category && (
-                      <p className="text-sm text-red-500 mt-2 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {validationErrors.category}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* 제목 */}
-                  <div>
-                    <Label htmlFor="title" className="text-lg font-bold">
-                      제목 <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="title"
-                        value={title}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setTitle(value)
-                          const error = validateField('title', value)
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            title: error,
-                          }))
-                        }}
-                        placeholder="예: React Hook의 성능 최적화 방법"
-                        maxLength={CHARACTER_LIMITS.title}
-                        className={`w-full p-3 border-3 rounded-lg focus:ring-2 focus:ring-blue-200 transition-colors pr-16 ${
-                          validationErrors.title
-                            ? 'border-red-500 focus:border-red-600'
-                            : 'border-black focus:border-blue-600'
-                        }`}
-                        required
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                        {title.length}/{CHARACTER_LIMITS.title}
-                      </div>
-                    </div>
-                    {validationErrors.title && (
-                      <p className="text-sm text-red-500 mt-2 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {validationErrors.title}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* 내용 섹션 */}
-              <section>
-                <h2 className="text-2xl font-bold mb-4">내용 작성</h2>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="content" className="text-lg font-bold">
-                      내용 <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowPreview(!showPreview)}
-                        className="font-medium"
-                      >
-                        {showPreview ? (
-                          <>
-                            <EyeOff className="h-4 w-4 mr-1" />
-                            편집
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="h-4 w-4 mr-1" />
-                            미리보기
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsFullscreen(!isFullscreen)}
-                        title="전체화면 (F11)"
-                      >
-                        <Maximize2 className="h-4 w-4" />
-                      </Button>
-                      {!showPreview && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('bold')}
-                            title="굵게 (Ctrl+B)"
-                          >
-                            <Bold className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('italic')}
-                            title="기울임 (Ctrl+I)"
-                          >
-                            <Italic className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-300 mx-1" />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('h1')}
-                            title="제목 1"
-                          >
-                            <Heading1 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('h2')}
-                            title="제목 2"
-                          >
-                            <Heading2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('h3')}
-                            title="제목 3"
-                          >
-                            <Heading3 className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-300 mx-1" />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('ul')}
-                            title="목록"
-                          >
-                            <List className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('ol')}
-                            title="번호 목록"
-                          >
-                            <ListOrdered className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-300 mx-1" />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('link')}
-                            title="링크 (Ctrl+K)"
-                          >
-                            <Link className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('code')}
-                            title="코드"
-                          >
-                            <Code className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => insertMarkdown('quote')}
-                            title="인용"
-                          >
-                            <Quote className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      className={`grid ${showPreview ? 'grid-cols-2 gap-4' : 'grid-cols-1'}`}
-                    >
-                      {/* Editor */}
-                      <div className="relative" {...getRootProps()}>
-                        <input {...getInputProps()} />
-                        <Textarea
-                          ref={contentRef}
-                          id="content"
-                          value={content}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setContent(value)
-                            const error = validateField('content', value)
-                            setValidationErrors((prev) => ({
-                              ...prev,
-                              content: error,
-                            }))
-                          }}
-                          placeholder="게시글 내용을 작성해주세요.\n\n마크다운 문법을 지원합니다:\n- # 제목\n- **굵은 글씨**\n- *기울임*\n- `코드`\n- ```코드 블록```\n\n이미지는 드래그 앤 드롭으로 추가할 수 있습니다."
-                          rows={25}
-                          maxLength={CHARACTER_LIMITS.content}
-                          className={`w-full p-4 border-3 rounded-lg resize-none focus:ring-2 focus:ring-blue-200 transition-colors font-mono text-sm ${
-                            validationErrors.content
-                              ? 'border-red-500 focus:border-red-600'
-                              : 'border-black focus:border-blue-600'
-                          } ${isDragActive ? 'bg-blue-50' : ''}`}
-                          required
-                        />
-                        {isDragActive && (
-                          <div className="absolute inset-0 bg-blue-500/10 border-3 border-dashed border-blue-500 rounded-lg flex items-center justify-center">
-                            <div className="bg-white p-4 rounded-lg border-2 border-blue-500">
-                              <ImageIcon className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                              <p className="text-sm font-bold text-blue-600">
-                                이미지를 놓아주세요
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {uploadingImage && (
-                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                          </div>
-                        )}
-                        <div className="absolute right-3 bottom-3 text-xs text-gray-500">
-                          {content.length}/{CHARACTER_LIMITS.content}
-                        </div>
-                      </div>
-
-                      {/* Preview */}
-                      {showPreview && (
-                        <div className="border-3 border-black rounded-lg p-4 bg-gray-50 overflow-auto max-h-[600px]">
-                          <div className="prose prose-lg max-w-none">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                h1: ({ children }) => (
-                                  <h1 className="text-3xl font-bold mb-4">
-                                    {children}
-                                  </h1>
-                                ),
-                                h2: ({ children }) => (
-                                  <h2 className="text-2xl font-bold mb-3">
-                                    {children}
-                                  </h2>
-                                ),
-                                h3: ({ children }) => (
-                                  <h3 className="text-xl font-bold mb-2">
-                                    {children}
-                                  </h3>
-                                ),
-                                p: ({ children }) => (
-                                  <p className="mb-4">{children}</p>
-                                ),
-                                ul: ({ children }) => (
-                                  <ul className="list-disc pl-6 mb-4">
-                                    {children}
-                                  </ul>
-                                ),
-                                ol: ({ children }) => (
-                                  <ol className="list-decimal pl-6 mb-4">
-                                    {children}
-                                  </ol>
-                                ),
-                                li: ({ children }) => (
-                                  <li className="mb-1">{children}</li>
-                                ),
-                                blockquote: ({ children }) => (
-                                  <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">
-                                    {children}
-                                  </blockquote>
-                                ),
-                                code: ({ children, ...props }) => {
-                                  const className = props.className || ''
-                                  const isInline =
-                                    !className.includes('language-')
-                                  return isInline ? (
-                                    <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">
-                                      {children}
-                                    </code>
-                                  ) : (
-                                    <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4">
-                                      <code className="text-sm">
-                                        {children}
-                                      </code>
-                                    </pre>
-                                  )
-                                },
-                                a: ({ href, children }) => (
-                                  <a
-                                    href={href}
-                                    className="text-blue-600 underline hover:text-blue-800"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    {children}
-                                  </a>
-                                ),
-                                img: ({ src, alt }) => {
-                                  // src가 string인지 확인
-                                  const imageSrc =
-                                    typeof src === 'string' ? src : ''
-
-                                  // 외부 이미지 URL인 경우 일반 img 태그 사용
-                                  if (imageSrc.startsWith('http')) {
-                                    return (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img
-                                        src={imageSrc}
-                                        alt={alt || ''}
-                                        className="max-w-full h-auto rounded-lg my-4"
-                                      />
-                                    )
-                                  }
-
-                                  // 내부 이미지는 Next.js Image 컴포넌트 사용
-                                  return (
-                                    <div className="relative w-full my-4">
-                                      <Image
-                                        src={imageSrc || '/placeholder.svg'}
-                                        alt={alt || ''}
-                                        width={800}
-                                        height={600}
-                                        className="rounded-lg"
-                                        style={{
-                                          width: '100%',
-                                          height: 'auto',
-                                        }}
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
-                                      />
-                                    </div>
-                                  )
-                                },
-                              }}
-                            >
-                              {content ||
-                                '*내용을 입력하면 여기에 미리보기가 표시됩니다.*'}
-                            </ReactMarkdown>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {validationErrors.content && (
-                      <p className="text-sm text-red-500 mt-2 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {validationErrors.content}
-                      </p>
-                    )}
-
-                    {/* Image upload hint */}
-                    <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                      <Upload className="h-4 w-4" />
-                      <span>
-                        이미지를 드래그 앤 드롭하거나 클립보드에서
-                        붙여넣기(Ctrl+V)할 수 있습니다.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 요약 */}
-                  <div>
-                    <Label htmlFor="excerpt" className="text-lg font-bold">
-                      요약
-                      <span className="text-base font-medium text-gray-500 ml-2">
-                        (선택사항)
-                      </span>
-                    </Label>
-                    <div className="relative">
-                      <Textarea
-                        id="excerpt"
-                        value={excerpt}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setExcerpt(value)
-                          const error = validateField('excerpt', value)
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            excerpt: error,
-                          }))
-                        }}
-                        placeholder="게시글 요약을 입력해주세요 (미입력시 자동 생성)"
-                        rows={3}
-                        maxLength={CHARACTER_LIMITS.excerpt}
-                        className={`w-full p-3 border-3 rounded-lg resize-none focus:ring-2 focus:ring-blue-200 transition-colors pr-16 ${
-                          validationErrors.excerpt
-                            ? 'border-red-500 focus:border-red-600'
-                            : 'border-black focus:border-blue-600'
-                        }`}
-                      />
-                      <div className="absolute right-3 bottom-3 text-xs text-gray-500">
-                        {excerpt.length}/{CHARACTER_LIMITS.excerpt}
-                      </div>
-                    </div>
-                    {validationErrors.excerpt && (
-                      <p className="text-sm text-red-500 mt-2 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {validationErrors.excerpt}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* 제출 버튼 섹션 */}
-              <div className="border-t-2 border-black pt-8">
-                <div className="space-y-4">
-                  {/* 유효성 검사 요약 */}
-                  {Object.values(validationErrors).some((error) => error) && (
-                    <div className="p-4 bg-red-50 border-2 border-red-500 rounded-lg">
-                      <h3 className="font-bold text-red-700 mb-2">
-                        입력 오류가 있습니다:
-                      </h3>
-                      <ul className="text-sm text-red-600 space-y-1">
-                        {validationErrors.title && (
-                          <li>• {validationErrors.title}</li>
-                        )}
-                        {validationErrors.content && (
-                          <li>• {validationErrors.content}</li>
-                        )}
-                        {validationErrors.excerpt && (
-                          <li>• {validationErrors.excerpt}</li>
-                        )}
-                        {validationErrors.category && (
-                          <li>• {validationErrors.category}</li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* 액션 버튼 */}
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.back()}
-                      disabled={isSubmitting}
-                      className="flex-1 sm:flex-initial px-6 py-3 font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                    >
-                      취소
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => handleSubmit('DRAFT')}
-                      disabled={
-                        isSubmitting ||
-                        Object.values(validationErrors).some((error) => error)
-                      }
-                      className="flex-1 sm:flex-initial px-6 py-3 font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      📝 임시저장 (Ctrl+S)
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => handleSubmit('PENDING')}
-                      disabled={
-                        isSubmitting ||
-                        Object.values(validationErrors).some((error) => error)
-                      }
-                      className="flex-1 sm:flex-auto px-6 py-3 font-bold text-white bg-blue-500 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          저장 중...
-                        </>
-                      ) : userRole === 'ADMIN' ? (
-                        '✨ 게시글 발행 (Ctrl+Enter)'
-                      ) : (
-                        '📤 게시 요청 (Ctrl+Enter)'
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* 안내 메시지 */}
-                  <p className="text-center text-sm text-gray-600">
-                    {userRole === 'ADMIN'
-                      ? '관리자는 게시글이 즉시 발행됩니다.'
-                      : '게시글은 관리자 검토 후 발행됩니다.'}
-                    <br />
-                    5분마다 자동으로 임시저장됩니다.
-                  </p>
-                </div>
-              </div>
-            </form>
-          </main>
-
-          {/* Sidebar */}
-          <aside className="hidden xl:block">
-            <div className="sticky top-24 space-y-6">
-              {/* Tags Card */}
-              <div className="bg-white p-6 rounded-lg border-2 border-gray-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
-                <h3 className="text-xl font-bold mb-4">태그</h3>
-
-                {/* Tag Input */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setTagInput(value)
-                        if (value) {
-                          const error = validateField('tag', value)
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            tag: error,
-                          }))
-                        } else {
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            tag: '',
-                          }))
-                        }
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddTag()
-                        }
-                      }}
-                      placeholder="태그 입력"
-                      maxLength={CHARACTER_LIMITS.tag}
-                      className={`flex-1 border-2 ${
-                        validationErrors.tag
-                          ? 'border-red-500 focus:border-red-600'
-                          : 'border-black focus:border-blue-600'
+                      placeholder="마크다운 문법을 사용할 수 있습니다. 이미지는 드래그 앤 드롭으로 업로드하세요."
+                      className={`min-h-[400px] resize-none border-2 border-black font-mono text-base focus:ring-4 focus:ring-blue-200 ${
+                        validationErrors.content
+                          ? 'border-red-500 focus:ring-red-200'
+                          : ''
                       }`}
+                      disabled={isSubmitting}
                     />
-                    <Button
-                      type="button"
-                      onClick={handleAddTag}
-                      className="bg-blue-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all font-bold"
-                    >
-                      추가
-                    </Button>
-                  </div>
-                  {validationErrors.tag && (
-                    <p className="text-sm text-red-500 flex items-center">
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      {validationErrors.tag}
-                    </p>
-                  )}
-                </div>
+                  </DropzoneArea>
+                </Suspense>
+                {validationErrors.content && (
+                  <p className="mt-1 text-sm text-red-500 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {validationErrors.content}
+                  </p>
+                )}
+              </div>
 
-                {/* Selected Tags */}
+              {/* Excerpt input */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="excerpt"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  요약 (선택사항)
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({excerpt.length}/{CHARACTER_LIMITS.excerpt})
+                  </span>
+                </Label>
+                <Textarea
+                  id="excerpt"
+                  value={excerpt}
+                  onChange={(e) => {
+                    setExcerpt(e.target.value)
+                    const error = validateField('excerpt', e.target.value)
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      excerpt: error,
+                    }))
+                  }}
+                  placeholder="글의 요약을 작성해주세요. 비워두면 본문의 앞부분이 자동으로 사용됩니다."
+                  className={`resize-none border-2 border-black focus:ring-4 focus:ring-blue-200 ${
+                    validationErrors.excerpt
+                      ? 'border-red-500 focus:ring-red-200'
+                      : ''
+                  }`}
+                  rows={3}
+                  disabled={isSubmitting}
+                />
+                {validationErrors.excerpt && (
+                  <p className="mt-1 text-sm text-red-500 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {validationErrors.excerpt}
+                  </p>
+                )}
+              </div>
+
+              {/* Tags */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="tags"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  태그 (선택사항)
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    (최대 10개)
+                  </span>
+                </Label>
+                <div className="mb-3 flex gap-2">
+                  <Input
+                    id="tags"
+                    value={tagInput}
+                    onChange={(e) => {
+                      setTagInput(e.target.value)
+                      const error = validateField('tag', e.target.value)
+                      setValidationErrors((prev) => ({ ...prev, tag: error }))
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddTag()
+                      }
+                    }}
+                    placeholder="태그를 입력하고 Enter를 누르세요"
+                    className={`flex-1 border-2 border-black focus:ring-4 focus:ring-blue-200 ${
+                      validationErrors.tag
+                        ? 'border-red-500 focus:ring-red-200'
+                        : ''
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddTag}
+                    variant="outline"
+                    className="border-2 border-black hover:bg-gray-100"
+                    disabled={isSubmitting}
+                  >
+                    추가
+                  </Button>
+                </div>
+                {validationErrors.tag && (
+                  <p className="mb-2 text-sm text-red-500 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {validationErrors.tag}
+                  </p>
+                )}
+                {/* Selected tags */}
                 {selectedTags.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-600 mb-2">
-                      선택된 태그 ({selectedTags.length}/10)
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedTags.map((tagSlug) => (
-                        <Badge
-                          key={tagSlug}
-                          variant="secondary"
-                          className="px-2 py-1 text-sm border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-none transition-all font-medium"
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {selectedTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="border-2 border-black bg-yellow-200 px-3 py-1 text-black hover:bg-yellow-300"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-2 hover:text-red-600"
+                          disabled={isSubmitting}
                         >
-                          #{tagSlug}
-                          <X
-                            className="ml-1 h-3 w-3 cursor-pointer hover:text-red-600"
-                            onClick={() => handleRemoveTag(tagSlug)}
-                          />
-                        </Badge>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {/* Popular tags */}
+                {existingTags.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-sm text-gray-600">인기 태그:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {existingTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            if (!selectedTags.includes(tag.slug)) {
+                              if (selectedTags.length >= 10) {
+                                sonnerToast.error(
+                                  '태그는 최대 10개까지 추가할 수 있습니다.'
+                                )
+                                return
+                              }
+                              setSelectedTags([...selectedTags, tag.slug])
+                            }
+                          }}
+                          className="rounded-full border-2 border-gray-300 bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:border-black hover:bg-gray-200 disabled:opacity-50"
+                          disabled={
+                            selectedTags.includes(tag.slug) || isSubmitting
+                          }
+                        >
+                          {tag.name}
+                          {tag.count && (
+                            <span className="ml-1 text-xs text-gray-500">
+                              ({tag.count})
+                            </span>
+                          )}
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Popular Tags */}
-                {existingTags.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-700 mb-2">
-                      인기 태그 (클릭하여 추가)
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {existingTags.slice(0, 15).map((tag) => {
-                        const isSelected = selectedTags.includes(tag.slug)
-                        return (
-                          <Badge
-                            key={tag.id}
-                            variant={isSelected ? 'secondary' : 'outline'}
-                            className={`cursor-pointer text-xs transition-all duration-200 ${
-                              isSelected
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.2)] hover:translate-x-[-0.5px] hover:translate-y-[-0.5px]'
-                            }`}
-                            style={{
-                              borderColor: tag.color || '#6366f1',
-                              color: isSelected
-                                ? '#9ca3af'
-                                : tag.color || '#6366f1',
-                            }}
-                            onClick={() => {
-                              if (!isSelected && selectedTags.length < 10) {
-                                setSelectedTags([...selectedTags, tag.slug])
-                              } else if (selectedTags.length >= 10) {
-                                sonnerToast.error(
-                                  '태그는 최대 10개까지 추가할 수 있습니다.'
-                                )
-                              }
-                            }}
-                          >
-                            #{tag.name}
-                            {tag.count !== undefined && tag.count > 0 && (
-                              <span className="ml-1 opacity-70">
-                                ({tag.count})
-                              </span>
-                            )}
-                          </Badge>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Writing Guide Card */}
-              <div className="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
-                <h4 className="text-lg font-bold text-blue-700 mb-3">
-                  작성 가이드
-                </h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">✓</span>
-                    <span>명확하고 구체적인 제목을 작성해주세요</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">✓</span>
-                    <span>코드는 백틱(`)으로 감싸주세요</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">✓</span>
-                    <span>이미지는 최대 10MB까지 업로드 가능합니다</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">✓</span>
-                    <span>부적절한 내용은 거절될 수 있습니다</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">✓</span>
-                    <span>게시글은 관리자 검토 후 발행됩니다</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Auto Save Info */}
-              <div className="bg-white p-4 rounded-lg border-2 border-gray-200 text-center">
-                <p className="text-sm text-gray-600">
-                  <span className="text-green-600 font-semibold">
-                    ✅ 5분마다 자동으로 임시저장됩니다
-                  </span>
-                  <br />
-                  <span className="text-xs text-gray-500 mt-1">
-                    마지막 저장: 방금 전
-                  </span>
-                </p>
               </div>
             </div>
-          </aside>
+
+            {/* Preview Column */}
+            {showPreview && (
+              <div className="border-l-2 border-gray-200 pl-6">
+                <h2 className="mb-4 text-2xl font-bold text-black">미리보기</h2>
+                <div className="prose prose-lg max-w-none">
+                  <h1>{title || '제목을 입력해주세요'}</h1>
+                  <Suspense
+                    fallback={
+                      <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />
+                    }
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {content || '내용을 입력해주세요'}
+                    </ReactMarkdown>
+                  </Suspense>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t-2 border-gray-200 pt-6">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                variant="outline"
+                className="border-2 border-black hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {showPreview ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    미리보기 숨기기
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    미리보기
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                variant="outline"
+                className="border-2 border-black hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="mr-2 h-4 w-4" />
+                    일반 모드
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    전체화면
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => handleSubmit('DRAFT')}
+                variant="outline"
+                className="border-2 border-black hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                임시저장
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSubmit('PENDING')}
+                className="border-2 border-black bg-blue-500 font-bold text-white hover:bg-blue-600 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                disabled={isSubmitting}
+              >
+                {userRole === 'ADMIN' ? <>게시글 발행</> : <>검토 요청</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* Keyboard shortcuts help */}
+          <div className="mt-4 text-sm text-gray-600">
+            <p>
+              단축키: Ctrl+Enter (발행), Ctrl+S (임시저장), F11 (전체화면),
+              Ctrl+/ (미리보기)
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,22 @@
 import type { NextConfig } from 'next'
+import withBundleAnalyzer from '@next/bundle-analyzer'
+
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     // Node.js 24 호환성을 위한 설정
     serverMinification: false,
+    // 패키지 최적화
+    optimizePackageImports: [
+      'lucide-react',
+      'react-icons',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
+    ],
   },
   // 이미지 도메인 설정
   images: {
@@ -50,4 +62,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default bundleAnalyzer(nextConfig)

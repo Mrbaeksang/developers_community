@@ -101,6 +101,7 @@ export function MarkdownPreview({ content, className }: MarkdownPreviewProps) {
                       height: 'auto',
                     }}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
+                    loading="lazy"
                   />
                 </div>
               )

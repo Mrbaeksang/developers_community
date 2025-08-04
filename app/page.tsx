@@ -1,10 +1,67 @@
+import dynamic from 'next/dynamic'
 import { HeroSection } from '@/components/home/HeroSection'
-import { WeeklyPopularPosts } from '@/components/home/WeeklyPopularPosts'
-import { RecentPosts } from '@/components/home/RecentPosts'
-import { CategoryGrid } from '@/components/home/CategoryGrid'
-import { ActiveCommunities } from '@/components/home/ActiveCommunities'
-import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { getApiUrl } from '@/lib/api'
+
+// Dynamic imports for heavy components
+const WeeklyPopularPosts = dynamic(
+  () =>
+    import('@/components/home/WeeklyPopularPosts').then((mod) => ({
+      default: mod.WeeklyPopularPosts,
+    })),
+  {
+    loading: () => (
+      <div className="animate-pulse bg-gray-100 h-96 rounded-lg" />
+    ),
+  }
+)
+
+const RecentPosts = dynamic(
+  () =>
+    import('@/components/home/RecentPosts').then((mod) => ({
+      default: mod.RecentPosts,
+    })),
+  {
+    loading: () => (
+      <div className="animate-pulse bg-gray-100 h-96 rounded-lg" />
+    ),
+  }
+)
+
+const CategoryGrid = dynamic(
+  () =>
+    import('@/components/home/CategoryGrid').then((mod) => ({
+      default: mod.CategoryGrid,
+    })),
+  {
+    loading: () => (
+      <div className="animate-pulse bg-gray-100 h-64 rounded-lg" />
+    ),
+  }
+)
+
+const ActiveCommunities = dynamic(
+  () =>
+    import('@/components/home/ActiveCommunities').then((mod) => ({
+      default: mod.ActiveCommunities,
+    })),
+  {
+    loading: () => (
+      <div className="animate-pulse bg-gray-100 h-48 rounded-lg" />
+    ),
+  }
+)
+
+const SidebarContainer = dynamic(
+  () =>
+    import('@/components/home/SidebarContainer').then((mod) => ({
+      default: mod.SidebarContainer,
+    })),
+  {
+    loading: () => (
+      <div className="animate-pulse bg-gray-100 h-64 rounded-lg" />
+    ),
+  }
+)
 
 // 서버 사이드에서 필요한 데이터만 가져오기 (클라이언트 컴포넌트에서 직접 호출)
 

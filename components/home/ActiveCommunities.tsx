@@ -91,7 +91,7 @@ export function ActiveCommunities() {
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-3">
-          {communities.map((community) => (
+          {communities.map((community, index) => (
             <Link
               key={community.id}
               href={`/communities/${community.slug}`}
@@ -111,6 +111,8 @@ export function ActiveCommunities() {
                           width={40}
                           height={40}
                           className="rounded-lg border-2 border-black"
+                          priority={index < 3}
+                          sizes="40px"
                         />
                       )
                     }
