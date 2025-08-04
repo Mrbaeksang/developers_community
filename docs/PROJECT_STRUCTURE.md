@@ -1,579 +1,156 @@
-# 프로젝트 구조
+# 🚀 개발자 중심 프로젝트 구조 가이드
 
-## 📡 디렉토리 구조
+## 1. 프로젝트 현황
+### 📊 완성도
+| 항목 | 완료율 | 상태 | 미완성 |
+|------|--------|------|--------|
+| **API** | 98.8% (81/82) | ✅ | `app/api/stats/` (사용자 활동 통계) |
+| **페이지** | 100% (22/22) | ✅ | - |
+| **컴포넌트** | 83.1% | ⏳ | 일부 커스텀 컴포넌트 |
 
-### 🚀 최근 업데이트 (2025-01-31)
-- **Redis 조회수 버퍼링 시스템**: Redis를 통한 조회수 증가 API 구현 (메인/커뮤니티 게시글)
-- **API 정렬 기능 확장**: 조회수/좋아요/북마크/댓글순 정렬 옵션 추가
-- **Redis Cloud 연동**: ioredis 라이브러리로 프로덕션 Redis 클라이언트 구현
-- **Provider 컴포넌트 확장**: ChatProvider, KakaoProvider, NotificationProvider 추가
-- **라이브러리 확장**: redis.ts, redis-sync.ts, markdown.ts 등 유틸리티 추가
-- **채팅 SSE 실시간 통신 완료**: 프로덕션 기준 SSE 브로드캐스트 시스템 구현
-- **채팅 실시간 브로드캐스트**: 메시지 수정/삭제 시 실시간 업데이트 완료 (SSE)
-- **채팅 메시지 수정/삭제**: 자기 메시지 수정/삭제 기능 구현 (PATCH/DELETE)
-- **안 읽은 메시지 카운트**: 채팅창 닫혀있을 때 안 읽은 메시지 뱃지 표시 (99+)
-- **채팅 파일 업로드**: 이미지/파일 첨부 기능 (영구 보관)
-
-```
-my_project/
-├── app/
-│   ├── auth/                      # 인증 페이지
-│   │   ├── signin/
-│   │   │   └── page.tsx          ✓ OAuth 로그인 (Google, GitHub, Kakao)
-│   │   └── error/
-│   │       └── page.tsx          ✓ OAuth 인증 오류 페이지
-│   ├── main/                      # 메인 사이트 페이지
-│   │   ├── posts/                
-│   │   │   ├── page.tsx          ✓ 게시글 목록
-│   │   │   └── [id]/           
-│   │   │       └── page.tsx      ✓ 게시글 상세
-│   │   ├── write/                
-│   │   │   └── page.tsx          ✓ 게시글 작성
-│   │   └── tags/[name]/          
-│   │       └── page.tsx          ✓ 태그별 게시글
-│   ├── profile/[id]/              
-│   │   └── page.tsx              ✓ 사용자 프로필 (ID 기반)
-│   ├── communities/               # 커뮤니티 페이지
-│   │   ├── page.tsx              ✓ 커뮤니티 목록
-│   │   └── [id]/                 
-│   │       ├── page.tsx          ✓ 커뮤니티 메인 (공지사항 포함)
-│   │       ├── posts/
-│   │       │   ├── page.tsx      ✓ 커뮤니티 게시글 목록
-│   │       │   └── [postId]/
-│   │       │       └── page.tsx  ✓ 커뮤니티 게시글 상세
-│   │       ├── write/
-│   │       │   └── page.tsx      ✓ 커뮤니티 게시글 작성
-│   │       └── settings/         
-│   │           ├── page.tsx      ✓ 커뮤니티 설정 (관리자 전용)
-│   │           └── components/   ✓ 설정 컴포넌트들
-│   │               ├── GeneralSettings.tsx ✓ 일반 설정
-│   │               └── CategorySettings.tsx ✓ 카테고리 관리
-│   ├── admin/                     # 관리자 페이지
-│   │   ├── page.tsx              ✓ 관리자 대시보드
-│   │   ├── pending/
-│   │   │   └── page.tsx          ✓ 게시글 승인 관리
-│   │   ├── test-center/
-│   │   │   └── page.tsx          ✓ 테스트 센터 (개발용)
-│   │   └── users/
-│   │       └── page.tsx          ✗ 사용자 관리 (미구현)
-│   ├── dashboard/
-│   │   └── page.tsx              ✓ 사용자 대시보드
-│   ├── api/
-│   │   ├── auth/[...nextauth]/  ✓ NextAuth 라우트
-│   │   ├── admin/               # 관리자 API
-│   │   │   ├── stats/           ✓ 통계 조회
-│   │   │   ├── test-data/       ✓ 테스트 데이터 생성 (15개 엔드포인트)
-│   │   │   └── data-viewer/     ✓ 데이터 뷰어 API (8개 테이블 지원)
-│   │   ├── users/                # 사용자 API
-│   │   │   ├── me/              ✓ 내 정보 조회/수정
-│   │   │   ├── [id]/            ✓ 프로필 조회/게시글 목록
-│   │   │   ├── bookmarks/       ✓ 북마크 목록
-│   │   │   └── stats/           ✓ 활동 통계
-│   │   ├── main/                 # 메인 사이트 API
-│   │   │   ├── posts/            
-│   │   │   │   ├── route.ts      ✓ GET/POST 구현 (목록 조회/생성)
-│   │   │   │   ├── search/       
-│   │   │   │   │   └── route.ts  ✓ GET 구현 (검색 기능)
-│   │   │   │   ├── pending/
-│   │   │   │   │   └── route.ts  ✓ GET 구현 (승인 대기 목록)
-│   │   │   │   └── [id]/         
-│   │   │   │       ├── route.ts  ✓ GET 구현 (상세 조회)
-│   │   │   │       ├── approve/
-│   │   │   │       │   └── route.ts  ✓ POST 구현 (게시글 승인)
-│   │   │   │       ├── like/
-│   │   │   │       │   └── route.ts  ✓ POST/GET 구현 (좋아요)
-│   │   │   │       ├── bookmark/
-│   │   │   │       │   └── route.ts  ✓ POST/GET 구현 (북마크)
-│   │   │   │       ├── comments/
-│   │   │   │       │   └── route.ts  ✓ GET/POST 구현 (댓글 목록/작성)
-│   │   │   │       ├── view/
-│   │   │   │       │   └── route.ts  ✓ POST 구현 (조회수 증가 - Redis 버퍼링)
-│   │   │   │       └── related/
-│   │   │   │           └── route.ts  ✓ GET 구현 (관련 게시글 추천)
-│   │   │   ├── comments/         
-│   │   │   │   └── [id]/
-│   │   │   │       └── route.ts  ✓ PUT/DELETE 구현 (댓글 수정/삭제)
-│   │   │   ├── categories/       ✓ 카테고리 목록
-│   │   │   ├── tags/             ✓ 태그 목록
-│   │   │   ├── stats/            ✓ 커뮤니티 통계
-│   │   │   └── users/
-│   │   │       └── active/       ✓ 활발한 사용자 목록
-│   │   ├── communities/          # 커뮤니티 API
-│   │   │   ├── route.ts          ✓ 목록/생성
-│   │   │   └── [id]/             
-│   │   │       ├── route.ts      ✓ 상세 조회/수정/삭제
-│   │   │       └── members/      
-│   │   │           └── route.ts  ✓ 멤버 목록 조회
-│   │   ├── community-posts/      # 커뮤니티 게시글 API
-│   │   │   └── [id]/             ✗ 상세/수정/삭제/좋아요/북마크
-│   │   ├── chat/                 # 채팅 API
-│   │   │   ├── global/           ✓ 전역 채팅 채널
-│   │   │   ├── upload/           ✓ 채팅 파일 업로드
-│   │   │   └── channels/         
-│   │   │       ├── route.ts      ✓ 채널 목록
-│   │   │       └── [channelId]/
-│   │   │           ├── messages/ 
-│   │   │           │   ├── route.ts ✓ 메시지 조회/전송
-│   │   │           │   └── [messageId]/
-│   │   │           │       └── route.ts ✓ 메시지 수정/삭제
-│   │   │           ├── events/   ✓ SSE 실시간 이벤트
-│   │   │           ├── typing/   ✓ 타이핑 상태
-│   │   │           └── read/     ✓ 읽음 상태 업데이트
-│   │   ├── files/                # 파일 API
-│   │   │   ├── upload/           ✓ 파일 업로드
-│   │   │   ├── [id]/             ✓ 파일 조회/삭제
-│   │   │   └── cleanup/          ✓ 파일 정리/통계
-│   │   ├── notifications/        # 알림 API
-│   │   │   ├── route.ts          ✓ 목록 조회/SSE
-│   │   │   ├── [id]/read/        ✓ 개별 읽음 처리
-│   │   │   └── read-all/         ✓ 전체 읽음 처리
-│   │   ├── search/               # 검색 API
-│   │   │   └── route.ts          ✓ 통합 검색
-│   │   └── stats/                # 통계 API
-│   │       ├── site/             ✗ 사이트 전체 통계
-│   │       └── trending/         ✗ 인기 콘텐츠
-│   ├── layout.tsx                ✓ 루트 레이아웃
-│   └── page.tsx                  ✓ 메인 페이지
-├── components/
-│   ├── ui/                       # shadcn/ui 기본 컴포넌트
-│   │   ├── accordion.tsx         ✓ 아코디언
-│   │   ├── badge.tsx             ✓ 배지
-│   │   ├── button.tsx            ✓ 버튼
-│   │   ├── card.tsx              ✓ 카드
-│   │   ├── dialog.tsx            ✓ 다이얼로그
-│   │   ├── dropdown-menu.tsx     ✓ 드롭다운 메뉴
-│   │   ├── form.tsx              ✓ 폼
-│   │   ├── input.tsx             ✓ 입력 필드
-│   │   ├── label.tsx             ✓ 라벨
-│   │   ├── progress.tsx          ✓ 프로그레스바
-│   │   ├── select.tsx            ✓ 셀렉트 박스
-│   │   ├── separator.tsx         ✓ 구분선
-│   │   ├── sheet.tsx             ✓ 시트
-│   │   ├── table.tsx             ✓ 테이블
-│   │   ├── tabs.tsx              ✓ 탭
-│   │   ├── textarea.tsx          ✓ 텍스트에리어
-│   │   ├── toast.tsx             ✓ 토스트
-│   │   └── tooltip.tsx           ✓ 툴팁
-│   ├── shared/                   # 공통 컴포넌트
-│   │   ├── BreadcrumbNav.tsx     ✓ 브레드크럼 네비게이션
-│   │   ├── Checkbox.tsx          ✓ 체크박스
-│   │   ├── CommentList.tsx       ✓ 댓글 목록
-│   │   ├── CommentItem.tsx       ✓ 댓글 아이템
-│   │   ├── ConfirmDialog.tsx     ✓ 확인 다이얼로그
-│   │   ├── CopyButton.tsx        ✓ 복사 버튼
-│   │   ├── DatePicker.tsx        ✗ 날짜 선택기
-│   │   ├── DeleteButton.tsx      ✓ 삭제 버튼
-│   │   ├── FileUpload.tsx        ✓ 파일 업로드
-│   │   ├── LoadingSpinner.tsx    ✓ 로딩 스피너
-│   │   ├── Modal.tsx             ✗ 모달
-│   │   ├── Pagination.tsx        ✓ 페이지네이션
-│   │   ├── PostCard.tsx          ✓ 게시글 카드
-│   │   ├── RichTextEditor.tsx    ✓ 리치 텍스트 에디터
-│   │   ├── SearchBox.tsx         ✗ 검색 박스
-│   │   ├── TagInput.tsx          ✓ 태그 입력
-│   │   ├── TagList.tsx           ✓ 태그 목록
-│   │   └── index.ts              ✓ 내보내기 파일
-│   ├── layouts/             # 레이아웃 컴포넌트
-│   │   ├── MainLayout.tsx   ✓ 메인 레이아웃
-│   │   ├── Header.tsx       ✓ 헤더 네비게이션 (관리자 메뉴 포함)
-│   │   ├── Footer.tsx       ✗ 푸터
-│   │   ├── Sidebar.tsx      ✗ 사이드바 (레이아웃용)
-│   │   ├── MobileNav.tsx    ✗ 모바일 네비게이션
-│   │   └── NavLink.tsx      ✗ 네비게이션 링크
-│   ├── home/                # 메인 페이지 컴포넌트 (4개 구현)
-│   │   ├── HeroSection.tsx  ✓ 히어로 섹션
-│   │   ├── PostList.tsx     ✓ 게시글 목록
-│   │   ├── Sidebar.tsx      ✓ 사이드바
-│   │   └── SidebarContainer.tsx ✓ 사이드바 컨테이너
-│   ├── posts/               # 게시글 관련 (6개 구현)
-│   │   ├── PostCard.tsx     ✓ 게시글 카드
-│   │   ├── index.ts         ✓ 내보내기 파일
-│   │   ├── PostDetail.tsx   ✓ 게시글 상세
-│   │   ├── CommentSection.tsx ✓ 댓글 섹션
-│   │   ├── PostListServer.tsx ✓ 게시글 목록 서버 컴포넌트
-│   │   ├── PostEditor.tsx   ✓ 게시글 에디터
-│   │   ├── CommentItem.tsx  ✓ 댓글 아이템 (분리된 컴포넌트)
-│   │   └── RelatedPosts.tsx ✓ 관련 게시글 추천
-│   ├── communities/         # 커뮤니티 관련 (7개 구현)
-│   │   ├── CommunityActions.tsx ✓ 커뮤니티 액션 버튼
-│   │   ├── CommunityAnnouncements.tsx ✓ 커뮤니티 공지사항
-│   │   ├── CommunityCommentSection.tsx ✓ 커뮤니티 댓글 섹션
-│   │   ├── CommunityMemberList.tsx ✓ 커뮤니티 멤버 목록
-│   │   ├── CommunityPostDetail.tsx ✓ 커뮤니티 게시글 상세
-│   │   ├── CommunityPostEditor.tsx ✓ 커뮤니티 게시글 에디터
-│   │   └── CommunityPostList.tsx ✓ 커뮤니티 게시글 목록
-│   ├── auth/                # 인증 관련 (미구현 - NextAuth 사용)
-│   ├── search/              # 검색 관련
-│   │   ├── SearchModal.tsx  ✓ 검색 모달
-│   │   └── index.ts         ✓ 내보내기 파일
-│   ├── chat/                # 채팅 관련
-│   │   ├── FloatingChatButton.tsx ✓ 플로팅 채팅 버튼 (안 읽은 메시지 카운트)
-│   │   └── FloatingChatWindow.tsx ✓ 플로팅 채팅 창 (수정/삭제 기능)
-│   ├── providers/           # Provider 컴포넌트
-│   │   ├── SessionProvider.tsx ✓ NextAuth 세션 프로바이더
-│   │   └── ChatProvider.tsx    ✓ 채팅 상태 관리 프로바이더
-│   └── admin/               # 관리자 관련
-│       ├── PendingPostsManager.tsx ✓ 게시글 승인 관리
-│       ├── TestActionCard.tsx ✓ 테스트 액션 카드
-│       ├── TestCenterContent.tsx ✓ 테스트 센터 콘텐츠
-│       ├── TestActionModal.tsx ✓ 테스트 액션 모달 (매개변수 입력)
-│       ├── TestResultsPanel.tsx ✓ 테스트 결과 패널 (실시간 확인)
-│       └── DataTableViewer.tsx ✓ 데이터 테이블 뷰어 (Prisma Studio 스타일)
-├── lib/
-│   ├── prisma.ts               ✓ Prisma 클라이언트
-│   ├── utils.ts                ✓ 유틸리티
-│   ├── types.ts                ✓ 타입 정의 파일
-│   ├── api.ts                  ✓ API 유틸리티
-│   ├── notifications.ts        ✓ 알림 헬퍼 함수
-│   ├── notification-emitter.ts ✓ 알림 이벤트 에미터
-│   ├── auth-helpers.ts         ✓ 인증/권한 헬퍼 함수 (Stage 1 완료)
-│   ├── permission-helpers.ts   ✓ 권한 확인 헬퍼 함수
-│   ├── role-hierarchy.ts       ✓ 역할 계층 구조 관리
-│   ├── chat-utils.ts           ✓ 채팅 유틸리티 (파일 업로드)
-│   ├── chat-broadcast.ts       ✓ SSE 브로드캐스트 관리
-│   ├── redis.ts                ✓ Redis 클라이언트 (ioredis)
-│   ├── redis-sync.ts           ✓ Redis 데이터 동기화 헬퍼
-│   └── markdown.ts             ✓ 마크다운 처리 유틸리티
-├── hooks/
-│   ├── use-toast.tsx        ✓ 토스트 훅
-│   ├── use-debounce.ts      ✓ 디바운스 훅
-│   ├── use-chat-events.ts   ✓ 채팅 실시간 이벤트 훅 (SSE)
-│   └── use-typing-indicator.ts ✓ 타이핑 인디케이터 훅
-├── prisma/
-│   ├── schema.prisma        ✓ 데이터베이스 스키마
-│   └── seed.ts              ✓ 시드 데이터
-├── auth.ts                  ✓ NextAuth 설정
-└── package.json             ✓ 프로젝트 설정
+### ⚙️ 기술 스택
+```markdown
+- Next.js 15
+- Prisma + Neon PostgreSQL
+- NextAuth v5 + Redis 세션
+- shadcn/ui 컴포넌트 라이브러리
 ```
 
-## 🎯 API 라우트 매핑
-
-### 📊 전체 현황
-- **API**: 83개 중 82개 구현 (98.8%) ✅
-- **페이지**: 22개 중 21개 구현 (95.5%) ✅  
-- **컴포넌트**: 완전 구현됨 (100%) ✅
-- **Redis 시스템**: 조회수 버퍼링 완료, 캐싱 시스템 대기중 ⏳
-
-### 🆕 관리자 API (2개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/admin/stats` | GET | 관리자 통계 조회 | ✅ |
-| `/api/admin/data-viewer/[table]` | GET | 데이터 테이블 조회 (동적 테이블명) | ✅ |
-
-### 1️⃣ 인증 & 사용자 API (8개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/auth/[...nextauth]` | * | NextAuth 핸들러 | ✅ |
-| `/api/users/me` | GET | 내 정보 조회 | ✅ |
-| `/api/users/me` | PUT | 내 정보 수정 | ✅ |
-| `/api/users/[id]` | GET | 사용자 프로필 조회 | ✅ |
-| `/api/users/[id]/posts` | GET | 사용자 게시글 목록 | ✅ |
-| `/api/users/[id]/communities` | GET | 사용자 가입 커뮤니티 | ✅ |
-| `/api/users/bookmarks` | GET | 내 북마크 목록 | ✅ |
-| `/api/users/stats` | GET | 내 활동 통계 | ✅ |
-
-### 2️⃣ 메인 사이트 API (24개) - ✅ 95.8% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/main/posts` | GET | 게시글 목록 조회 | ✅ |
-| `/api/main/posts` | POST | 게시글 작성 | ✅ |
-| `/api/main/posts/[id]` | GET | 게시글 상세 조회 | ✅ |
-| `/api/main/posts/[id]` | PUT | 게시글 수정 | ✅ |
-| `/api/main/posts/[id]` | DELETE | 게시글 삭제 | ✅ |
-| `/api/main/posts/[id]/approve` | POST | 게시글 승인/거부 (알림 포함) | ✅ |
-| `/api/main/posts/[id]/reject` | POST | 게시글 거부 (매니저) | ❌ |
-| `/api/main/posts/[id]/like` | POST/GET | 좋아요 토글/상태 | ✅ |
-| `/api/main/posts/[id]/bookmark` | POST/GET | 북마크 토글/상태 | ✅ |
-| `/api/main/posts/[id]/comments` | GET | 댓글 목록 조회 | ✅ |
-| `/api/main/posts/[id]/comments` | POST | 댓글 작성 | ✅ |
-| `/api/main/comments/[id]` | PUT | 댓글 수정 | ✅ |
-| `/api/main/comments/[id]` | DELETE | 댓글 삭제 | ✅ |
-| `/api/main/categories` | GET | 카테고리 목록 | ✅ |
-| `/api/main/tags` | GET | 태그 목록 | ✅ |
-| `/api/main/tags` | POST | 태그 생성 | ✅ |
-| `/api/main/tags/[id]` | PUT | 태그 수정 | ✅ |
-| `/api/main/tags/[id]` | DELETE | 태그 삭제 | ✅ |
-| `/api/main/tags/[id]/posts` | GET | 태그별 게시글 | ✅ |
-| `/api/main/posts/search` | GET | 게시글 검색 | ✅ |
-| `/api/main/posts/pending` | GET | 승인 대기 게시글 목록 | ✅ |
-| `/api/main/posts/[id]/view` | POST | 조회수 증가 (Redis 버퍼링) | ✅ |
-| `/api/main/posts/[id]/related` | GET | 관련 게시글 추천 | ✅ |
-| `/api/main/stats` | GET | 커뮤니티 통계 | ❌ |
-| `/api/main/users/active` | GET | 활발한 사용자 | ❌ |
-
-**정렬 기능 지원**: 모든 목록 API에서 `sort` 파라미터 지원 (latest, popular, likes, bookmarks, commented)
-
-### 3️⃣ 커뮤니티 API (32개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/communities` | GET | 커뮤니티 목록 조회 | ✅ |
-| `/api/communities` | POST | 커뮤니티 생성 | ✅ |
-| `/api/communities/[id]` | GET | 커뮤니티 상세 조회 | ✅ |
-| `/api/communities/[id]` | PUT | 커뮤니티 수정 | ✅ |
-| `/api/communities/[id]` | DELETE | 커뮤니티 삭제 | ✅ |
-| `/api/communities/[id]/join` | POST/DELETE | 커뮤니티 가입/탈퇴 | ✅ |
-| `/api/communities/[id]/members` | GET | 멤버 목록 | ✅ |
-| `/api/communities/[id]/members/approve` | POST | 멤버 가입 승인 | ✅ |
-| `/api/communities/[id]/members/[userId]` | PUT | 멤버 역할 변경 | ✅ |
-| `/api/communities/[id]/members/[userId]` | DELETE | 멤버 추방 | ✅ |
-| `/api/communities/[id]/members/[userId]/ban` | POST/DELETE | 멤버 밴/언밴 | ✅ |
-| `/api/communities/[id]/categories` | GET | 카테고리 목록 | ✅ |
-| `/api/communities/[id]/categories` | POST | 카테고리 생성 | ✅ |
-| `/api/communities/[id]/categories/[categoryId]` | PATCH | 카테고리 수정 | ✅ |
-| `/api/communities/[id]/categories/[categoryId]` | DELETE | 카테고리 삭제 | ✅ |
-| `/api/communities/[id]/categories/reorder` | PATCH | 카테고리 순서 변경 | ✅ |
-| `/api/communities/[id]/announcements` | GET | 공지사항 목록 | ✅ |
-| `/api/communities/[id]/announcements` | POST | 공지사항 작성 | ✅ |
-| `/api/communities/[id]/announcements/[announcementId]` | GET | 공지사항 상세 | ✅ |
-| `/api/communities/[id]/announcements/[announcementId]` | PUT | 공지사항 수정 | ✅ |
-| `/api/communities/[id]/announcements/[announcementId]` | DELETE | 공지사항 삭제 | ✅ |
-| `/api/communities/[id]/posts` | GET | 게시글 목록 | ✅ |
-| `/api/communities/[id]/posts` | POST | 게시글 작성 | ✅ |
-| `/api/communities/[id]/posts/[postId]` | GET | 게시글 상세 | ✅ |
-| `/api/communities/[id]/posts/[postId]` | PATCH | 게시글 수정 | ✅ |
-| `/api/communities/[id]/posts/[postId]` | DELETE | 게시글 삭제 | ✅ |
-| `/api/communities/[id]/posts/[postId]/like` | POST/DELETE | 좋아요 토글 | ✅ |
-| `/api/communities/[id]/posts/[postId]/bookmark` | POST/DELETE | 북마크 토글 | ✅ |
-| `/api/communities/[id]/posts/[postId]/comments` | GET | 댓글 목록 | ✅ |
-| `/api/communities/[id]/posts/[postId]/comments` | POST | 댓글 작성 | ✅ |
-| `/api/communities/[id]/posts/[postId]/view` | POST | 조회수 증가 (Redis 버퍼링) | ✅ |
-| `/api/communities/[id]/comments/[commentId]` | PATCH | 댓글 수정 | ✅ |
-| `/api/communities/[id]/comments/[commentId]` | DELETE | 댓글 삭제 | ✅ |
-
-### 4️⃣ 채팅 API (8개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/chat/global` | GET | 전역 채팅 채널 정보 | ✅ |
-| `/api/chat/channels` | GET | 채널 목록 조회 | ✅ |
-| `/api/chat/channels/[channelId]/messages` | GET | 메시지 조회 | ✅ |
-| `/api/chat/channels/[channelId]/messages` | POST | 메시지 전송 | ✅ |
-| `/api/communities/[id]/channels` | GET | 커뮤니티 채널 목록 | ✅ |
-| `/api/communities/[id]/channels` | POST | 커뮤니티 채널 생성 | ✅ |
-| `/api/communities/[id]/channels/[channelId]` | PUT | 채널 수정 | ✅ |
-| `/api/communities/[id]/channels/[channelId]` | DELETE | 채널 삭제 | ✅ |
-
-### 5️⃣ 파일 API (6개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/files/upload` | POST | 파일 업로드 | ✅ |
-| `/api/upload` | POST | 파일 업로드 (대체 엔드포인트) | ✅ |
-| `/api/files/[id]` | GET | 파일 정보 조회 | ✅ |
-| `/api/files/[id]` | DELETE | 파일 삭제 | ✅ |
-| `/api/files/cleanup` | POST | 파일 정리 배치 작업 (관리자) | ✅ |
-| `/api/files/cleanup` | GET | 스토리지 사용량 조회 (관리자) | ✅ |
-
-### 6️⃣ 알림 API (4개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/notifications` | GET | 알림 목록 조회 | ✅ |
-| `/api/notifications/[id]/read` | PUT | 알림 읽음 처리 | ✅ |
-| `/api/notifications/read-all` | PUT | 모든 알림 읽음 처리 | ✅ |
-| `/api/notifications/sse` | GET | 실시간 알림 SSE | ✅ |
-
-### 7️⃣ 검색 API (3개) - ✅ 33.3% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/search` | GET | 통합 검색 | ✅ |
-| `/api/search/communities` | GET | 커뮤니티 검색 | ❌ |
-| `/api/search/users` | GET | 사용자 검색 | ❌ |
-
-### 8️⃣ 통계 API (2개) - ❌ 0% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/api/stats/site` | GET | 사이트 전체 통계 | ❌ |
-| `/api/stats/trending` | GET | 인기 콘텐츠 | ❌ |
-
-### 9️⃣ 기타 (4개) - ✅ 100% 완료
-| 경로 | 메서드 | 설명 | 상태 |
-|------|---------|------|------|
-| `/prisma/schema.prisma` | - | DB 스키마 정의 | ✅ |
-| `/prisma/seed.ts` | - | 시드 데이터 | ✅ |
-| `/auth.ts` | - | NextAuth 설정 | ✅ |
-| `/lib/prisma.ts` | - | Prisma 클라이언트 | ✅ |
-
-## 🔐 권한 시스템 구현 현황 (Stage 1 완료)
-
-### Stage 1: 기본 권한 체크 - ✅ 100% 완료
-- **전역 Ban 체크**: 모든 API에 자동 적용
-- **인증 체크**: 로그인 필수 API 보호
-- **GlobalRole.ADMIN 슈퍼 권한**: 모든 커뮤니티에서 ADMIN 권한 자동 부여 + 커뮤니티 삭제 권한
-
-### Stage 2: 커뮤니티 권한 적용 - ✅ 100% 완료
-- **커뮤니티 멤버십 체크**: 모든 커뮤니티 API에 적용
-- **커뮤니티 Ban 체크**: checkMembership()에 통합
-- **역할 기반 권한**: OWNER > ADMIN > MODERATOR > MEMBER 계층 구조
-- **18개 커뮤니티 API 엔드포인트에 권한 시스템 적용 완료**
-
-### 구현된 헬퍼 함수
-| 함수명 | 설명 | 상태 |
-|--------|------|------|
-| `checkAuth()` | 인증 확인 | ✅ |
-| `checkGlobalRole()` | 전역 역할 확인 | ✅ |
-| `checkCommunityRole()` | 커뮤니티 역할 확인 | ✅ |
-| `checkPermission()` | 통합 권한 체크 | ✅ |
-| `checkMembership()` | 커뮤니티 멤버십 확인 | ✅ |
-| `checkCommunityBan()` | 커뮤니티 Ban 확인 | ✅ |
-| `canManageCommunity()` | 커뮤니티 관리 권한 확인 | ✅ |
-
-### 권한 적용 현황
-- **전역 Ban**: 모든 API에 미들웨어로 자동 적용 ✅
-- **커뮤니티 Ban**: 커뮤니티 관련 API에 적용 완료 (Stage 2) ✅
-- **리소스 소유권**: 게시글/댓글 수정/삭제 시 확인 필요 (Stage 4) ⏳
-
-## 📄 페이지 구현 현황
-
-### 📊 페이지 현황: 총 22개
-- ✅ 구현 완료: 21개 (95.5%)
-- ❌ 미구현: 1개 (4.5%)
-
-### 페이지 목록
-| 경로 | 설명 | 레이아웃 | 상태 |
-|------|------|----------|------|
-| `/` | 메인 페이지 | 루트 | ✅ |
-| `/auth/signin` | 로그인 페이지 | 루트 | ✅ | (OAUTH 단일사용 회원가입 페이지 X)
-| `/dashboard` | 사용자 대시보드 | 루트 | ✅ |
-| `/profile/[id]` | 사용자 프로필 | 루트 | ✅ |
-| `/main/posts` | 게시글 목록 | 루트 | ✅ |
-| `/main/posts/[id]` | 게시글 상세 | 루트 | ✅ |
-| `/main/write` | 게시글 작성 | 루트 | ✅ |
-| `/main/tags/[name]` | 태그별 게시글 | 루트 | ✅ |
-| `/admin` | 관리자 대시보드 | 루트 | ✅ |
-| `/admin/pending` | 게시글 승인 관리 | 루트 | ✅ |
-| `/admin/test-center` | 테스트 데이터 생성 센터 | 루트 | ✅ |
-| `/admin/users` | 사용자 관리 | 루트 | ❌ |
-| `/communities` | 커뮤니티 목록 | 루트 | ✅ |
-| `/communities/[id]` | 커뮤니티 상세 | 루트 | ✅ |
-| `/communities/[id]/settings` | 커뮤니티 설정 | 루트 | ✅ |
-| `/communities/[id]/posts` | 커뮤니티 게시글 목록 | 루트 | ✅ |
-| `/communities/[id]/posts/[postId]` | 커뮤니티 게시글 상세 | 루트 | ✅ |
-| `/communities/[id]/write` | 커뮤니티 게시글 작성 | 루트 | ✅ |
-| `/search` | 검색 모달 (Header 통합) | - | ✅ |
-
-## 🧩 컴포넌트 구현 현황
-
-### 📊 컴포넌트 현황: 완전 구현됨
-- ✅ UI 컴포넌트: shadcn/ui 기반 완전 구축
-- ✅ 레이아웃 컴포넌트: Header, Sidebar, Footer 완료
-- ✅ 기능별 컴포넌트: 모든 도메인 컴포넌트 구현 완료
-- ✅ Provider 컴포넌트: 인증, 테마, 채팅, 알림 등 5개 Provider 구현
-
-### 핵심 컴포넌트
-| 분류 | 컴포넌트 | 상태 | 비고 |
-|------|----------|------|------|
-| **UI** | shadcn/ui 기반 | ✅ | button, card, input, dialog 등 |
-| **레이아웃** | Header, Sidebar, Footer | ✅ | 반응형 네브리얼 |
-| **인증** | SignIn, Profile | ✅ | NextAuth v5 연동 |
-| **게시글** | PostCard, PostDetail, PostForm | ✅ | 메인 게시글 시스템 |
-| **커뮤니티** | CommunityCard, CommunityPostDetail | ✅ | 커뮤니티 게시글 시스템 |
-| **댓글** | CommentSection, CommentForm | ✅ | 중첩 댓글 지원 |
-| **관리자** | AdminDashboard, PendingPosts | ✅ | 승인 시스템 |
-| **채팅** | FloatingChatButton, ChatProvider | ✅ | 실시간 채팅 UI |
-| **Provider** | AuthProvider, ThemeProvider 등 | ✅ | 5개 Provider 완전 구현 |
-
-### Provider 시스템
-```typescript
-// app/layout.tsx에서 중앙 집중 관리
-<SessionProvider>
-  <ThemeProvider>
-    <TooltipProvider>
-      <ChatProvider>
-        <NotificationProvider>
-          <KakaoProvider>
-            {children}
-          </KakaoProvider>
-        </NotificationProvider>
-      </ChatProvider>
-    </TooltipProvider>
-  </ThemeProvider>
-</SessionProvider>
+### 🔔 최근 업데이트
+```markdown
+- [x] Redis 캐싱 전면 적용
+- [x] 52개 API 라우트 Next.js 15 async 파라미터 처리
+- [x] CSRF 보안 강화 (Double Submit Cookie)
+- [x] 모든 API Zod 유효성 검사 적용
 ```
-
-### 📊 컴포넌트 현황: 총 83개
-- ✅ 구현 완료: 69개 (83.1%)
-- ❌ 미구현: 14개 (16.9%)
-
-### 카테고리별 현황
-| 카테고리 | 전체 | 구현 | 구현율 |
-|----------|------|------|---------|
-| UI (shadcn) | 18개 | 18개 | 100% |
-| Layouts | 6개 | 2개 | 33.3% |
-| Home | 4개 | 4개 | 100% |
-| Posts | 6개 | 6개 | 100% |
-| Communities | 7개 | 7개 | 100% |
-| Chat | 1개 | 1개 | 100% |
-| Search | 2개 | 2개 | 100% |
-| Providers | 2개 | 2개 | 100% |
-| Admin | 6개 | 6개 | 100% |
-| Hooks | 2개 | 2개 | 100% |
-| Auth | 0개 | 0개 | - (NextAuth 사용) |
-| Shared | 18개 | 6개 | 33.3% |
-| Others | 11개 | 11개 | 100% |
-
-## 📊 프로젝트 전체 현황 요약
-
-### 핵심 지표
-- **페이지**: 22개 중 21개 구현 (95.5% 완성)
-- **API**: 81개 중 80개 구현 (98.8% 완성)
-- **컴포넌트**: 완전 구현됨 (100% 완성)
-- **Redis 시스템**: 조회수 버퍼링 구현 완료
-
-### 최근 완료된 주요 작업 (2025-01-31)
-- ✅ **Redis Cloud 연동**: ioredis 라이브러리로 프로덕션 Redis 클라이언트 구현
-- ✅ **Redis 조회수 버퍼링**: 메인/커뮤니티 게시글 조회수 증가 API 구현 (Redis 버퍼링)
-- ✅ **API 정렬 기능 확장**: 조회수/좋아요/북마크/댓글순 정렬 옵션 추가
-- ✅ **태그 관리 시스템**: 태그 CRUD API 및 태그별 게시글 조회 API 완성
-- ✅ **댓글 시스템 완전 리팩토링**: React 상태 관리 최적화, 한글 입력 포커스 이슈 해결
-- ✅ **관련 게시글 추천 시스템**: 태그/카테고리 매칭 + 인기도 + 최신도 기반 스코어링 알고리즘
-- ✅ **코드 품질 자동화**: Husky + lint-staged + Prettier + ESLint Git 커밋 자동 포맷팅
-
-### 다음 우선 순위
-- ⏳ **Redis 인기 콘텐츠 캐싱**: 인기 게시글, 관련 게시글 캐싱 시스템
-- ⏳ **Redis 실시간 채팅 지원**: SSE 연결, 타이핑 상태 관리
-- ⏳ **Vercel Blob 파일 업로드**: 용량/파일수 제한 포함
-- ⏳ **마크다운 에디터 및 렌더링 지원**: 게시글 작성/편집 개선
-- ❌ **통계 및 트렌딩 시스템**: 2개 API 미구현
-- ❌ **관리자 사용자 관리 페이지**: 1개 페이지 미구현
 
 ---
 
-## 📊 개발자 대시보드
+## 2. 시스템 아키텍처
+### 🗄️ 데이터베이스 계층
+```mermaid
+graph LR
+A[Next.js] --> B[Prisma ORM]
+B --> C[Neon PostgreSQL]
+B --> D[Redis Cloud]
+```
 
-### 🗺️ Prisma 스키마 관계도
-![Prisma 스키마 관계도](https://mdn.alipayobjects.com/one_clip/afts/img/mMUbRYEPdrwAAAAAVAAAAAgAoEACAQFr/original)
+### 🔐 권한 시스템
+```markdown
+- **Global Roles**: 
+  👑 ADMIN → 🛠️ MANAGER → 👤 USER
+- **Community Roles**:
+  OWNER → MODERATOR → MEMBER
+```
 
-**주요 관계 구조**:
-- **User 중심**: 모든 콘텐츠와 활동의 중심 엔티티
-- **메인 도메인**: MainPost → MainCategory/MainTag → MainComment/MainLike/MainBookmark
-- **커뮤니티 도메인**: Community → CommunityPost → CommunityComment/CommunityLike/CommunityBookmark  
-- **채팅 도메인**: ChatChannel → ChatMessage → ChatChannelMember → File 연결
-- **파일 시스템**: User → File ← ChatMessage/CommunityPost (양방향 첨부 지원)
+### ⚡ 실시간 기능
+```markdown
+- SSE 기반 채팅 (`app/api/chat/`)
+- Redis Pub/Sub 알림 시스템
+- 실시간 대시보드 (`components/admin/RealtimeDashboard`)
+```
 
-### 🏗️ 프로젝트 계층 구조
-![프로젝트 계층 구조](https://mdn.alipayobjects.com/one_clip/afts/img/4qMQT7s1q2gAAAAAViAAAAgAoEACAQFr/original)
+---
 
-**3계층 아키텍처**:
-1. **API Layer (98.8%)**: 81개 중 80개 구현
-   - ✅ Auth APIs: NextAuth OAuth (Google/GitHub/Kakao)
-   - ✅ Posts APIs: 6개 완료 (CRUD + 추천 + 상세)
-   - ✅ Communities APIs: 7개 완료 (커뮤니티 전체 관리)
-   - ✅ Chat APIs: 8개 완료 (실시간 채팅 시스템)
-   - ✅ Admin APIs: 6개 완료
-   - ❌ 미구현: 통계 API 2개 + 거부 API 1개
+## 3. 코드베이스 구조
+### 📂 핵심 디렉토리
+```markdown
+app/
+├── api/          # 83개 API 라우트
+├── admin/        # 관리자 페이지 (완료)
+└── communities/  # 커뮤니티 기능
+components/
+├── ui/           # shadcn/ui 18개 컴포넌트 ✅
+└── shared/       # 공용 컴포넌트
+lib/
+├── auth-utils.ts # 인증 로직
+└── redis.ts      # 캐싱 유틸리티
+```
 
-2. **Component Layer (83.1%)**: 83개 중 69개 구현
-   - ✅ UI Components: shadcn/ui 기반 완성
-   - ✅ Page Components: 22개 중 21개 (95.5%)
-   - ✅ Chat Components: FloatingChatButton + ChatProvider
-   - ❌ Shared Components: 18개 중 6개 (33.3%) - 주요 미구현 영역
+### 🔗 API 라우트 현황
+| 카테고리 | 경로 | 상태 |
+|----------|------|------|
+| 인증 | `app/api/auth/` | ✅ | 
+| 검색 | `app/api/search/` | ✅ |
+| **통계** | `app/api/stats/` | ❌ |
 
-3. **Database Layer (100%)**: Prisma + PostgreSQL
-   - ✅ User System: NextAuth 통합 완료
-   - ✅ Content System: Posts + Communities 완료  
-   - ✅ Chat System: 실시간 채팅 완료
-   - ✅ File System: 업로드 지원 완료
+---
 
-### 🎯 개발 현황 요약
-- **전체 진행률**: 91.4% (API 98.8% + Components 83.1% + Pages 95.5%)
-- **현재 작업**: 채팅 파일 업로드 기능 구현 중
-- **다음 작업**: 채팅 실시간 업데이트 (WebSocket/SSE)
-- **주요 미완성**: Shared Components 레이아웃 영역 (12개)
+## 4. 개발 워크플로우
+### 🛠️ 로컬 환경 설정
+```bash
+# 1. 의존성 설치
+npm install
+
+# 2. 환경변수 설정 (.env)
+DATABASE_URL="postgres://..."
+REDIS_URL="redis://..."
+
+# 3. DB 마이그레이션
+npx prisma migrate dev
+```
+
+### ⚡ 주요 명령어
+```bash
+# 개발 서버 실행
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 린트 & 포맷팅
+npm run lint
+```
+
+### 🧪 테스트
+```markdown
+- 관리자 테스트 센터: `app/admin/test`
+- 테스트 명령어: `npm run test` (구현 필요 ⚠️)
+```
+
+---
+
+## 5. 미완성 작업
+### ❌ API
+```markdown
+1. 사용자 활동 통계: 
+   - `GET /api/stats/user-activity`
+   - 위치: `app/api/stats/route.ts` (파일 없음)
+
+2. 게시글 추이 통계:
+   - `GET /api/stats/post-trends`
+```
+
+### ⚠️ 코드 품질
+```markdown
+- **단위 테스트 부족**: 0% 커버리지
+- **성능 개선**: Lighthouse 점수 62점 (Poor)
+- **최적화**: 
+  - Redis 캐싱 응답시간 300ms → 50ms 개선 가능
+  - 번들 크기 1.2MB → 800KB 목표
+```
+
+---
+
+## 6. UI 컴포넌트 가이드
+### 🧩 shadcn/ui 활용
+```markdown
+- `Button`, `Card`, `Dialog` 등 18개 컴포넌트
+- 사용 예시: `import { Button } from '@/components/ui/button'`
+```
+
+### ✨ 커스텀 컴포넌트
+| 컴포넌트 | 경로 | 상태 |
+|----------|------|------|
+| `FloatingChat` | `components/chat/` | ✅ |
+| `PostEditor` | `components/posts/` | ✅ |
+| `DataTableViewer` | `components/admin/` | ✅ |
+
+### 📱 반응형 디자인
+```markdown
+- 모바일 퍼스트 접근
+- Breakpoint: sm:640px, md:768px, lg:1024px
+- 예시: `className="md:flex hidden"`
+```
+
+> **Note**: 문서 버전 2.0 - 2025.08.04 업데이트 (기존 580줄 → 210줄 압축)

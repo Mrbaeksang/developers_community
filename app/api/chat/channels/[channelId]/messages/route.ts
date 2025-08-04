@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { broadcastMessage } from '@/lib/chat-broadcast'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -201,7 +201,21 @@ export async function POST(
 
     // 요청 본문 검증
     const body = await req.json()
-    const validatedData = messageSchema.parse(body)
+    const validation = messageSchema.safeParse(body)
+
+    if (!validation.success) {
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
+
+    const validatedData = validation.data
 
     // 파일이 첨부된 경우 파일 존재 확인
     if (validatedData.fileId) {

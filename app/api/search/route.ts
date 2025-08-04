@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 // 검색 스키마
 const searchSchema = z.object({
@@ -264,7 +264,15 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw throwValidationError(error.issues[0].message)
+      const errors: Record<string, string[]> = {}
+      error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
     return handleError(error)
   }
