@@ -17,7 +17,6 @@ const PostEditor = dynamic(
         </div>
       </div>
     ),
-    ssr: false,
   }
 )
 
