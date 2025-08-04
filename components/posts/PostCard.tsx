@@ -1,5 +1,6 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -86,25 +87,32 @@ function getCategoryIcon(
   return Tag as LucideIcon
 }
 
-export function PostCard({ post, className }: PostCardProps) {
+// PostCard 컴포넌트를 memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
+export const PostCard = memo(function PostCard({
+  post,
+  className,
+}: PostCardProps) {
   const publishedDate = post.createdAt
   const formattedDate = formatDistanceToNow(new Date(publishedDate), {
     addSuffix: true,
     locale: ko,
   })
 
-  // 읽는 시간 계산 (한글: 분당 300자, 영문: 분당 250단어)
-  const koreanCharCount = (post.content.match(/[가-힣]/g) || []).length
-  const englishWordCount = (post.content.match(/[a-zA-Z]+/g) || []).length
-  const otherCharCount =
-    post.content.length - koreanCharCount - englishWordCount
+  // 읽는 시간 계산을 useMemo로 최적화 (content가 변경될 때만 재계산)
+  const readingTime = useMemo(() => {
+    // 읽는 시간 계산 (한글: 분당 300자, 영문: 분당 250단어)
+    const koreanCharCount = (post.content.match(/[가-힣]/g) || []).length
+    const englishWordCount = (post.content.match(/[a-zA-Z]+/g) || []).length
+    const otherCharCount =
+      post.content.length - koreanCharCount - englishWordCount
 
-  const readingTime = Math.max(
-    1,
-    Math.ceil(
-      koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
+    return Math.max(
+      1,
+      Math.ceil(
+        koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
+      )
     )
-  )
+  }, [post.content])
 
   return (
     <Card
@@ -189,4 +197,4 @@ export function PostCard({ post, className }: PostCardProps) {
       </CardFooter>
     </Card>
   )
-}
+})

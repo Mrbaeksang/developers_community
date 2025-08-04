@@ -143,27 +143,52 @@ async function createPost(request: NextRequest) {
       '#ec4899', // pink
     ]
 
-    for (const tagSlug of tags) {
-      let tag = await prisma.mainTag.findUnique({
-        where: { slug: tagSlug },
+    if (tags.length > 0) {
+      // N+1 쿼리 방지: 모든 태그를 한 번에 조회
+      const existingTags = await prisma.mainTag.findMany({
+        where: { slug: { in: tags } },
       })
 
-      if (!tag) {
-        // 태그가 없으면 생성 - 랜덤 색상 적용
-        const randomColor =
-          tagColors[Math.floor(Math.random() * tagColors.length)]
-        tag = await prisma.mainTag.create({
-          data: {
-            name: tagSlug.replace(/-/g, ' '), // slug를 name으로 변환
-            slug: tagSlug,
-            color: randomColor,
-          },
+      const existingTagMap = new Map(existingTags.map((tag) => [tag.slug, tag]))
+
+      // 새로 생성해야 할 태그들 식별
+      const newTagSlugs = tags.filter(
+        (slug: string) => !existingTagMap.has(slug)
+      )
+
+      if (newTagSlugs.length > 0) {
+        // 새 태그들 일괄 생성
+        const newTagsData = newTagSlugs.map((slug: string) => ({
+          name: slug.replace(/-/g, ' '), // slug를 name으로 변환
+          slug: slug,
+          color: tagColors[Math.floor(Math.random() * tagColors.length)],
+        }))
+
+        await prisma.mainTag.createMany({
+          data: newTagsData,
+          skipDuplicates: true, // 중복 방지
+        })
+
+        // 새로 생성된 태그들 다시 조회
+        const newlyCreatedTags = await prisma.mainTag.findMany({
+          where: { slug: { in: newTagSlugs } },
+        })
+
+        // 맵에 추가
+        newlyCreatedTags.forEach((tag) => {
+          existingTagMap.set(tag.slug, tag)
         })
       }
 
-      tagConnections.push({
-        tag: { connect: { id: tag.id } },
-      })
+      // 태그 연결 데이터 생성
+      for (const tagSlug of tags) {
+        const tag = existingTagMap.get(tagSlug)
+        if (tag) {
+          tagConnections.push({
+            tag: { connect: { id: tag.id } },
+          })
+        }
+      }
     }
 
     // 현재 사용자의 전역 역할 확인 (authorRole 저장을 위해)

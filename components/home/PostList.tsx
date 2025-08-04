@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { PostCard } from '@/components/posts/PostCard'
@@ -93,8 +93,13 @@ export function PostList({
         : undefined,
   })
 
-  const posts = data?.posts || initialPosts || []
-  const categories = data?.categories || initialCategories || []
+  const posts = useMemo(() => {
+    return data?.posts || initialPosts || []
+  }, [data?.posts, initialPosts])
+
+  const categories = useMemo(() => {
+    return data?.categories || initialCategories || []
+  }, [data?.categories, initialCategories])
 
   // URL 업데이트 함수
   const updateURL = (params: Record<string, string>) => {
@@ -120,40 +125,50 @@ export function PostList({
     return category?.name || '모든 카테고리'
   }
 
-  // 카테고리로 필터링된 게시물
-  const filteredPosts =
-    selectedCategory === 'all'
+  // 카테고리로 필터링된 게시물 - useMemo로 최적화
+  const filteredPosts = useMemo(() => {
+    return selectedCategory === 'all'
       ? posts
       : posts.filter((post: Post) => post.category?.slug === selectedCategory)
+  }, [posts, selectedCategory])
 
-  // 정렬된 게시물 목록 (고정 게시글 우선 정렬)
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    // 1. 고정 게시글이 항상 먼저
-    if (a.isPinned && !b.isPinned) return -1
-    if (!a.isPinned && b.isPinned) return 1
+  // 정렬된 게시물 목록 (고정 게시글 우선 정렬) - useMemo로 최적화
+  const sortedPosts = useMemo(() => {
+    return [...filteredPosts].sort((a, b) => {
+      // 1. 고정 게시글이 항상 먼저
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
 
-    // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
-    switch (sortBy) {
-      case 'latest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      case 'popular':
-        return b.viewCount - a.viewCount
-      case 'discussed':
-        return (b._count?.comments || 0) - (a._count?.comments || 0)
-      default:
-        return 0
-    }
-  })
+      // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
+      switch (sortBy) {
+        case 'latest':
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
+        case 'popular':
+          return b.viewCount - a.viewCount
+        case 'discussed':
+          return (b._count?.comments || 0) - (a._count?.comments || 0)
+        default:
+          return 0
+      }
+    })
+  }, [filteredPosts, sortBy])
 
-  // 탭별 필터링
-  const trendingPosts = sortedPosts.filter(
-    (post) => post.viewCount > 100 || (post._count?.likes || 0) > 10
-  )
-  const recentPosts = sortedPosts.filter((post) => {
+  // 탭별 필터링 - useMemo로 최적화
+  const { trendingPosts, recentPosts } = useMemo(() => {
+    const trending = sortedPosts.filter(
+      (post) => post.viewCount > 100 || (post._count?.likes || 0) > 10
+    )
+
     const dayAgo = new Date()
     dayAgo.setDate(dayAgo.getDate() - 1)
-    return new Date(post.createdAt) > dayAgo
-  })
+    const recent = sortedPosts.filter((post) => {
+      return new Date(post.createdAt) > dayAgo
+    })
+
+    return { trendingPosts: trending, recentPosts: recent }
+  }, [sortedPosts])
 
   if (isLoading || externalLoading) {
     return <PostListSkeleton />

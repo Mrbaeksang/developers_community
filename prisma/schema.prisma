@@ -269,6 +269,13 @@ model MainPost {
   bookmarks MainBookmark[]
   tags      MainPostTag[]
 
+  // 성능 최적화를 위한 인덱스
+  @@index([status, createdAt])          // 메인 피드 쿼리
+  @@index([categoryId, status, createdAt]) // 카테고리별 조회
+  @@index([authorId, status])           // 사용자 게시물
+  @@index([slug])                       // SEO 쿼리
+  @@index([status, isPinned, createdAt]) // 고정 게시물 포함 피드
+
   @@map("main_posts")
 }
 
@@ -469,6 +476,11 @@ model CommunityPost {
   tags      CommunityPostTag[]
   files     File[]
 
+  // 성능 최적화를 위한 인덱스
+  @@index([communityId, status, createdAt]) // 커뮤니티 피드
+  @@index([authorId, communityId])      // 사용자의 커뮤니티 게시물
+  @@index([categoryId, status, createdAt]) // 카테고리 필터링
+
   @@map("community_posts")
 }
 
@@ -642,6 +654,10 @@ model ChatMessage {
   replyTo   ChatMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
   replies   ChatMessage[] @relation("MessageReplies")
 
+  // 성능 최적화를 위한 인덱스
+  @@index([channelId, createdAt])      // 채널 메시지
+  @@index([authorId, createdAt])       // 사용자 메시지
+
   @@map("chat_messages")
 }
 
@@ -706,6 +722,10 @@ model Notification {
   // 관련 리소스 ID (JSON으로 저장)
   resourceIds String? @db.Text // JSON: {"postId": "xxx", "commentId": "yyy", "communityId": "zzz"}
   
+  // 성능 최적화를 위한 인덱스
+  @@index([userId, isRead, createdAt])  // 사용자 알림 조회
+  @@index([type, createdAt])            // 알림 타입별 조회
+
   @@map("notifications")
 }
 
