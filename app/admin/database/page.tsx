@@ -126,6 +126,11 @@ const TABLES = [
     label: '파일',
     description: '업로드된 이미지, 문서 등 파일 정보',
   },
+  {
+    value: 'VisitorLog',
+    label: '방문자 로그',
+    description: '사이트 방문자 추적 데이터 (세션 ID, 방문 경로, 시간)',
+  },
 ]
 
 // 컬럼 한글 번역
@@ -234,6 +239,14 @@ const COLUMN_TRANSLATIONS: Record<string, string> = {
 
   // Announcement
   isPinned: '고정 여부',
+
+  // VisitorLog 관련
+  sessionId: '세션 ID',
+  pathname: '방문 경로',
+  referrer: '이전 페이지',
+  userAgent: '브라우저 정보',
+  ipAddress: 'IP 주소',
+  visitedAt: '방문 시간',
 }
 
 export default function DatabaseViewerPage() {

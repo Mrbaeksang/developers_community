@@ -57,7 +57,8 @@
       "mcp__exa__deep_researcher_check",
       "mcp__github__search_repositories",
       "Bash(cmd //c:*)",
-      "WebFetch(domain:vercel.com)"
+      "WebFetch(domain:vercel.com)",
+      "Bash(npm outdated)"
     ],
     "deny": []
   }

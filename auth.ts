@@ -13,6 +13,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   pages: {
     signIn: '/auth/signin',
   },
+  cookies: {
+    pkceCodeVerifier: {
+      name: 'authjs.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
@@ -60,6 +71,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID || '',
       clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
     }),
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',

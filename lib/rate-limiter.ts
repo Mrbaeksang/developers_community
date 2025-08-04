@@ -1,16 +1,22 @@
-import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible'
+// rate-limiter-flexible에서 필요한 것만 import (Drizzle 관련 제외)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { RateLimiterRedis, RateLimiterMemory } = require('rate-limiter-flexible')
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { redis } from '@/lib/redis'
 
 // Rate Limiter 타입 정의
+type RateLimiterInstance =
+  | InstanceType<typeof RateLimiterRedis>
+  | InstanceType<typeof RateLimiterMemory>
+
 type RateLimiters = {
-  general: RateLimiterRedis | RateLimiterMemory
-  auth: RateLimiterRedis | RateLimiterMemory
-  post: RateLimiterRedis | RateLimiterMemory
-  comment: RateLimiterRedis | RateLimiterMemory
-  upload: RateLimiterRedis | RateLimiterMemory
-  api: RateLimiterRedis | RateLimiterMemory
+  general: RateLimiterInstance
+  auth: RateLimiterInstance
+  post: RateLimiterInstance
+  comment: RateLimiterInstance
+  upload: RateLimiterInstance
+  api: RateLimiterInstance
 }
 
 // Rate Limiter를 지연 초기화로 변경
