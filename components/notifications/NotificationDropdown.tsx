@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +29,6 @@ export default function NotificationDropdown() {
     refreshNotifications,
   } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-
-  const queryClient = useQueryClient()
 
   // 알림 삭제 mutation
   const deleteNotificationMutation = useMutation({
