@@ -156,7 +156,7 @@ export function rateLimitResponse(
 // Next.js Route Handler 타입
 type RouteHandler<TContext = unknown> = (
   req: NextRequest,
-  context?: TContext
+  context: TContext
 ) => Promise<Response> | Response
 
 // Next.js Route Handler용 미들웨어
@@ -164,7 +164,7 @@ export function withRateLimit<TContext = unknown>(
   handler: RouteHandler<TContext>,
   limiterType: keyof typeof rateLimiters = 'general'
 ): RouteHandler<TContext> {
-  return async function (req: NextRequest, context?: TContext) {
+  return async function (req: NextRequest, context: TContext) {
     const result = await checkRateLimit(req, limiterType)
 
     if (!result.success) {

@@ -74,12 +74,9 @@ const createCommentSchema = z.object({
 
 async function createCommunityComment(
   req: NextRequest,
-  context?: { params: Promise<{ id: string; postId: string }> }
+  context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id, postId } = await context.params
 
     // 커뮤니티 찾기 (ID 또는 slug)

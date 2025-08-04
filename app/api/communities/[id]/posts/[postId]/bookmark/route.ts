@@ -12,12 +12,9 @@ import { withRateLimit } from '@/lib/rate-limiter'
 // POST: 커뮤니티 게시글 북마크
 async function bookmarkCommunityPost(
   req: NextRequest,
-  context?: { params: Promise<{ id: string; postId: string }> }
+  context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
@@ -67,12 +64,9 @@ export const POST = withRateLimit(bookmarkCommunityPost, 'general')
 // DELETE: 커뮤니티 게시글 북마크 취소
 async function unbookmarkCommunityPost(
   req: NextRequest,
-  context?: { params: Promise<{ id: string; postId: string }> }
+  context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {

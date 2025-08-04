@@ -91,7 +91,7 @@ export async function GET(
 // POST /api/main/posts/[id]/comments - 댓글 작성
 async function createComment(
   request: NextRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuthAPI()
@@ -102,9 +102,6 @@ async function createComment(
     // Ban 상태 체크
     await checkBanStatus(session.user.id)
 
-    if (!context) {
-      return errorResponse('Invalid request context', 400)
-    }
     const { id } = await context.params
     const { content, parentId } = await request.json()
 

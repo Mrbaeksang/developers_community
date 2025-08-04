@@ -10,7 +10,7 @@ import { withRateLimit } from '@/lib/rate-limiter'
 // POST /api/main/posts/[id]/like - 좋아요 토글
 async function toggleLike(
   request: NextRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuthAPI()
@@ -21,9 +21,6 @@ async function toggleLike(
     // Ban 상태 체크
     await checkBanStatus(session.user.id)
 
-    if (!context) {
-      return errorResponse('Invalid request context', 400)
-    }
     const { id } = await context.params
     const userId = session.user.id
 

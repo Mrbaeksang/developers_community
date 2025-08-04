@@ -171,12 +171,9 @@ const createPostSchema = z.object({
 
 async function createCommunityPost(
   req: NextRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {

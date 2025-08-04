@@ -19,12 +19,9 @@ import { withRateLimit } from '@/lib/rate-limiter'
 // POST: 커뮤니티 가입
 async function joinCommunity(
   req: NextRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id } = await context.params
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -174,12 +171,9 @@ export const POST = withRateLimit(joinCommunity, 'post')
 // DELETE: 커뮤니티 탈퇴
 async function leaveCommunity(
   req: NextRequest,
-  context?: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id } = await context.params
     const session = await requireAuthAPI()
     if (session instanceof Response) {

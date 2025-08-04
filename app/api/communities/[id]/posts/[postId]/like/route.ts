@@ -12,12 +12,9 @@ import { withRateLimit } from '@/lib/rate-limiter'
 // POST: 커뮤니티 게시글 좋아요
 async function likeCommunityPost(
   req: NextRequest,
-  context?: { params: Promise<{ id: string; postId: string }> }
+  context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
@@ -73,12 +70,9 @@ export const POST = withRateLimit(likeCommunityPost, 'general')
 // DELETE: 커뮤니티 게시글 좋아요 취소
 async function unlikeCommunityPost(
   req: NextRequest,
-  context?: { params: Promise<{ id: string; postId: string }> }
+  context: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
-    if (!context) {
-      throwValidationError('Invalid request context')
-    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
