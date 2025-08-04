@@ -101,10 +101,14 @@ export async function GET(
     const scoredPosts = await Promise.all(
       uniquePosts.map(async (post) => {
         // Redis에서 버퍼링된 조회수 가져오기
-        const bufferKey = `post:${post.id}:views`
-        const bufferedViews = await redis().get(bufferKey)
-        const redisViews = parseInt(bufferedViews || '0')
-        const totalViewCount = post.viewCount + redisViews
+        let totalViewCount = post.viewCount
+        const client = redis()
+        if (client) {
+          const bufferKey = `post:${post.id}:views`
+          const bufferedViews = await client.get(bufferKey)
+          const redisViews = parseInt(bufferedViews || '0')
+          totalViewCount = post.viewCount + redisViews
+        }
 
         const daysSinceCreated = Math.floor(
           (Date.now() - new Date(post.createdAt).getTime()) /

@@ -93,9 +93,13 @@ export async function GET(request: NextRequest) {
     const formattedBookmarks = await Promise.all(
       bookmarks.map(async (bookmark) => {
         // Redis에서 버퍼링된 조회수 가져오기
-        const bufferKey = `post:${bookmark.post.id}:views`
-        const bufferedViews = await redis().get(bufferKey)
-        const redisViews = parseInt(bufferedViews || '0')
+        let redisViews = 0
+        const client = redis()
+        if (client) {
+          const bufferKey = `post:${bookmark.post.id}:views`
+          const bufferedViews = await client.get(bufferKey)
+          redisViews = parseInt(bufferedViews || '0')
+        }
 
         return {
           bookmarkId: bookmark.id,

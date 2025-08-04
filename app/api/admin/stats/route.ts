@@ -29,17 +29,20 @@ export async function GET() {
 
     try {
       const redisClient = redis()
+      if (!redisClient) {
+        console.warn('Redis client not available for admin stats')
+      } else {
+        // 활성 방문자 수
+        const activeVisitors = await redisClient.scard('active_visitors')
 
-      // 활성 방문자 수
-      const activeVisitors = await redisClient.scard('active_visitors')
+        // 오늘 조회수
+        const today = new Date().toISOString().split('T')[0]
+        const todayViews = await redisClient.hget('daily_views', today)
 
-      // 오늘 조회수
-      const today = new Date().toISOString().split('T')[0]
-      const todayViews = await redisClient.hget('daily_views', today)
-
-      realtime = {
-        activeVisitors: activeVisitors || 0,
-        todayViews: todayViews ? parseInt(todayViews) : 0,
+        realtime = {
+          activeVisitors: activeVisitors || 0,
+          todayViews: todayViews ? parseInt(todayViews) : 0,
+        }
       }
     } catch (redisError) {
       console.error('Redis error:', redisError)

@@ -1,67 +1,135 @@
-import { RateLimiterRedis } from 'rate-limiter-flexible'
+import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { redis } from '@/lib/redis'
 
-// Redis 클라이언트 가져오기
-const redisClient = redis()
-
-// Rate Limiter 설정
-export const rateLimiters = {
-  // IP 기반 일반 요청 제한
-  general: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_general',
-    points: 60, // 요청 수
-    duration: 60, // 초 (1분)
-    blockDuration: 60, // 차단 시간 (초)
-  }),
-
-  // 로그인/회원가입 제한
-  auth: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_auth',
-    points: 5,
-    duration: 60,
-    blockDuration: 300, // 5분 차단
-  }),
-
-  // 게시글 작성 제한
-  post: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_post',
-    points: 10,
-    duration: 60,
-    blockDuration: 120,
-  }),
-
-  // 댓글 작성 제한
-  comment: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_comment',
-    points: 30,
-    duration: 60,
-    blockDuration: 60,
-  }),
-
-  // 파일 업로드 제한
-  upload: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_upload',
-    points: 5,
-    duration: 60,
-    blockDuration: 300,
-  }),
-
-  // API 키 기반 제한 (높은 한도)
-  api: new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: 'rl_api',
-    points: 1000,
-    duration: 60,
-    blockDuration: 60,
-  }),
+// Rate Limiter 타입 정의
+type RateLimiters = {
+  general: RateLimiterRedis | RateLimiterMemory
+  auth: RateLimiterRedis | RateLimiterMemory
+  post: RateLimiterRedis | RateLimiterMemory
+  comment: RateLimiterRedis | RateLimiterMemory
+  upload: RateLimiterRedis | RateLimiterMemory
+  api: RateLimiterRedis | RateLimiterMemory
 }
+
+// Rate Limiter를 지연 초기화로 변경
+let rateLimitersInstance: RateLimiters | null = null
+
+function getRateLimiters() {
+  if (rateLimitersInstance) {
+    return rateLimitersInstance
+  }
+
+  // Redis 클라이언트 가져오기
+  const redisClient = redis()
+
+  // Redis가 없으면 메모리 기반 rate limiter 사용
+  if (!redisClient) {
+    console.warn('Using memory-based rate limiter as Redis is not available')
+    rateLimitersInstance = {
+      general: new RateLimiterMemory({
+        keyPrefix: 'rl_general',
+        points: 60,
+        duration: 60,
+        blockDuration: 60,
+      }),
+      auth: new RateLimiterMemory({
+        keyPrefix: 'rl_auth',
+        points: 5,
+        duration: 60,
+        blockDuration: 300,
+      }),
+      post: new RateLimiterMemory({
+        keyPrefix: 'rl_post',
+        points: 10,
+        duration: 60,
+        blockDuration: 120,
+      }),
+      comment: new RateLimiterMemory({
+        keyPrefix: 'rl_comment',
+        points: 30,
+        duration: 60,
+        blockDuration: 60,
+      }),
+      upload: new RateLimiterMemory({
+        keyPrefix: 'rl_upload',
+        points: 5,
+        duration: 60,
+        blockDuration: 300,
+      }),
+      api: new RateLimiterMemory({
+        keyPrefix: 'rl_api',
+        points: 1000,
+        duration: 60,
+        blockDuration: 60,
+      }),
+    }
+    return rateLimitersInstance
+  }
+
+  // Rate Limiter 설정
+  rateLimitersInstance = {
+    // IP 기반 일반 요청 제한
+    general: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_general',
+      points: 60, // 요청 수
+      duration: 60, // 초 (1분)
+      blockDuration: 60, // 차단 시간 (초)
+    }),
+
+    // 로그인/회원가입 제한
+    auth: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_auth',
+      points: 5,
+      duration: 60,
+      blockDuration: 300, // 5분 차단
+    }),
+
+    // 게시글 작성 제한
+    post: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_post',
+      points: 10,
+      duration: 60,
+      blockDuration: 120,
+    }),
+
+    // 댓글 작성 제한
+    comment: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_comment',
+      points: 30,
+      duration: 60,
+      blockDuration: 60,
+    }),
+
+    // 파일 업로드 제한
+    upload: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_upload',
+      points: 5,
+      duration: 60,
+      blockDuration: 300,
+    }),
+
+    // API 키 기반 제한 (높은 한도)
+    api: new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'rl_api',
+      points: 1000,
+      duration: 60,
+      blockDuration: 60,
+    }),
+  }
+
+  return rateLimitersInstance
+}
+
+// Rate Limiter export를 getter로 변경
+export const rateLimiters = getRateLimiters
 
 // IP 주소 추출 헬퍼
 export function getClientIp(req: NextRequest): string {
@@ -82,7 +150,13 @@ export function getClientIp(req: NextRequest): string {
 // Rate Limit 체크 함수
 export async function checkRateLimit(
   req: NextRequest,
-  limiterType: keyof typeof rateLimiters = 'general'
+  limiterType:
+    | 'general'
+    | 'auth'
+    | 'post'
+    | 'comment'
+    | 'upload'
+    | 'api' = 'general'
 ): Promise<{
   success: boolean
   limit?: number
@@ -90,7 +164,8 @@ export async function checkRateLimit(
   reset?: Date
 }> {
   try {
-    const limiter = rateLimiters[limiterType]
+    const limiters = rateLimiters()
+    const limiter = limiters[limiterType]
     const ip = getClientIp(req)
 
     // 사용자 ID 가져오기 (로그인한 경우)
@@ -162,7 +237,7 @@ type RouteHandler<TContext = unknown> = (
 // Next.js Route Handler용 미들웨어
 export function withRateLimit<TContext = unknown>(
   handler: RouteHandler<TContext>,
-  limiterType: keyof typeof rateLimiters = 'general'
+  limiterType: keyof RateLimiters = 'general'
 ): RouteHandler<TContext> {
   return async function (req: NextRequest, context: TContext) {
     const result = await checkRateLimit(req, limiterType)

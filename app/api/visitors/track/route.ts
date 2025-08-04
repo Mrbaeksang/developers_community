@@ -11,6 +11,11 @@ export async function POST(request: Request) {
     }
 
     const client = redis()
+    if (!client) {
+      console.warn('Redis client not available for visitor tracking')
+      return successResponse({ tracked: false })
+    }
+
     const now = Date.now()
 
     // 방문자 세션 정보 저장 (5분 TTL)

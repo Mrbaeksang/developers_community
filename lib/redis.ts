@@ -7,6 +7,15 @@ let redisClient: Redis | null = null
 function createRedisClient() {
   // 프로덕션 환경 변수 체크
   if (!process.env['REDIS_URL']) {
+    // 개발/빌드 환경에서는 더미 클라이언트 반환
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test' ||
+      !process.env.NODE_ENV
+    ) {
+      console.warn('REDIS_URL not found, using dummy Redis client')
+      return null as unknown as Redis
+    }
     throw new Error('REDIS_URL is not defined in environment variables')
   }
 
@@ -65,7 +74,7 @@ function createRedisClient() {
 }
 
 // Redis 클라이언트 getter
-function getRedisClient(): Redis {
+function getRedisClient(): Redis | null {
   if (!redisClient) {
     redisClient = createRedisClient()
   }
@@ -79,6 +88,10 @@ export const redis = getRedisClient
 export async function incrementViewCount(postId: string): Promise<number> {
   try {
     const client = getRedisClient()
+    if (!client) {
+      console.warn('Redis client not available')
+      return 0
+    }
     // 조회수 증가
     const viewCount = await client.hincrby('post_views', postId, 1)
 
@@ -119,6 +132,10 @@ export async function incrementViewCount(postId: string): Promise<number> {
 export async function getViewCount(postId: string): Promise<number> {
   try {
     const client = getRedisClient()
+    if (!client) {
+      console.warn('Redis client not available')
+      return 0
+    }
     const count = await client.hget('post_views', postId)
     return count ? parseInt(count) : 0
   } catch (error) {
@@ -137,6 +154,10 @@ export async function getViewCounts(
     }
 
     const client = getRedisClient()
+    if (!client) {
+      console.warn('Redis client not available')
+      return new Map()
+    }
     const pipeline = client.pipeline()
     postIds.forEach((id) => pipeline.hget('post_views', id))
 

@@ -127,22 +127,24 @@ export async function PostListServer({
 
   try {
     const redisClient = redis()
-    const pipeline = redisClient.pipeline()
+    if (redisClient) {
+      const pipeline = redisClient.pipeline()
 
-    // 각 게시글의 Redis 조회수 조회
-    postIds.forEach((id) => {
-      pipeline.get(`post:${id}:views`)
-    })
-
-    const results = await pipeline.exec()
-
-    if (results) {
-      results.forEach((result, index) => {
-        const [err, value] = result
-        if (!err && value) {
-          redisViewCounts.set(postIds[index], parseInt(value as string))
-        }
+      // 각 게시글의 Redis 조회수 조회
+      postIds.forEach((id) => {
+        pipeline.get(`post:${id}:views`)
       })
+
+      const results = await pipeline.exec()
+
+      if (results) {
+        results.forEach((result, index) => {
+          const [err, value] = result
+          if (!err && value) {
+            redisViewCounts.set(postIds[index], parseInt(value as string))
+          }
+        })
+      }
     }
   } catch (error) {
     console.error('Redis 조회수 조회 실패:', error)

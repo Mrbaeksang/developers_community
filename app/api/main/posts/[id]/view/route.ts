@@ -13,11 +13,16 @@ export async function POST(
     // Redis에 조회수 버퍼링
     const viewKey = `post:${id}:views`
 
-    // 조회수 증가
-    await redis().incr(viewKey)
+    const client = redis()
+    if (client) {
+      // 조회수 증가
+      await client.incr(viewKey)
 
-    // TTL 설정 (24시간)
-    await redis().expire(viewKey, 86400)
+      // TTL 설정 (24시간)
+      await client.expire(viewKey, 86400)
+    } else {
+      console.warn('Redis client not available for post view count')
+    }
 
     return successResponse({ viewed: true })
   } catch {

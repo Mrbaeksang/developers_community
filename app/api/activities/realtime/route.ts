@@ -232,38 +232,44 @@ export async function GET() {
 
     // 5. Redis에서 조회수 마일스톤 이벤트 가져오기
     try {
-      const milestones = await redis().lrange('view_milestones', 0, 4)
+      const client = redis()
+      if (!client) {
+        console.warn('Redis client not available for view milestones')
+        // Redis가 없으면 마일스톤 없이 계속 진행
+      } else {
+        const milestones = await client.lrange('view_milestones', 0, 4)
 
-      for (const milestone of milestones) {
-        const data = JSON.parse(milestone)
+        for (const milestone of milestones) {
+          const data = JSON.parse(milestone)
 
-        // 5분 이내 이벤트만 포함
-        if (new Date(data.timestamp) >= fiveMinutesAgo) {
-          // 게시글 정보 가져오기
-          const post = await prisma.mainPost.findUnique({
-            where: { id: data.postId },
-            select: {
-              title: true,
-              author: {
-                select: { name: true },
-              },
-            },
-          })
-
-          if (post) {
-            activities.push({
-              id: `milestone-${data.postId}-${data.viewCount}`,
-              type: 'view_milestone',
-              title: '조회수 마일스톤',
-              description: `"${post.title}" 글이 ${data.viewCount}회 조회를 달성했습니다`,
-              userName: post.author.name || '알 수 없음',
-              timestamp: new Date(data.timestamp),
-              metadata: {
-                postId: data.postId,
-                postTitle: post.title,
-                viewCount: data.viewCount,
+          // 5분 이내 이벤트만 포함
+          if (new Date(data.timestamp) >= fiveMinutesAgo) {
+            // 게시글 정보 가져오기
+            const post = await prisma.mainPost.findUnique({
+              where: { id: data.postId },
+              select: {
+                title: true,
+                author: {
+                  select: { name: true },
+                },
               },
             })
+
+            if (post) {
+              activities.push({
+                id: `milestone-${data.postId}-${data.viewCount}`,
+                type: 'view_milestone',
+                title: '조회수 마일스톤',
+                description: `"${post.title}" 글이 ${data.viewCount}회 조회를 달성했습니다`,
+                userName: post.author.name || '알 수 없음',
+                timestamp: new Date(data.timestamp),
+                metadata: {
+                  postId: data.postId,
+                  postTitle: post.title,
+                  viewCount: data.viewCount,
+                },
+              })
+            }
           }
         }
       }
