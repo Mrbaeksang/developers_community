@@ -13,12 +13,12 @@
 10. CSRF 보호 구현 (Double Submit Cookie)
 11. Input Validation 강화 - 모든 API 엔드포인트에 Zod 적용 (82개 validation)
 12. 성능 개선 - Dynamic Import, 이미지/폰트 최적화 적용
+13. CSP 헤더 추가 - Content Security Policy 및 보안 헤더 설정 완료
 
 ## 📋 남은 작업 (우선순위순)
-1. **CSP 헤더 추가** - XSS 방지를 위한 Content Security Policy
-2. **데이터베이스 쿼리 최적화** - 느린 쿼리 개선
-3. **백업 자동화** - 데이터베이스 백업 스크립트
-4. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
+1. **데이터베이스 쿼리 최적화** - 느린 쿼리 개선
+2. **백업 자동화** - 데이터베이스 백업 스크립트
+3. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
 
 ## 💡 참고사항
 - **환경**: Vercel + Neon PostgreSQL + Redis Cloud + Vercel Blob
