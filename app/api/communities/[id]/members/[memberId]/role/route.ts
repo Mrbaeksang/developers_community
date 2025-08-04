@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
 import { z } from 'zod'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -31,7 +31,21 @@ export async function PATCH(
 
     // 요청 본문 검증
     const body = await req.json()
-    const validatedData = updateRoleSchema.parse(body)
+    const validation = updateRoleSchema.safeParse(body)
+
+    if (!validation.success) {
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
+
+    const validatedData = validation.data
 
     // 대상 멤버 확인
     const targetMember = await prisma.communityMember.findUnique({
@@ -98,6 +112,17 @@ export async function PATCH(
       '역할이 변경되었습니다'
     )
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string[]> = {}
+      error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
     return handleError(error)
   }
 }

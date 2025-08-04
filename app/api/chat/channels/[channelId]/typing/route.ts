@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { broadcastTyping } from '@/lib/chat-broadcast'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -56,13 +56,38 @@ export async function POST(
 
     // 요청 본문 검증
     const body = await req.json()
-    const { isTyping } = typingSchema.parse(body)
+    const validation = typingSchema.safeParse(body)
+
+    if (!validation.success) {
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
+
+    const { isTyping } = validation.data
 
     // 타이핑 상태 브로드캐스트
     broadcastTyping(channelId, userId, isTyping)
 
     return successResponse({ success: true })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string[]> = {}
+      error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
     return handleError(error)
   }
 }
