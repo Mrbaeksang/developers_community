@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -85,7 +85,21 @@ async function updateCommunityComment(
 
     // 요청 데이터 검증
     const body = await request.json()
-    const validatedData = updateCommentSchema.parse(body)
+    const validation = updateCommentSchema.safeParse(body)
+
+    if (!validation.success) {
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
+
+    const validatedData = validation.data
 
     // 댓글 수정
     const updatedComment = await prisma.communityComment.update({

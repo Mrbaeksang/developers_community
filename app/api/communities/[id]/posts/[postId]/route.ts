@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { CommunityVisibility, CommunityRole } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -182,7 +182,15 @@ async function updateCommunityPost(
     const validation = updatePostSchema.safeParse(body)
 
     if (!validation.success) {
-      throwValidationError(validation.error.issues[0].message)
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
 
     const { title, content, categoryId, fileIds } = validation.data

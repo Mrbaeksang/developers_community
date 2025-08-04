@@ -11,8 +11,9 @@ import {
   paginatedResponse,
   errorResponse,
   createdResponse,
+  validationErrorResponse,
 } from '@/lib/api-response'
-import { handleError, ApiError } from '@/lib/error-handler'
+import { handleError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
 
 // GET: 커뮤니티 목록 조회
@@ -126,11 +127,15 @@ async function createCommunity(req: NextRequest) {
 
     if (!validation.success) {
       console.error('유효성 검사 실패:', validation.error.issues)
-      throw new ApiError(
-        'VALIDATION_ERROR',
-        400,
-        validation.error.issues[0].message
-      )
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
 
     const {
