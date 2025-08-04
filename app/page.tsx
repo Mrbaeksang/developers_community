@@ -21,15 +21,15 @@ async function getSidebarData() {
     ])
 
     const [tagsData, usersData, trendingData] = await Promise.all([
-      tagsRes.ok ? tagsRes.json() : { tags: [] },
-      usersRes.ok ? usersRes.json() : { users: [] },
-      trendingRes.ok ? trendingRes.json() : { posts: [] },
+      tagsRes.ok ? tagsRes.json() : { data: [] },
+      usersRes.ok ? usersRes.json() : { data: [] },
+      trendingRes.ok ? trendingRes.json() : { data: { posts: [] } },
     ])
 
     return {
-      trendingTags: tagsData.tags || [],
-      activeUsers: usersData.users || [],
-      trendingPosts: trendingData.posts || [],
+      trendingTags: tagsData.data?.tags || [],
+      activeUsers: usersData.data?.users || [],
+      trendingPosts: trendingData.data?.posts || [],
     }
   } catch (error) {
     console.error('사이드바 데이터 조회 실패:', error)

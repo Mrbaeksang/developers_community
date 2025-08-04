@@ -54,6 +54,10 @@ export function Sidebar({
   activeUsers = [],
   trendingPosts = [],
 }: SidebarProps) {
+  // 안전한 배열 처리
+  const safeTrendingTags = Array.isArray(trendingTags) ? trendingTags : []
+  const safeActiveUsers = Array.isArray(activeUsers) ? activeUsers : []
+  const safeTrendingPosts = Array.isArray(trendingPosts) ? trendingPosts : []
   const { data: session } = useSession()
   const [recentViewed, setRecentViewed] = useState<string[]>([])
 
@@ -162,7 +166,7 @@ export function Sidebar({
         </CardHeader>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-2 items-start">
-            {trendingTags.slice(0, 6).map((tag) => {
+            {safeTrendingTags.slice(0, 6).map((tag) => {
               const fontSize = 'text-xs' // 모든 태그 동일한 크기
 
               // hex 색상을 RGB로 변환하는 함수
@@ -229,7 +233,7 @@ export function Sidebar({
             })}
           </div>
 
-          {trendingTags.length === 0 && (
+          {safeTrendingTags.length === 0 && (
             <div className="text-center py-6">
               <Hash className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
               <p className="text-sm text-muted-foreground">
@@ -250,7 +254,7 @@ export function Sidebar({
         </CardHeader>
         <CardContent className="p-4">
           <div className="space-y-4">
-            {activeUsers.slice(0, 3).map((user, index) => {
+            {safeActiveUsers.slice(0, 3).map((user, index) => {
               const RankIcon =
                 index === 0 ? Crown : index === 1 ? Medal : Trophy
               const rankStyle =
@@ -297,11 +301,20 @@ export function Sidebar({
               )
             })}
           </div>
+
+          {safeActiveUsers.length === 0 && (
+            <div className="text-center py-6">
+              <Award className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground">
+                아직 MVP가 없습니다
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* 실시간 인기글 */}
-      {trendingPosts && trendingPosts.length > 0 && (
+      {safeTrendingPosts && safeTrendingPosts.length > 0 && (
         <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <CardHeader className="border-b-2 border-black bg-orange-50">
             <CardTitle className="text-lg font-black flex items-center">
@@ -311,7 +324,7 @@ export function Sidebar({
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-4">
-              {trendingPosts.slice(0, 3).map((post, index) => {
+              {safeTrendingPosts.slice(0, 3).map((post, index) => {
                 const RankIcon =
                   index === 0 ? Crown : index === 1 ? Medal : Trophy
                 const rankStyle =

@@ -25,7 +25,8 @@ export async function GET() {
   try {
     const activities: InternalActivity[] = []
     const now = new Date()
-    const fiveMinutesAgo = subMinutes(now, 5)
+    // 테스트를 위해 30분으로 변경 (실제로는 5분이 적절함)
+    const fiveMinutesAgo = subMinutes(now, 30)
 
     // 1. 최근 메인 포스트 (PUBLISHED 상태만)
     const recentPosts = await prisma.mainPost.findMany({

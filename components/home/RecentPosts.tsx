@@ -49,7 +49,7 @@ const fetchRecentPosts = async (): Promise<Post[]> => {
   const response = await fetch('/api/main/posts?limit=10&sort=latest')
   if (!response.ok) throw new Error('Failed to fetch recent posts')
   const result = await response.json()
-  return result.data?.posts || []
+  return result.data || []
 }
 
 export function RecentPosts() {

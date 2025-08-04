@@ -53,6 +53,11 @@ export default function CommentItem({
   onEditCancel,
   onDeleteClick,
 }: CommentItemProps) {
+  // comment이나 author가 없는 경우 early return
+  if (!comment || !comment.author) {
+    return null
+  }
+
   const isAuthor = currentUserId === comment.author.id
   const isEditing = editingCommentId === comment.id
   const isReplying = replyingToId === comment.id
@@ -197,28 +202,32 @@ export default function CommentItem({
           )}
         </div>
       </div>
-      {comment.replies?.map((reply) => (
-        <CommentItem
-          key={reply.id}
-          comment={reply}
-          depth={depth + 1}
-          currentUserId={currentUserId}
-          isSubmitting={isSubmitting}
-          replyingToId={replyingToId}
-          replyContent=""
-          editingCommentId={editingCommentId}
-          editContent={editContent}
-          onReplyClick={onReplyClick}
-          onReplyChange={onReplyChange}
-          onReplySubmit={onReplySubmit}
-          onReplyCancel={onReplyCancel}
-          onEditClick={onEditClick}
-          onEditChange={onEditChange}
-          onEditSubmit={onEditSubmit}
-          onEditCancel={onEditCancel}
-          onDeleteClick={onDeleteClick}
-        />
-      ))}
+      {comment.replies && comment.replies.length > 0 && (
+        <>
+          {comment.replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              depth={depth + 1}
+              currentUserId={currentUserId}
+              isSubmitting={isSubmitting}
+              replyingToId={replyingToId}
+              replyContent={replyContent}
+              editingCommentId={editingCommentId}
+              editContent={editContent}
+              onReplyClick={onReplyClick}
+              onReplyChange={onReplyChange}
+              onReplySubmit={onReplySubmit}
+              onReplyCancel={onReplyCancel}
+              onEditClick={onEditClick}
+              onEditChange={onEditChange}
+              onEditSubmit={onEditSubmit}
+              onEditCancel={onEditCancel}
+              onDeleteClick={onDeleteClick}
+            />
+          ))}
+        </>
+      )}
     </div>
   )
 }
