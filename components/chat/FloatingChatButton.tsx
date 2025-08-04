@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import FloatingChatWindow from './FloatingChatWindow'
 import { useChatEvents } from '@/hooks/use-chat-events'
+import { useSession } from 'next-auth/react'
 
 interface FloatingChatButtonProps {
   channelId?: string
@@ -16,6 +17,7 @@ export default function FloatingChatButton({
   channelId = 'global',
   channelName = '전체 채팅',
 }: FloatingChatButtonProps) {
+  const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [size, setSize] = useState({ width: 400, height: 600 })
   const [position, setPosition] = useState({ x: 20, y: 20 })
@@ -39,17 +41,20 @@ export default function FloatingChatButton({
 
   // 새 메시지 수신 시 카운트 증가
   const handleNewMessage = useCallback(
-    (message: { createdAt: string }) => {
+    (message: { createdAt: string; author?: { id: string } }) => {
       if (!isOpen) {
         const lastRead = getLastReadTime()
         const messageTime = new Date(message.createdAt)
 
-        if (messageTime > lastRead) {
+        // 본인이 작성한 메시지는 카운트하지 않음
+        const isOwnMessage = message.author?.id === session?.user?.id
+
+        if (messageTime > lastRead && !isOwnMessage) {
           setUnreadCount((prev) => Math.min(prev + 1, 99))
         }
       }
     },
-    [isOpen, getLastReadTime]
+    [isOpen, getLastReadTime, session?.user?.id]
   )
 
   // 창이 열릴 때 읽음 처리
@@ -73,26 +78,33 @@ export default function FloatingChatButton({
         if (res.ok) {
           const data = await res.json()
           const messages = data.data?.messages || data.messages || []
-          setUnreadCount(Math.min(messages.length, 99))
+          // 본인이 작성한 메시지는 제외하고 카운트
+          const unreadMessages = messages.filter(
+            (msg: { author?: { id: string } }) =>
+              msg.author?.id !== session?.user?.id
+          )
+          setUnreadCount(Math.min(unreadMessages.length, 99))
         }
       } catch (error) {
         console.error('Failed to fetch unread count:', error)
       }
     }
 
-    if (!isOpen) {
+    if (!isOpen && session) {
       calculateUnreadCount()
     }
-  }, [channelId, getLastReadTime, isOpen])
+  }, [channelId, getLastReadTime, isOpen, session])
 
   // 실시간 메시지 수신 처리 (창이 닫혀있을 때)
   useEffect(() => {
     if (!isOpen) {
-      setOnMessage((message: { createdAt: string } | null) => {
-        if (message?.createdAt) {
-          handleNewMessage(message)
+      setOnMessage(
+        (message: { createdAt: string; author?: { id: string } } | null) => {
+          if (message?.createdAt) {
+            handleNewMessage(message)
+          }
         }
-      })
+      )
     }
   }, [setOnMessage, handleNewMessage, isOpen])
 

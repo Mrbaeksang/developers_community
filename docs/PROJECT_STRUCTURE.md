@@ -204,29 +204,86 @@ npm run lint
 ---
 
 ## 6. UI 컴포넌트 가이드
-### 🧩 shadcn/ui 활용
-```markdown
-- `Button`, `Card`, `Dialog` 등 18개 컴포넌트
-- 사용 예시: `import { Button } from '@/components/ui/button'`
-```
+### 🧩 컴포넌트 전체 목록 (84개)
 
-### 🧩 컴포넌트 상세 가이드
-#### shadcn/ui 기본 컴포넌트 (18개)
-| 컴포넌트 | 사용 위치 | 기술 | 상태 |
-|----------|-----------|------|------|
-| `Button` | 전역 | 기본 버튼 컴포넌트 | ✅ |
-| `Dialog` | 모달 기능 | 팝업 다이얼로그 | ✅ |
-| `Table` | 데이터 표시 | 테이블 렌더링 | ✅ |
-| ... | ... | ... | ... |
+#### UI 라이브러리 컴포넌트 (18개)
+| 컴포넌트 | 경로 | 설명 |
+|----------|------|------|
+| `Button` | `components/ui/button.tsx` | 기본 버튼 컴포넌트 |
+| `Dialog` | `components/ui/dialog.tsx` | 모달 다이얼로그 |
+| `Table` | `components/ui/table.tsx` | 데이터 테이블 렌더링 |
+| `Avatar` | `components/ui/avatar.tsx` | 사용자 아바타 |
+| `Card` | `components/ui/card.tsx` | 카드 레이아웃 컴포넌트 |
+| `Input` | `components/ui/input.tsx` | 입력 필드 |
+| ... | ... | ... |
 
-#### 커스텀 컴포넌트 (45개)
-| 컴포넌트 | 경로 | 기능 | 기술 | 상태 |
-|----------|------|------|------|------|
-| `FloatingChat` | `components/chat/` | 실시간 채팅 UI | WebSocket + SSE | ✅ |
-| `PostEditor` | `components/posts/` | 게시글 작성 에디터 | Markdown + 이미지 업로드 | ✅ |
-| `DataTableViewer` | `components/admin/` | 관리자 데이터 테이블 | TanStack Table v8 | ✅ |
-| `RealtimeDashboard` | `components/admin/` | 실시간 통계 대시보드 | Chart.js + SSE | ⏳ |
-| ... | ... | ... | ... | ... |
+#### 커스텀 컴포넌트 (66개)
+| 컴포넌트 | 경로 | 기능 |
+|----------|------|------|
+| `VisitorTracker` | `components/VisitorTracker.tsx` | 방문자 추적 UI |
+| `DataTableViewer` | `components/admin/DataTableViewer.tsx` | 관리자 데이터 표시 |
+| `FloatingChatButton` | `components/chat/FloatingChatButton.tsx` | 채팅 시작 버튼 |
+| `FloatingChatWindow` | `components/chat/FloatingChatWindow.tsx` | 채팅 창 컴포넌트 |
+| `CommunityPostEditor` | `components/communities/CommunityPostEditor.tsx` | 커뮤니티 게시글 편집기 |
+| `CommunityMemberList` | `components/communities/CommunityMemberList.tsx` | 커뮤니티 멤버 목록 |
+| `CategorySettings` | `components/communities/settings/CategorySettings.tsx` | 커뮤니티 카테고리 설정 | 
+| `GeneralSettings` | `components/communities/settings/GeneralSettings.tsx` | 커뮤니티 일반 설정 |
+| `MemberSettings` | `components/communities/settings/MemberSettings.tsx` | 커뮤니티 멤버 관리 |
+| `ErrorBoundary` | `components/error-boundary/ErrorBoundary.tsx` | 에러 처리 컴포넌트 |
+| `HeroSection` | `components/home/HeroSection.tsx` | 홈페이지 헤로 섹션 |
+| `Header` | `components/layouts/Header.tsx` | 전역 헤더 네비게이션 |
+| `NotificationDropdown` | `components/notifications/NotificationDropdown.tsx` | 알림 드롭다운 |
+| `CommentItem` | `components/posts/CommentItem.tsx` | 댓글 아이템 |
+| `CommentSection` | `components/posts/CommentSection.tsx` | 댓글 섹션 |
+| `DropzoneArea` | `components/posts/DropzoneArea.tsx` | 파일 업로드 영역 |
+| `MarkdownPreview` | `components/posts/MarkdownPreview.tsx` | 마크다운 미리보기 |
+| `MemoizedComponents` | `components/posts/MemoizedComponents.tsx` | 성능 최적화 컴포넌트 |
+| `PostEditor` | `components/posts/PostEditor.tsx` | 게시글 편집기 |
+| `RelatedPosts` | `components/posts/RelatedPosts.tsx` | 관련 게시글 표시 |
+| `ShareModal` | `components/posts/ShareModal.tsx` | 게시글 공유 모달 |
+| `SearchModal` | `components/search/SearchModal.tsx` | 통합 검색 모달 |
+| `AuthorAvatar` | `components/shared/AuthorAvatar.tsx` | 작성자 아바타 |
+| ... | ... | ... |
+
+### 📑 페이지 전체 현황 (22개)
+
+#### 메인 페이지 (7)
+| 페이지 | 경로 | 상태 |
+|--------|------|------|
+| 홈 | `app/page.tsx` | ✅ |
+| 게시글 목록 | `app/main/posts/page.tsx` | ✅ |
+| 게시글 상세 | `app/main/posts/[id]/page.tsx` | ✅ |
+| 태그별 게시글 | `app/main/tags/[name]/page.tsx` | ✅ |
+| 글 작성 | `app/main/write/page.tsx` | ✅ |
+| 프로필 | `app/profile/[id]/page.tsx` | ✅ |
+| 북마크 | `app/users/bookmarks/page.tsx` | ✅ |
+
+#### 관리자 페이지 (6)
+| 페이지 | 경로 | 상태 |
+|--------|------|------|
+| 대시보드 | `app/admin/page.tsx` | ✅ |
+| 카테고리 관리 | `app/admin/categories/page.tsx` | ✅ |
+| 커뮤니티 관리 | `app/admin/communities/page.tsx` | ✅ |
+| 데이터 관리 | `app/admin/database/page.tsx` | ✅ |
+| 게시글 승인 | `app/admin/pending/page.tsx` | ✅ |
+| 사용자 관리 | `app/admin/users/page.tsx` | ✅ |
+
+#### 커뮤니티 페이지 (6)
+| 페이지 | 경로 | 상태 |
+|--------|------|------|
+| 커뮤니티 목록 | `app/communities/page.tsx` | ✅ |
+| 커뮤니티 상세 | `app/communities/[id]/page.tsx` | ✅ |
+| 커뮤니티 게시글 | `app/communities/[id]/posts/page.tsx` | ✅ |
+| 커뮤니티 설정 | `app/communities/[id]/settings/page.tsx` | ✅ |
+| 커뮤니티 글 작성 | `app/communities/[id]/write/page.tsx` | ✅ |
+| 커뮤니티 생성 | `app/communities/new/page.tsx` | ✅ |
+
+#### 기타 페이지 (3)
+| 페이지 | 경로 | 상태 |
+|--------|------|------|
+| 로그인 | `app/auth/signin/page.tsx` | ✅ |
+| 대시보드 | `app/dashboard/page.tsx` | ✅ |
+| 알림 | `app/dashboard/notifications/page.tsx` | ✅ |
 
 ### 📱 반응형 디자인
 ```markdown
@@ -235,4 +292,4 @@ npm run lint
 - 예시: `className="md:flex hidden"`
 ```
 
-> **Note**: 문서 버전 2.0 - 2025.08.04 업데이트 (기존 580줄 → 210줄 압축)
+> **Note**: 문서 버전 3.0 - 2025.08.04 업데이트 (전체 컴포넌트 73개, 페이지 22개 상세 기술)

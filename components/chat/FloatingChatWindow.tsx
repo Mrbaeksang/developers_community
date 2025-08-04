@@ -113,9 +113,13 @@ export default function FloatingChatWindow({
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
-        credentials: 'include', // 쿠키를 포함하여 요청
-      })
+      // 초기 로드 시 최근 20개 메시지만 가져오기 (성능 개선)
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages?limit=20`,
+        {
+          credentials: 'include', // 쿠키를 포함하여 요청
+        }
+      )
       if (!res.ok) throw new Error('Failed to fetch messages')
       const data = await res.json()
 

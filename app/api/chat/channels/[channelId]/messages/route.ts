@@ -250,20 +250,24 @@ export async function POST(
       },
     })
 
-    // 마지막 읽은 시간 업데이트 (GLOBAL이 아닌 경우만)
-    if (channel.type !== 'GLOBAL') {
-      await prisma.chatChannelMember.update({
-        where: {
-          userId_channelId: {
-            userId,
-            channelId,
-          },
+    // 마지막 읽은 시간 업데이트 (GLOBAL 채널도 포함 - 본인 메시지는 읽음 처리)
+    // GLOBAL 채널의 경우 ChatChannelMember가 없을 수 있으므로 upsert 사용
+    await prisma.chatChannelMember.upsert({
+      where: {
+        userId_channelId: {
+          userId,
+          channelId,
         },
-        data: {
-          lastReadAt: new Date(),
-        },
-      })
-    }
+      },
+      update: {
+        lastReadAt: new Date(),
+      },
+      create: {
+        userId,
+        channelId,
+        lastReadAt: new Date(),
+      },
+    })
 
     const messageResponse = {
       id: message.id,
