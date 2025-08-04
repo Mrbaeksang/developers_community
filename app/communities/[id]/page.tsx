@@ -183,6 +183,8 @@ export default async function CommunityDetailPage({
                   alt={`${community.name} banner`}
                   fill
                   className="object-cover"
+                  priority
+                  sizes="100vw"
                 />
               )
             }
@@ -196,6 +198,8 @@ export default async function CommunityDetailPage({
                   alt={`${community.name} banner`}
                   fill
                   className="object-cover"
+                  priority
+                  sizes="100vw"
                 />
               )
             }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import {
   Table,
   TableBody,
@@ -312,12 +313,15 @@ export default function AdminCommunitiesPage() {
                           : ''
                         if (avatarUrl) {
                           return (
-                            <div
-                              className="w-10 h-10 rounded-full bg-cover bg-center"
-                              style={{
-                                backgroundImage: `url(${avatarUrl})`,
-                              }}
-                            />
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                              <Image
+                                src={avatarUrl}
+                                alt={community.name}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
+                            </div>
                           )
                         }
                         return (
@@ -337,12 +341,15 @@ export default function AdminCommunitiesPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {community.owner.image ? (
-                        <div
-                          className="w-6 h-6 rounded-full bg-cover bg-center"
-                          style={{
-                            backgroundImage: `url(${community.owner.image})`,
-                          }}
-                        />
+                        <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                          <Image
+                            src={community.owner.image}
+                            alt={community.owner.name || 'Owner'}
+                            fill
+                            className="object-cover"
+                            sizes="24px"
+                          />
+                        </div>
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                           <UserCog className="w-3 h-3 text-gray-500" />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import {
   Table,
   TableBody,
@@ -349,11 +350,15 @@ export default function AdminUsersPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {user.image ? (
-                        <div
-                          className="w-10 h-10 rounded-full bg-cover bg-center"
-                          style={{ backgroundImage: `url(${user.image})` }}
-                          title={user.name || user.email}
-                        />
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                          <Image
+                            src={user.image}
+                            alt={user.name || user.email || 'User avatar'}
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                          />
+                        </div>
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                           <UserCog className="w-5 h-5 text-gray-500" />
