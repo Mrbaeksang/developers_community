@@ -14,13 +14,17 @@ import {
   throwValidationError,
   throwAuthorizationError,
 } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // POST: 커뮤니티 가입
-export async function POST(
+async function joinCommunity(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id } = await context.params
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -164,12 +168,18 @@ export async function POST(
   }
 }
 
+// Rate Limiting 적용 - 커뮤니티 가입은 분당 10회로 제한
+export const POST = withRateLimit(joinCommunity, 'post')
+
 // DELETE: 커뮤니티 탈퇴
-export async function DELETE(
+async function leaveCommunity(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id } = await context.params
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -249,3 +259,6 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 커뮤니티 탈퇴도 분당 10회로 제한
+export const DELETE = withRateLimit(leaveCommunity, 'post')

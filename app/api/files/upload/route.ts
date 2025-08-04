@@ -14,6 +14,7 @@ import {
   throwNotFoundError,
   throwAuthorizationError,
 } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -44,7 +45,7 @@ async function getImageDimensions(): Promise<{
 // POST: 파일 업로드
 // TODO: 실제 파일 저장 구현 필요 (Vercel Blob, S3, Cloudinary 등)
 // 현재는 메타데이터만 DB에 저장하고 실제 파일은 저장하지 않음
-export async function POST(req: NextRequest) {
+async function uploadFile(req: NextRequest) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -166,3 +167,6 @@ export async function POST(req: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용
+export const POST = withRateLimit(uploadFile, 'upload')

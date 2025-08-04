@@ -4,6 +4,7 @@ import { put } from '@vercel/blob'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -29,7 +30,7 @@ function getFileType(
   return 'OTHER'
 }
 
-export async function POST(req: NextRequest) {
+async function uploadFile(req: NextRequest) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -85,3 +86,6 @@ export async function POST(req: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용
+export const POST = withRateLimit(uploadFile, 'upload')

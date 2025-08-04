@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // POST /api/main/posts/[id]/bookmark - 북마크 토글
-export async function POST(
+async function toggleBookmark(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuthAPI()
@@ -19,7 +20,10 @@ export async function POST(
     // Ban 상태 체크
     await checkBanStatus(session.user.id)
 
-    const { id } = await params
+    if (!context) {
+      return errorResponse('Invalid request context', 400)
+    }
+    const { id } = await context.params
     const userId = session.user.id
 
     // 게시글 존재 확인
@@ -65,6 +69,9 @@ export async function POST(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 북마크는 분당 60회로 제한
+export const POST = withRateLimit(toggleBookmark, 'general')
 
 // GET /api/main/posts/[id]/bookmark - 북마크 상태 확인
 export async function GET(

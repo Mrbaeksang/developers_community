@@ -10,6 +10,7 @@ import {
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 export async function GET(request: NextRequest) {
   try {
@@ -141,7 +142,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function createPost(request: NextRequest) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof NextResponse) {
@@ -306,3 +307,6 @@ export async function POST(request: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용
+export const POST = withRateLimit(createPost, 'post')

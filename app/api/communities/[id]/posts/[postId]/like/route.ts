@@ -7,13 +7,17 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // POST: 커뮤니티 게시글 좋아요
-export async function POST(
+async function likeCommunityPost(
   req: NextRequest,
-  context: { params: Promise<{ id: string; postId: string }> }
+  context?: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
@@ -63,12 +67,18 @@ export async function POST(
   }
 }
 
+// Rate Limiting 적용 - 좋아요는 분당 60회로 제한
+export const POST = withRateLimit(likeCommunityPost, 'general')
+
 // DELETE: 커뮤니티 게시글 좋아요 취소
-export async function DELETE(
+async function unlikeCommunityPost(
   req: NextRequest,
-  context: { params: Promise<{ id: string; postId: string }> }
+  context?: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id, postId } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
@@ -98,3 +108,6 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 좋아요 취소도 분당 60회로 제한
+export const DELETE = withRateLimit(unlikeCommunityPost, 'general')

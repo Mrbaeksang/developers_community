@@ -12,6 +12,7 @@ import {
   throwAuthorizationError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -167,11 +168,14 @@ const createPostSchema = z.object({
   fileIds: z.array(z.string()).optional(),
 })
 
-export async function POST(
+async function createCommunityPost(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id } = await context.params
     const session = await requireCommunityMembershipAPI(id)
     if (session instanceof Response) {
@@ -274,3 +278,6 @@ export async function POST(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 커뮤니티 게시글 작성
+export const POST = withRateLimit(createCommunityPost, 'post')

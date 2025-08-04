@@ -108,7 +108,15 @@ export default function CategoriesPage() {
         throw new Error('카테고리 조회 실패')
       }
       const data = await res.json()
-      setCategories(data)
+      // Check if data is wrapped in a response object
+      if (data.data && Array.isArray(data.data)) {
+        setCategories(data.data)
+      } else if (Array.isArray(data)) {
+        setCategories(data)
+      } else {
+        console.error('Unexpected response format:', data)
+        setCategories([])
+      }
     } catch (error) {
       console.error('카테고리 조회 실패:', error)
       toast({
@@ -294,72 +302,85 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell>{category.order}</TableCell>
-                  <TableCell>
-                    <div
-                      className="w-8 h-8 rounded flex items-center justify-center text-white"
-                      style={{ backgroundColor: category.color }}
-                    >
-                      {renderIcon(category.icon)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {category.slug}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {category.description || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+              {categories && categories.length > 0 ? (
+                categories.map((category) => (
+                  <TableRow key={category.id}>
+                    <TableCell>{category.order}</TableCell>
+                    <TableCell>
                       <div
-                        className="w-6 h-6 rounded border"
+                        className="w-8 h-8 rounded flex items-center justify-center text-white"
                         style={{ backgroundColor: category.color }}
-                      />
-                      <span className="text-xs">{category.color}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{category.postCount}개</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        category.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {category.isActive ? '활성' : '비활성'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(category)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedCategory(category)
-                        setIsDeleteDialogOpen(true)
-                      }}
-                      disabled={category.postCount > 0}
-                      title={
-                        category.postCount > 0
-                          ? `게시글이 ${category.postCount}개 있어 삭제할 수 없습니다`
-                          : '삭제'
-                      }
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                      >
+                        {renderIcon(category.icon)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {category.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {category.slug}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {category.description || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-6 rounded border"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-xs">{category.color}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{category.postCount}개</TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          category.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {category.isActive ? '활성' : '비활성'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(category)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCategory(category)
+                          setIsDeleteDialogOpen(true)
+                        }}
+                        disabled={category.postCount > 0}
+                        title={
+                          category.postCount > 0
+                            ? `게시글이 ${category.postCount}개 있어 삭제할 수 없습니다`
+                            : '삭제'
+                        }
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    카테고리가 없습니다.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

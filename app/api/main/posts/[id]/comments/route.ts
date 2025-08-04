@@ -12,6 +12,7 @@ import {
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -87,9 +88,9 @@ export async function GET(
 }
 
 // POST /api/main/posts/[id]/comments - 댓글 작성
-export async function POST(
+async function createComment(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context?: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuthAPI()
@@ -100,7 +101,10 @@ export async function POST(
     // Ban 상태 체크
     await checkBanStatus(session.user.id)
 
-    const { id } = await params
+    if (!context) {
+      return errorResponse('Invalid request context', 400)
+    }
+    const { id } = await context.params
     const { content, parentId } = await request.json()
 
     // 입력값 검증
@@ -217,3 +221,6 @@ export async function POST(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용
+export const POST = withRateLimit(createComment, 'comment')

@@ -9,6 +9,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(
@@ -70,11 +71,14 @@ const createCommentSchema = z.object({
   parentId: z.string().optional(),
 })
 
-export async function POST(
+async function createCommunityComment(
   req: NextRequest,
-  context: { params: Promise<{ id: string; postId: string }> }
+  context?: { params: Promise<{ id: string; postId: string }> }
 ) {
   try {
+    if (!context) {
+      throwValidationError('Invalid request context')
+    }
     const { id, postId } = await context.params
 
     // 커뮤니티 찾기 (ID 또는 slug)
@@ -167,3 +171,6 @@ export async function POST(
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 커뮤니티 댓글 작성
+export const POST = withRateLimit(createCommunityComment, 'comment')

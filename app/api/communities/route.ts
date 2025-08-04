@@ -13,6 +13,7 @@ import {
   createdResponse,
 } from '@/lib/api-response'
 import { handleError, ApiError } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -111,7 +112,7 @@ const createCommunitySchema = z.object({
   maxFileSize: z.number().min(1048576).max(104857600).default(10485760), // 1MB ~ 100MB, default 10MB
 })
 
-export async function POST(req: NextRequest) {
+async function createCommunity(req: NextRequest) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof NextResponse) {
@@ -228,3 +229,6 @@ export async function POST(req: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 커뮤니티 생성은 분당 3회로 제한
+export const POST = withRateLimit(createCommunity, 'post')

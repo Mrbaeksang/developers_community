@@ -4,6 +4,7 @@ import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withRateLimit } from '@/lib/rate-limiter'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {
@@ -27,7 +28,7 @@ const ALLOWED_TYPES = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 // POST: 채팅용 파일 업로드
-export async function POST(req: Request) {
+async function uploadFile(req: Request) {
   try {
     // 인증 확인
     const session = await requireAuthAPI()
@@ -116,3 +117,6 @@ export async function POST(req: Request) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용
+export const POST = withRateLimit(uploadFile, 'upload')
