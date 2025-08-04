@@ -5,9 +5,11 @@ import Link from 'next/link'
 import { ChevronRight, Settings } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import CommunityGeneralSettings from './components/GeneralSettings'
-import CommunityCategorySettings from './components/CategorySettings'
-import CommunityMemberSettings from './components/MemberSettings'
+import {
+  GeneralSettings,
+  CategorySettings,
+  MemberSettings,
+} from '@/components/communities/settings'
 
 export default async function CommunitySettingsPage({
   params,
@@ -96,7 +98,7 @@ export default async function CommunitySettingsPage({
                 <CardTitle>일반 설정</CardTitle>
               </CardHeader>
               <CardContent>
-                <CommunityGeneralSettings community={community} />
+                <GeneralSettings community={community} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -108,7 +110,7 @@ export default async function CommunitySettingsPage({
                 <CardTitle>카테고리 관리</CardTitle>
               </CardHeader>
               <CardContent>
-                <CommunityCategorySettings
+                <CategorySettings
                   communityId={community.id}
                   categories={community.categories}
                 />
@@ -123,7 +125,7 @@ export default async function CommunitySettingsPage({
                 <CardTitle>멤버 관리</CardTitle>
               </CardHeader>
               <CardContent>
-                <CommunityMemberSettings
+                <MemberSettings
                   communityId={community.id}
                   currentUserId={session.user.id}
                   isOwner={true}

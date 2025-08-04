@@ -14,10 +14,12 @@
 11. Input Validation 강화 - 모든 API 엔드포인트에 Zod 적용 (82개 validation)
 12. 성능 개선 - Dynamic Import, 이미지/폰트 최적화 적용
 13. CSP 헤더 추가 - Content Security Policy 및 보안 헤더 설정 완료
+14. CSRF 토큰 검증 오류 수정 - httpOnly: false, sameSite: 'lax' 설정 및 fallback 엔드포인트 구현
+15. 로그인 리다이렉트 경로 표준화 - 모든 /signin 경로를 /auth/signin으로 통일
+16. **데이터베이스 쿼리 최적화** - 인덱스 추가, 쿼리 캐싱, Redis 통합 완료
 
 ## 📋 남은 작업 (우선순위순)
-1. **데이터베이스 쿼리 최적화** - 느린 쿼리 개선
-2. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
+1. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
 
 ## 💡 참고사항
 - **환경**: Vercel + Neon PostgreSQL + Redis Cloud + Vercel Blob

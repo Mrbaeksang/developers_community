@@ -120,7 +120,7 @@ const fetchMembers = async ({
   return res.json()
 }
 
-export default function CommunityMemberSettings({
+export function MemberSettings({
   communityId,
   currentUserId,
   isOwner,

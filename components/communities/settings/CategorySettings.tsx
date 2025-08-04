@@ -65,7 +65,7 @@ const COLOR_PALETTE = [
   '#64748b', // slate
 ]
 
-export default function CommunityCategorySettings({
+export function CategorySettings({
   communityId,
   categories: initialCategories,
 }: CategorySettingsProps) {

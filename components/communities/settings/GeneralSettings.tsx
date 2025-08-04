@@ -22,9 +22,7 @@ interface GeneralSettingsProps {
   community: Community
 }
 
-export default function CommunityGeneralSettings({
-  community,
-}: GeneralSettingsProps) {
+export function GeneralSettings({ community }: GeneralSettingsProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
