@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { requireAuthAPI, hasCommunityPermission } from '@/lib/auth-utils'
 import { CommunityVisibility, CommunityRole } from '@prisma/client'
 import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
@@ -267,34 +267,25 @@ async function deleteCommunityPost(
       throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
-    // 게시글 및 멤버십 확인
-    const [post, membership] = await Promise.all([
-      prisma.communityPost.findUnique({
-        where: { id: postId, communityId: community.id },
-        select: { authorId: true },
-      }),
-      prisma.communityMember.findUnique({
-        where: {
-          userId_communityId: {
-            userId: session.user.id,
-            communityId: community.id,
-          },
-        },
-        select: { role: true },
-      }),
-    ])
+    // 게시글 확인
+    const post = await prisma.communityPost.findUnique({
+      where: { id: postId, communityId: community.id },
+      select: { authorId: true },
+    })
 
     if (!post) {
       throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
     // 권한 확인 (작성자 본인 또는 ADMIN/OWNER만 삭제 가능)
-    const canDelete =
-      post.authorId === session.user.id ||
-      membership?.role === CommunityRole.ADMIN ||
-      membership?.role === CommunityRole.OWNER
+    const isAuthor = post.authorId === session.user.id
+    const hasModeratorPermission = await hasCommunityPermission(
+      session.user.id,
+      community.id,
+      [CommunityRole.ADMIN, CommunityRole.OWNER]
+    )
 
-    if (!canDelete) {
+    if (!isAuthor && !hasModeratorPermission) {
       throwAuthorizationError('게시글을 삭제할 권한이 없습니다')
     }
 

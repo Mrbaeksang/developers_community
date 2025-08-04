@@ -54,25 +54,96 @@ B --> D[Redis Cloud]
 
 ## 3. 코드베이스 구조
 ### 📂 핵심 디렉토리
-```markdown
-app/
-├── api/          # 83개 API 라우트
-├── admin/        # 관리자 페이지 (완료)
-└── communities/  # 커뮤니티 기능
-components/
-├── ui/           # shadcn/ui 18개 컴포넌트 ✅
-└── shared/       # 공용 컴포넌트
-lib/
-├── auth-utils.ts # 인증 로직
-└── redis.ts      # 캐싱 유틸리티
+```mermaid
+graph TD
+A[Project Root] --> B[app]
+A --> C[components]
+A --> D[lib]
+A --> E[prisma]
+A --> F[public]
+B --> G[api]
+B --> H[admin]
+B --> I[communities]
+C --> J[ui]
+C --> K[shared]
+C --> L[feature]
+D --> M[auth-utils.ts]
+D --> N[redis.ts]
 ```
 
-### 🔗 API 라우트 현황
-| 카테고리 | 경로 | 상태 |
-|----------|------|------|
-| 인증 | `app/api/auth/` | ✅ | 
-| 검색 | `app/api/search/` | ✅ |
-| **통계** | `app/api/stats/` | ❌ |
+### 📊 API 라우트 전체 현황 (83개)
+#### 인증 (8 routes)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| GET | /api/auth/* | app/api/auth/[...nextauth]/route.ts | ✅ |
+
+#### 관리자 (15 routes)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| GET | /api/admin/categories | app/api/admin/categories/route.ts | ✅ |
+| PUT | /api/admin/categories/[id] | app/api/admin/categories/[id]/route.ts | ✅ |
+| GET | /api/admin/communities | app/api/admin/communities/route.ts | ✅ |
+| POST | /api/admin/communities/[communityId] | app/api/admin/communities/[communityId]/route.ts | ✅ |
+| GET | /api/admin/data-viewer/[table] | app/api/admin/data-viewer/[table]/route.ts | ✅ |
+| GET | /api/admin/posts/community | app/api/admin/posts/community/route.ts | ✅ |
+| PUT | /api/admin/posts/community/[id] | app/api/admin/posts/community/[id]/route.ts | ✅ |
+| GET | /api/admin/posts/main | app/api/admin/posts/main/route.ts | ✅ |
+| PUT | /api/admin/posts/main/[id] | app/api/admin/posts/main/[id]/route.ts | ✅ |
+| POST | /api/admin/posts/main/[id]/pin | app/api/admin/posts/main/[id]/pin/route.ts | ✅ |
+| GET | /api/admin/stats | app/api/admin/stats/route.ts | ✅ |
+| GET | /api/admin/users | app/api/admin/users/route.ts | ✅ |
+| PUT | /api/admin/users/[userId]/active | app/api/admin/users/[userId]/active/route.ts | ✅ |
+| POST | /api/admin/users/[userId]/ban | app/api/admin/users/[userId]/ban/route.ts | ✅ |
+| PUT | /api/admin/users/[userId]/role | app/api/admin/users/[userId]/role/route.ts | ✅ |
+| POST | /api/admin/users/[userId]/unban | app/api/admin/users/[userId]/unban/route.ts | ✅ |
+
+#### 채팅 (12 routes)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| GET | /api/chat/channels | app/api/chat/channels/route.ts | ✅ |
+| POST | /api/chat/channels/[channelId]/messages | app/api/chat/channels/[channelId]/messages/route.ts | ✅ |
+| GET | /api/chat/channels/[channelId]/events | app/api/chat/channels/[channelId]/events/route.ts | ✅ |
+| POST | /api/chat/channels/[channelId]/read | app/api/chat/channels/[channelId]/read/route.ts | ✅ |
+| POST | /api/chat/channels/[channelId]/typing | app/api/chat/channels/[channelId]/typing/route.ts | ✅ |
+| GET | /api/chat/global | app/api/chat/global/route.ts | ✅ |
+| POST | /api/chat/upload | app/api/chat/upload/route.ts | ✅ |
+
+#### 커뮤니티 (32 routes)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| POST | /api/communities | app/api/communities/route.ts | ✅ |
+| GET | /api/communities/[id] | app/api/communities/[id]/route.ts | ✅ |
+| GET | /api/communities/[id]/announcements | app/api/communities/[id]/announcements/route.ts | ✅ |
+| PUT | /api/communities/[id]/announcements/[announcementId] | app/api/communities/[id]/announcements/[announcementId]/route.ts | ✅ |
+| GET | /api/communities/[id]/categories | app/api/communities/[id]/categories/route.ts | ✅ |
+| PUT | /api/communities/[id]/categories/[categoryId] | app/api/communities/[id]/categories/[categoryId]/route.ts | ✅ |
+| POST | /api/communities/[id]/categories/reorder | app/api/communities/[id]/categories/reorder/route.ts | ✅ |
+| GET | /api/communities/[id]/channel | app/api/communities/[id]/channel/route.ts | ✅ |
+| PUT | /api/communities/[id]/comments/[commentId] | app/api/communities/[id]/comments/[commentId]/route.ts | ✅ |
+| POST | /api/communities/[id]/join | app/api/communities/[id]/join/route.ts | ✅ |
+| GET | /api/communities/[id]/members | app/api/communities/[id]/members/route.ts | ✅ |
+| PUT | /api/communities/[id]/members/[memberId] | app/api/communities/[id]/members/[memberId]/route.ts | ✅ |
+| POST | /api/communities/[id]/members/approve | app/api/communities/[id]/members/approve/route.ts | ✅ |
+| GET | /api/communities/[id]/posts | app/api/communities/[id]/posts/route.ts | ✅ |
+| PUT | /api/communities/[id]/posts/[postId] | app/api/communities/[id]/posts/[postId]/route.ts | ✅ |
+| GET | /api/communities/active | app/api/communities/active/route.ts | ✅ |
+| POST | /api/communities/check-duplicate | app/api/communities/check-duplicate/route.ts | ✅ |
+| POST | /api/communities/check-slug | app/api/communities/check-slug/route.ts | ✅ |
+
+#### 검색 (1 route)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| GET | /api/search | app/api/search/route.ts | ✅ |
+
+#### 통계 (2 routes - 미구현)
+| Method | Path | 파일 경로 | 상태 |
+|--------|------|-----------|------|
+| GET | /api/stats/user-activity | ❌ 파일 없음 | ❌ |
+| GET | /api/stats/post-trends | ❌ 파일 없음 | ❌ |
+
+> 전체 83개 API 중 81개 구현 완료 (✅), 2개 미구현 (❌)
+
+> 전체 83개 API 중 81개 구현 완료 (✅), 2개 미구현 (❌)
 
 ---
 
@@ -139,12 +210,23 @@ npm run lint
 - 사용 예시: `import { Button } from '@/components/ui/button'`
 ```
 
-### ✨ 커스텀 컴포넌트
-| 컴포넌트 | 경로 | 상태 |
-|----------|------|------|
-| `FloatingChat` | `components/chat/` | ✅ |
-| `PostEditor` | `components/posts/` | ✅ |
-| `DataTableViewer` | `components/admin/` | ✅ |
+### 🧩 컴포넌트 상세 가이드
+#### shadcn/ui 기본 컴포넌트 (18개)
+| 컴포넌트 | 사용 위치 | 기술 | 상태 |
+|----------|-----------|------|------|
+| `Button` | 전역 | 기본 버튼 컴포넌트 | ✅ |
+| `Dialog` | 모달 기능 | 팝업 다이얼로그 | ✅ |
+| `Table` | 데이터 표시 | 테이블 렌더링 | ✅ |
+| ... | ... | ... | ... |
+
+#### 커스텀 컴포넌트 (45개)
+| 컴포넌트 | 경로 | 기능 | 기술 | 상태 |
+|----------|------|------|------|------|
+| `FloatingChat` | `components/chat/` | 실시간 채팅 UI | WebSocket + SSE | ✅ |
+| `PostEditor` | `components/posts/` | 게시글 작성 에디터 | Markdown + 이미지 업로드 | ✅ |
+| `DataTableViewer` | `components/admin/` | 관리자 데이터 테이블 | TanStack Table v8 | ✅ |
+| `RealtimeDashboard` | `components/admin/` | 실시간 통계 대시보드 | Chart.js + SSE | ⏳ |
+| ... | ... | ... | ... | ... |
 
 ### 📱 반응형 디자인
 ```markdown

@@ -15,6 +15,7 @@ import {
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { getAvatarFromName } from '@/lib/community-utils'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -165,6 +166,11 @@ async function createCommunity(req: NextRequest) {
     // session.user.id는 checkAuth에서 이미 확인됨
     const userId = session.user.id
 
+    // avatar가 없으면 자동 생성
+    const defaultAvatar = !avatar ? getAvatarFromName(name) : null
+    const finalAvatar =
+      avatar || (defaultAvatar ? `default:${defaultAvatar.name}` : '')
+
     // 커뮤니티 생성
     const community = await prisma.community.create({
       data: {
@@ -172,7 +178,7 @@ async function createCommunity(req: NextRequest) {
         slug,
         description,
         rules,
-        avatar,
+        avatar: finalAvatar,
         banner,
         visibility,
         allowFileUpload,

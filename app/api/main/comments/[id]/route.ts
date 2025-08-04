@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { requireAuthAPI, checkBanStatus, hasPermission } from '@/lib/auth-utils'
 import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
@@ -148,17 +148,14 @@ async function deleteComment(
       throwNotFoundError('댓글을 찾을 수 없습니다')
     }
 
-    // 작성자 또는 관리자 확인
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { globalRole: true },
-    })
-
+    // 권한 확인 (작성자 본인 또는 ADMIN/MANAGER)
     const isAuthor = existingComment.authorId === session.user.id
-    const isAdmin =
-      user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER'
+    const hasAdminPermission = await hasPermission(session.user.id, [
+      'ADMIN',
+      'MANAGER',
+    ])
 
-    if (!isAuthor && !isAdmin) {
+    if (!isAuthor && !hasAdminPermission) {
       throwAuthorizationError('댓글 삭제 권한이 없습니다')
     }
 

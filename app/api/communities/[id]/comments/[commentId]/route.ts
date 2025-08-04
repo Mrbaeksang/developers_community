@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import {
+  requireCommunityRoleAPI,
+  hasCommunityPermission,
+} from '@/lib/auth-utils'
 import { CommunityRole } from '@prisma/client'
 import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
@@ -211,14 +214,15 @@ async function deleteCommunityComment(
       throwValidationError('잘못된 요청입니다')
     }
 
-    // 작성자 또는 커뮤니티 관리자 확인
+    // 권한 확인 (작성자 본인 또는 MODERATOR 이상)
     const isAuthor = existingComment.authorId === userId
-    const isOwner = session.membership.role === 'OWNER'
-    const isAdmin = session.membership.role === 'ADMIN'
-    const isModerator = session.membership.role === 'MODERATOR'
+    const hasModeratorPermission = await hasCommunityPermission(
+      userId,
+      actualCommunityId,
+      [CommunityRole.MODERATOR, CommunityRole.ADMIN, CommunityRole.OWNER]
+    )
 
-    // 삭제 권한 체크: 작성자 또는 관리진
-    if (!isAuthor && !isOwner && !isAdmin && !isModerator) {
+    if (!isAuthor && !hasModeratorPermission) {
       throwAuthorizationError('댓글 삭제 권한이 없습니다')
     }
 
