@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { NotificationType } from '@prisma/client'
+import { apiClient } from '@/lib/api'
 
 interface Notification {
   id: string
@@ -69,11 +70,14 @@ export function NotificationProvider({
   // 알림 읽음 처리
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      const res = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
-      })
+      const response = await apiClient(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: 'PUT',
+        }
+      )
 
-      if (res.ok) {
+      if (response.success) {
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId ? { ...n, isRead: true } : n
@@ -89,11 +93,11 @@ export function NotificationProvider({
   // 모든 알림 읽음 처리
   const markAllAsRead = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications/read-all', {
+      const response = await apiClient('/api/notifications/read-all', {
         method: 'PUT',
       })
 
-      if (res.ok) {
+      if (response.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
         setUnreadCount(0)
       }

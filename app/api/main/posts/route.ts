@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
 import { markdownToHtml } from '@/lib/markdown'
-import { redis } from '@/lib/redis'
 import {
   errorResponse,
   paginatedResponse,
@@ -12,14 +11,23 @@ import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
+import {
+  getPostOrderBy,
+  getPaginationParams,
+  getPaginationSkipTake,
+} from '@/lib/db/query-helpers'
+import {
+  getCachedMainPosts,
+  invalidateCache,
+  CACHE_TAGS,
+} from '@/lib/db/query-cache'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
     // 쿼리 파라미터
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const { page, limit } = getPaginationParams(searchParams)
     const type = searchParams.get('type') as string | null
     const categoryId = searchParams.get('categoryId') as string | null
     const category = searchParams.get('category') as string | null // 카테고리 slug
@@ -51,95 +59,26 @@ export async function GET(request: NextRequest) {
     }
 
     // 정렬 조건
-    let orderBy: Record<string, 'asc' | 'desc'>
-    switch (sort) {
-      case 'popular':
-        orderBy = { viewCount: 'desc' }
-        break
-      case 'likes':
-        orderBy = { likeCount: 'desc' }
-        break
-      case 'bookmarks':
-        orderBy = { bookmarkCount: 'desc' }
-        break
-      case 'commented':
-        orderBy = { commentCount: 'desc' }
-        break
-      default:
-        orderBy = { createdAt: 'desc' }
-    }
+    const orderBy = getPostOrderBy(sort)
 
-    // 전체 개수 조회
-    const total = await prisma.mainPost.count({ where })
-
-    // 게시글 조회
-    const posts = await prisma.mainPost.findMany({
+    // 캐시된 쿼리 사용
+    const { skip, take } = getPaginationSkipTake({ page, limit })
+    const { posts, total } = await getCachedMainPosts({
       where,
       orderBy,
-      skip: (page - 1) * limit,
-      take: limit,
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-            icon: true,
-          },
-        },
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                color: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-            likes: true,
-          },
-        },
-      },
+      skip,
+      take,
+      includeViewCounts: true,
     })
 
-    // 마크다운을 HTML로 변환하고 Redis 조회수 포함
-    const formattedPosts = await Promise.all(
-      posts.map(async (post) => {
-        // Redis에서 버퍼링된 조회수 가져오기
-        let redisViews = 0
-        const client = redis()
-        if (client) {
-          const bufferKey = `post:${post.id}:views`
-          const bufferedViews = await client.get(bufferKey)
-          redisViews = parseInt(bufferedViews || '0')
-        }
-
-        return {
-          ...post,
-          content: markdownToHtml(post.content),
-          tags: post.tags.map((postTag) => postTag.tag),
-          viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
-          createdAt: post.createdAt.toISOString(),
-          updatedAt: post.updatedAt.toISOString(),
-          timeAgo: formatTimeAgo(post.createdAt),
-        }
-      })
-    )
+    // 마크다운을 HTML로 변환 (조회수는 이미 포함됨)
+    const formattedPosts = posts.map((post) => ({
+      ...post,
+      content: markdownToHtml(post.content),
+      createdAt: new Date(post.createdAt).toISOString(),
+      updatedAt: new Date(post.updatedAt).toISOString(),
+      timeAgo: formatTimeAgo(new Date(post.createdAt)),
+    }))
 
     return paginatedResponse(formattedPosts, page, limit, total)
   } catch (error) {
@@ -306,6 +245,9 @@ async function createPost(request: NextRequest) {
         },
       })
     }
+
+    // 캐시 무효화
+    await invalidateCache([CACHE_TAGS.mainPosts, CACHE_TAGS.posts])
 
     return createdResponse(post, '게시글이 생성되었습니다.')
   } catch (error) {

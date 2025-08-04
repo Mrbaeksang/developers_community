@@ -42,11 +42,11 @@ export async function middleware(request: NextRequest) {
   // CSP 헤더 설정
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://dapi.kakao.com https://developers.kakao.com https://t1.daumcdn.net https://cdn.jsdelivr.net;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://dapi.kakao.com https://developers.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://cdn.jsdelivr.net https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com;
-    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com;
+    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
     object-src 'none';
     base-uri 'self';
@@ -91,9 +91,9 @@ export async function middleware(request: NextRequest) {
   if (!request.cookies.get('csrf-token')) {
     const csrfToken = await generateCSRFToken()
     response.cookies.set('csrf-token', csrfToken, {
-      httpOnly: true,
+      httpOnly: false, // 클라이언트에서 읽을 수 있어야 함
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24, // 24시간
     })

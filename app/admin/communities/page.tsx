@@ -50,6 +50,7 @@ import {
 } from 'lucide-react'
 import { getAvatarUrl } from '@/lib/community-utils'
 import { CommunityVisibility } from '@prisma/client'
+import { apiClient } from '@/lib/api'
 
 interface Community {
   id: string
@@ -144,7 +145,7 @@ export default function AdminCommunitiesPage() {
     if (!selectedCommunity) return
 
     try {
-      const response = await fetch(
+      const response = await apiClient(
         `/api/admin/communities/${selectedCommunity.id}`,
         {
           method: 'PUT',
@@ -153,7 +154,8 @@ export default function AdminCommunitiesPage() {
         }
       )
 
-      if (!response.ok) throw new Error('Failed to update community')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to update community')
 
       toast.success('커뮤니티 설정이 수정되었습니다.')
       setSettingsDialogOpen(false)
@@ -168,14 +170,15 @@ export default function AdminCommunitiesPage() {
     if (!selectedCommunity) return
 
     try {
-      const response = await fetch(
+      const response = await apiClient(
         `/api/admin/communities/${selectedCommunity.id}`,
         {
           method: 'DELETE',
         }
       )
 
-      if (!response.ok) throw new Error('Failed to delete community')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to delete community')
 
       toast.success('커뮤니티가 삭제되었습니다.')
       setDeleteDialogOpen(false)

@@ -176,7 +176,25 @@ export default function FloatingChatWindow({
 
       if (!res.ok) throw new Error('Failed to send message')
 
-      // 폼 초기화 (실시간으로 메시지가 추가되므로 수동 추가는 제거)
+      const data = await res.json()
+
+      // 서버 응답에서 생성된 메시지를 즉시 추가 (자신의 메시지)
+      if (data.success && data.data?.message) {
+        setMessages((prev) => {
+          // 중복 방지
+          if (prev.some((msg) => msg?.id === data.data.message.id)) {
+            return prev
+          }
+          return [...prev, data.data.message]
+        })
+
+        // 부모 컴포넌트에 알림
+        if (onNewMessage) {
+          onNewMessage(data.data.message)
+        }
+      }
+
+      // 폼 초기화
       setNewMessage('')
       setSelectedFile(null)
       scrollToBottom()

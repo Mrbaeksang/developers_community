@@ -30,7 +30,7 @@ export default async function WritePage() {
 
   // 로그인 체크
   if (!session) {
-    redirect('/signin')
+    redirect('/auth/signin')
   }
 
   return <PostEditor userRole={session.user?.role} />

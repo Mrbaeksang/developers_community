@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 interface Props {
   children: ReactNode
@@ -75,7 +76,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Example: Send to your API endpoint
       if (typeof window !== 'undefined') {
-        fetch('/api/errors', {
+        apiClient('/api/errors', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

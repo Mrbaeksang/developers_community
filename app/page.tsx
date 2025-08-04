@@ -68,12 +68,14 @@ const SidebarContainer = dynamic(
 async function getSidebarData() {
   try {
     const [tagsRes, usersRes, trendingRes] = await Promise.all([
-      fetch(`${getApiUrl()}/api/main/tags?limit=8`, { cache: 'no-store' }),
+      fetch(`${getApiUrl()}/api/main/tags?limit=8`, {
+        next: { revalidate: 3600 }, // 1 hour cache for tags
+      }),
       fetch(`${getApiUrl()}/api/main/users/active?limit=5`, {
-        cache: 'no-store',
+        next: { revalidate: 300 }, // 5 minutes cache for active users
       }),
       fetch(`${getApiUrl()}/api/main/posts/weekly-trending?limit=3`, {
-        cache: 'no-store',
+        next: { revalidate: 300 }, // 5 minutes cache for trending
       }),
     ])
 

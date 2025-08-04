@@ -15,6 +15,7 @@ import {
   Ban,
   Clock,
 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -216,7 +217,7 @@ export default function CommunityMemberSettings({
       memberId: string
       role: CommunityRole
     }) => {
-      const res = await fetch(
+      const response = await apiClient(
         `/api/communities/${communityId}/members/${memberId}/role`,
         {
           method: 'PATCH',
@@ -225,12 +226,11 @@ export default function CommunityMemberSettings({
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '역할 변경에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '역할 변경에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data
     },
     onSuccess: () => {
       toast.success('멤버 역할이 변경되었습니다.')
@@ -261,7 +261,7 @@ export default function CommunityMemberSettings({
       memberId: string
       actionType: 'kick' | 'ban'
     }) => {
-      const res = await fetch(
+      const response = await apiClient(
         `/api/communities/${communityId}/members/${memberId}`,
         {
           method: 'DELETE',
@@ -270,12 +270,11 @@ export default function CommunityMemberSettings({
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '작업에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '작업에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data
     },
     onSuccess: (_, { actionType }) => {
       toast.success(
@@ -312,7 +311,7 @@ export default function CommunityMemberSettings({
       memberId: string
       action: 'approve' | 'reject'
     }) => {
-      const res = await fetch(
+      const response = await apiClient(
         `/api/communities/${communityId}/members/${memberId}/request`,
         {
           method: 'PATCH',
@@ -321,12 +320,11 @@ export default function CommunityMemberSettings({
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '작업에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '작업에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data
     },
     onSuccess: (_, { action }) => {
       toast.success(

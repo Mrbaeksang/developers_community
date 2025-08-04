@@ -92,7 +92,7 @@ export default async function AdminPage() {
   const session = await auth()
 
   if (!session?.user) {
-    redirect('/signin')
+    redirect('/auth/signin')
   }
 
   // 관리자 권한 확인

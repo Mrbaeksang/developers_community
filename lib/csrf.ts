@@ -19,9 +19,9 @@ export async function setCSRFCookie(response: NextResponse): Promise<void> {
   const token = await generateCSRFToken()
 
   response.cookies.set(CSRF_COOKIE_NAME, token, {
-    httpOnly: true,
+    httpOnly: false, // 클라이언트에서 읽을 수 있어야 함
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24, // 24시간
   })

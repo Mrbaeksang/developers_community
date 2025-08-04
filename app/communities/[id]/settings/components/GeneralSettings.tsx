@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { apiClient } from '@/lib/api'
 
 interface GeneralSettingsProps {
   community: Community
@@ -45,15 +46,14 @@ export default function CommunityGeneralSettings({
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/communities/${community.id}`, {
+      const response = await apiClient(`/api/communities/${community.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '설정 변경에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '설정 변경에 실패했습니다.')
       }
 
       toast.success('커뮤니티 설정이 업데이트되었습니다.')

@@ -28,6 +28,7 @@ import {
   Tag,
   FileText,
 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 interface PostAuthor {
   id: string
@@ -78,18 +79,17 @@ export function PendingPostsManager({
   // 게시글 승인 mutation
   const approveMutation = useMutation({
     mutationFn: async (postId: string) => {
-      const response = await fetch(`/api/main/posts/${postId}/approve`, {
+      const response = await apiClient(`/api/main/posts/${postId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve' }),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || '승인 처리에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '승인 처리에 실패했습니다.')
       }
 
-      return response.json()
+      return response.data
     },
     onSuccess: (_, postId) => {
       // 목록에서 제거
@@ -113,7 +113,7 @@ export function PendingPostsManager({
       postId: string
       reason: string
     }) => {
-      const response = await fetch(`/api/main/posts/${postId}/approve`, {
+      const response = await apiClient(`/api/main/posts/${postId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,12 +122,11 @@ export function PendingPostsManager({
         }),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || '거부 처리에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '거부 처리에 실패했습니다.')
       }
 
-      return response.json()
+      return response.data
     },
     onSuccess: (_, { postId }) => {
       // 목록에서 제거

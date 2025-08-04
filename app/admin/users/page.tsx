@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GlobalRole } from '@prisma/client'
+import { apiClient } from '@/lib/api'
 
 interface User {
   id: string
@@ -122,16 +123,20 @@ export default function AdminUsersPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser.id}/ban`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          banReason,
-          banUntil: banUntil?.toISOString(),
-        }),
-      })
+      const response = await apiClient(
+        `/api/admin/users/${selectedUser.id}/ban`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            banReason,
+            banUntil: banUntil?.toISOString(),
+          }),
+        }
+      )
 
-      if (!response.ok) throw new Error('Failed to ban user')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to ban user')
 
       toast.success('사용자가 차단되었습니다.')
       setBanDialogOpen(false)
@@ -147,11 +152,12 @@ export default function AdminUsersPage() {
 
   const handleUnban = async (userId: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}/unban`, {
+      const response = await apiClient(`/api/admin/users/${userId}/unban`, {
         method: 'POST',
       })
 
-      if (!response.ok) throw new Error('Failed to unban user')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to unban user')
 
       toast.success('사용자 차단이 해제되었습니다.')
       fetchUsers()
@@ -165,13 +171,17 @@ export default function AdminUsersPage() {
     if (!selectedUser) return
 
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser.id}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      })
+      const response = await apiClient(
+        `/api/admin/users/${selectedUser.id}/role`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole }),
+        }
+      )
 
-      if (!response.ok) throw new Error('Failed to change role')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to change role')
 
       toast.success('사용자 역할이 변경되었습니다.')
       setRoleDialogOpen(false)
@@ -185,13 +195,14 @@ export default function AdminUsersPage() {
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}/active`, {
+      const response = await apiClient(`/api/admin/users/${userId}/active`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !isActive }),
       })
 
-      if (!response.ok) throw new Error('Failed to toggle active status')
+      if (!response.success)
+        throw new Error(response.error || 'Failed to toggle active status')
 
       toast.success(`계정이 ${!isActive ? '활성화' : '비활성화'}되었습니다.`)
       fetchUsers()

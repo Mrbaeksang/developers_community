@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
 import type { Comment } from '@/lib/types'
+import { apiClient } from '@/lib/api'
 
 interface CommentSectionProps {
   postId: string
@@ -66,21 +67,22 @@ export default function CommentSection({
       content: string
       parentId: string | null
     }) => {
-      const res = await fetch(`/api/main/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content, parentId }),
-      })
+      const response = await apiClient<{ comment: Comment }>(
+        `/api/main/posts/${postId}/comments`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content, parentId }),
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '댓글 작성에 실패했습니다')
+      if (!response.success) {
+        throw new Error(response.error || '댓글 작성에 실패했습니다')
       }
 
-      const data = await res.json()
-      return data.success && data.data ? data.data : data.comment || data
+      return response.data?.comment || response.data
     },
     onSuccess: (newComment) => {
       // 댓글 목록 캐시 업데이트
@@ -114,7 +116,7 @@ export default function CommentSection({
         description: '댓글을 작성하려면 로그인해주세요.',
         variant: 'destructive',
       })
-      router.push('/signin')
+      router.push('/auth/signin')
       return
     }
 
@@ -138,22 +140,23 @@ export default function CommentSection({
       content: string
       parentId: string
     }) => {
-      const res = await fetch(`/api/main/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content, parentId }),
-      })
+      const response = await apiClient<{ comment: Comment }>(
+        `/api/main/posts/${postId}/comments`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content, parentId }),
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '답글 작성에 실패했습니다')
+      if (!response.success) {
+        throw new Error(response.error || '답글 작성에 실패했습니다')
       }
 
-      const data = await res.json()
       return {
-        reply: data.success && data.data ? data.data : data.comment || data,
+        reply: response.data?.comment || response.data,
         parentId,
       }
     },
@@ -198,7 +201,7 @@ export default function CommentSection({
         description: '답글을 작성하려면 로그인해주세요.',
         variant: 'destructive',
       })
-      router.push('/signin')
+      router.push('/auth/signin')
       return
     }
 
@@ -223,21 +226,23 @@ export default function CommentSection({
       commentId: string
       content: string
     }) => {
-      const res = await fetch(`/api/main/comments/${commentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      })
+      const response = await apiClient<{ comment: Comment }>(
+        `/api/main/comments/${commentId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content }),
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '댓글 수정에 실패했습니다')
+      if (!response.success) {
+        throw new Error(response.error || '댓글 수정에 실패했습니다')
       }
 
-      const data = await res.json()
-      return { comment: data.comment, commentId }
+      const updatedComment = response.data?.comment || response.data
+      return { comment: updatedComment as Comment, commentId }
     },
     onSuccess: ({ comment, commentId }) => {
       // 재귀적으로 댓글 트리를 업데이트하는 함수
@@ -295,13 +300,12 @@ export default function CommentSection({
   // 댓글 삭제 mutation
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const res = await fetch(`/api/main/comments/${commentId}`, {
+      const response = await apiClient(`/api/main/comments/${commentId}`, {
         method: 'DELETE',
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '댓글 삭제에 실패했습니다')
+      if (!response.success) {
+        throw new Error(response.error || '댓글 삭제에 실패했습니다')
       }
 
       return commentId

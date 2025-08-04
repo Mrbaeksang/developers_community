@@ -27,6 +27,7 @@ function getCSRFToken(): string | null {
 
   // 쿠키에서 CSRF 토큰 가져오기
   const cookies = document.cookie.split(';')
+
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
     if (name === 'csrf-token') {
@@ -54,7 +55,20 @@ export async function apiClient<T = unknown>(
     const needsCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)
 
     if (needsCSRF) {
-      const csrfToken = getCSRFToken()
+      let csrfToken = getCSRFToken()
+
+      // CSRF 토큰이 없으면 서버에서 가져오기
+      if (!csrfToken) {
+        try {
+          const tokenResponse = await fetch('/api/csrf-token')
+          if (tokenResponse.ok) {
+            const data = await tokenResponse.json()
+            csrfToken = data.data?.token
+          }
+        } catch (error) {
+          console.error('Failed to fetch CSRF token:', error)
+        }
+      }
 
       if (csrfToken) {
         // 헤더에 CSRF 토큰 추가

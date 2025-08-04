@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { NotificationType } from '@prisma/client'
+import { apiClient } from '@/lib/api'
 
 interface Notification {
   id: string
@@ -98,10 +99,14 @@ export default function NotificationsPage() {
   // 알림 읽음 처리
   const markAsRead = async (notificationId: string) => {
     try {
-      const res = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
-      })
-      if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
+      const response = await apiClient(
+        `/api/notifications/${notificationId}/read`,
+        {
+          method: 'PUT',
+        }
+      )
+      if (!response.success)
+        throw new Error(response.error || '알림 읽음 처리에 실패했습니다.')
 
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
@@ -115,10 +120,11 @@ export default function NotificationsPage() {
   // 모든 알림 읽음 처리
   const markAllAsRead = async () => {
     try {
-      const res = await fetch('/api/notifications/read-all', {
+      const response = await apiClient('/api/notifications/read-all', {
         method: 'PUT',
       })
-      if (!res.ok) throw new Error('알림 읽음 처리에 실패했습니다.')
+      if (!response.success)
+        throw new Error(response.error || '알림 읽음 처리에 실패했습니다.')
 
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
       setUnreadCount(0)
@@ -131,10 +137,11 @@ export default function NotificationsPage() {
   // 알림 삭제
   const deleteNotification = async (notificationId: string) => {
     try {
-      const res = await fetch(`/api/notifications/${notificationId}`, {
+      const response = await apiClient(`/api/notifications/${notificationId}`, {
         method: 'DELETE',
       })
-      if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
+      if (!response.success)
+        throw new Error(response.error || '알림 삭제에 실패했습니다.')
 
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
 

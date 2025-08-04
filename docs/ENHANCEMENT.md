@@ -17,11 +17,11 @@
 
 ## 📋 남은 작업 (우선순위순)
 1. **데이터베이스 쿼리 최적화** - 느린 쿼리 개선
-2. **백업 자동화** - 데이터베이스 백업 스크립트
-3. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
+2. **핵심 기능 테스트** - 주요 기능에 대한 단위 테스트
 
 ## 💡 참고사항
 - **환경**: Vercel + Neon PostgreSQL + Redis Cloud + Vercel Blob
 - **현재 성능**: Desktop RES 62점 (Poor) - 긴급 개선 필요
 - **Vercel 자동 제공**: CDN, HTTPS, 모니터링, Edge Functions
 - **Neon 자동 제공**: 백업, 커넥션 풀링, Autoscaling
+- **백업**: Neon이 자동으로 처리 (Point-in-time recovery 지원)

@@ -51,6 +51,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
+import { apiClient } from '@/lib/api'
 
 interface MainPost {
   id: string
@@ -132,13 +133,13 @@ export default function PostsPage() {
   // 메인 게시글 조회
   const fetchMainPosts = async () => {
     try {
-      const res = await fetch('/api/admin/posts/main')
-      if (!res.ok) {
-        if (res.status === 401) {
+      const response = await apiClient('/api/admin/posts/main')
+      if (!response.success) {
+        if (response.error === 'Unauthorized') {
           router.push('/login')
           return
         }
-        if (res.status === 403) {
+        if (response.error === 'Forbidden') {
           toast({
             title: '권한이 없습니다.',
             description: '관리자만 접근할 수 있습니다.',
@@ -147,12 +148,12 @@ export default function PostsPage() {
           router.push('/')
           return
         }
-        throw new Error('메인 게시글 조회 실패')
+        throw new Error(response.error || '메인 게시글 조회 실패')
       }
-      const data = await res.json()
+      const data = response.data
 
       // 새로운 응답 형식 처리: { success: true, data: posts }
-      const posts = data.success && data.data ? data.data : data
+      const posts = data as MainPost[]
       setMainPosts(posts)
     } catch (error) {
       console.error('메인 게시글 조회 실패:', error)
@@ -166,14 +167,14 @@ export default function PostsPage() {
   // 커뮤니티 게시글 조회
   const fetchCommunityPosts = async () => {
     try {
-      const res = await fetch('/api/admin/posts/community')
-      if (!res.ok) {
-        throw new Error('커뮤니티 게시글 조회 실패')
+      const response = await apiClient('/api/admin/posts/community')
+      if (!response.success) {
+        throw new Error(response.error || '커뮤니티 게시글 조회 실패')
       }
-      const data = await res.json()
+      const data = response.data
 
       // 새로운 응답 형식 처리: { success: true, data: posts }
-      const posts = data.success && data.data ? data.data : data
+      const posts = data as CommunityPost[]
       setCommunityPosts(posts)
     } catch (error) {
       console.error('커뮤니티 게시글 조회 실패:', error)
@@ -196,21 +197,21 @@ export default function PostsPage() {
   // 게시글 고정/고정해제
   const handleTogglePin = async (postId: string) => {
     try {
-      const res = await fetch(`/api/admin/posts/main/${postId}/pin`, {
+      const response = await apiClient(`/api/admin/posts/main/${postId}/pin`, {
         method: 'PATCH',
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '고정 상태 변경 실패')
+      if (!response.success) {
+        throw new Error(response.error || '고정 상태 변경 실패')
       }
 
-      const data = await res.json()
+      const data = response.data
 
       // 새로운 응답 형식 처리: { success: true, message }
-      const message = data.success
-        ? data.message
-        : data.message || '고정 상태가 변경되었습니다.'
+      const message =
+        data && typeof data === 'object' && 'message' in data
+          ? (data as { message: string }).message
+          : '고정 상태가 변경되었습니다.'
       toast({
         title: message,
       })
@@ -239,21 +240,19 @@ export default function PostsPage() {
           ? `/api/admin/posts/main/${selectedPost.id}`
           : `/api/admin/posts/community/${selectedPost.id}`
 
-      const res = await fetch(endpoint, {
+      const response = await apiClient(endpoint, {
         method: 'DELETE',
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        const errorMessage =
-          error.success === false ? error.error : error.error || '삭제 실패'
-        throw new Error(errorMessage)
+      if (!response.success) {
+        throw new Error(response.error || '삭제 실패')
       }
 
-      const data = await res.json()
-      const successMessage = data.success
-        ? data.message
-        : '게시글이 삭제되었습니다.'
+      const data = response.data
+      const successMessage =
+        data && typeof data === 'object' && 'message' in data
+          ? (data as { message: string }).message
+          : '게시글이 삭제되었습니다.'
 
       toast({
         title: successMessage,

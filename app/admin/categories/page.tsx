@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { apiClient } from '@/lib/api'
 import {
   Table,
   TableBody,
@@ -175,7 +176,7 @@ export default function CategoriesPage() {
         icon: formData.icon === 'none' ? '' : formData.icon,
       }
 
-      const res = await fetch(url, {
+      const response = await apiClient(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -183,9 +184,8 @@ export default function CategoriesPage() {
         body: JSON.stringify(dataToSend),
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '저장 실패')
+      if (!response.success) {
+        throw new Error(response.error || '저장 실패')
       }
 
       toast({
@@ -214,13 +214,15 @@ export default function CategoriesPage() {
     if (!selectedCategory) return
 
     try {
-      const res = await fetch(`/api/main/categories/${selectedCategory.id}`, {
-        method: 'DELETE',
-      })
+      const response = await apiClient(
+        `/api/main/categories/${selectedCategory.id}`,
+        {
+          method: 'DELETE',
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '삭제 실패')
+      if (!response.success) {
+        throw new Error(response.error || '삭제 실패')
       }
 
       toast({

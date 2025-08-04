@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 interface ErrorPageProps {
   error: Error & { digest?: string }
@@ -15,7 +16,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
     // Send to error reporting service
     if (typeof window !== 'undefined') {
-      fetch('/api/errors', {
+      apiClient('/api/errors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

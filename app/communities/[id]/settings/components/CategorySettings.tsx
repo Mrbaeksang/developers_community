@@ -26,6 +26,7 @@ import {
 import { Plus, Edit2, Trash2, GripVertical, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Reorder } from 'framer-motion'
+import { apiClient } from '@/lib/api'
 
 interface Category {
   id: string
@@ -88,21 +89,23 @@ export default function CommunityCategorySettings({
   // 카테고리 생성 mutation
   const createMutation = useMutation({
     mutationFn: async (categoryData: typeof newCategory) => {
-      const res = await fetch(`/api/communities/${communityId}/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...categoryData,
-          order: categories.length,
-        }),
-      })
+      const response = await apiClient<Category>(
+        `/api/communities/${communityId}/categories`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...categoryData,
+            order: categories.length,
+          }),
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '카테고리 생성에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '카테고리 생성에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data as Category
     },
     onSuccess: (category) => {
       setCategories([...categories, category])
@@ -146,7 +149,7 @@ export default function CommunityCategorySettings({
   // 카테고리 수정 mutation
   const updateMutation = useMutation({
     mutationFn: async (category: Category) => {
-      const res = await fetch(
+      const response = await apiClient<Category>(
         `/api/communities/${communityId}/categories/${category.id}`,
         {
           method: 'PATCH',
@@ -160,12 +163,11 @@ export default function CommunityCategorySettings({
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '카테고리 수정에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '카테고리 수정에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data as Category
     },
     onSuccess: (updatedCategory) => {
       setCategories(
@@ -200,19 +202,18 @@ export default function CommunityCategorySettings({
   // 카테고리 삭제 mutation
   const deleteMutation = useMutation({
     mutationFn: async (categoryId: string) => {
-      const res = await fetch(
+      const response = await apiClient(
         `/api/communities/${communityId}/categories/${categoryId}`,
         {
           method: 'DELETE',
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '카테고리 삭제에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '카테고리 삭제에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data
     },
     onSuccess: (_, categoryId) => {
       setCategories(categories.filter((cat) => cat.id !== categoryId))
@@ -243,7 +244,7 @@ export default function CommunityCategorySettings({
   // 카테고리 순서 변경 mutation
   const reorderMutation = useMutation({
     mutationFn: async (newOrder: Category[]) => {
-      const res = await fetch(
+      const response = await apiClient(
         `/api/communities/${communityId}/categories/reorder`,
         {
           method: 'PATCH',
@@ -254,12 +255,11 @@ export default function CommunityCategorySettings({
         }
       )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '순서 변경에 실패했습니다.')
+      if (!response.success) {
+        throw new Error(response.error || '순서 변경에 실패했습니다.')
       }
 
-      return res.json()
+      return response.data
     },
     onMutate: async (newOrder) => {
       // 낙관적 업데이트: 각 카테고리의 order 값을 새로운 인덱스로 업데이트

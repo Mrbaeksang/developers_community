@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { apiClient } from '@/lib/api'
 
 export function VisitorTracker() {
   const pathname = usePathname()
@@ -16,7 +17,7 @@ export function VisitorTracker() {
           ?.split('=')[1]
 
         if (sessionId) {
-          await fetch('/api/visitors/track', {
+          await apiClient('/api/visitors/track', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
