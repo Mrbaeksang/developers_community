@@ -119,20 +119,6 @@ export default function CreateCommunityForm() {
     setHasUnsavedChanges(!!hasData)
   }, [formData])
 
-  // 페이지 이탈 방지
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if ((hasUnsavedChanges || isCreating) && !isSubmitting) {
-        e.preventDefault()
-        e.returnValue =
-          '작성 중인 내용이 있습니다. 정말 페이지를 떠나시겠습니까?'
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges, isSubmitting, isCreating])
-
   // 파일 업로드 핸들러 (배너 전용)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -248,6 +234,23 @@ export default function CreateCommunityForm() {
     },
   })
 
+  // 페이지 이탈 방지
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (
+        (hasUnsavedChanges || isCreating) &&
+        !createCommunityMutation.isPending
+      ) {
+        e.preventDefault()
+        e.returnValue =
+          '작성 중인 내용이 있습니다. 정말 페이지를 떠나시겠습니까?'
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges, createCommunityMutation.isPending, isCreating])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -312,7 +315,7 @@ export default function CreateCommunityForm() {
   }
 
   // 슬러그 중복 체크
-  const { isLoading: isCheckingSlug } = useQuery({
+  const { data: slugCheckResult, isLoading: isCheckingSlug } = useQuery({
     queryKey: ['checkSlug', formData.slug],
     queryFn: async () => {
       const res = await fetch('/api/communities/check-duplicate', {
@@ -327,18 +330,17 @@ export default function CreateCommunityForm() {
     enabled: !!formData.slug && formData.slug.length >= 2,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    onSuccess: (result) => {
-      if (result.success && result.data) {
-        setSlugAvailable(!result.data.duplicates.slug)
-      }
-    },
-    onError: (error) => {
-      console.error('Failed to check slug:', error)
-    },
   })
 
+  // 슬러그 체크 결과 처리
+  useEffect(() => {
+    if (slugCheckResult?.success && slugCheckResult.data) {
+      setSlugAvailable(!slugCheckResult.data.duplicates.slug)
+    }
+  }, [slugCheckResult])
+
   // 이름 중복 체크
-  const { isLoading: isCheckingName } = useQuery({
+  const { data: nameCheckResult, isLoading: isCheckingName } = useQuery({
     queryKey: ['checkName', formData.name],
     queryFn: async () => {
       const res = await fetch('/api/communities/check-duplicate', {
@@ -353,15 +355,14 @@ export default function CreateCommunityForm() {
     enabled: !!formData.name && formData.name.length >= 2,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    onSuccess: (result) => {
-      if (result.success && result.data) {
-        setNameAvailable(!result.data.duplicates.name)
-      }
-    },
-    onError: (error) => {
-      console.error('Failed to check name:', error)
-    },
   })
+
+  // 이름 체크 결과 처리
+  useEffect(() => {
+    if (nameCheckResult?.success && nameCheckResult.data) {
+      setNameAvailable(!nameCheckResult.data.duplicates.name)
+    }
+  }, [nameCheckResult])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 p-4 sm:p-8">
