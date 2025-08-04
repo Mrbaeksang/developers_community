@@ -8,13 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
-import ShareModal from './ShareModal'
 import { formatCount, getTextColor } from '@/lib/post-format-utils'
 import { apiClient } from '@/lib/api'
+
+// 레이지 로딩으로 ShareModal 최적화 - 사용자가 공유 버튼을 클릭할 때만 로드
+const ShareModal = lazy(() => import('./ShareModal'))
 
 interface PostDetailProps {
   post: {
@@ -399,13 +401,17 @@ export default function PostDetail({ post }: PostDetailProps) {
         </Button>
       </div>
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        url={typeof window !== 'undefined' ? window.location.href : ''}
-        title={post.title}
-      />
+      {/* Share Modal - 레이지 로딩으로 필요할 때만 로드 */}
+      {showShareModal && (
+        <Suspense fallback={null}>
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            url={typeof window !== 'undefined' ? window.location.href : ''}
+            title={post.title}
+          />
+        </Suspense>
+      )}
     </article>
   )
 }

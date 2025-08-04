@@ -1,9 +1,30 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { lazy, Suspense } from 'react'
 import PostDetail from '@/components/posts/PostDetail'
 import CommentSection from '@/components/posts/CommentSection'
-import RelatedPosts from '@/components/posts/RelatedPosts'
 import { markdownToHtml } from '@/lib/markdown'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// 레이지 로딩으로 RelatedPosts 최적화
+const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
+
+// 관련 게시물 스켈레톤 컴포넌트
+function RelatedPostsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-6 w-24" />
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface PageProps {
   params: Promise<{
@@ -107,7 +128,9 @@ export default async function PostDetailPage({ params }: PageProps) {
           />
         </div>
         <aside className="space-y-6">
-          <RelatedPosts postId={post.id} />
+          <Suspense fallback={<RelatedPostsSkeleton />}>
+            <RelatedPosts postId={post.id} />
+          </Suspense>
         </aside>
       </div>
     </div>

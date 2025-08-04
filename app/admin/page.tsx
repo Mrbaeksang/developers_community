@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import { lazy, Suspense } from 'react'
 import {
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   FileText,
   Users,
@@ -21,7 +23,13 @@ import {
   FolderOpen,
   Users2,
 } from 'lucide-react'
-import { RealtimeDashboard } from '@/components/admin/RealtimeDashboard'
+
+// 레이지 로딩으로 RealtimeDashboard 최적화
+const RealtimeDashboard = lazy(() =>
+  import('@/components/admin/RealtimeDashboard').then((mod) => ({
+    default: mod.RealtimeDashboard,
+  }))
+)
 
 async function getAdminStats() {
   try {
@@ -86,6 +94,17 @@ async function getAdminStats() {
       todayPosts: 0,
     }
   }
+}
+
+// 대시보드 스켈레톤 컴포넌트
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {[...Array(4)].map((_, i) => (
+        <Skeleton key={i} className="h-24" />
+      ))}
+    </div>
+  )
 }
 
 export default async function AdminPage() {
@@ -317,7 +336,9 @@ export default async function AdminPage() {
         {/* 실시간 모니터링 */}
         <div>
           <h2 className="text-lg font-semibold mb-4">실시간 모니터링</h2>
-          <RealtimeDashboard />
+          <Suspense fallback={<DashboardSkeleton />}>
+            <RealtimeDashboard />
+          </Suspense>
         </div>
       </div>
     </div>

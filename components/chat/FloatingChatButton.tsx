@@ -1,12 +1,35 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import FloatingChatWindow from './FloatingChatWindow'
 import { useChatEvents } from '@/hooks/use-chat-events'
 import { useSession } from 'next-auth/react'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// 레이지 로딩으로 FloatingChatWindow 최적화
+const FloatingChatWindow = lazy(() => import('./FloatingChatWindow'))
+
+// 채팅 윈도우 스켈레톤 컴포넌트
+function ChatSkeleton() {
+  return (
+    <div className="flex flex-col h-full p-4">
+      <div className="space-y-3 flex-1">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-10 w-full mt-4" />
+    </div>
+  )
+}
 
 interface FloatingChatButtonProps {
   channelId?: string
@@ -257,10 +280,12 @@ export default function FloatingChatButton({
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <FloatingChatWindow
-            channelId={channelId}
-            onNewMessage={handleNewMessage}
-          />
+          <Suspense fallback={<ChatSkeleton />}>
+            <FloatingChatWindow
+              channelId={channelId}
+              onNewMessage={handleNewMessage}
+            />
+          </Suspense>
         </CardContent>
 
         {/* 크기 조절 핸들 - 4모서리 */}

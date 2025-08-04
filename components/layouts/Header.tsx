@@ -29,9 +29,15 @@ import {
   MessageCircle,
   HelpCircle,
 } from 'lucide-react'
-import { useState } from 'react'
-import { SearchModal } from '@/components/search/SearchModal'
+import { useState, lazy, Suspense } from 'react'
 import NotificationDropdown from '@/components/notifications/NotificationDropdown'
+
+// 레이지 로딩으로 SearchModal 최적화 - 사용자가 검색 버튼을 클릭할 때만 로드
+const SearchModal = lazy(() =>
+  import('@/components/search/SearchModal').then((mod) => ({
+    default: mod.SearchModal,
+  }))
+)
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -296,11 +302,15 @@ export function Header() {
         </div>
       )}
 
-      {/* Search Modal */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      {/* Search Modal - 레이지 로딩으로 필요할 때만 로드 */}
+      {isSearchOpen && (
+        <Suspense fallback={null}>
+          <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+          />
+        </Suspense>
+      )}
     </header>
   )
 }
