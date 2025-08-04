@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCommunityRoleAPI } from '@/lib/auth-utils'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
-import { successResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -31,7 +31,21 @@ export async function DELETE(
 
     // 요청 본문 검증
     const body = await req.json()
-    const { ban } = deleteMemberSchema.parse(body)
+    const validation = deleteMemberSchema.safeParse(body)
+
+    if (!validation.success) {
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
+    }
+
+    const { ban } = validation.data
 
     // 대상 멤버 확인
     const targetMember = await prisma.communityMember.findUnique({

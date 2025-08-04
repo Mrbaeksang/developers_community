@@ -11,6 +11,7 @@ import {
   errorResponse,
   updatedResponse,
   deletedResponse,
+  validationErrorResponse,
 } from '@/lib/api-response'
 import {
   handleError,
@@ -173,7 +174,15 @@ async function updatePost(
     const validation = updatePostSchema.safeParse(body)
 
     if (!validation.success) {
-      throwValidationError(validation.error.issues[0].message)
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
 
     const { title, content, categoryId, tagIds } = validation.data

@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse } from '@/lib/api-response'
+import {
+  successResponse,
+  errorResponse,
+  validationErrorResponse,
+} from '@/lib/api-response'
 import { z } from 'zod'
 
 const checkDuplicateSchema = z.object({
@@ -14,7 +18,15 @@ export async function POST(req: NextRequest) {
     const validation = checkDuplicateSchema.safeParse(body)
 
     if (!validation.success) {
-      return errorResponse('유효하지 않은 요청입니다.', 400)
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
 
     const { name, slug } = validation.data

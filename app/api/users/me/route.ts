@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse, updatedResponse } from '@/lib/api-response'
+import {
+  successResponse,
+  updatedResponse,
+  validationErrorResponse,
+} from '@/lib/api-response'
 import {
   handleError,
   throwNotFoundError,
@@ -103,7 +107,15 @@ async function updateProfile(request: NextRequest) {
     const validation = updateProfileSchema.safeParse(body)
 
     if (!validation.success) {
-      throwValidationError(validation.error.issues[0].message)
+      const errors: Record<string, string[]> = {}
+      validation.error.issues.forEach((issue) => {
+        const field = issue.path.join('.')
+        if (!errors[field]) {
+          errors[field] = []
+        }
+        errors[field].push(issue.message)
+      })
+      return validationErrorResponse(errors)
     }
 
     const validatedData = validation.data
