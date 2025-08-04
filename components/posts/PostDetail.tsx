@@ -99,10 +99,11 @@ export default function PostDetail({ post }: PostDetailProps) {
     },
   })
 
-  // 조회수 증가
+  // 조회수 증가 - 컴포넌트 마운트 시 한 번만 실행
   useEffect(() => {
     viewMutation.mutate()
-  }, [viewMutation])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 빈 dependency array로 마운트 시에만 실행
 
   // 좋아요 토글 mutation
   const likeMutation = useMutation({

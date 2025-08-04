@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Globe } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import dynamic from 'next/dynamic'
@@ -39,45 +41,58 @@ interface ChatChannel {
   unreadCount: number
 }
 
+// 채팅 채널 가져오기 함수
+const fetchChannels = async (): Promise<ChatChannel[]> => {
+  const res = await fetch('/api/chat/channels', {
+    credentials: 'include', // 쿠키를 포함하여 요청
+  })
+  if (!res.ok) {
+    throw new Error('채널 목록을 불러오는데 실패했습니다.')
+  }
+  const data = await res.json()
+
+  // 새로운 응답 형식 처리: { success: true, data: { channels } }
+  return data.success && data.data ? data.data.channels : data.channels || data
+}
+
 export default function ChatChannelList() {
-  const [channels, setChannels] = useState<ChatChannel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [openChannels, setOpenChannels] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    fetchChannels()
-  }, [])
+  // React Query로 채널 목록 관리
+  const {
+    data: channels = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['chatChannels'],
+    queryFn: fetchChannels,
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 2 * 60 * 1000, // 2분간 캐시
+    refetchInterval: 60 * 1000, // 1분마다 자동 새로고침 (실시간 채팅용)
+  })
 
-  const fetchChannels = async () => {
-    try {
-      const res = await fetch('/api/chat/channels', {
-        credentials: 'include', // 쿠키를 포함하여 요청
-      })
-      if (!res.ok) {
-        throw new Error('채널 목록을 불러오는데 실패했습니다.')
-      }
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { channels } }
-      const channels =
-        data.success && data.data ? data.data.channels : data.channels || data
-
-      setChannels(channels)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            채팅 목록을 불러오는 중...
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-lg font-black flex items-center">
+            <MessageCircle className="mr-2 h-5 w-5" />
+            실시간 채팅
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="p-3 rounded-lg border-2 border-black">
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     )
@@ -86,8 +101,18 @@ export default function ChatChannelList() {
   if (error) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-lg font-black flex items-center">
+            <MessageCircle className="mr-2 h-5 w-5" />
+            실시간 채팅
+          </CardTitle>
+        </CardHeader>
         <CardContent className="p-6">
-          <div className="text-center text-red-600">{error}</div>
+          <div className="text-center text-red-600">
+            {error instanceof Error
+              ? error.message
+              : '채널 목록을 불러오는데 실패했습니다.'}
+          </div>
         </CardContent>
       </Card>
     )

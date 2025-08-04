@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -68,8 +69,8 @@ export default function CommunityCategorySettings({
   categories: initialCategories,
 }: CategorySettingsProps) {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [categories, setCategories] = useState(initialCategories)
-  const [isLoading, setIsLoading] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(
@@ -84,24 +85,14 @@ export default function CommunityCategorySettings({
     color: '#6366f1',
   })
 
-  // 카테고리 생성
-  const handleCreate = async () => {
-    if (!newCategory.name || !newCategory.slug) {
-      toast({
-        title: '오류',
-        description: '카테고리 이름과 슬러그를 입력해주세요.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setIsLoading(true)
-    try {
+  // 카테고리 생성 mutation
+  const createMutation = useMutation({
+    mutationFn: async (categoryData: typeof newCategory) => {
       const res = await fetch(`/api/communities/${communityId}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newCategory,
+          ...categoryData,
           order: categories.length,
         }),
       })
@@ -111,7 +102,9 @@ export default function CommunityCategorySettings({
         throw new Error(error.error || '카테고리 생성에 실패했습니다.')
       }
 
-      const category = await res.json()
+      return res.json()
+    },
+    onSuccess: (category) => {
       setCategories([...categories, category])
       setIsCreateOpen(false)
       setNewCategory({
@@ -120,41 +113,49 @@ export default function CommunityCategorySettings({
         description: '',
         color: '#6366f1',
       })
-
       toast({
         title: '성공',
         description: '카테고리가 생성되었습니다.',
       })
-    } catch (error) {
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityCategories', communityId],
+      })
+    },
+    onError: (error: Error) => {
       toast({
         title: '오류',
-        description:
-          error instanceof Error
-            ? error.message
-            : '카테고리 생성에 실패했습니다.',
+        description: error.message || '카테고리 생성에 실패했습니다.',
         variant: 'destructive',
       })
-    } finally {
-      setIsLoading(false)
+    },
+  })
+
+  const handleCreate = () => {
+    if (!newCategory.name || !newCategory.slug) {
+      toast({
+        title: '오류',
+        description: '카테고리 이름과 슬러그를 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
     }
+    createMutation.mutate(newCategory)
   }
 
-  // 카테고리 수정
-  const handleEdit = async () => {
-    if (!editingCategory) return
-
-    setIsLoading(true)
-    try {
+  // 카테고리 수정 mutation
+  const updateMutation = useMutation({
+    mutationFn: async (category: Category) => {
       const res = await fetch(
-        `/api/communities/${communityId}/categories/${editingCategory.id}`,
+        `/api/communities/${communityId}/categories/${category.id}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: editingCategory.name,
-            slug: editingCategory.slug,
-            description: editingCategory.description,
-            color: editingCategory.color,
+            name: category.name,
+            slug: category.slug,
+            description: category.description,
+            color: category.color,
           }),
         }
       )
@@ -164,40 +165,43 @@ export default function CommunityCategorySettings({
         throw new Error(error.error || '카테고리 수정에 실패했습니다.')
       }
 
-      const updatedCategory = await res.json()
+      return res.json()
+    },
+    onSuccess: (updatedCategory) => {
       setCategories(
         categories.map((cat) =>
           cat.id === updatedCategory.id ? updatedCategory : cat
         )
       )
       setEditingCategory(null)
-
       toast({
         title: '성공',
         description: '카테고리가 수정되었습니다.',
       })
-    } catch (error) {
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityCategories', communityId],
+      })
+    },
+    onError: (error: Error) => {
       toast({
         title: '오류',
-        description:
-          error instanceof Error
-            ? error.message
-            : '카테고리 수정에 실패했습니다.',
+        description: error.message || '카테고리 수정에 실패했습니다.',
         variant: 'destructive',
       })
-    } finally {
-      setIsLoading(false)
-    }
+    },
+  })
+
+  const handleEdit = () => {
+    if (!editingCategory) return
+    updateMutation.mutate(editingCategory)
   }
 
-  // 카테고리 삭제
-  const handleDelete = async () => {
-    if (!deletingCategory) return
-
-    setIsLoading(true)
-    try {
+  // 카테고리 삭제 mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
       const res = await fetch(
-        `/api/communities/${communityId}/categories/${deletingCategory.id}`,
+        `/api/communities/${communityId}/categories/${categoryId}`,
         {
           method: 'DELETE',
         }
@@ -208,38 +212,37 @@ export default function CommunityCategorySettings({
         throw new Error(error.error || '카테고리 삭제에 실패했습니다.')
       }
 
-      setCategories(categories.filter((cat) => cat.id !== deletingCategory.id))
+      return res.json()
+    },
+    onSuccess: (_, categoryId) => {
+      setCategories(categories.filter((cat) => cat.id !== categoryId))
       setDeletingCategory(null)
-
       toast({
         title: '성공',
         description: '카테고리가 삭제되었습니다.',
       })
-    } catch (error) {
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityCategories', communityId],
+      })
+    },
+    onError: (error: Error) => {
       toast({
         title: '오류',
-        description:
-          error instanceof Error
-            ? error.message
-            : '카테고리 삭제에 실패했습니다.',
+        description: error.message || '카테고리 삭제에 실패했습니다.',
         variant: 'destructive',
       })
-    } finally {
-      setIsLoading(false)
-    }
+    },
+  })
+
+  const handleDelete = () => {
+    if (!deletingCategory) return
+    deleteMutation.mutate(deletingCategory.id)
   }
 
-  // 카테고리 순서 변경
-  const handleReorder = async (newOrder: Category[]) => {
-    // 각 카테고리의 order 값을 새로운 인덱스로 업데이트
-    const updatedCategories = newOrder.map((cat, index) => ({
-      ...cat,
-      order: index,
-    }))
-    setCategories(updatedCategories)
-
-    // 순서 업데이트 API 호출
-    try {
+  // 카테고리 순서 변경 mutation
+  const reorderMutation = useMutation({
+    mutationFn: async (newOrder: Category[]) => {
       const res = await fetch(
         `/api/communities/${communityId}/categories/reorder`,
         {
@@ -252,17 +255,48 @@ export default function CommunityCategorySettings({
       )
 
       if (!res.ok) {
-        throw new Error('순서 변경에 실패했습니다.')
+        const error = await res.json()
+        throw new Error(error.error || '순서 변경에 실패했습니다.')
       }
-    } catch {
+
+      return res.json()
+    },
+    onMutate: async (newOrder) => {
+      // 낙관적 업데이트: 각 카테고리의 order 값을 새로운 인덱스로 업데이트
+      const updatedCategories = newOrder.map((cat, index) => ({
+        ...cat,
+        order: index,
+      }))
+      setCategories(updatedCategories)
+
+      // 이전 상태 반환 (실패시 복구용)
+      return { previousCategories: categories }
+    },
+    onError: (error: Error, _, context) => {
+      // 실패 시 이전 상태로 복구
+      if (context?.previousCategories) {
+        setCategories(context.previousCategories)
+      }
       toast({
         title: '오류',
-        description: '카테고리 순서 변경에 실패했습니다.',
+        description: error.message || '카테고리 순서 변경에 실패했습니다.',
         variant: 'destructive',
       })
-      // 실패 시 원래 순서로 복구
-      setCategories(initialCategories)
-    }
+    },
+    onSuccess: () => {
+      toast({
+        title: '성공',
+        description: '카테고리 순서가 변경되었습니다.',
+      })
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityCategories', communityId],
+      })
+    },
+  })
+
+  const handleReorder = (newOrder: Category[]) => {
+    reorderMutation.mutate(newOrder)
   }
 
   // 슬러그 자동 생성
@@ -425,12 +459,14 @@ export default function CommunityCategorySettings({
             <Button
               variant="outline"
               onClick={() => setIsCreateOpen(false)}
-              disabled={isLoading}
+              disabled={createMutation.isPending}
             >
               취소
             </Button>
-            <Button onClick={handleCreate} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               생성
             </Button>
           </DialogFooter>
@@ -531,12 +567,14 @@ export default function CommunityCategorySettings({
             <Button
               variant="outline"
               onClick={() => setEditingCategory(null)}
-              disabled={isLoading}
+              disabled={updateMutation.isPending}
             >
               취소
             </Button>
-            <Button onClick={handleEdit} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleEdit} disabled={updateMutation.isPending}>
+              {updateMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               수정
             </Button>
           </DialogFooter>
@@ -557,13 +595,17 @@ export default function CommunityCategorySettings({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              취소
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={isLoading}
+              disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {deleteMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               삭제
             </AlertDialogAction>
           </AlertDialogFooter>

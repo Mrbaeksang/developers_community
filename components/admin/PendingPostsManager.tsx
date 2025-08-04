@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -68,15 +69,15 @@ interface PendingPostsManagerProps {
 export function PendingPostsManager({
   initialPosts,
 }: PendingPostsManagerProps) {
+  const queryClient = useQueryClient()
   const [posts, setPosts] = useState(initialPosts)
   const [selectedPost, setSelectedPost] = useState<PendingPost | null>(null)
   const [rejectReason, setRejectReason] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
   const [previewPost, setPreviewPost] = useState<PendingPost | null>(null)
 
-  const handleApprove = async (postId: string) => {
-    setIsProcessing(true)
-    try {
+  // 게시글 승인 mutation
+  const approveMutation = useMutation({
+    mutationFn: async (postId: string) => {
       const response = await fetch(`/api/main/posts/${postId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,33 +89,36 @@ export function PendingPostsManager({
         throw new Error(error.error || '승인 처리에 실패했습니다.')
       }
 
+      return response.json()
+    },
+    onSuccess: (_, postId) => {
       // 목록에서 제거
       setPosts(posts.filter((post) => post.id !== postId))
       toast.success('게시글이 승인되었습니다.')
-    } catch (error) {
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['pendingPosts'] })
+    },
+    onError: (error: Error) => {
       console.error('승인 실패:', error)
-      toast.error(
-        error instanceof Error ? error.message : '승인 처리에 실패했습니다.'
-      )
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+      toast.error(error.message || '승인 처리에 실패했습니다.')
+    },
+  })
 
-  const handleReject = async (postId: string) => {
-    if (!rejectReason.trim()) {
-      toast.error('거부 사유를 입력해주세요.')
-      return
-    }
-
-    setIsProcessing(true)
-    try {
+  // 게시글 거부 mutation
+  const rejectMutation = useMutation({
+    mutationFn: async ({
+      postId,
+      reason,
+    }: {
+      postId: string
+      reason: string
+    }) => {
       const response = await fetch(`/api/main/posts/${postId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'reject',
-          reason: rejectReason,
+          reason,
         }),
       })
 
@@ -123,19 +127,33 @@ export function PendingPostsManager({
         throw new Error(error.error || '거부 처리에 실패했습니다.')
       }
 
+      return response.json()
+    },
+    onSuccess: (_, { postId }) => {
       // 목록에서 제거
       setPosts(posts.filter((post) => post.id !== postId))
       setRejectReason('')
       setSelectedPost(null)
       toast.success('게시글이 거부되었습니다.')
-    } catch (error) {
+      // 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['pendingPosts'] })
+    },
+    onError: (error: Error) => {
       console.error('거부 실패:', error)
-      toast.error(
-        error instanceof Error ? error.message : '거부 처리에 실패했습니다.'
-      )
-    } finally {
-      setIsProcessing(false)
+      toast.error(error.message || '거부 처리에 실패했습니다.')
+    },
+  })
+
+  const handleApprove = (postId: string) => {
+    approveMutation.mutate(postId)
+  }
+
+  const handleReject = (postId: string) => {
+    if (!rejectReason.trim()) {
+      toast.error('거부 사유를 입력해주세요.')
+      return
     }
+    rejectMutation.mutate({ postId, reason: rejectReason })
   }
 
   if (posts.length === 0) {
@@ -255,7 +273,9 @@ export function PendingPostsManager({
                       setRejectReason('')
                     }
                   }}
-                  disabled={isProcessing}
+                  disabled={
+                    rejectMutation.isPending || approveMutation.isPending
+                  }
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   {selectedPost?.id === post.id ? '거부 확정' : '거부'}
@@ -263,7 +283,9 @@ export function PendingPostsManager({
                 <Button
                   size="sm"
                   onClick={() => handleApprove(post.id)}
-                  disabled={isProcessing}
+                  disabled={
+                    rejectMutation.isPending || approveMutation.isPending
+                  }
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   승인

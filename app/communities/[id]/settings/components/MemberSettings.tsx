@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Search,
@@ -89,14 +90,41 @@ const roleLabels = {
   MEMBER: '멤버',
 }
 
+// 멤버 목록 가져오기 함수
+const fetchMembers = async ({
+  communityId,
+  page,
+  searchQuery,
+  roleFilter,
+  status,
+}: {
+  communityId: string
+  page: number
+  searchQuery?: string
+  roleFilter?: CommunityRole | 'ALL'
+  status: string
+}) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: '20',
+    status,
+  })
+
+  if (searchQuery) params.append('search', searchQuery)
+  if (roleFilter && roleFilter !== 'ALL') params.append('role', roleFilter)
+
+  const res = await fetch(`/api/communities/${communityId}/members?${params}`)
+  if (!res.ok) throw new Error('멤버 목록을 불러오는데 실패했습니다.')
+
+  return res.json()
+}
+
 export default function CommunityMemberSettings({
   communityId,
   currentUserId,
   isOwner,
 }: MemberSettingsProps) {
-  const [members, setMembers] = useState<Member[]>([])
-  const [pendingMembers, setPendingMembers] = useState<Member[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<CommunityRole | 'ALL'>('ALL')
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
@@ -105,59 +133,95 @@ export default function CommunityMemberSettings({
   >(null)
   const [newRole, setNewRole] = useState<CommunityRole | null>(null)
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [activeTab, setActiveTab] = useState('members')
 
-  // 멤버 목록 조회
-  const fetchMembers = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20',
-        ...(searchQuery && { search: searchQuery }),
-        ...(roleFilter !== 'ALL' && { role: roleFilter }),
-        status: activeTab === 'members' ? 'ACTIVE' : 'PENDING',
-      })
+  // 활성 멤버 목록 React Query
+  const {
+    data: membersData,
+    isLoading: membersLoading,
+    error: membersError,
+  } = useQuery({
+    queryKey: [
+      'communityMembers',
+      communityId,
+      page,
+      searchQuery,
+      roleFilter,
+      'ACTIVE',
+    ],
+    queryFn: () =>
+      fetchMembers({
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        status: 'ACTIVE',
+      }),
+    enabled: activeTab === 'members',
+    staleTime: 2 * 60 * 1000, // 2분간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
+  // 대기 중인 멤버 목록 React Query
+  const {
+    data: pendingData,
+    isLoading: pendingLoading,
+    error: pendingError,
+  } = useQuery({
+    queryKey: [
+      'communityMembers',
+      communityId,
+      page,
+      searchQuery,
+      roleFilter,
+      'PENDING',
+    ],
+    queryFn: () =>
+      fetchMembers({
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        status: 'PENDING',
+      }),
+    enabled: activeTab === 'pending',
+    staleTime: 1 * 60 * 1000, // 1분간 fresh (가입 신청은 더 자주 업데이트)
+    gcTime: 3 * 60 * 1000, // 3분간 캐시
+  })
+
+  const members = membersData?.members || []
+  const pendingMembers = pendingData?.members || []
+  const totalPages =
+    activeTab === 'members'
+      ? membersData?.totalPages || 1
+      : pendingData?.totalPages || 1
+  const isLoading = activeTab === 'members' ? membersLoading : pendingLoading
+
+  const error = activeTab === 'members' ? membersError : pendingError
+
+  if (error) {
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : '멤버 목록을 불러오는데 실패했습니다.'
+    )
+  }
+
+  // 역할 변경 mutation
+  const roleChangeMutation = useMutation({
+    mutationFn: async ({
+      memberId,
+      role,
+    }: {
+      memberId: string
+      role: CommunityRole
+    }) => {
       const res = await fetch(
-        `/api/communities/${communityId}/members?${params}`
-      )
-      if (!res.ok) throw new Error('멤버 목록을 불러오는데 실패했습니다.')
-
-      const data = await res.json()
-      if (activeTab === 'members') {
-        setMembers(data.members)
-      } else {
-        setPendingMembers(data.members)
-      }
-      setTotalPages(data.totalPages)
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : '멤버 목록을 불러오는데 실패했습니다.'
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }, [communityId, page, searchQuery, roleFilter, activeTab])
-
-  useEffect(() => {
-    fetchMembers()
-  }, [fetchMembers])
-
-  // 역할 변경
-  const handleRoleChange = async () => {
-    if (!selectedMember || !newRole) return
-
-    try {
-      const res = await fetch(
-        `/api/communities/${communityId}/members/${selectedMember.id}/role`,
+        `/api/communities/${communityId}/members/${memberId}/role`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: newRole }),
+          body: JSON.stringify({ role }),
         }
       )
 
@@ -166,26 +230,39 @@ export default function CommunityMemberSettings({
         throw new Error(error.error || '역할 변경에 실패했습니다.')
       }
 
+      return res.json()
+    },
+    onSuccess: () => {
       toast.success('멤버 역할이 변경되었습니다.')
-      fetchMembers()
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : '역할 변경에 실패했습니다.'
-      )
-    } finally {
+      // 멤버 목록 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
       setSelectedMember(null)
       setActionType(null)
       setNewRole(null)
-    }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '역할 변경에 실패했습니다.')
+    },
+  })
+
+  const handleRoleChange = () => {
+    if (!selectedMember || !newRole) return
+    roleChangeMutation.mutate({ memberId: selectedMember.id, role: newRole })
   }
 
-  // 멤버 추방/차단
-  const handleKickOrBan = async () => {
-    if (!selectedMember || !actionType) return
-
-    try {
+  // 멤버 추방/차단 mutation
+  const kickBanMutation = useMutation({
+    mutationFn: async ({
+      memberId,
+      actionType,
+    }: {
+      memberId: string
+      actionType: 'kick' | 'ban'
+    }) => {
       const res = await fetch(
-        `/api/communities/${communityId}/members/${selectedMember.id}`,
+        `/api/communities/${communityId}/members/${memberId}`,
         {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -198,33 +275,49 @@ export default function CommunityMemberSettings({
         throw new Error(error.error || '작업에 실패했습니다.')
       }
 
+      return res.json()
+    },
+    onSuccess: (_, { actionType }) => {
       toast.success(
         actionType === 'kick'
           ? '멤버가 추방되었습니다.'
           : '멤버가 차단되었습니다.'
       )
-      fetchMembers()
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : '작업에 실패했습니다.'
-      )
-    } finally {
+      // 멤버 목록 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
       setSelectedMember(null)
       setActionType(null)
-    }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '작업에 실패했습니다.')
+    },
+  })
+
+  const handleKickOrBan = () => {
+    if (!selectedMember || !actionType) return
+    kickBanMutation.mutate({
+      memberId: selectedMember.id,
+      actionType: actionType as 'kick' | 'ban',
+    })
   }
 
-  // 가입 신청 승인/거절
-  const handleJoinRequest = async () => {
-    if (!selectedMember || !actionType) return
-
-    try {
+  // 가입 신청 승인/거절 mutation
+  const joinRequestMutation = useMutation({
+    mutationFn: async ({
+      memberId,
+      action,
+    }: {
+      memberId: string
+      action: 'approve' | 'reject'
+    }) => {
       const res = await fetch(
-        `/api/communities/${communityId}/members/${selectedMember.id}/request`,
+        `/api/communities/${communityId}/members/${memberId}/request`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: actionType }),
+          body: JSON.stringify({ action }),
         }
       )
 
@@ -233,20 +326,32 @@ export default function CommunityMemberSettings({
         throw new Error(error.error || '작업에 실패했습니다.')
       }
 
+      return res.json()
+    },
+    onSuccess: (_, { action }) => {
       toast.success(
-        actionType === 'approve'
+        action === 'approve'
           ? '가입 신청이 승인되었습니다.'
           : '가입 신청이 거절되었습니다.'
       )
-      fetchMembers()
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : '작업에 실패했습니다.'
-      )
-    } finally {
+      // 멤버 목록 쿼리 무효화 (pending과 active 모두)
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
       setSelectedMember(null)
       setActionType(null)
-    }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '작업에 실패했습니다.')
+    },
+  })
+
+  const handleJoinRequest = () => {
+    if (!selectedMember || !actionType) return
+    joinRequestMutation.mutate({
+      memberId: selectedMember.id,
+      action: actionType as 'approve' | 'reject',
+    })
   }
 
   const RoleIcon = ({ role }: { role: CommunityRole }) => {
@@ -417,7 +522,7 @@ export default function CommunityMemberSettings({
             </div>
           ) : (
             <div className="space-y-3">
-              {members.map((member) => (
+              {members.map((member: Member) => (
                 <MemberCard key={member.id} member={member} />
               ))}
             </div>
@@ -461,7 +566,7 @@ export default function CommunityMemberSettings({
             </div>
           ) : (
             <div className="space-y-3">
-              {pendingMembers.map((member) => (
+              {pendingMembers.map((member: Member) => (
                 <MemberCard key={member.id} member={member} />
               ))}
             </div>
@@ -505,8 +610,11 @@ export default function CommunityMemberSettings({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRoleChange}>
-              변경
+            <AlertDialogAction
+              onClick={handleRoleChange}
+              disabled={roleChangeMutation.isPending}
+            >
+              {roleChangeMutation.isPending ? '변경 중...' : '변경'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -540,9 +648,14 @@ export default function CommunityMemberSettings({
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleKickOrBan}
+              disabled={kickBanMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {actionType === 'kick' ? '추방' : '차단'}
+              {kickBanMutation.isPending
+                ? '처리 중...'
+                : actionType === 'kick'
+                  ? '추방'
+                  : '차단'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -576,13 +689,18 @@ export default function CommunityMemberSettings({
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleJoinRequest}
+              disabled={joinRequestMutation.isPending}
               className={
                 actionType === 'reject'
                   ? 'bg-destructive hover:bg-destructive/90'
                   : ''
               }
             >
-              {actionType === 'approve' ? '승인' : '거절'}
+              {joinRequestMutation.isPending
+                ? '처리 중...'
+                : actionType === 'approve'
+                  ? '승인'
+                  : '거절'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
