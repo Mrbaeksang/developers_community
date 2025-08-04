@@ -10,6 +10,7 @@ import {
   throwValidationError,
   throwAuthorizationError,
 } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -20,7 +21,7 @@ const updateCommentSchema = z.object({
 })
 
 // 댓글 수정 - PATCH /api/communities/[id]/comments/[commentId]
-export async function PATCH(
+async function updateCommunityComment(
   request: NextRequest,
   context: { params: Promise<{ id: string; commentId: string }> }
 ) {
@@ -132,7 +133,7 @@ export async function PATCH(
 }
 
 // 댓글 삭제 - DELETE /api/communities/[id]/comments/[commentId]
-export async function DELETE(
+async function deleteCommunityComment(
   request: NextRequest,
   context: { params: Promise<{ id: string; commentId: string }> }
 ) {
@@ -239,3 +240,7 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PATCH = withCSRFProtection(updateCommunityComment)
+export const DELETE = withCSRFProtection(deleteCommunityComment)

@@ -2,9 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { deletedResponse } from '@/lib/api-response'
 import { handleError, throwNotFoundError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 커뮤니티 게시글 삭제 (관리자만)
-export async function DELETE(
+async function deleteCommunityPost(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -67,3 +68,6 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const DELETE = withCSRFProtection(deleteCommunityPost)

@@ -11,6 +11,7 @@ import {
   throwAuthorizationError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(
@@ -135,7 +136,7 @@ const updatePostSchema = z.object({
   fileIds: z.array(z.string()).optional(),
 })
 
-export async function PATCH(
+async function updateCommunityPost(
   req: NextRequest,
   context: { params: Promise<{ id: string; postId: string }> }
 ) {
@@ -235,7 +236,7 @@ export async function PATCH(
 }
 
 // DELETE: 커뮤니티 게시글 삭제
-export async function DELETE(
+async function deleteCommunityPost(
   req: NextRequest,
   context: { params: Promise<{ id: string; postId: string }> }
 ) {
@@ -305,3 +306,7 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PATCH = withCSRFProtection(updateCommunityPost)
+export const DELETE = withCSRFProtection(deleteCommunityPost)

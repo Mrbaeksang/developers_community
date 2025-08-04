@@ -7,6 +7,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // GET: 현재 고정 상태 조회
 export async function GET(
@@ -34,7 +35,7 @@ export async function GET(
 }
 
 // PATCH: 고정/고정해제 토글
-export async function PATCH(
+async function togglePostPin(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -79,3 +80,6 @@ export async function PATCH(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PATCH = withCSRFProtection(togglePostPin)

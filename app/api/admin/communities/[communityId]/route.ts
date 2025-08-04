@@ -4,8 +4,9 @@ import { CommunityVisibility } from '@prisma/client'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { successResponse, deletedResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
-export async function PUT(
+async function updateCommunity(
   req: Request,
   { params }: { params: Promise<{ communityId: string }> }
 ) {
@@ -61,7 +62,7 @@ export async function PUT(
 }
 
 // 커뮤니티 삭제
-export async function DELETE(
+async function deleteCommunity(
   req: Request,
   { params }: { params: Promise<{ communityId: string }> }
 ) {
@@ -80,3 +81,7 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updateCommunity)
+export const DELETE = withCSRFProtection(deleteCommunity)

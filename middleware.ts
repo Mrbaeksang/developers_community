@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { nanoid } from 'nanoid'
+import { generateCSRFToken } from '@/lib/csrf'
 
 // 추적하지 않을 경로
 const excludedPaths = [
@@ -44,6 +45,18 @@ export async function middleware(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      maxAge: 60 * 60 * 24, // 24시간
+    })
+  }
+
+  // CSRF 토큰 설정 (없는 경우에만)
+  if (!request.cookies.get('csrf-token')) {
+    const csrfToken = await generateCSRFToken()
+    response.cookies.set('csrf-token', csrfToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
       maxAge: 60 * 60 * 24, // 24시간
     })
   }

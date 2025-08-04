@@ -8,6 +8,7 @@ import {
   throwNotFoundError,
   throwAuthorizationError,
 } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -18,7 +19,7 @@ const updateCommentSchema = z.object({
 })
 
 // 댓글 수정 - PUT /api/main/comments/[id]
-export async function PUT(
+async function updateComment(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -97,7 +98,7 @@ export async function PUT(
 }
 
 // 댓글 삭제 - DELETE /api/main/comments/[id]
-export async function DELETE(
+async function deleteComment(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -179,3 +180,7 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updateComment)
+export const DELETE = withCSRFProtection(deleteComment)

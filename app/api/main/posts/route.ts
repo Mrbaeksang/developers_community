@@ -11,6 +11,7 @@ import {
 import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { withCSRFProtection } from '@/lib/csrf'
 
 export async function GET(request: NextRequest) {
   try {
@@ -308,5 +309,5 @@ async function createPost(request: NextRequest) {
   }
 }
 
-// Rate Limiting 적용
-export const POST = withRateLimit(createPost, 'post')
+// Rate Limiting과 CSRF 보호 적용
+export const POST = withCSRFProtection(withRateLimit(createPost, 'post'))

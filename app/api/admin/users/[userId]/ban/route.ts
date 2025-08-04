@@ -2,8 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
-export async function POST(
+async function banUser(
   req: Request,
   { params }: { params: Promise<{ userId: string }> }
 ) {
@@ -41,3 +42,6 @@ export async function POST(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const POST = withCSRFProtection(banUser)

@@ -3,8 +3,9 @@ import { GlobalRole } from '@prisma/client'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
-export async function PUT(
+async function updateUserRole(
   req: Request,
   { params }: { params: Promise<{ userId: string }> }
 ) {
@@ -38,3 +39,6 @@ export async function PUT(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updateUserRole)

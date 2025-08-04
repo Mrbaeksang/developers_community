@@ -20,6 +20,24 @@ export function getApiUrl() {
 }
 
 /**
+ * CSRF 토큰 가져오기 (클라이언트 사이드)
+ */
+function getCSRFToken(): string | null {
+  if (typeof window === 'undefined') return null
+
+  // 쿠키에서 CSRF 토큰 가져오기
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === 'csrf-token') {
+      return value
+    }
+  }
+
+  return null
+}
+
+/**
  * API 클라이언트 함수
  * 새로운 응답 형식(성공: { success: true, data, message }, 실패: { success: false, error, message })을 처리합니다.
  */
@@ -30,6 +48,34 @@ export async function apiClient<T = unknown>(
   try {
     const baseUrl = getApiUrl()
     const fullUrl = `${baseUrl}${url}`
+
+    // CSRF 토큰 처리
+    const method = options.method?.toUpperCase() || 'GET'
+    const needsCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)
+
+    if (needsCSRF) {
+      const csrfToken = getCSRFToken()
+
+      if (csrfToken) {
+        // 헤더에 CSRF 토큰 추가
+        options.headers = {
+          ...options.headers,
+          'X-CSRF-Token': csrfToken,
+        }
+
+        // JSON 바디의 경우 _csrf 필드 추가
+        if (options.body && typeof options.body === 'string') {
+          try {
+            const bodyData = JSON.parse(options.body)
+            bodyData._csrf = csrfToken
+            options.body = JSON.stringify(bodyData)
+          } catch {
+            // JSON이 아닌 경우 무시
+          }
+        }
+      }
+    }
+
     const response = await fetch(fullUrl, options)
 
     if (!response.ok) {

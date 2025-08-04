@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { successResponse, createdResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 카테고리 목록 조회 + 새 카테고리 생성
 export async function GET() {
@@ -40,7 +41,7 @@ export async function GET() {
 }
 
 // 새 카테고리 생성
-export async function POST(req: NextRequest) {
+async function createCategory(req: NextRequest) {
   try {
     const result = await requireRoleAPI(['ADMIN'])
     if (result instanceof NextResponse) return result
@@ -86,3 +87,6 @@ export async function POST(req: NextRequest) {
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const POST = withCSRFProtection(createCategory)

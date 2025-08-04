@@ -2,8 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
-export async function PUT(
+async function updateUserActive(
   req: Request,
   { params }: { params: Promise<{ userId: string }> }
 ) {
@@ -43,3 +44,6 @@ export async function PUT(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updateUserActive)

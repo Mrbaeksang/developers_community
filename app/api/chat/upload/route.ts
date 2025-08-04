@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {
@@ -118,5 +119,5 @@ async function uploadFile(req: Request) {
   }
 }
 
-// Rate Limiting 적용
-export const POST = withRateLimit(uploadFile, 'upload')
+// Rate Limiting과 CSRF 보호 적용
+export const POST = withCSRFProtection(withRateLimit(uploadFile, 'upload'))

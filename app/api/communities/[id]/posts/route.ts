@@ -13,6 +13,7 @@ import {
   throwValidationError,
 } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -279,5 +280,7 @@ async function createCommunityPost(
   }
 }
 
-// Rate Limiting 적용 - 커뮤니티 게시글 작성
-export const POST = withRateLimit(createCommunityPost, 'post')
+// Rate Limiting과 CSRF 보호 적용 - 커뮤니티 게시글 작성
+export const POST = withCSRFProtection(
+  withRateLimit(createCommunityPost, 'post')
+)

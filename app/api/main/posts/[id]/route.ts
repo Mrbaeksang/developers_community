@@ -19,6 +19,7 @@ import {
   throwAuthorizationError,
 } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -118,7 +119,7 @@ const updatePostSchema = z.object({
   tagIds: z.array(z.string()).max(5, '태그는 최대 5개까지 가능합니다'),
 })
 
-export async function PUT(
+async function updatePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -270,7 +271,7 @@ export async function PUT(
 }
 
 // DELETE /api/main/posts/[id] - 게시글 삭제
-export async function DELETE(
+async function deletePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -329,3 +330,7 @@ export async function DELETE(
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updatePost)
+export const DELETE = withCSRFProtection(deletePost)

@@ -5,6 +5,7 @@ import { requireAuthAPI } from '@/lib/auth-utils'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwValidationError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { withCSRFProtection } from '@/lib/csrf'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -87,5 +88,5 @@ async function uploadFile(req: NextRequest) {
   }
 }
 
-// Rate Limiting 적용
-export const POST = withRateLimit(uploadFile, 'upload')
+// Rate Limiting과 CSRF 보호 적용
+export const POST = withCSRFProtection(withRateLimit(uploadFile, 'upload'))

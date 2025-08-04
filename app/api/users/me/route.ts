@@ -9,6 +9,7 @@ import {
   throwValidationError,
 } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // 프로필 수정 스키마
 const updateProfileSchema = z.object({
@@ -90,7 +91,7 @@ export async function GET() {
 }
 
 // 내 정보 수정 - PUT /api/users/me
-export async function PUT(request: NextRequest) {
+async function updateProfile(request: NextRequest) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -184,3 +185,6 @@ export async function PUT(request: NextRequest) {
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PUT = withCSRFProtection(updateProfile)

@@ -55,7 +55,8 @@
       "WebFetch(domain:deepwiki.com)",
       "mcp__exa__deep_researcher_start",
       "mcp__exa__deep_researcher_check",
-      "mcp__github__search_repositories"
+      "mcp__github__search_repositories",
+      "Bash(cmd //c:*)"
     ],
     "deny": []
   }

@@ -7,13 +7,14 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { withCSRFProtection } from '@/lib/csrf'
 
 interface Context {
   params: Promise<{ id: string }>
 }
 
 // 카테고리 수정
-export async function PATCH(req: NextRequest, context: Context) {
+async function updateCategory(req: NextRequest, context: Context) {
   try {
     const session = await requireRoleAPI(['ADMIN'])
     if (session instanceof Response) {
@@ -93,7 +94,7 @@ export async function PATCH(req: NextRequest, context: Context) {
 }
 
 // 카테고리 삭제
-export async function DELETE(req: NextRequest, context: Context) {
+async function deleteCategory(req: NextRequest, context: Context) {
   try {
     const session = await requireRoleAPI(['ADMIN'])
     if (session instanceof Response) {
@@ -133,3 +134,7 @@ export async function DELETE(req: NextRequest, context: Context) {
     return handleError(error)
   }
 }
+
+// CSRF 보호 적용
+export const PATCH = withCSRFProtection(updateCategory)
+export const DELETE = withCSRFProtection(deleteCategory)

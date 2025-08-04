@@ -13,6 +13,7 @@ import {
 import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
+import { withCSRFProtection } from '@/lib/csrf'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -222,5 +223,5 @@ async function createComment(
   }
 }
 
-// Rate Limiting 적용
-export const POST = withRateLimit(createComment, 'comment')
+// Rate Limiting과 CSRF 보호 적용
+export const POST = withCSRFProtection(withRateLimit(createComment, 'comment'))
