@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { subDays, format } from 'date-fns'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -12,19 +14,8 @@ export async function GET() {
       return authResult
     }
 
-    // Redis에서 캐시 확인
-    const client = redis()
-    const cacheKey = 'stats:post-trends'
-
-    if (client) {
-      const cached = await client.get(cacheKey)
-      if (cached) {
-        return NextResponse.json({
-          success: true,
-          data: JSON.parse(cached),
-        })
-      }
-    }
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('stats:post-trends', {})
 
     // 날짜 범위 설정
     const now = new Date()
@@ -159,19 +150,18 @@ export async function GET() {
       FROM post_stats
     `
 
-    // 5. 인기 게시글 TOP 10
+    // 5. 인기 게시글 TOP 10 - 선택적 필드 로딩 적용
     const topPosts = await prisma.mainPost.findMany({
-      where: { createdAt: { gte: last7Days } },
+      where: {
+        createdAt: { gte: last7Days },
+        status: 'PUBLISHED', // 게시된 게시글만
+      },
       select: {
         id: true,
         title: true,
         viewCount: true,
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
+        likeCount: true,
+        commentCount: true,
         author: {
           select: {
             id: true,
@@ -181,9 +171,11 @@ export async function GET() {
           },
         },
       },
-      orderBy: {
-        viewCount: 'desc',
-      },
+      orderBy: [
+        { viewCount: 'desc' },
+        { likeCount: 'desc' },
+        { commentCount: 'desc' },
+      ],
       take: 10,
     })
 
@@ -249,14 +241,14 @@ export async function GET() {
         id: p.id,
         title: p.title,
         viewCount: p.viewCount,
-        likeCount: p._count.likes,
-        commentCount: p._count.comments,
+        likeCount: p.likeCount,
+        commentCount: p.commentCount,
         author: p.author
           ? {
               id: p.author.id,
-              username: p.author.username,
-              name: p.author.name,
-              image: p.author.image,
+              username: p.author.username || undefined,
+              name: p.author.name || 'Unknown',
+              image: p.author.image || undefined,
             }
           : null,
       })),
@@ -312,23 +304,15 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
     }
 
-    // Redis에 캐시 (10분)
-    if (client) {
-      await client.setex(cacheKey, 600, JSON.stringify(result))
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-    })
-  } catch (error) {
-    console.error('Post trends stats error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch post trends statistics',
-      },
-      { status: 500 }
+    // Redis 캐싱 적용
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => result,
+      REDIS_TTL.API_MEDIUM // 10분 캐싱
     )
+
+    return successResponse(cachedData)
+  } catch (error) {
+    return handleError(error)
   }
 }

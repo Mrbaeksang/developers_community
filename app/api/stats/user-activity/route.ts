@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
 import { requireRoleAPI } from '@/lib/auth-utils'
 import { subDays, format } from 'date-fns'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { successResponse } from '@/lib/api-response'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   try {
@@ -12,19 +14,8 @@ export async function GET() {
       return authResult
     }
 
-    // Redis에서 캐시 확인
-    const client = redis()
-    const cacheKey = 'stats:user-activity'
-
-    if (client) {
-      const cached = await client.get(cacheKey)
-      if (cached) {
-        return NextResponse.json({
-          success: true,
-          data: JSON.parse(cached),
-        })
-      }
-    }
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('stats:user-activity', {})
 
     // 날짜 범위 설정
     const now = new Date()
@@ -134,11 +125,13 @@ export async function GET() {
       ORDER BY hour
     `
 
-    // 5. 가장 활발한 사용자 TOP 10
+    // 5. 가장 활발한 사용자 TOP 10 - 최적화된 쿼리
     const topUsers = await prisma.$queryRaw<
       Array<{
         user_id: string
-        username: string
+        username: string | null
+        name: string | null
+        image: string | null
         activity_count: bigint
         posts: bigint
         comments: bigint
@@ -146,27 +139,54 @@ export async function GET() {
     >`
       WITH user_activities AS (
         SELECT 
-          u.id as user_id,
-          u.username,
-          COUNT(mp.id) as posts,
-          COUNT(mc.id) + COUNT(cc.id) as comments,
-          COUNT(mp.id) + COUNT(mc.id) + COUNT(cc.id) + COUNT(cp.id) as total_activities
-        FROM "User" u
-        LEFT JOIN "MainPost" mp ON u.id = mp.user_id AND mp.created_at >= ${last7Days}
-        LEFT JOIN "MainComment" mc ON u.id = mc.user_id AND mc.created_at >= ${last7Days}
-        LEFT JOIN "CommunityPost" cp ON u.id = cp.user_id AND cp.created_at >= ${last7Days}
-        LEFT JOIN "CommunityComment" cc ON u.id = cc.user_id AND cc.created_at >= ${last7Days}
-        GROUP BY u.id, u.username
+          user_id,
+          'post' as activity_type,
+          created_at
+        FROM "MainPost" 
+        WHERE created_at >= ${last7Days}
+        UNION ALL
+        SELECT 
+          user_id,
+          'comment' as activity_type,
+          created_at
+        FROM "MainComment" 
+        WHERE created_at >= ${last7Days}
+        UNION ALL
+        SELECT 
+          user_id,
+          'post' as activity_type,
+          created_at
+        FROM "CommunityPost" 
+        WHERE created_at >= ${last7Days}
+        UNION ALL
+        SELECT 
+          user_id,
+          'comment' as activity_type,
+          created_at
+        FROM "CommunityComment" 
+        WHERE created_at >= ${last7Days}
+      ),
+      user_stats AS (
+        SELECT 
+          user_id,
+          COUNT(*) as total_activities,
+          COUNT(CASE WHEN activity_type = 'post' THEN 1 END) as posts,
+          COUNT(CASE WHEN activity_type = 'comment' THEN 1 END) as comments
+        FROM user_activities
+        GROUP BY user_id
       )
       SELECT 
-        user_id,
-        username,
-        total_activities as activity_count,
-        posts,
-        comments
-      FROM user_activities
-      WHERE total_activities > 0
-      ORDER BY total_activities DESC
+        us.user_id,
+        u.username,
+        u.name,
+        u.image,
+        us.total_activities as activity_count,
+        us.posts,
+        us.comments
+      FROM user_stats us
+      INNER JOIN "User" u ON us.user_id = u.id
+      WHERE u.is_active = true AND u.is_banned = false
+      ORDER BY us.total_activities DESC
       LIMIT 10
     `
 
@@ -198,7 +218,9 @@ export async function GET() {
       })),
       topUsers: topUsers.map((u) => ({
         userId: u.user_id,
-        username: u.username,
+        username: u.username || undefined,
+        name: u.name || 'Unknown',
+        image: u.image || undefined,
         totalActivities: Number(u.activity_count),
         posts: Number(u.posts),
         comments: Number(u.comments),
@@ -206,23 +228,15 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
     }
 
-    // Redis에 캐시 (10분)
-    if (client) {
-      await client.setex(cacheKey, 600, JSON.stringify(result))
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-    })
-  } catch (error) {
-    console.error('User activity stats error:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch user activity statistics',
-      },
-      { status: 500 }
+    // Redis 캐싱 적용
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => result,
+      REDIS_TTL.API_MEDIUM // 10분 캐싱
     )
+
+    return successResponse(cachedData)
+  } catch (error) {
+    return handleError(error)
   }
 }

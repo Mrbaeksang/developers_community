@@ -81,7 +81,7 @@ export async function GET() {
           }),
         ])
 
-        // 카테고리별 게시글 분포
+        // 카테고리별 게시글 분포 - 최적화된 쿼리
         const postsByCategory = await prisma.mainPost.groupBy({
           by: ['categoryId'],
           where: {
@@ -93,24 +93,28 @@ export async function GET() {
           },
         })
 
-        // 카테고리 정보 추가
-        const categoryStats = await Promise.all(
-          postsByCategory.map(async (stat) => {
-            const category = await prisma.mainCategory.findUnique({
-              where: { id: stat.categoryId },
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                color: true,
-              },
-            })
-            return {
-              category,
-              postCount: stat._count.id,
-            }
-          })
-        )
+        // 카테고리 정보 배치 조회 (N+1 문제 해결)
+        const categoryIds = postsByCategory
+          .map((stat) => stat.categoryId)
+          .filter(Boolean)
+        const categories = await prisma.mainCategory.findMany({
+          where: { id: { in: categoryIds } },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          },
+        })
+
+        const categoryMap = new Map(categories.map((cat) => [cat.id, cat]))
+        const categoryStats = postsByCategory
+          .filter((stat) => stat.categoryId !== null)
+          .map((stat) => ({
+            category: categoryMap.get(stat.categoryId),
+            postCount: stat._count.id,
+          }))
+          .filter((stat) => stat.category !== undefined)
 
         // 월별 게시글 작성 통계 (최근 6개월)
         const sixMonthsAgo = new Date()

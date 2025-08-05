@@ -4,6 +4,11 @@ import { redis } from '@/lib/redis'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  getCursorCondition,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { mainPostSelect } from '@/lib/prisma-select-patterns'
 
 // GET /api/main/posts/[id]/related - 관련 게시글 조회
 export async function GET(
@@ -14,11 +19,13 @@ export async function GET(
     const { id } = await params
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get('limit') || '5')
+    const cursor = url.searchParams.get('cursor')
 
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('main:post:related', {
       postId: id,
       limit,
+      cursor: cursor || 'none',
     })
 
     // Redis 캐싱 적용 - 관련 게시글은 30분 캐싱
@@ -43,8 +50,9 @@ export async function GET(
         }
 
         const tagIds = currentPost.tags.map((tag) => tag.tagId)
+        const cursorCondition = getCursorCondition(cursor)
 
-        // 관련 게시글 가져오기
+        // 관련 게시글 가져오기 - 선택적 필드 로딩 적용
         const relatedPosts = await prisma.mainPost.findMany({
           where: {
             id: { not: id }, // 현재 게시글 제외
@@ -65,28 +73,13 @@ export async function GET(
                 categoryId: currentPost.categoryId,
               },
             ],
+            ...cursorCondition,
           },
           select: {
-            id: true,
-            title: true,
-            slug: true,
-            viewCount: true,
+            ...mainPostSelect.list,
+            // 추가 필드 (관련성 계산용)
             likeCount: true,
             commentCount: true,
-            createdAt: true,
-            author: {
-              select: {
-                name: true,
-                image: true,
-              },
-            },
-            category: {
-              select: {
-                name: true,
-                slug: true,
-                color: true,
-              },
-            },
           },
           orderBy: [
             // 점수 계산: viewCount + (likeCount * 2) + 최신성
@@ -100,12 +93,16 @@ export async function GET(
               createdAt: 'desc',
             },
           ],
-          take: limit,
+          take: limit + 1, // 다음 페이지 확인용
         })
+
+        // 페이지네이션 처리
+        const hasMore = relatedPosts.length > limit
+        const posts = hasMore ? relatedPosts.slice(0, -1) : relatedPosts
 
         // 중복 제거 및 점수 기반 정렬
         const uniquePosts = Array.from(
-          new Map(relatedPosts.map((post) => [post.id, post])).values()
+          new Map(posts.map((post) => [post.id, post])).values()
         )
 
         // 점수 계산 및 재정렬 (Redis 조회수 포함)
@@ -133,21 +130,19 @@ export async function GET(
               ...post,
               viewCount: totalViewCount, // Redis 조회수가 포함된 총 조회수
               score,
-              createdAt: post.createdAt.toISOString(),
             }
           })
         )
 
         const sortedPosts = scoredPosts
           .sort((a, b) => b.score - a.score)
-          .slice(0, limit)
           .map((post) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { score, ...postWithoutScore } = post
+            const { score, likeCount, commentCount, ...postWithoutScore } = post
             return postWithoutScore
-          }) // score 필드 제거
+          }) // score, likeCount, commentCount 필드 제거
 
-        return { posts: sortedPosts }
+        return formatCursorResponse(sortedPosts, limit)
       },
       REDIS_TTL.API_LONG / 2 // 30분 캐싱
     )
