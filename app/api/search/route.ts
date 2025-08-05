@@ -4,6 +4,10 @@ import { z } from 'zod'
 import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  mainPostSelect,
+  communityPostSelect,
+} from '@/lib/prisma-select-patterns'
 
 // 검색 스키마
 const searchSchema = z.object({
@@ -13,6 +17,7 @@ const searchSchema = z.object({
     .optional()
     .default('all'),
   limit: z.coerce.number().min(1).max(50).optional().default(10),
+  cursor: z.string().optional(), // 커서 페이지네이션 추가
 })
 
 // GET: 통합 검색
@@ -23,15 +28,17 @@ export async function GET(req: NextRequest) {
       q: searchParams.get('q'),
       type: searchParams.get('type') || 'all',
       limit: searchParams.get('limit') || '10',
+      cursor: searchParams.get('cursor'),
     })
 
-    const { q, type, limit } = validatedParams
+    const { q, type, limit, cursor } = validatedParams
 
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('search:results', {
       q,
       type,
       limit,
+      cursor: cursor || 'none',
     })
 
     // Redis 캐싱 적용 - 검색 결과는 5분 캐싱
@@ -112,6 +119,9 @@ export async function GET(req: NextRequest) {
 
         // 게시글 검색 (메인 + 커뮤니티)
         if (type === 'all' || type === 'posts') {
+          // 커서 기반 페이지네이션을 위한 날짜 파싱
+          const cursorDate = cursor ? new Date(cursor) : null
+
           const [mainPosts, communityPosts] = await Promise.all([
             // 메인 게시글 검색
             prisma.mainPost.findMany({
@@ -121,25 +131,10 @@ export async function GET(req: NextRequest) {
                   { title: { contains: q, mode: 'insensitive' } },
                   { content: { contains: q, mode: 'insensitive' } },
                 ],
+                ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
               },
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    username: true,
-                    image: true,
-                  },
-                },
-                category: true,
-                _count: {
-                  select: {
-                    comments: true,
-                    likes: true,
-                  },
-                },
-              },
-              take: limit,
+              select: mainPostSelect.list,
+              take: Math.ceil(limit / 2), // 반씩 나눠서 가져오기
               orderBy: { createdAt: 'desc' },
             }),
             // 커뮤니티 게시글 검색
@@ -150,16 +145,10 @@ export async function GET(req: NextRequest) {
                   { title: { contains: q, mode: 'insensitive' } },
                   { content: { contains: q, mode: 'insensitive' } },
                 ],
+                ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
               },
-              include: {
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    username: true,
-                    image: true,
-                  },
-                },
+              select: {
+                ...communityPostSelect.list,
                 community: {
                   select: {
                     id: true,
@@ -167,28 +156,37 @@ export async function GET(req: NextRequest) {
                     slug: true,
                   },
                 },
-                _count: {
-                  select: {
-                    comments: true,
-                    likes: true,
-                  },
-                },
               },
-              take: limit,
+              take: Math.ceil(limit / 2), // 반씩 나눠서 가져오기
               orderBy: { createdAt: 'desc' },
             }),
           ])
 
           results.posts = [
             ...mainPosts.map((post) => ({
-              ...post,
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              excerpt: post.excerpt,
+              createdAt: post.createdAt,
               type: 'main' as const,
               url: `/main/posts/${post.id}`,
+              author: post.author,
+              category: post.category,
+              _count: post._count,
             })),
             ...communityPosts.map((post) => ({
-              ...post,
+              id: post.id,
+              title: post.title,
+              content: post.content,
+              excerpt: null,
+              createdAt: post.createdAt,
               type: 'community' as const,
               url: `/communities/${post.community.id}/posts/${post.id}`,
+              author: post.author,
+              category: post.category || undefined,
+              community: post.community,
+              _count: post._count,
             })),
           ]
         }
@@ -264,9 +262,26 @@ export async function GET(req: NextRequest) {
           }))
         }
 
+        // 결과 정렬 (createdAt 기준)
+        results.posts.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+
+        // 상위 limit개만 선택
+        const limitedPosts = results.posts.slice(0, limit)
+        const hasMorePosts = results.posts.length > limit
+
+        // 다음 커서 생성 (가장 오래된 게시글의 createdAt)
+        let nextCursor: string | null = null
+        if (hasMorePosts && limitedPosts.length > 0) {
+          const lastPost = limitedPosts[limitedPosts.length - 1]
+          nextCursor = lastPost.createdAt.toISOString()
+        }
+
         // 결과 요약
         const totalResults =
-          results.posts.length +
+          limitedPosts.length +
           results.users.length +
           results.communities.length
 
@@ -274,7 +289,15 @@ export async function GET(req: NextRequest) {
           query: q,
           type,
           totalResults,
-          results,
+          results: {
+            posts: limitedPosts,
+            users: results.users,
+            communities: results.communities,
+          },
+          pagination: {
+            nextCursor,
+            hasMore: hasMorePosts,
+          },
         }
       },
       REDIS_TTL.API_MEDIUM // 5분 캐싱

@@ -13,48 +13,80 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
+    const cursor = searchParams.get('cursor')
 
     // Redis 캐시 키 생성
-    const cacheKey = generateCacheKey('main:tags:popular', { limit })
+    const cacheKey = generateCacheKey('main:tags:popular', {
+      limit,
+      cursor: cursor || 'none',
+    })
 
     // Redis 캐싱 적용 - 인기 태그는 자주 변하지 않으므로 1시간 캐싱
     const cachedTags = await redisCache.getOrSet(
       cacheKey,
       async () => {
-        // 태그별 PUBLISHED 게시글 수를 집계하여 인기 태그 조회
+        // 커서 조건 설정
+        const cursorCondition = cursor
+          ? {
+              postCount: { lt: parseInt(cursor) },
+            }
+          : {}
+
+        // postCount로 정렬하여 인기 태그 조회
         const tags = await prisma.mainTag.findMany({
-          include: {
-            posts: {
-              where: {
-                post: {
-                  status: 'PUBLISHED',
-                },
-              },
-            },
+          where: {
+            postCount: { gt: 0 }, // 게시글이 있는 태그만
+            ...cursorCondition,
           },
-          take: limit,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            postCount: true,
+            color: true,
+            description: true,
+          },
+          orderBy: [
+            { postCount: 'desc' },
+            { name: 'asc' }, // 동일 카운트일 경우 이름순
+          ],
+          take: limit + 1, // hasMore 체크용
         })
 
-        // PUBLISHED 게시글 수로 정렬
-        const sortedTags = tags
-          .map((tag) => ({
-            ...tag,
-            publishedCount: tag.posts.length,
-          }))
-          .sort((a, b) => b.publishedCount - a.publishedCount)
+        // 페이지네이션 처리
+        const hasMore = tags.length > limit
+        const resultTags = hasMore ? tags.slice(0, -1) : tags
 
-        return sortedTags.map((tag) => ({
-          id: tag.id,
-          name: tag.name,
-          slug: tag.slug,
-          count: tag.publishedCount,
-          color: tag.color,
-        }))
+        // 다음 커서 생성
+        const nextCursor =
+          hasMore && resultTags.length > 0
+            ? resultTags[resultTags.length - 1].postCount.toString()
+            : null
+
+        return {
+          tags: resultTags.map((tag) => ({
+            id: tag.id,
+            name: tag.name,
+            slug: tag.slug,
+            count: tag.postCount,
+            color: tag.color,
+            description: tag.description || undefined,
+          })),
+          nextCursor,
+          hasMore,
+        }
       },
       REDIS_TTL.API_LONG // 1시간 캐싱
     )
 
-    return successResponse({ tags: cachedTags })
+    return successResponse({
+      items: cachedTags.tags,
+      pagination: {
+        limit,
+        nextCursor: cachedTags.nextCursor,
+        hasMore: cachedTags.hasMore,
+      },
+    })
   } catch (error) {
     return handleError(error)
   }

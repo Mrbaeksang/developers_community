@@ -12,30 +12,35 @@ import {
   errorResponse,
   createdResponse,
   validationErrorResponse,
+  successResponse,
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { getAvatarFromName } from '@/lib/community-utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { communitySelect } from '@/lib/prisma-select-patterns'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '12')
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
     const search = searchParams.get('search') || ''
     const visibility = searchParams.get('visibility') as
       | 'PUBLIC'
       | 'PRIVATE'
       | null
 
-    const skip = (page - 1) * limit
-
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('communities:list', {
-      page,
-      limit,
+      ...pagination,
       search: search || 'all',
       visibility: visibility || 'all',
     })
@@ -69,51 +74,77 @@ export async function GET(req: NextRequest) {
           where.visibility = visibility as CommunityVisibility
         }
 
-        // 커뮤니티 목록 조회
-        const [communities, total] = await Promise.all([
-          prisma.community.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
-            include: {
-              owner: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  image: true,
-                },
-              },
-              _count: {
-                select: {
-                  members: {
-                    where: {
-                      status: MembershipStatus.ACTIVE,
-                    },
-                  },
-                  posts: true,
-                },
-              },
-            },
-          }),
-          prisma.community.count({ where }),
-        ])
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
 
-        return {
-          items: communities,
-          totalCount: total,
+          const communities = await prisma.community.findMany({
+            where: cursorWhere,
+            select: communitySelect.list,
+            orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
+            take: getCursorTake(pagination.limit),
+          })
+
+          const total = await prisma.community.count({ where })
+          const cursorResponse = formatCursorResponse(
+            communities,
+            pagination.limit
+          )
+
+          return {
+            items: cursorResponse.items,
+            total,
+            nextCursor: cursorResponse.nextCursor,
+            hasMore: cursorResponse.hasMore,
+          }
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const skip = (pagination.page - 1) * pagination.limit
+
+          // 커뮤니티 목록 조회
+          const [communities, total] = await Promise.all([
+            prisma.community.findMany({
+              where,
+              skip,
+              take: pagination.limit,
+              orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
+              select: communitySelect.list,
+            }),
+            prisma.community.count({ where }),
+          ])
+
+          return {
+            items: communities,
+            totalCount: total,
+          }
         }
       },
       REDIS_TTL.API_MEDIUM // 5분 캐싱
     )
 
-    return paginatedResponse(
-      cachedData.items,
-      page,
-      limit,
-      cachedData.totalCount
-    )
+    // 응답 생성
+    if (pagination.type === 'cursor') {
+      return successResponse({
+        items: cachedData.items,
+        pagination: {
+          limit: pagination.limit,
+          nextCursor: cachedData.nextCursor,
+          hasMore: cachedData.hasMore,
+          total: cachedData.total,
+        },
+      })
+    } else {
+      return paginatedResponse(
+        cachedData.items,
+        pagination.page,
+        pagination.limit,
+        cachedData.totalCount || 0
+      )
+    }
   } catch (error) {
     return handleError(error)
   }

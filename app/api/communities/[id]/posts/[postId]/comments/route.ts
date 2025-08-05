@@ -15,6 +15,15 @@ import {
 } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
+import { formatTimeAgo } from '@/lib/date-utils'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { communityCommentSelect } from '@/lib/prisma-select-patterns'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(
@@ -23,50 +32,174 @@ export async function GET(
 ) {
   try {
     const { id, postId } = await context.params
+    const { searchParams } = new URL(req.url)
 
-    // 게시글 존재 확인
-    const post = await prisma.communityPost.findUnique({
-      where: {
-        id: postId,
-        communityId: id,
-      },
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
+
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('community:post:comments', {
+      communityId: id,
+      postId,
+      ...pagination,
     })
 
-    if (!post) {
+    // Redis 캐싱 적용 - 댓글은 3분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 게시글 존재 확인
+        const post = await prisma.communityPost.findUnique({
+          where: {
+            id: postId,
+            communityId: id,
+          },
+        })
+
+        if (!post) {
+          return null
+        }
+
+        // 조건 설정 (최상위 댓글만)
+        const where = {
+          postId: postId,
+          parentId: null,
+        }
+
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
+
+          const comments = await prisma.communityComment.findMany({
+            where: cursorWhere,
+            select: communityCommentSelect.list,
+            orderBy: { createdAt: 'desc' },
+            take: getCursorTake(pagination.limit),
+          })
+
+          const totalCount = await prisma.communityComment.count({ where })
+          const cursorResponse = formatCursorResponse(
+            comments,
+            pagination.limit
+          )
+
+          // 응답 데이터 형식화
+          const formattedComments = cursorResponse.items.map(formatComment)
+
+          return {
+            comments: formattedComments,
+            total: totalCount,
+            nextCursor: cursorResponse.nextCursor,
+            hasMore: cursorResponse.hasMore,
+          }
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const skip = (pagination.page - 1) * pagination.limit
+
+          const [comments, totalCount] = await Promise.all([
+            prisma.communityComment.findMany({
+              where,
+              select: communityCommentSelect.list,
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: pagination.limit,
+            }),
+            prisma.communityComment.count({ where }),
+          ])
+
+          // 응답 데이터 형식화
+          const formattedComments = comments.map(formatComment)
+
+          return {
+            comments: formattedComments,
+            total: totalCount,
+          }
+        }
+      },
+      REDIS_TTL.API_SHORT * 3 // 3분 캐싱
+    )
+
+    if (!cachedData) {
       throwNotFoundError('게시글을 찾을 수 없습니다')
     }
 
-    // 댓글 조회 (계층 구조)
-    const comments = await prisma.communityComment.findMany({
-      where: {
-        postId: postId,
-        parentId: null, // 최상위 댓글만
-      },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true, image: true },
+    // 응답 생성
+    if (pagination.type === 'cursor') {
+      return successResponse({
+        items: cachedData.comments,
+        pagination: {
+          limit: pagination.limit,
+          nextCursor: cachedData.nextCursor,
+          hasMore: cachedData.hasMore,
+          total: cachedData.total,
         },
-        replies: {
-          include: {
-            author: {
-              select: { id: true, name: true, email: true, image: true },
-            },
-            replies: {
-              include: {
-                author: {
-                  select: { id: true, name: true, email: true, image: true },
-                },
-              },
-            },
-          },
+      })
+    } else {
+      return successResponse({
+        items: cachedData.comments,
+        pagination: {
+          total: cachedData.total,
+          page: pagination.page,
+          limit: pagination.limit,
+          totalPages: Math.ceil(cachedData.total / pagination.limit),
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    return successResponse({ comments })
+      })
+    }
   } catch (error) {
     return handleError(error)
+  }
+}
+
+// 댓글 타입 정의
+interface CommentWithReplies {
+  id: string
+  content: string
+  isEdited: boolean
+  createdAt: Date
+  updatedAt: Date
+  authorRole: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  replies?: CommentWithReplies[]
+}
+
+interface FormattedComment {
+  id: string
+  content: string
+  isEdited: boolean
+  createdAt: string
+  updatedAt: string
+  authorRole: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  timeAgo: string
+  replies: FormattedComment[]
+}
+
+// 댓글 형식화 헬퍼 함수
+function formatComment(comment: CommentWithReplies): FormattedComment {
+  return {
+    ...comment,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    timeAgo: formatTimeAgo(comment.createdAt),
+    replies:
+      comment.replies?.map((reply) => ({
+        ...reply,
+        createdAt: reply.createdAt.toISOString(),
+        updatedAt: reply.updatedAt.toISOString(),
+        timeAgo: formatTimeAgo(reply.createdAt),
+      })) || [],
   }
 }
 

@@ -1,10 +1,21 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
-import { errorResponse, paginatedResponse } from '@/lib/api-response'
+import {
+  errorResponse,
+  paginatedResponse,
+  successResponse,
+} from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { mainPostSelect } from '@/lib/prisma-select-patterns'
 
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(
@@ -16,12 +27,8 @@ export async function GET(
     const userId = resolvedParams.id
     const { searchParams } = new URL(request.url)
 
-    // 쿼리 파라미터
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(
-      50,
-      Math.max(1, parseInt(searchParams.get('limit') || '10'))
-    )
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
     const status = searchParams.get('status') as
       | 'PUBLISHED'
       | 'PENDING'
@@ -29,13 +36,10 @@ export async function GET(
       | null
     const categoryId = searchParams.get('categoryId')
 
-    const skip = (page - 1) * limit
-
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('user:posts', {
       userId,
-      page,
-      limit,
+      ...pagination,
       status,
       categoryId,
     })
@@ -65,108 +69,94 @@ export async function GET(
           ...(categoryId && { categoryId }),
         }
 
-        // 게시글 목록 조회
-        const [posts, totalCount] = await Promise.all([
-          prisma.mainPost.findMany({
-            where,
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
-              category: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  color: true,
-                },
-              },
-              tags: {
-                include: {
-                  tag: {
-                    select: {
-                      id: true,
-                      name: true,
-                      slug: true,
-                      color: true,
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  comments: true,
-                  likes: true,
-                  bookmarks: true,
-                },
-              },
-            },
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
+
+          const posts = await prisma.mainPost.findMany({
+            where: cursorWhere,
+            select: mainPostSelect.list,
             orderBy: {
               createdAt: 'desc',
             },
-            skip,
-            take: limit,
-          }),
-          prisma.mainPost.count({ where }),
-        ])
-
-        // 응답 데이터 형식화 및 Redis 조회수 포함
-        const formattedPosts = await Promise.all(
-          posts.map(async (post) => {
-            // Redis에서 버퍼링된 조회수 가져오기
-            let redisViews = 0
-            const client = redis()
-            if (client) {
-              const bufferKey = `post:${post.id}:views`
-              const bufferedViews = await client.get(bufferKey)
-              redisViews = parseInt(bufferedViews || '0')
-            }
-
-            return {
-              id: post.id,
-              title: post.title,
-              excerpt: post.excerpt,
-              slug: post.slug,
-              status: post.status,
-              isPinned: post.isPinned,
-              viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
-              likeCount: post.likeCount,
-              commentCount: post.commentCount,
-              createdAt: post.createdAt.toISOString(),
-              updatedAt: post.updatedAt.toISOString(),
-              approvedAt: post.approvedAt?.toISOString() || null,
-              timeAgo: formatTimeAgo(post.createdAt),
-              author: {
-                id: post.author.id,
-                name: post.author.name || 'Unknown',
-                image: post.author.image || undefined,
-              },
-              category: {
-                id: post.category.id,
-                name: post.category.name,
-                slug: post.category.slug,
-                color: post.category.color,
-              },
-              tags: post.tags.map((tagRelation) => ({
-                id: tagRelation.tag.id,
-                name: tagRelation.tag.name,
-                slug: tagRelation.tag.slug,
-                color: tagRelation.tag.color,
-              })),
-              stats: {
-                commentCount: post._count.comments,
-                likeCount: post._count.likes,
-                bookmarkCount: post._count.bookmarks,
-              },
-            }
+            take: getCursorTake(pagination.limit),
           })
-        )
 
-        return { posts: formattedPosts, total: totalCount }
+          const totalCount = await prisma.mainPost.count({ where })
+          const cursorResponse = formatCursorResponse(posts, pagination.limit)
+
+          // 응답 데이터 형식화 및 Redis 조회수 포함
+          const formattedPosts = await Promise.all(
+            cursorResponse.items.map(async (post) => {
+              // Redis에서 버퍼링된 조회수 가져오기
+              let redisViews = 0
+              const client = redis()
+              if (client) {
+                const bufferKey = `post:${post.id}:views`
+                const bufferedViews = await client.get(bufferKey)
+                redisViews = parseInt(bufferedViews || '0')
+              }
+
+              return {
+                ...post,
+                viewCount: (post.viewCount || 0) + redisViews, // DB 조회수 + Redis 조회수
+                createdAt: post.createdAt.toISOString(),
+                timeAgo: formatTimeAgo(post.createdAt),
+              }
+            })
+          )
+
+          return {
+            posts: formattedPosts,
+            total: totalCount,
+            nextCursor: cursorResponse.nextCursor,
+            hasMore: cursorResponse.hasMore,
+          }
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const skip = (pagination.page - 1) * pagination.limit
+
+          // 게시글 목록 조회
+          const [posts, totalCount] = await Promise.all([
+            prisma.mainPost.findMany({
+              where,
+              select: mainPostSelect.list,
+              orderBy: {
+                createdAt: 'desc',
+              },
+              skip,
+              take: pagination.limit,
+            }),
+            prisma.mainPost.count({ where }),
+          ])
+
+          // 응답 데이터 형식화 및 Redis 조회수 포함
+          const formattedPosts = await Promise.all(
+            posts.map(async (post) => {
+              // Redis에서 버퍼링된 조회수 가져오기
+              let redisViews = 0
+              const client = redis()
+              if (client) {
+                const bufferKey = `post:${post.id}:views`
+                const bufferedViews = await client.get(bufferKey)
+                redisViews = parseInt(bufferedViews || '0')
+              }
+
+              return {
+                ...post,
+                viewCount: (post.viewCount || 0) + redisViews, // DB 조회수 + Redis 조회수
+                createdAt: post.createdAt.toISOString(),
+                timeAgo: formatTimeAgo(post.createdAt),
+              }
+            })
+          )
+
+          return { posts: formattedPosts, total: totalCount }
+        }
       },
       REDIS_TTL.API_SHORT * 3 // 3분 캐싱
     )
@@ -175,7 +165,25 @@ export async function GET(
       return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
-    return paginatedResponse(cachedData.posts, page, limit, cachedData.total)
+    // 응답 생성
+    if (pagination.type === 'cursor') {
+      return successResponse({
+        items: cachedData.posts,
+        pagination: {
+          limit: pagination.limit,
+          nextCursor: cachedData.nextCursor,
+          hasMore: cachedData.hasMore,
+          total: cachedData.total,
+        },
+      })
+    } else {
+      return paginatedResponse(
+        cachedData.posts,
+        pagination.page,
+        pagination.limit,
+        cachedData.total
+      )
+    }
   } catch (error) {
     return handleError(error)
   }

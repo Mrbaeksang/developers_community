@@ -7,13 +7,18 @@ import { handleError } from '@/lib/error-handler'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { notificationSelect } from '@/lib/prisma-select-patterns'
 
 // 알림 타입 필터 스키마
 const notificationFilterSchema = z.object({
   type: z.nativeEnum(NotificationType).optional(),
   unreadOnly: z.coerce.boolean().optional().default(false),
-  page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(50).optional().default(20),
 })
 
 // GET: 알림 목록 조회
@@ -26,34 +31,27 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
 
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
+
     // 빈 문자열을 undefined로 변환
     const type = searchParams.get('type')
     const unreadOnly = searchParams.get('unreadOnly')
-    const page = searchParams.get('page')
-    const limit = searchParams.get('limit')
 
     const validatedParams = notificationFilterSchema.parse({
       type: type && type !== '' ? type : undefined,
       unreadOnly: unreadOnly && unreadOnly !== '' ? unreadOnly : undefined,
-      page: page && page !== '' ? page : undefined,
-      limit: limit && limit !== '' ? limit : undefined,
     })
 
-    const {
-      type: validatedType,
-      unreadOnly: validatedUnreadOnly,
-      page: validatedPage,
-      limit: validatedLimit,
-    } = validatedParams
-    const skip = (validatedPage - 1) * validatedLimit
+    const { type: validatedType, unreadOnly: validatedUnreadOnly } =
+      validatedParams
 
     // Redis 캐시 키 생성 - 사용자별, 필터별로 캐싱
     const cacheKey = generateCacheKey('user:notifications', {
       userId: session.user.id,
-      type: validatedType || 'all',
+      notificationType: validatedType || 'all',
       unreadOnly: validatedUnreadOnly,
-      page: validatedPage,
-      limit: validatedLimit,
+      ...pagination,
     })
 
     // Redis 캐싱 적용 - 알림은 1분 캐싱 (실시간성 중요)
@@ -67,52 +65,99 @@ export async function GET(req: NextRequest) {
           ...(validatedUnreadOnly && { isRead: false }),
         }
 
-        // 알림 조회
-        const [notifications, total, unreadCount] = await Promise.all([
-          prisma.notification.findMany({
-            where,
-            include: {
-              sender: {
-                select: {
-                  id: true,
-                  name: true,
-                  username: true,
-                  image: true,
-                },
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
+
+          const [notifications, total, unreadCount] = await Promise.all([
+            prisma.notification.findMany({
+              where: cursorWhere,
+              select: notificationSelect.list,
+              orderBy: { createdAt: 'desc' },
+              take: getCursorTake(pagination.limit),
+            }),
+            prisma.notification.count({ where }),
+            prisma.notification.count({
+              where: {
+                userId: session.user.id,
+                isRead: false,
               },
-            },
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: validatedLimit,
-          }),
-          prisma.notification.count({ where }),
-          prisma.notification.count({
-            where: {
-              userId: session.user.id,
-              isRead: false,
-            },
-          }),
-        ])
+            }),
+          ])
 
-        // resourceIds JSON 파싱 및 날짜 포맷팅
-        const formattedNotifications = notifications.map((notification) => ({
-          ...notification,
-          resourceIds: notification.resourceIds
-            ? JSON.parse(notification.resourceIds)
-            : null,
-          createdAt: notification.createdAt.toISOString(),
-          timeAgo: formatTimeAgo(notification.createdAt),
-        }))
+          const cursorResponse = formatCursorResponse(
+            notifications,
+            pagination.limit
+          )
 
-        return {
-          notifications: formattedNotifications,
-          pagination: {
-            total,
-            page: validatedPage,
-            limit: validatedLimit,
-            totalPages: Math.ceil(total / validatedLimit),
-          },
-          unreadCount,
+          // resourceIds JSON 파싱 및 날짜 포맷팅
+          const formattedNotifications = cursorResponse.items.map(
+            (notification) => ({
+              ...notification,
+              resourceIds: notification.resourceIds
+                ? JSON.parse(notification.resourceIds)
+                : null,
+              createdAt: notification.createdAt.toISOString(),
+              timeAgo: formatTimeAgo(notification.createdAt),
+            })
+          )
+
+          return {
+            notifications: formattedNotifications,
+            pagination: {
+              limit: pagination.limit,
+              nextCursor: cursorResponse.nextCursor,
+              hasMore: cursorResponse.hasMore,
+              total,
+            },
+            unreadCount,
+          }
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const skip = (pagination.page - 1) * pagination.limit
+
+          // 알림 조회
+          const [notifications, total, unreadCount] = await Promise.all([
+            prisma.notification.findMany({
+              where,
+              select: notificationSelect.list,
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: pagination.limit,
+            }),
+            prisma.notification.count({ where }),
+            prisma.notification.count({
+              where: {
+                userId: session.user.id,
+                isRead: false,
+              },
+            }),
+          ])
+
+          // resourceIds JSON 파싱 및 날짜 포맷팅
+          const formattedNotifications = notifications.map((notification) => ({
+            ...notification,
+            resourceIds: notification.resourceIds
+              ? JSON.parse(notification.resourceIds)
+              : null,
+            createdAt: notification.createdAt.toISOString(),
+            timeAgo: formatTimeAgo(notification.createdAt),
+          }))
+
+          return {
+            notifications: formattedNotifications,
+            pagination: {
+              total,
+              page: pagination.page,
+              limit: pagination.limit,
+              totalPages: Math.ceil(total / pagination.limit),
+            },
+            unreadCount,
+          }
         }
       },
       REDIS_TTL.API_SHORT // 1분 캐싱

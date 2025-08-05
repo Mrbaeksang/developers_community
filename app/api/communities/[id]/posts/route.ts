@@ -20,10 +20,16 @@ import { withCSRFProtection } from '@/lib/csrf'
 import {
   getBatchViewCounts,
   getPostOrderBy,
-  getPaginationParams,
   getPaginationSkipTake,
 } from '@/lib/db/query-helpers'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { communityPostSelect } from '@/lib/prisma-select-patterns'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -33,7 +39,9 @@ export async function GET(
   try {
     const { id } = await context.params
     const { searchParams } = new URL(req.url)
-    const { page, limit } = getPaginationParams(searchParams)
+
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
     const category = searchParams.get('category')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort') || 'latest'
@@ -102,8 +110,7 @@ export async function GET(
     // Redis 캐시 키 생성 - 로그인 상태에 따라 다른 캐시 사용
     const cacheKey = generateCacheKey('community:posts', {
       communityId: id,
-      page,
-      limit,
+      ...pagination,
       category,
       search,
       sort,
@@ -114,19 +121,19 @@ export async function GET(
     const cachedData = await redisCache.getOrSet(
       cacheKey,
       async () => {
-        // 게시글 조회
-        const { skip, take } = getPaginationSkipTake({ page, limit })
-        const [posts, total] = await Promise.all([
-          prisma.communityPost.findMany({
-            where,
-            include: {
-              author: {
-                select: { id: true, name: true, email: true, image: true },
-              },
-              category: true,
-              _count: {
-                select: { comments: true, likes: true },
-              },
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
+
+          const posts = await prisma.communityPost.findMany({
+            where: cursorWhere,
+            orderBy,
+            take: getCursorTake(pagination.limit),
+            select: {
+              ...communityPostSelect.list,
               likes: session?.user?.id
                 ? {
                     where: { userId: session.user.id },
@@ -138,40 +145,115 @@ export async function GET(
                   }
                 : false,
             },
-            orderBy,
-            take,
-            skip,
-          }),
-          prisma.communityPost.count({ where }),
-        ])
+          })
 
-        // Redis에서 조회수 일괄 조회
-        const postIds = posts.map((p) => p.id)
-        const viewCountsMap = await getBatchViewCounts(
-          postIds,
-          'community:post'
-        )
+          const total = await prisma.communityPost.count({ where })
+          const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-        // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
-        const formattedPosts = posts.map((post) => {
-          const redisViews = viewCountsMap.get(post.id) || 0
+          // Redis에서 조회수 일괄 조회
+          const postIds = cursorResponse.items.map((p) => p.id)
+          const viewCountsMap = await getBatchViewCounts(
+            postIds,
+            'community:post'
+          )
+
+          // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
+          const formattedPosts = cursorResponse.items.map((post) => {
+            const redisViews = viewCountsMap.get(post.id) || 0
+
+            return {
+              ...post,
+              viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+              isLiked: post.likes && post.likes.length > 0,
+              isBookmarked: post.bookmarks && post.bookmarks.length > 0,
+              likes: undefined,
+              bookmarks: undefined,
+            }
+          })
 
           return {
-            ...post,
-            viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
-            isLiked: post.likes && post.likes.length > 0,
-            isBookmarked: post.bookmarks && post.bookmarks.length > 0,
-            likes: undefined,
-            bookmarks: undefined,
+            posts: formattedPosts,
+            total,
+            nextCursor: cursorResponse.nextCursor,
+            hasMore: cursorResponse.hasMore,
           }
-        })
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const { skip, take } = getPaginationSkipTake({
+            page: pagination.page,
+            limit: pagination.limit,
+          })
 
-        return { posts: formattedPosts, total }
+          const [posts, total] = await Promise.all([
+            prisma.communityPost.findMany({
+              where,
+              select: {
+                ...communityPostSelect.list,
+                likes: session?.user?.id
+                  ? {
+                      where: { userId: session.user.id },
+                    }
+                  : false,
+                bookmarks: session?.user?.id
+                  ? {
+                      where: { userId: session.user.id },
+                    }
+                  : false,
+              },
+              orderBy,
+              take,
+              skip,
+            }),
+            prisma.communityPost.count({ where }),
+          ])
+
+          // Redis에서 조회수 일괄 조회
+          const postIds = posts.map((p) => p.id)
+          const viewCountsMap = await getBatchViewCounts(
+            postIds,
+            'community:post'
+          )
+
+          // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
+          const formattedPosts = posts.map((post) => {
+            const redisViews = viewCountsMap.get(post.id) || 0
+
+            return {
+              ...post,
+              viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+              isLiked: post.likes && post.likes.length > 0,
+              isBookmarked: post.bookmarks && post.bookmarks.length > 0,
+              likes: undefined,
+              bookmarks: undefined,
+            }
+          })
+
+          return { posts: formattedPosts, total }
+        }
       },
       REDIS_TTL.API_SHORT // 1분 캐싱 (커뮤니티는 더 자주 업데이트)
     )
 
-    return paginatedResponse(cachedData.posts, cachedData.total, page, limit)
+    // 응답 생성
+    if (pagination.type === 'cursor') {
+      return successResponse({
+        items: cachedData.posts,
+        pagination: {
+          limit: pagination.limit,
+          nextCursor: cachedData.nextCursor,
+          hasMore: cachedData.hasMore,
+          total: cachedData.total,
+        },
+      })
+    } else {
+      return paginatedResponse(
+        cachedData.posts,
+        cachedData.total,
+        pagination.page,
+        pagination.limit
+      )
+    }
   } catch (error) {
     return handleError(error)
   }

@@ -9,45 +9,98 @@ import {
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const cursor = searchParams.get('cursor')
+    const includeInactive = searchParams.get('includeInactive') === 'true'
+
     // Redis 캐시 키 생성
-    const cacheKey = generateCacheKey('main:categories:active', {})
+    const cacheKey = generateCacheKey('main:categories:list', {
+      limit,
+      cursor: cursor || 'none',
+      includeInactive,
+    })
 
     // Redis 캐싱 적용 - 카테고리는 자주 변경되지 않으므로 1시간 캐싱
     const cachedCategories = await redisCache.getOrSet(
       cacheKey,
       async () => {
+        // 커서 조건 설정 (order 필드 기준)
+        const cursorCondition = cursor
+          ? {
+              order: { gt: parseInt(cursor) },
+            }
+          : {}
+
+        // 카테고리 조회 - select 패턴 사용
         const categories = await prisma.mainCategory.findMany({
           where: {
-            isActive: true, // 활성화된 카테고리만 조회
+            ...(!includeInactive && { isActive: true }),
+            ...cursorCondition,
           },
-          orderBy: {
-            order: 'asc', // order 필드로 정렬
-          },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            color: true,
+            icon: true,
+            order: true,
+            isActive: true,
             _count: {
               select: {
-                posts: true,
+                posts: {
+                  where: !includeInactive ? { status: 'PUBLISHED' } : undefined,
+                },
               },
             },
           },
+          orderBy: [
+            { order: 'asc' },
+            { name: 'asc' }, // order가 같을 경우 이름순
+          ],
+          take: limit + 1, // hasMore 체크용
         })
 
-        return categories.map((category) => ({
-          id: category.id,
-          name: category.name,
-          slug: category.slug,
-          description: category.description,
-          color: category.color, // DB의 color 필드 추가
-          icon: category.icon, // DB의 icon 필드 추가
-          postCount: category._count.posts,
-        }))
+        // 페이지네이션 처리
+        const hasMore = categories.length > limit
+        const resultCategories = hasMore ? categories.slice(0, -1) : categories
+
+        // 다음 커서 생성
+        const nextCursor =
+          hasMore && resultCategories.length > 0
+            ? resultCategories[resultCategories.length - 1].order.toString()
+            : null
+
+        return {
+          categories: resultCategories.map((category) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+            description: category.description || undefined,
+            color: category.color,
+            icon: category.icon || undefined,
+            order: category.order,
+            isActive: category.isActive,
+            postCount: category._count.posts,
+          })),
+          nextCursor,
+          hasMore,
+        }
       },
       REDIS_TTL.API_LONG // 1시간 캐싱
     )
 
-    return successResponse(cachedCategories)
+    return successResponse({
+      items: cachedCategories.categories,
+      pagination: {
+        limit,
+        nextCursor: cachedCategories.nextCursor,
+        hasMore: cachedCategories.hasMore,
+      },
+    })
   } catch (error) {
     return handleError(error)
   }

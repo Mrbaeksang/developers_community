@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
-import { markdownToHtml } from '@/lib/markdown'
 import {
   errorResponse,
   paginatedResponse,
@@ -11,24 +10,23 @@ import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
-import {
-  getPostOrderBy,
-  getPaginationParams,
-  getPaginationSkipTake,
-} from '@/lib/db/query-helpers'
-import {
-  getCachedMainPosts,
-  invalidateCache,
-  CACHE_TAGS,
-} from '@/lib/db/query-cache'
+import { getPostOrderBy, getPaginationSkipTake } from '@/lib/db/query-helpers'
+import { invalidateCache, CACHE_TAGS } from '@/lib/db/query-cache'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import {
+  parseHybridPagination,
+  getCursorCondition,
+  getCursorTake,
+  formatCursorResponse,
+} from '@/lib/pagination-utils'
+import { mainPostSelect } from '@/lib/prisma-select-patterns'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
-    // 쿼리 파라미터
-    const { page, limit } = getPaginationParams(searchParams)
+    // 하이브리드 페이지네이션 파싱
+    const pagination = parseHybridPagination(searchParams)
     const type = searchParams.get('type') as string | null
     const categoryId = searchParams.get('categoryId') as string | null
     const category = searchParams.get('category') as string | null // 카테고리 slug
@@ -64,8 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('main:posts', {
-      page,
-      limit,
+      ...pagination,
       type,
       category,
       categoryId,
@@ -76,31 +73,88 @@ export async function GET(request: NextRequest) {
     const cachedData = await redisCache.getOrSet(
       cacheKey,
       async () => {
-        // 캐시된 쿼리 사용
-        const { skip, take } = getPaginationSkipTake({ page, limit })
-        const { posts, total } = await getCachedMainPosts({
-          where,
-          orderBy,
-          skip,
-          take,
-          includeViewCounts: true,
-        })
+        // 커서 기반 페이지네이션
+        if (pagination.type === 'cursor') {
+          const cursorWhere = {
+            ...where,
+            ...getCursorCondition(pagination.cursor),
+          }
 
-        // 마크다운을 HTML로 변환 (조회수는 이미 포함됨)
-        const formattedPosts = posts.map((post) => ({
-          ...post,
-          content: markdownToHtml(post.content),
-          createdAt: new Date(post.createdAt).toISOString(),
-          updatedAt: new Date(post.updatedAt).toISOString(),
-          timeAgo: formatTimeAgo(new Date(post.createdAt)),
-        }))
+          const posts = await prisma.mainPost.findMany({
+            where: cursorWhere,
+            orderBy,
+            take: getCursorTake(pagination.limit),
+            select: mainPostSelect.list,
+          })
 
-        return { posts: formattedPosts, total }
+          const total = await prisma.mainPost.count({ where })
+          const cursorResponse = formatCursorResponse(posts, pagination.limit)
+
+          // 마크다운 변환 및 포맷팅
+          const formattedPosts = cursorResponse.items.map((post) => ({
+            ...post,
+            createdAt: post.createdAt.toISOString(),
+            timeAgo: formatTimeAgo(post.createdAt),
+          }))
+
+          return {
+            posts: formattedPosts,
+            total,
+            nextCursor: cursorResponse.nextCursor,
+            hasMore: cursorResponse.hasMore,
+          }
+        }
+        // 기존 오프셋 기반 페이지네이션 (호환성)
+        else {
+          const { skip, take } = getPaginationSkipTake({
+            page: pagination.page,
+            limit: pagination.limit,
+          })
+
+          const [posts, total] = await Promise.all([
+            prisma.mainPost.findMany({
+              where,
+              orderBy,
+              skip,
+              take,
+              select: mainPostSelect.list,
+            }),
+            prisma.mainPost.count({ where }),
+          ])
+
+          // 마크다운 변환 및 포맷팅
+          const formattedPosts = posts.map((post) => ({
+            ...post,
+            createdAt: post.createdAt.toISOString(),
+            timeAgo: formatTimeAgo(post.createdAt),
+          }))
+
+          return { posts: formattedPosts, total }
+        }
       },
       REDIS_TTL.API_MEDIUM // 5분 캐싱
     )
 
-    return paginatedResponse(cachedData.posts, page, limit, cachedData.total)
+    // 응답 생성
+    if (pagination.type === 'cursor') {
+      return NextResponse.json({
+        success: true,
+        data: cachedData.posts,
+        pagination: {
+          limit: pagination.limit,
+          nextCursor: cachedData.nextCursor,
+          hasMore: cachedData.hasMore,
+          total: cachedData.total,
+        },
+      })
+    } else {
+      return paginatedResponse(
+        cachedData.posts,
+        pagination.page,
+        pagination.limit,
+        cachedData.total
+      )
+    }
   } catch (error) {
     return handleError(error)
   }
