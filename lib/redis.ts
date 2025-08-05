@@ -7,16 +7,9 @@ let redisClient: Redis | null = null
 function createRedisClient() {
   // 프로덕션 환경 변수 체크
   if (!process.env['REDIS_URL']) {
-    // 개발/빌드 환경에서는 더미 클라이언트 반환
-    if (
-      process.env.NODE_ENV === 'development' ||
-      process.env.NODE_ENV === 'test' ||
-      !process.env.NODE_ENV
-    ) {
-      console.warn('REDIS_URL not found, using dummy Redis client')
-      return null as unknown as Redis
-    }
-    throw new Error('REDIS_URL is not defined in environment variables')
+    // 빌드 타임이나 개발 환경에서는 더미 클라이언트 반환
+    console.warn('REDIS_URL not found, using dummy Redis client')
+    return null as unknown as Redis
   }
 
   const client = new Redis(process.env['REDIS_URL'], {

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Users, FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/community-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 interface Community {
   id: string
@@ -113,6 +114,8 @@ export function ActiveCommunities() {
                           className="rounded-lg border-2 border-black"
                           priority={index < 3}
                           sizes="40px"
+                          placeholder="blur"
+                          blurDataURL={getDefaultBlurPlaceholder('community')}
                         />
                       )
                     }
