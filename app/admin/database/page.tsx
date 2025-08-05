@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 import {
   Select,
   SelectContent,
@@ -569,6 +570,8 @@ export default function DatabaseViewerPage() {
             width={32}
             height={32}
             className="rounded-full object-cover border"
+            placeholder="blur"
+            blurDataURL={getDefaultBlurPlaceholder('profile')}
             onError={(e) => {
               const target = e.target as HTMLImageElement
               target.style.display = 'none'

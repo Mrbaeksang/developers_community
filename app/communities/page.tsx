@@ -25,6 +25,7 @@ import {
   getBannerType,
   getDefaultBannerById,
 } from '@/lib/banner-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 interface Community {
   id: string
@@ -291,6 +292,8 @@ export default async function CommunitiesPage({
                                 alt={`${community.name} banner preview`}
                                 fill
                                 className="object-cover"
+                                placeholder="blur"
+                                blurDataURL={getDefaultBlurPlaceholder('post')}
                               />
                             )
                           }
@@ -323,6 +326,8 @@ export default async function CommunitiesPage({
                                 alt={`${community.name} banner preview`}
                                 fill
                                 className="object-cover"
+                                placeholder="blur"
+                                blurDataURL={getDefaultBlurPlaceholder('post')}
                               />
                             )
                           }
@@ -335,6 +340,8 @@ export default async function CommunitiesPage({
                                 alt={`${community.name} banner preview`}
                                 fill
                                 className="object-cover"
+                                placeholder="blur"
+                                blurDataURL={getDefaultBlurPlaceholder('post')}
                               />
                             )
                           }
@@ -386,6 +393,10 @@ export default async function CommunitiesPage({
                                     width={40}
                                     height={40}
                                     className="w-10 h-10 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] object-cover"
+                                    placeholder="blur"
+                                    blurDataURL={getDefaultBlurPlaceholder(
+                                      'community'
+                                    )}
                                   />
                                 )
                               }

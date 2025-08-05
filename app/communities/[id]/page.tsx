@@ -18,6 +18,7 @@ import {
   getBannerType,
   getDefaultBannerById,
 } from '@/lib/banner-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 interface Category {
   id: string
@@ -157,6 +158,8 @@ export default async function CommunityDetailPage({
                   alt={`${community.name} banner`}
                   fill
                   className="object-cover"
+                  placeholder="blur"
+                  blurDataURL={getDefaultBlurPlaceholder('post')}
                 />
               )
             }
@@ -184,6 +187,8 @@ export default async function CommunityDetailPage({
                   fill
                   className="object-cover"
                   priority
+                  placeholder="blur"
+                  blurDataURL={getDefaultBlurPlaceholder('post')}
                   sizes="100vw"
                 />
               )
@@ -199,6 +204,8 @@ export default async function CommunityDetailPage({
                   fill
                   className="object-cover"
                   priority
+                  placeholder="blur"
+                  blurDataURL={getDefaultBlurPlaceholder('post')}
                   sizes="100vw"
                 />
               )

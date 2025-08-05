@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community-utils'
 import { defaultBanners } from '@/lib/banner-utils'
 import { RECOMMENDED_BANNER_IMAGES } from '@/lib/unsplash-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 export default function CreateCommunityForm() {
   const router = useRouter()
@@ -787,6 +788,8 @@ export default function CreateCommunityForm() {
                         width={1200}
                         height={300}
                         className="w-full h-full object-cover"
+                        placeholder="blur"
+                        blurDataURL={getDefaultBlurPlaceholder('post')}
                         priority
                         unoptimized
                       />
@@ -1006,6 +1009,8 @@ export default function CreateCommunityForm() {
                                 width={1200}
                                 height={300}
                                 className="w-full h-full object-cover"
+                                placeholder="blur"
+                                blurDataURL={getDefaultBlurPlaceholder('post')}
                                 priority
                                 unoptimized
                                 onError={() => {

@@ -52,6 +52,7 @@ import {
 import { getAvatarUrl } from '@/lib/community-utils'
 import { CommunityVisibility } from '@prisma/client'
 import { apiClient } from '@/lib/api'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 interface Community {
   id: string
@@ -320,6 +321,10 @@ export default function AdminCommunitiesPage() {
                                 fill
                                 className="object-cover"
                                 sizes="40px"
+                                placeholder="blur"
+                                blurDataURL={getDefaultBlurPlaceholder(
+                                  'community'
+                                )}
                               />
                             </div>
                           )
@@ -348,6 +353,8 @@ export default function AdminCommunitiesPage() {
                             fill
                             className="object-cover"
                             sizes="24px"
+                            placeholder="blur"
+                            blurDataURL={getDefaultBlurPlaceholder('profile')}
                           />
                         </div>
                       ) : (

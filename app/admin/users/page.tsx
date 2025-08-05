@@ -54,6 +54,7 @@ import {
 import { cn } from '@/lib/utils'
 import { GlobalRole } from '@prisma/client'
 import { apiClient } from '@/lib/api'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 interface User {
   id: string
@@ -357,6 +358,8 @@ export default function AdminUsersPage() {
                             fill
                             className="object-cover"
                             sizes="40px"
+                            placeholder="blur"
+                            blurDataURL={getDefaultBlurPlaceholder('profile')}
                           />
                         </div>
                       ) : (

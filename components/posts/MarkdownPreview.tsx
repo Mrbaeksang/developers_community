@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import remarkGfm from 'remark-gfm'
 import Image from 'next/image'
+import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
 
 // Lazy load ReactMarkdown only
 const ReactMarkdown = lazy(() => import('react-markdown'))
@@ -96,6 +97,8 @@ export function MarkdownPreview({ content, className }: MarkdownPreviewProps) {
                     width={800}
                     height={600}
                     className="rounded"
+                    placeholder="blur"
+                    blurDataURL={getDefaultBlurPlaceholder('post')}
                     style={{
                       width: '100%',
                       height: 'auto',
