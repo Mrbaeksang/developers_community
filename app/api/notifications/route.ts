@@ -6,6 +6,7 @@ import { successResponse, validationErrorResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { requireAuthAPI } from '@/lib/auth-utils'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // 알림 타입 필터 스키마
 const notificationFilterSchema = z.object({
@@ -46,60 +47,78 @@ export async function GET(req: NextRequest) {
     } = validatedParams
     const skip = (validatedPage - 1) * validatedLimit
 
-    // 조건 설정
-    const where = {
+    // Redis 캐시 키 생성 - 사용자별, 필터별로 캐싱
+    const cacheKey = generateCacheKey('user:notifications', {
       userId: session.user.id,
-      ...(validatedType && { type: validatedType }),
-      ...(validatedUnreadOnly && { isRead: false }),
-    }
-
-    // 알림 조회
-    const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        include: {
-          sender: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: validatedLimit,
-      }),
-      prisma.notification.count({ where }),
-      prisma.notification.count({
-        where: {
-          userId: session.user.id,
-          isRead: false,
-        },
-      }),
-    ])
-
-    // resourceIds JSON 파싱 및 날짜 포맷팅
-    const formattedNotifications = notifications.map((notification) => ({
-      ...notification,
-      resourceIds: notification.resourceIds
-        ? JSON.parse(notification.resourceIds)
-        : null,
-      createdAt: notification.createdAt.toISOString(),
-      timeAgo: formatTimeAgo(notification.createdAt),
-    }))
-
-    return successResponse({
-      notifications: formattedNotifications,
-      pagination: {
-        total,
-        page: validatedPage,
-        limit: validatedLimit,
-        totalPages: Math.ceil(total / validatedLimit),
-      },
-      unreadCount,
+      type: validatedType || 'all',
+      unreadOnly: validatedUnreadOnly,
+      page: validatedPage,
+      limit: validatedLimit,
     })
+
+    // Redis 캐싱 적용 - 알림은 1분 캐싱 (실시간성 중요)
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 조건 설정
+        const where = {
+          userId: session.user.id,
+          ...(validatedType && { type: validatedType }),
+          ...(validatedUnreadOnly && { isRead: false }),
+        }
+
+        // 알림 조회
+        const [notifications, total, unreadCount] = await Promise.all([
+          prisma.notification.findMany({
+            where,
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: validatedLimit,
+          }),
+          prisma.notification.count({ where }),
+          prisma.notification.count({
+            where: {
+              userId: session.user.id,
+              isRead: false,
+            },
+          }),
+        ])
+
+        // resourceIds JSON 파싱 및 날짜 포맷팅
+        const formattedNotifications = notifications.map((notification) => ({
+          ...notification,
+          resourceIds: notification.resourceIds
+            ? JSON.parse(notification.resourceIds)
+            : null,
+          createdAt: notification.createdAt.toISOString(),
+          timeAgo: formatTimeAgo(notification.createdAt),
+        }))
+
+        return {
+          notifications: formattedNotifications,
+          pagination: {
+            total,
+            page: validatedPage,
+            limit: validatedLimit,
+            totalPages: Math.ceil(total / validatedLimit),
+          },
+          unreadCount,
+        }
+      },
+      REDIS_TTL.API_SHORT // 1분 캐싱
+    )
+
+    return successResponse(cachedData)
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors: Record<string, string[]> = {}

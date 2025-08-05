@@ -7,43 +7,54 @@ import {
   createdResponse,
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    // 태그별 PUBLISHED 게시글 수를 집계하여 인기 태그 조회
-    const tags = await prisma.mainTag.findMany({
-      include: {
-        posts: {
-          where: {
-            post: {
-              status: 'PUBLISHED',
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('main:tags:popular', { limit })
+
+    // Redis 캐싱 적용 - 인기 태그는 자주 변하지 않으므로 1시간 캐싱
+    const cachedTags = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 태그별 PUBLISHED 게시글 수를 집계하여 인기 태그 조회
+        const tags = await prisma.mainTag.findMany({
+          include: {
+            posts: {
+              where: {
+                post: {
+                  status: 'PUBLISHED',
+                },
+              },
             },
           },
-        },
+          take: limit,
+        })
+
+        // PUBLISHED 게시글 수로 정렬
+        const sortedTags = tags
+          .map((tag) => ({
+            ...tag,
+            publishedCount: tag.posts.length,
+          }))
+          .sort((a, b) => b.publishedCount - a.publishedCount)
+
+        return sortedTags.map((tag) => ({
+          id: tag.id,
+          name: tag.name,
+          slug: tag.slug,
+          count: tag.publishedCount,
+          color: tag.color,
+        }))
       },
-      take: limit,
-    })
+      REDIS_TTL.API_LONG // 1시간 캐싱
+    )
 
-    // PUBLISHED 게시글 수로 정렬
-    const sortedTags = tags
-      .map((tag) => ({
-        ...tag,
-        publishedCount: tag.posts.length,
-      }))
-      .sort((a, b) => b.publishedCount - a.publishedCount)
-
-    return successResponse({
-      tags: sortedTags.map((tag) => ({
-        id: tag.id,
-        name: tag.name,
-        slug: tag.slug,
-        count: tag.publishedCount,
-        color: tag.color,
-      })),
-    })
+    return successResponse({ tags: cachedTags })
   } catch (error) {
     return handleError(error)
   }
@@ -90,6 +101,9 @@ export async function POST(request: Request) {
         color: color || '#64748b',
       },
     })
+
+    // Redis 캐시 무효화 - 인기 태그 캐시 삭제
+    await redisCache.delPattern('api:cache:main:tags:popular:*')
 
     return createdResponse({ tag })
   } catch (error) {

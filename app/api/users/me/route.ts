@@ -14,6 +14,7 @@ import {
 } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withCSRFProtection } from '@/lib/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // 프로필 수정 스키마
 const updateProfileSchema = z.object({
@@ -39,56 +40,74 @@ export async function GET() {
       return session
     }
 
-    // 사용자 정보 조회
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        image: true,
-        bio: true,
-        globalRole: true,
-        showEmail: true,
-        createdAt: true,
-        _count: {
-          select: {
-            mainPosts: {
-              where: {
-                status: 'PUBLISHED',
-              },
-            },
-            mainComments: true,
-            mainLikes: true,
-          },
-        },
-      },
+    // Redis 캐시 키 생성 - 사용자별로 고유한 캐시
+    const cacheKey = generateCacheKey('user:me', {
+      userId: session.user.id,
     })
 
-    if (!user) {
+    // Redis 캐싱 적용 - 내 정보는 5분 캐싱
+    const cachedUserData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 사용자 정보 조회
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            image: true,
+            bio: true,
+            globalRole: true,
+            showEmail: true,
+            createdAt: true,
+            _count: {
+              select: {
+                mainPosts: {
+                  where: {
+                    status: 'PUBLISHED',
+                  },
+                },
+                mainComments: true,
+                mainLikes: true,
+              },
+            },
+          },
+        })
+
+        if (!user) {
+          return null
+        }
+
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || 'Unknown',
+            username: user.username,
+            image: user.image || undefined,
+            bio: user.bio,
+            role: user.globalRole,
+            showEmail: user.showEmail,
+            joinedAt: user.createdAt.toISOString(),
+            joinedTimeAgo: formatTimeAgo(user.createdAt),
+            stats: {
+              postCount: user._count.mainPosts,
+              commentCount: user._count.mainComments,
+              likeCount: user._count.mainLikes,
+            },
+          },
+        }
+      },
+      REDIS_TTL.API_MEDIUM // 5분 캐싱
+    )
+
+    if (!cachedUserData) {
       throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
-    return successResponse({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name || 'Unknown',
-        username: user.username,
-        image: user.image || undefined,
-        bio: user.bio,
-        role: user.globalRole,
-        showEmail: user.showEmail,
-        joinedAt: user.createdAt.toISOString(),
-        joinedTimeAgo: formatTimeAgo(user.createdAt),
-        stats: {
-          postCount: user._count.mainPosts,
-          commentCount: user._count.mainComments,
-          likeCount: user._count.mainLikes,
-        },
-      },
-    })
+    return successResponse(cachedUserData)
   } catch (error) {
     return handleError(error)
   }
@@ -170,6 +189,12 @@ async function updateProfile(request: NextRequest) {
         },
       },
     })
+
+    // Redis 캐시 무효화 - 사용자 정보가 변경되었으므로 캐시 삭제
+    await redisCache.delPattern(`api:cache:user:me:*userId*${session.user.id}*`)
+    await redisCache.delPattern(
+      `api:cache:user:posts:*userId*${session.user.id}*`
+    )
 
     return updatedResponse(
       {

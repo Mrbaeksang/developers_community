@@ -23,6 +23,7 @@ import {
   getPaginationParams,
   getPaginationSkipTake,
 } from '@/lib/db/query-helpers'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -98,56 +99,79 @@ export async function GET(
     // 정렬 옵션
     const orderBy = getPostOrderBy(sort)
 
-    // 게시글 조회
-    const { skip, take } = getPaginationSkipTake({ page, limit })
-    const [posts, total] = await Promise.all([
-      prisma.communityPost.findMany({
-        where,
-        include: {
-          author: {
-            select: { id: true, name: true, email: true, image: true },
-          },
-          category: true,
-          _count: {
-            select: { comments: true, likes: true },
-          },
-          likes: session?.user?.id
-            ? {
-                where: { userId: session.user.id },
-              }
-            : false,
-          bookmarks: session?.user?.id
-            ? {
-                where: { userId: session.user.id },
-              }
-            : false,
-        },
-        orderBy,
-        take,
-        skip,
-      }),
-      prisma.communityPost.count({ where }),
-    ])
-
-    // Redis에서 조회수 일괄 조회
-    const postIds = posts.map((p) => p.id)
-    const viewCountsMap = await getBatchViewCounts(postIds, 'community:post')
-
-    // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
-    const formattedPosts = posts.map((post) => {
-      const redisViews = viewCountsMap.get(post.id) || 0
-
-      return {
-        ...post,
-        viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
-        isLiked: post.likes && post.likes.length > 0,
-        isBookmarked: post.bookmarks && post.bookmarks.length > 0,
-        likes: undefined,
-        bookmarks: undefined,
-      }
+    // Redis 캐시 키 생성 - 로그인 상태에 따라 다른 캐시 사용
+    const cacheKey = generateCacheKey('community:posts', {
+      communityId: id,
+      page,
+      limit,
+      category,
+      search,
+      sort,
+      userId: session?.user?.id || 'anonymous',
     })
 
-    return paginatedResponse(formattedPosts, total, page, limit)
+    // Redis 캐싱 적용
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 게시글 조회
+        const { skip, take } = getPaginationSkipTake({ page, limit })
+        const [posts, total] = await Promise.all([
+          prisma.communityPost.findMany({
+            where,
+            include: {
+              author: {
+                select: { id: true, name: true, email: true, image: true },
+              },
+              category: true,
+              _count: {
+                select: { comments: true, likes: true },
+              },
+              likes: session?.user?.id
+                ? {
+                    where: { userId: session.user.id },
+                  }
+                : false,
+              bookmarks: session?.user?.id
+                ? {
+                    where: { userId: session.user.id },
+                  }
+                : false,
+            },
+            orderBy,
+            take,
+            skip,
+          }),
+          prisma.communityPost.count({ where }),
+        ])
+
+        // Redis에서 조회수 일괄 조회
+        const postIds = posts.map((p) => p.id)
+        const viewCountsMap = await getBatchViewCounts(
+          postIds,
+          'community:post'
+        )
+
+        // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
+        const formattedPosts = posts.map((post) => {
+          const redisViews = viewCountsMap.get(post.id) || 0
+
+          return {
+            ...post,
+            viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
+            isLiked: post.likes && post.likes.length > 0,
+            isBookmarked: post.bookmarks && post.bookmarks.length > 0,
+            likes: undefined,
+            bookmarks: undefined,
+          }
+        })
+
+        return { posts: formattedPosts, total }
+      },
+      REDIS_TTL.API_SHORT // 1분 캐싱 (커뮤니티는 더 자주 업데이트)
+    )
+
+    return paginatedResponse(cachedData.posts, cachedData.total, page, limit)
   } catch (error) {
     return handleError(error)
   }
@@ -270,6 +294,9 @@ async function createCommunityPost(
       where: { id },
       data: { postCount: { increment: 1 } },
     })
+
+    // Redis 캐시 무효화 - 해당 커뮤니티의 모든 게시글 목록 캐시 삭제
+    await redisCache.delPattern(`api:cache:community:posts:*communityId*${id}*`)
 
     return successResponse(post, '게시글이 작성되었습니다', 201)
   } catch (error) {

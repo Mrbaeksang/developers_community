@@ -14,6 +14,7 @@ import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -23,31 +24,28 @@ export async function GET(
   try {
     const { id } = await params
 
-    // 게시글 존재 확인
-    const post = await prisma.mainPost.findUnique({
-      where: { id },
-    })
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('main:post:comments', { postId: id })
 
-    if (!post) {
-      return errorResponse('게시글을 찾을 수 없습니다.', 404)
-    }
+    // Redis 캐싱 적용 - 댓글은 3분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 게시글 존재 확인
+        const post = await prisma.mainPost.findUnique({
+          where: { id },
+        })
 
-    // 댓글 목록 조회 (계층형 구조)
-    const comments = await prisma.mainComment.findMany({
-      where: {
-        postId: id,
-        parentId: null, // 최상위 댓글만 조회
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+        if (!post) {
+          return null
+        }
+
+        // 댓글 목록 조회 (계층형 구조)
+        const comments = await prisma.mainComment.findMany({
+          where: {
+            postId: id,
+            parentId: null, // 최상위 댓글만 조회
           },
-        },
-        replies: {
           include: {
             author: {
               select: {
@@ -57,32 +55,51 @@ export async function GET(
                 image: true,
               },
             },
+            replies: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+            },
           },
           orderBy: {
-            createdAt: 'asc',
+            createdAt: 'desc',
           },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        })
 
-    // 날짜 포맷팅 추가
-    const formattedComments = comments.map((comment) => ({
-      ...comment,
-      createdAt: comment.createdAt.toISOString(),
-      updatedAt: comment.updatedAt.toISOString(),
-      timeAgo: formatTimeAgo(comment.createdAt),
-      replies: comment.replies.map((reply) => ({
-        ...reply,
-        createdAt: reply.createdAt.toISOString(),
-        updatedAt: reply.updatedAt.toISOString(),
-        timeAgo: formatTimeAgo(reply.createdAt),
-      })),
-    }))
+        // 날짜 포맷팅 추가
+        const formattedComments = comments.map((comment) => ({
+          ...comment,
+          createdAt: comment.createdAt.toISOString(),
+          updatedAt: comment.updatedAt.toISOString(),
+          timeAgo: formatTimeAgo(comment.createdAt),
+          replies: comment.replies.map((reply) => ({
+            ...reply,
+            createdAt: reply.createdAt.toISOString(),
+            updatedAt: reply.updatedAt.toISOString(),
+            timeAgo: formatTimeAgo(reply.createdAt),
+          })),
+        }))
 
-    return successResponse({ comments: formattedComments })
+        return { comments: formattedComments }
+      },
+      REDIS_TTL.API_SHORT * 3 // 3분 캐싱
+    )
+
+    if (!cachedData) {
+      return errorResponse('게시글을 찾을 수 없습니다.', 404)
+    }
+
+    return successResponse(cachedData)
   } catch (error) {
     return handleError(error)
   }
@@ -202,6 +219,9 @@ async function createComment(
         )
       }
     }
+
+    // Redis 캐시 무효화 - 댓글이 추가되었으므로 캐시 삭제
+    await redisCache.del(generateCacheKey('main:post:comments', { postId: id }))
 
     // 날짜 포맷팅 추가
     const formattedComment = {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { successResponse } from '@/lib/api-response'
 import { handleError, throwNotFoundError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // 사용자 프로필 조회 - GET /api/users/[id]
 export async function GET(
@@ -13,63 +14,79 @@ export async function GET(
     const resolvedParams = await params
     const userId = resolvedParams.id
 
-    // 사용자 정보 조회
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        image: true,
-        bio: true,
-        globalRole: true,
-        showEmail: true,
-        createdAt: true,
-        isActive: true,
-        isBanned: true,
-        _count: {
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('user:profile', { userId })
+
+    // Redis 캐싱 적용 - 사용자 프로필은 10분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 사용자 정보 조회
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
           select: {
-            mainPosts: {
-              where: {
-                status: 'PUBLISHED',
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            image: true,
+            bio: true,
+            globalRole: true,
+            showEmail: true,
+            createdAt: true,
+            isActive: true,
+            isBanned: true,
+            _count: {
+              select: {
+                mainPosts: {
+                  where: {
+                    status: 'PUBLISHED',
+                  },
+                },
+                mainComments: true,
+                mainLikes: true,
               },
             },
-            mainComments: true,
-            mainLikes: true,
           },
-        },
-      },
-    })
+        })
 
-    if (!user) {
+        if (!user) {
+          return null
+        }
+
+        // 비활성화되거나 밴된 사용자 처리
+        if (!user.isActive || user.isBanned) {
+          return null
+        }
+
+        return {
+          user: {
+            id: user.id,
+            name: user.name || 'Unknown',
+            username: user.username,
+            image: user.image || undefined,
+            bio: user.bio,
+            role: user.globalRole,
+            joinedAt: user.createdAt.toISOString(),
+            joinedTimeAgo: formatTimeAgo(user.createdAt),
+            // 이메일은 showEmail 설정에 따라 공개
+            ...(user.showEmail && { email: user.email }),
+            stats: {
+              postCount: user._count.mainPosts,
+              commentCount: user._count.mainComments,
+              likeCount: user._count.mainLikes,
+            },
+          },
+        }
+      },
+      REDIS_TTL.API_MEDIUM * 2 // 10분 캐싱
+    )
+
+    if (!cachedData) {
       throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
-    // 비활성화되거나 밴된 사용자 처리
-    if (!user.isActive || user.isBanned) {
-      throwNotFoundError('사용자를 찾을 수 없습니다.')
-    }
-
-    return successResponse({
-      user: {
-        id: user.id,
-        name: user.name || 'Unknown',
-        username: user.username,
-        image: user.image || undefined,
-        bio: user.bio,
-        role: user.globalRole,
-        joinedAt: user.createdAt.toISOString(),
-        joinedTimeAgo: formatTimeAgo(user.createdAt),
-        // 이메일은 showEmail 설정에 따라 공개
-        ...(user.showEmail && { email: user.email }),
-        stats: {
-          postCount: user._count.mainPosts,
-          commentCount: user._count.mainComments,
-          likeCount: user._count.mainLikes,
-        },
-      },
-    })
+    return successResponse(cachedData)
   } catch (error) {
     return handleError(error)
   }

@@ -12,6 +12,7 @@ import {
   throwNotFoundError,
   throwAuthorizationError,
 } from '@/lib/error-handler'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // GET: 커뮤니티 멤버 목록 조회
 export async function GET(
@@ -46,100 +47,131 @@ export async function GET(
       }
     }
 
-    // 멤버 필터 조건
-    const where: {
-      communityId: string
-      status: MembershipStatus
-      role?: CommunityRole
-      user?: {
-        OR: Array<{
-          name?: { contains: string; mode: 'insensitive' }
-          username?: { contains: string; mode: 'insensitive' }
-        }>
-      }
-    } = {
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('community:members', {
       communityId: id,
-      status:
-        status === 'PENDING'
-          ? MembershipStatus.PENDING
-          : MembershipStatus.ACTIVE,
-    }
+      page,
+      limit,
+      role: role || 'all',
+      search: search || 'none',
+      status,
+      userId: session?.user?.id || 'anonymous',
+    })
 
-    if (role && Object.values(CommunityRole).includes(role as CommunityRole)) {
-      where.role = role as CommunityRole
-    }
+    // Redis 캐싱 적용 - 멤버 목록은 3분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 멤버 필터 조건
+        const where: {
+          communityId: string
+          status: MembershipStatus
+          role?: CommunityRole
+          user?: {
+            OR: Array<{
+              name?: { contains: string; mode: 'insensitive' }
+              username?: { contains: string; mode: 'insensitive' }
+            }>
+          }
+        } = {
+          communityId: id,
+          status:
+            status === 'PENDING'
+              ? MembershipStatus.PENDING
+              : MembershipStatus.ACTIVE,
+        }
 
-    if (search) {
-      where.user = {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { username: { contains: search, mode: 'insensitive' } },
-        ],
-      }
-    }
+        if (
+          role &&
+          Object.values(CommunityRole).includes(role as CommunityRole)
+        ) {
+          where.role = role as CommunityRole
+        }
 
-    // 멤버 조회
-    const [members, total] = await Promise.all([
-      prisma.communityMember.findMany({
-        where,
-        orderBy: [
-          { role: 'asc' }, // OWNER -> ADMIN -> MODERATOR -> MEMBER 순
-          { joinedAt: 'asc' },
-        ],
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              email: true,
-              image: true,
-              bio: true,
-              _count: {
+        if (search) {
+          where.user = {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { username: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        }
+
+        // 멤버 조회
+        const [members, total] = await Promise.all([
+          prisma.communityMember.findMany({
+            where,
+            orderBy: [
+              { role: 'asc' }, // OWNER -> ADMIN -> MODERATOR -> MEMBER 순
+              { joinedAt: 'asc' },
+            ],
+            skip: (page - 1) * limit,
+            take: limit,
+            include: {
+              user: {
                 select: {
-                  communityPosts: {
-                    where: {
-                      communityId: id,
-                    },
-                  },
-                  communityComments: {
-                    where: {
-                      post: {
-                        communityId: id,
+                  id: true,
+                  name: true,
+                  username: true,
+                  email: true,
+                  image: true,
+                  bio: true,
+                  _count: {
+                    select: {
+                      communityPosts: {
+                        where: {
+                          communityId: id,
+                        },
+                      },
+                      communityComments: {
+                        where: {
+                          post: {
+                            communityId: id,
+                          },
+                        },
                       },
                     },
                   },
                 },
               },
             },
+          }),
+          prisma.communityMember.count({ where }),
+        ])
+
+        // 멤버 정보 포맷팅
+        const formattedMembers = members.map((member) => ({
+          id: member.id,
+          userId: member.userId,
+          role: member.role,
+          status: member.status,
+          joinedAt: member.joinedAt.toISOString(),
+          user: {
+            id: member.user.id,
+            name: member.user.name || undefined,
+            username: member.user.username || undefined,
+            email: member.user.email,
+            image: member.user.image || undefined,
+            bio: member.user.bio || undefined,
+            postCount: member.user._count.communityPosts,
+            commentCount: member.user._count.communityComments,
           },
-        },
-      }),
-      prisma.communityMember.count({ where }),
-    ])
+        }))
 
-    // 멤버 정보 포맷팅
-    const formattedMembers = members.map((member) => ({
-      id: member.id,
-      userId: member.userId,
-      role: member.role,
-      status: member.status,
-      joinedAt: member.joinedAt,
-      user: {
-        id: member.user.id,
-        name: member.user.name || undefined,
-        username: member.user.username || undefined,
-        email: member.user.email,
-        image: member.user.image || undefined,
-        bio: member.user.bio || undefined,
-        postCount: member.user._count.communityPosts,
-        commentCount: member.user._count.communityComments,
+        return {
+          items: formattedMembers,
+          totalCount: total,
+        }
       },
-    }))
+      REDIS_TTL.API_SHORT * 3 // 3분 캐싱
+    )
 
-    return paginatedResponse(formattedMembers, page, limit, total)
+    return paginatedResponse(
+      cachedData.items,
+      page,
+      limit,
+      cachedData.totalCount
+    )
   } catch (error) {
     return handleError(error)
   }

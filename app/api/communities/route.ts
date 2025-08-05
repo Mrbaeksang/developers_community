@@ -16,6 +16,7 @@ import {
 import { handleError } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { getAvatarFromName } from '@/lib/community-utils'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -31,63 +32,88 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit
 
-    // 검색 조건 구성
-    const where: {
-      OR?: Array<{
-        name?: { contains: string; mode: 'insensitive' }
-        description?: { contains: string; mode: 'insensitive' }
-      }>
-      visibility?: CommunityVisibility
-    } = {}
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('communities:list', {
+      page,
+      limit,
+      search: search || 'all',
+      visibility: visibility || 'all',
+    })
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ]
-    }
+    // Redis 캐싱 적용 - 커뮤니티 목록은 5분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 검색 조건 구성
+        const where: {
+          OR?: Array<{
+            name?: { contains: string; mode: 'insensitive' }
+            description?: { contains: string; mode: 'insensitive' }
+          }>
+          visibility?: CommunityVisibility
+        } = {}
 
-    if (
-      visibility &&
-      Object.values(CommunityVisibility).includes(
-        visibility as CommunityVisibility
-      )
-    ) {
-      where.visibility = visibility as CommunityVisibility
-    }
+        if (search) {
+          where.OR = [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ]
+        }
 
-    // 커뮤니티 목록 조회
-    const [communities, total] = await Promise.all([
-      prisma.community.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
-        include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          _count: {
-            select: {
-              members: {
-                where: {
-                  status: MembershipStatus.ACTIVE,
+        if (
+          visibility &&
+          Object.values(CommunityVisibility).includes(
+            visibility as CommunityVisibility
+          )
+        ) {
+          where.visibility = visibility as CommunityVisibility
+        }
+
+        // 커뮤니티 목록 조회
+        const [communities, total] = await Promise.all([
+          prisma.community.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [{ memberCount: 'desc' }, { createdAt: 'desc' }],
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
                 },
               },
-              posts: true,
+              _count: {
+                select: {
+                  members: {
+                    where: {
+                      status: MembershipStatus.ACTIVE,
+                    },
+                  },
+                  posts: true,
+                },
+              },
             },
-          },
-        },
-      }),
-      prisma.community.count({ where }),
-    ])
+          }),
+          prisma.community.count({ where }),
+        ])
 
-    return paginatedResponse(communities, page, limit, total)
+        return {
+          items: communities,
+          totalCount: total,
+        }
+      },
+      REDIS_TTL.API_MEDIUM // 5분 캐싱
+    )
+
+    return paginatedResponse(
+      cachedData.items,
+      page,
+      limit,
+      cachedData.totalCount
+    )
   } catch (error) {
     return handleError(error)
   }
@@ -234,6 +260,10 @@ async function createCommunity(req: NextRequest) {
       where: { id: community.id },
       data: { memberCount: 1 },
     })
+
+    // Redis 캐시 무효화 - 커뮤니티 목록 캐시 삭제
+    await redisCache.delPattern('api:cache:communities:*')
+    await redisCache.delPattern('api:cache:community:active:*')
 
     return createdResponse(community, '커뮤니티가 생성되었습니다.')
   } catch (error) {

@@ -21,6 +21,7 @@ import {
 } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withCSRFProtection } from '@/lib/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -31,82 +32,99 @@ export async function GET(
     const { id } = await params
     const session = await auth()
 
-    // 기본적으로 PUBLISHED만 조회 가능
-    let whereClause: Prisma.MainPostWhereInput = {
+    // Redis 캐시 키 생성 - 사용자별로 다른 캐시 사용
+    const cacheKey = generateCacheKey('main:post:detail', {
       id,
-      status: 'PUBLISHED',
-    }
-
-    // 로그인한 경우 추가 권한 체크
-    if (session?.user?.id) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { globalRole: true },
-      })
-
-      // ADMIN/MANAGER는 모든 게시글 조회 가능
-      if (user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER') {
-        whereClause = { id }
-      } else {
-        // 일반 사용자는 자신의 게시글은 상태와 관계없이 조회 가능
-        whereClause = {
-          id,
-          OR: [{ status: 'PUBLISHED' }, { authorId: session.user.id }],
-        }
-      }
-    }
-
-    const post = await prisma.mainPost.findFirst({
-      where: whereClause,
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-          },
-        },
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-            likes: true,
-            bookmarks: true,
-          },
-        },
-      },
+      userId: session?.user?.id || 'anonymous',
     })
 
-    if (!post) {
+    // Redis 캐싱 적용 - 개별 게시글은 10분 캐싱
+    const cachedPost = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 기본적으로 PUBLISHED만 조회 가능
+        let whereClause: Prisma.MainPostWhereInput = {
+          id,
+          status: 'PUBLISHED',
+        }
+
+        // 로그인한 경우 추가 권한 체크
+        if (session?.user?.id) {
+          const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { globalRole: true },
+          })
+
+          // ADMIN/MANAGER는 모든 게시글 조회 가능
+          if (user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER') {
+            whereClause = { id }
+          } else {
+            // 일반 사용자는 자신의 게시글은 상태와 관계없이 조회 가능
+            whereClause = {
+              id,
+              OR: [{ status: 'PUBLISHED' }, { authorId: session.user.id }],
+            }
+          }
+        }
+
+        const post = await prisma.mainPost.findFirst({
+          where: whereClause,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+              },
+            },
+            tags: {
+              include: {
+                tag: true,
+              },
+            },
+            _count: {
+              select: {
+                comments: true,
+                likes: true,
+                bookmarks: true,
+              },
+            },
+          },
+        })
+
+        if (!post) {
+          return null
+        }
+
+        // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
+
+        // 태그 형식 변환 및 마크다운 변환
+        return {
+          ...post,
+          content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
+          tags: post.tags.map((postTag) => postTag.tag),
+          status: post.status, // 상태 정보 포함
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString(),
+          timeAgo: formatTimeAgo(post.createdAt),
+        }
+      },
+      REDIS_TTL.API_MEDIUM * 2 // 10분 캐싱
+    )
+
+    if (!cachedPost) {
       return errorResponse('Post not found', 404)
     }
 
-    // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
-
-    // 태그 형식 변환 및 마크다운 변환
-    const formattedPost = {
-      ...post,
-      content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
-      tags: post.tags.map((postTag) => postTag.tag),
-      status: post.status, // 상태 정보 포함
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
-      timeAgo: formatTimeAgo(post.createdAt),
-    }
-
-    return successResponse(formattedPost)
+    return successResponse(cachedPost)
   } catch (error) {
     return handleError(error)
   }
@@ -273,6 +291,10 @@ async function updatePost(
       }
     })
 
+    // Redis 캐시 무효화 - 해당 게시글 및 목록 캐시 삭제
+    await redisCache.delPattern(`api:cache:main:post:detail:*id*${id}*`)
+    await redisCache.delPattern('api:cache:main:posts:*')
+
     return updatedResponse(updatedPost, '게시글이 수정되었습니다.')
   } catch (error) {
     return handleError(error)
@@ -333,6 +355,10 @@ async function deletePost(
     await prisma.mainPost.delete({
       where: { id },
     })
+
+    // Redis 캐시 무효화 - 해당 게시글 및 목록 캐시 삭제
+    await redisCache.delPattern(`api:cache:main:post:detail:*id*${id}*`)
+    await redisCache.delPattern('api:cache:main:posts:*')
 
     return deletedResponse('게시글이 삭제되었습니다.')
   } catch (error) {

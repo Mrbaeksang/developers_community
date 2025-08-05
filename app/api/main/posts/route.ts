@@ -21,6 +21,7 @@ import {
   invalidateCache,
   CACHE_TAGS,
 } from '@/lib/db/query-cache'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,26 +62,45 @@ export async function GET(request: NextRequest) {
     // 정렬 조건
     const orderBy = getPostOrderBy(sort)
 
-    // 캐시된 쿼리 사용
-    const { skip, take } = getPaginationSkipTake({ page, limit })
-    const { posts, total } = await getCachedMainPosts({
-      where,
-      orderBy,
-      skip,
-      take,
-      includeViewCounts: true,
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('main:posts', {
+      page,
+      limit,
+      type,
+      category,
+      categoryId,
+      sort,
     })
 
-    // 마크다운을 HTML로 변환 (조회수는 이미 포함됨)
-    const formattedPosts = posts.map((post) => ({
-      ...post,
-      content: markdownToHtml(post.content),
-      createdAt: new Date(post.createdAt).toISOString(),
-      updatedAt: new Date(post.updatedAt).toISOString(),
-      timeAgo: formatTimeAgo(new Date(post.createdAt)),
-    }))
+    // Redis 캐싱 적용
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        // 캐시된 쿼리 사용
+        const { skip, take } = getPaginationSkipTake({ page, limit })
+        const { posts, total } = await getCachedMainPosts({
+          where,
+          orderBy,
+          skip,
+          take,
+          includeViewCounts: true,
+        })
 
-    return paginatedResponse(formattedPosts, page, limit, total)
+        // 마크다운을 HTML로 변환 (조회수는 이미 포함됨)
+        const formattedPosts = posts.map((post) => ({
+          ...post,
+          content: markdownToHtml(post.content),
+          createdAt: new Date(post.createdAt).toISOString(),
+          updatedAt: new Date(post.updatedAt).toISOString(),
+          timeAgo: formatTimeAgo(new Date(post.createdAt)),
+        }))
+
+        return { posts: formattedPosts, total }
+      },
+      REDIS_TTL.API_MEDIUM // 5분 캐싱
+    )
+
+    return paginatedResponse(cachedData.posts, page, limit, cachedData.total)
   } catch (error) {
     return handleError(error)
   }
@@ -273,6 +293,9 @@ async function createPost(request: NextRequest) {
 
     // 캐시 무효화
     await invalidateCache([CACHE_TAGS.mainPosts, CACHE_TAGS.posts])
+
+    // Redis 캐시 무효화 - 관련된 모든 메인 포스트 목록 캐시 삭제
+    await redisCache.delPattern('api:cache:main:posts:*')
 
     return createdResponse(post, '게시글이 생성되었습니다.')
   } catch (error) {
