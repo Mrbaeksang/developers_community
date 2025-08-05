@@ -12,7 +12,6 @@ export const mainPostSelect = {
     slug: true,
     content: true, // 검색 결과 표시용
     excerpt: true,
-    thumbnail: true,
     createdAt: true,
     isPinned: true,
     viewCount: true,
@@ -47,8 +46,6 @@ export const mainPostSelect = {
     slug: true,
     content: true,
     excerpt: true,
-    thumbnail: true,
-    thumbnailBlur: true,
     status: true,
     isPinned: true,
     createdAt: true,

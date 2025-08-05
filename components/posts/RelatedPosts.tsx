@@ -38,7 +38,11 @@ const fetchRelatedPosts = async (postId: string): Promise<RelatedPost[]> => {
   if (!res.ok) throw new Error('Failed to fetch related posts')
   const data = await res.json()
   // 새로운 응답 형식 처리: { success: true, data: { posts } }
-  return data.success && data.data ? data.data.posts : data.posts || []
+  if (data.success && data.data) {
+    return data.data.posts || []
+  }
+  // 이전 형식 호환성
+  return data.posts || []
 }
 
 export default function RelatedPosts({ postId }: RelatedPostsProps) {

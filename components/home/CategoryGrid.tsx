@@ -21,8 +21,8 @@ const fetchCategories = async (): Promise<Category[]> => {
   if (!res.ok) throw new Error('Failed to fetch categories')
 
   const result = await res.json()
-  // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-  return result.data || result
+  // successResponse 형식으로 오는 경우 items 필드에서 실제 데이터 추출
+  return result.items || result.data || result
 }
 
 export function CategoryGrid() {
@@ -75,9 +75,12 @@ export function CategoryGrid() {
     return name.toUpperCase().slice(0, 3)
   }
 
+  // categories가 배열인지 확인
+  const categoryList = Array.isArray(categories) ? categories : []
+
   return (
     <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-      {categories.map((category) => {
+      {categoryList.map((category) => {
         return (
           <Link
             key={category.slug}

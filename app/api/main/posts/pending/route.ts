@@ -64,8 +64,6 @@ export async function GET(request: NextRequest) {
       slug: post.slug,
       content: post.content,
       excerpt: post.excerpt,
-      thumbnail: post.thumbnail,
-      thumbnailBlur: post.thumbnailBlur,
       createdAt: post.createdAt, // Date 객체 유지
       timeAgo: formatTimeAgo(post.createdAt),
       author: {

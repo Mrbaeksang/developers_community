@@ -4,9 +4,9 @@
 ### 📊 완성도
 | 항목 | 완료율 | 상태 | 미완성 | 완성 기준 |
 |------|--------|------|--------|----------|
-| **API** | 100% (83/83) | ✅ | - | 모든 라우트 구현 + 인증/권한 + Redis 캐싱 + Zod 검증 |
+| **API** | 100% (87/87) | ✅ | - | 모든 라우트 구현 + 인증/권한 + Redis 캐싱 + Zod 검증 |
 | **페이지** | 100% (22/22) | ✅ | - | 모든 페이지 파일 존재 + 기능 동작 + 반응형 디자인 |
-| **컴포넌트** | 85.7% (72/84) | ⏳ | 12개 컴포넌트 | 모든 컴포넌트 파일 존재 + 정상 렌더링 |
+| **컴포넌트** | 86.9% (73/84) | ⏳ | 11개 컴포넌트 | 모든 컴포넌트 파일 존재 + 정상 렌더링 |
 
 ### ⚙️ 기술 스택
 ```markdown
@@ -23,6 +23,8 @@
 - [x] CSRF 보안 강화 (Double Submit Cookie)
 - [x] 모든 API Zod 유효성 검사 적용
 - [x] 통계 API 2개 추가 구현 (user-activity, post-trends)
+- [x] 실시간 모니터링 기능 추가 (에러 추적, API 트래픽, 페이지뷰)
+- [x] 관리자 대시보드 실시간 업데이트 기능 구현
 ```
 
 ---
@@ -67,18 +69,22 @@ B --> H[admin]
 B --> I[communities]
 C --> J[ui]
 C --> K[shared]
-C --> L[feature]
-D --> M[auth-utils.ts]
-D --> N[redis.ts]
+C --> L[admin]
+C --> M[chat]
+C --> N[communities]
+C --> O[posts]
+C --> P[*.tsx files]
+D --> Q[auth-utils.ts]
+D --> R[redis.ts]
 ```
 
-### 📊 API 라우트 전체 현황 (83개)
+### 📊 API 라우트 전체 현황 (87개)
 #### 인증 (8 routes)
 | Method | Path | 파일 경로 | 상태 |
 |--------|------|-----------|------|
 | GET | /api/auth/* | app/api/auth/[...nextauth]/route.ts | ✅ |
 
-#### 관리자 (15 routes)
+#### 관리자 (17 routes)
 | Method | Path | 파일 경로 | 상태 |
 |--------|------|-----------|------|
 | GET | /api/admin/categories | app/api/admin/categories/route.ts | ✅ |
@@ -86,6 +92,8 @@ D --> N[redis.ts]
 | GET | /api/admin/communities | app/api/admin/communities/route.ts | ✅ |
 | POST | /api/admin/communities/[communityId] | app/api/admin/communities/[communityId]/route.ts | ✅ |
 | GET | /api/admin/data-viewer/[table] | app/api/admin/data-viewer/[table]/route.ts | ✅ |
+| GET | /api/admin/monitoring/errors | app/api/admin/monitoring/errors/route.ts | ✅ |
+| GET | /api/admin/monitoring/traffic | app/api/admin/monitoring/traffic/route.ts | ✅ |
 | GET | /api/admin/posts/community | app/api/admin/posts/community/route.ts | ✅ |
 | PUT | /api/admin/posts/community/[id] | app/api/admin/posts/community/[id]/route.ts | ✅ |
 | GET | /api/admin/posts/main | app/api/admin/posts/main/route.ts | ✅ |
@@ -136,13 +144,14 @@ D --> N[redis.ts]
 |--------|------|-----------|------|
 | GET | /api/search | app/api/search/route.ts | ✅ |
 
-#### 통계 (2 routes)
+#### 통계 & 모니터링 (3 routes)
 | Method | Path | 파일 경로 | 상태 |
 |--------|------|-----------|------|
 | GET | /api/stats/user-activity | app/api/stats/user-activity/route.ts | ✅ |
 | GET | /api/stats/post-trends | app/api/stats/post-trends/route.ts | ✅ |
+| POST | /api/track/page-view | app/api/track/page-view/route.ts | ✅ |
 
-> 전체 83개 API 중 83개 구현 완료 (✅)
+> 전체 87개 API 중 87개 구현 완료 (✅)
 
 ---
 
@@ -227,12 +236,17 @@ npm run lint
 | `LoadingSpinner` | `components/shared/LoadingSpinner.tsx` | 로딩 스피너 | 🟢 Low |
 | `EmptyState` | `components/shared/EmptyState.tsx` | 빈 상태 표시 | 🟢 Low |
 
+### ⚠️ 삭제된 컴포넌트
+| 컴포넌트 | 경로 | 삭제 사유 |
+|----------|------|----------|
+| `TestCenterContent` | `components/admin/TestCenterContent.tsx` | 사용하지 않는 테스트 컴포넌트 |
+
 ---
 
 ## 6. UI 컴포넌트 가이드
 ### 🧩 컴포넌트 전체 목록 (84개)
 
-#### UI 라이브러리 컴포넌트 (18개) ✅
+#### UI 라이브러리 컴포넌트 (19개) ✅
 | 컴포넌트 | 경로 | 설명 | 상태 |
 |----------|------|------|---------|
 | `Button` | `components/ui/button.tsx` | 기본 버튼 컴포넌트 | ✅ |
@@ -253,12 +267,15 @@ npm run lint
 | `AlertDialog` | `components/ui/alert-dialog.tsx` | 경고 다이얼로그 | ✅ |
 | `Tabs` | `components/ui/tabs.tsx` | 탭 컴포넌트 | ✅ |
 | `Separator` | `components/ui/separator.tsx` | 구분선 | ✅ |
+| `Progress` | `components/ui/progress.tsx` | 진행률 표시 | ✅ |
 
-#### 커스텀 컴포넌트 (66개 중 54개 구현) ❌ 12개 미구현
+#### 커스텀 컴포넌트 (67개 중 56개 구현) ❌ 11개 미구현
 | 컴포넌트 | 경로 | 기능 | 상태 |
 |----------|------|------|---------|
-| `VisitorTracker` | `components/VisitorTracker.tsx` | 방문자 추적 UI | ✅ |
+| `VisitorTracker` | `components/shared/VisitorTracker.tsx` | 방문자 추적 UI | ✅ |
+| `PageViewTracker` | `components/shared/PageViewTracker.tsx` | 페이지뷰 추적 | ✅ |
 | `DataTableViewer` | `components/admin/DataTableViewer.tsx` | 관리자 데이터 표시 | ✅ |
+| `RealtimeDashboard` | `components/admin/RealtimeDashboard.tsx` | 실시간 대시보드 | ✅ |
 | `FloatingChatButton` | `components/chat/FloatingChatButton.tsx` | 채팅 시작 버튼 | ✅ |
 | `FloatingChatWindow` | `components/chat/FloatingChatWindow.tsx` | 채팅 창 컴포넌트 | ✅ |
 | `CommunityPostEditor` | `components/communities/CommunityPostEditor.tsx` | 커뮤니티 게시글 편집기 | ✅ |
@@ -422,7 +439,9 @@ npm run lint
 > **Note**: 문서 버전 3.2 - 2025.08.04 업데이트
 > - 각 섹션별 완성 기준 추가
 > - 컴포넌트별 구현 상태 표시
-> - 미구현 컴포넌트 14개 상세 목록화
+> - 미구현 컴포넌트 11개 상세 목록화
 > - 우선순위 기반 구현 가이드 제공
 > - 테스트 및 성능 최적화 현황 추가
 > - 개발 워크플로우 개선 사항 추가
+> - 실시간 모니터링 기능 추가 (API 4개, 컴포넌트 2개)
+> - TestCenterContent 컴포넌트 삭제

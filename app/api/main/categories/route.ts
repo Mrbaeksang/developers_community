@@ -8,8 +8,12 @@ import {
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { trackApiCall } from '@/lib/monitoring'
 
 export async function GET(request: Request) {
+  const start = Date.now()
+  const endpoint = '/api/main/categories'
+
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -93,6 +97,10 @@ export async function GET(request: Request) {
       REDIS_TTL.API_LONG // 1시간 캐싱
     )
 
+    // API 호출 추적
+    const responseTime = Date.now() - start
+    await trackApiCall(endpoint, responseTime)
+
     return successResponse({
       items: cachedCategories.categories,
       pagination: {
@@ -102,6 +110,10 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
+    // API 호출 추적 (실패한 경우도)
+    const responseTime = Date.now() - start
+    await trackApiCall(endpoint, responseTime)
+
     return handleError(error)
   }
 }

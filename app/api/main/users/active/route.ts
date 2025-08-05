@@ -50,24 +50,24 @@ export async function GET(request: NextRequest) {
               u.name,
               u.email,
               u.image,
-              u.role,
+              u."globalRole" as role,
               COUNT(DISTINCT mp.id) as post_count,
               COUNT(DISTINCT mc.id) as comment_count,
               COUNT(DISTINCT ml.id) as like_count,
               -- 활동 점수: 게시글 3점, 댓글 2점, 좋아요 1점
               (COUNT(DISTINCT mp.id) * 3 + COUNT(DISTINCT mc.id) * 2 + COUNT(DISTINCT ml.id) * 1) as activity_score
             FROM "User" u
-            LEFT JOIN "MainPost" mp ON u.id = mp.author_id 
-              AND mp.created_at >= ${periodAgo}
+            LEFT JOIN "MainPost" mp ON u.id = mp."authorId" 
+              AND mp."createdAt" >= ${periodAgo}
               AND mp.status = 'PUBLISHED'
-            LEFT JOIN "MainComment" mc ON u.id = mc.author_id 
-              AND mc.created_at >= ${periodAgo}
-            LEFT JOIN "MainLike" ml ON u.id = ml.user_id 
-              AND ml.created_at >= ${periodAgo}
-            WHERE u.is_active = true 
-              AND u.is_banned = false
+            LEFT JOIN "MainComment" mc ON u.id = mc."authorId" 
+              AND mc."createdAt" >= ${periodAgo}
+            LEFT JOIN "MainLike" ml ON u.id = ml."userId" 
+              AND ml."createdAt" >= ${periodAgo}
+            WHERE u."isActive" = true 
+              AND u."isBanned" = false
               ${cursor ? Prisma.sql`AND u.id < ${cursor}` : Prisma.empty}
-            GROUP BY u.id, u.username, u.name, u.email, u.image, u.role
+            GROUP BY u.id, u.username, u.name, u.email, u.image, u."globalRole"
             HAVING COUNT(DISTINCT mp.id) > 0 
                OR COUNT(DISTINCT mc.id) > 0 
                OR COUNT(DISTINCT ml.id) > 0

@@ -6,7 +6,6 @@ import { generateCSRFToken } from '@/lib/csrf'
 // 추적하지 않을 경로
 const excludedPaths = [
   '/_next',
-  '/api',
   '/favicon.ico',
   '/.well-known',
   '/robots.txt',
@@ -26,11 +25,13 @@ const staticExtensions = [
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
+  const isApiRoute = pathname.startsWith('/api/')
 
-  // 제외 경로 체크
+  // 제외 경로 체크 (API 경로는 제외하지 않음)
   if (
-    excludedPaths.some((path) => pathname.startsWith(path)) ||
-    staticExtensions.some((ext) => pathname.endsWith(ext))
+    !isApiRoute &&
+    (excludedPaths.some((path) => pathname.startsWith(path)) ||
+      staticExtensions.some((ext) => pathname.endsWith(ext)))
   ) {
     return NextResponse.next()
   }
@@ -113,11 +114,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * Note: API routes are now included for monitoring
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

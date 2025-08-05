@@ -4,10 +4,7 @@ import { redis } from '@/lib/redis'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import {
-  getCursorCondition,
-  formatCursorResponse,
-} from '@/lib/pagination-utils'
+import { getCursorCondition } from '@/lib/pagination-utils'
 import { mainPostSelect } from '@/lib/prisma-select-patterns'
 
 // GET /api/main/posts/[id]/related - 관련 게시글 조회
@@ -142,7 +139,14 @@ export async function GET(
             return postWithoutScore
           }) // score, likeCount, commentCount 필드 제거
 
-        return formatCursorResponse(sortedPosts, limit)
+        return {
+          posts: sortedPosts.slice(0, limit),
+          nextCursor:
+            hasMore && sortedPosts.length > 0
+              ? sortedPosts[sortedPosts.length - 1].createdAt.toISOString()
+              : null,
+          hasMore,
+        }
       },
       REDIS_TTL.API_LONG / 2 // 30분 캐싱
     )

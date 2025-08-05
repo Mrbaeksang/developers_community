@@ -10,7 +10,8 @@ import { Toaster } from '@/components/ui/sonner'
 import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { VisitorTracker } from '@/components/VisitorTracker'
+import { VisitorTracker } from '@/components/shared/VisitorTracker'
+import { PageViewTracker } from '@/components/shared/PageViewTracker'
 import { AsyncErrorBoundary } from '@/components/error-boundary'
 
 const notoSansKr = Noto_Sans_KR({
@@ -48,6 +49,7 @@ export default function RootLayout({
                   <Toaster richColors position="bottom-right" />
                   <ChatProvider />
                   <VisitorTracker />
+                  <PageViewTracker />
                 </KakaoProvider>
               </NotificationProvider>
             </SessionProvider>
