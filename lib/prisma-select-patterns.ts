@@ -30,6 +30,17 @@ export const mainPostSelect = {
         slug: true,
       },
     },
+    tags: {
+      select: {
+        tag: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    },
     _count: {
       select: {
         comments: true,

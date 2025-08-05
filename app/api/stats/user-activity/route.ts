@@ -30,13 +30,13 @@ export async function GET() {
         DATE(created_at) as date,
         COUNT(DISTINCT user_id) as active_users
       FROM (
-        SELECT user_id, created_at FROM "MainPost" WHERE created_at >= ${last30Days}
+        SELECT user_id, created_at FROM main_posts WHERE created_at >= ${last30Days}
         UNION ALL
-        SELECT user_id, created_at FROM "MainComment" WHERE created_at >= ${last30Days}
+        SELECT user_id, created_at FROM main_comments WHERE created_at >= ${last30Days}
         UNION ALL
-        SELECT user_id, created_at FROM "CommunityPost" WHERE created_at >= ${last30Days}
+        SELECT user_id, created_at FROM community_posts WHERE created_at >= ${last30Days}
         UNION ALL
-        SELECT user_id, created_at FROM "CommunityComment" WHERE created_at >= ${last30Days}
+        SELECT user_id, created_at FROM community_comments WHERE created_at >= ${last30Days}
       ) as activities
       GROUP BY DATE(created_at)
       ORDER BY date DESC
@@ -74,13 +74,13 @@ export async function GET() {
           user_id,
           MIN(created_at) as first_activity
         FROM (
-          SELECT user_id, created_at FROM "MainPost"
+          SELECT user_id, created_at FROM main_posts
           UNION ALL
-          SELECT user_id, created_at FROM "MainComment"
+          SELECT user_id, created_at FROM main_comments
           UNION ALL
-          SELECT user_id, created_at FROM "CommunityPost"
+          SELECT user_id, created_at FROM community_posts
           UNION ALL
-          SELECT user_id, created_at FROM "CommunityComment"
+          SELECT user_id, created_at FROM community_comments
         ) as all_activities
         GROUP BY user_id
       )
@@ -93,13 +93,13 @@ export async function GET() {
       FROM user_first_activity
       WHERE user_id IN (
         SELECT DISTINCT user_id FROM (
-          SELECT user_id FROM "MainPost" WHERE created_at >= ${last7Days}
+          SELECT user_id FROM main_posts WHERE created_at >= ${last7Days}
           UNION ALL
-          SELECT user_id FROM "MainComment" WHERE created_at >= ${last7Days}
+          SELECT user_id FROM main_comments WHERE created_at >= ${last7Days}
           UNION ALL
-          SELECT user_id FROM "CommunityPost" WHERE created_at >= ${last7Days}
+          SELECT user_id FROM community_posts WHERE created_at >= ${last7Days}
           UNION ALL
-          SELECT user_id FROM "CommunityComment" WHERE created_at >= ${last7Days}
+          SELECT user_id FROM community_comments WHERE created_at >= ${last7Days}
         ) as recent_activities
       )
       GROUP BY user_type
@@ -113,13 +113,13 @@ export async function GET() {
         EXTRACT(HOUR FROM created_at) as hour,
         COUNT(*) as activity_count
       FROM (
-        SELECT created_at FROM "MainPost" WHERE created_at >= ${last7Days}
+        SELECT created_at FROM main_posts WHERE created_at >= ${last7Days}
         UNION ALL
-        SELECT created_at FROM "MainComment" WHERE created_at >= ${last7Days}
+        SELECT created_at FROM main_comments WHERE created_at >= ${last7Days}
         UNION ALL
-        SELECT created_at FROM "CommunityPost" WHERE created_at >= ${last7Days}
+        SELECT created_at FROM community_posts WHERE created_at >= ${last7Days}
         UNION ALL
-        SELECT created_at FROM "CommunityComment" WHERE created_at >= ${last7Days}
+        SELECT created_at FROM community_comments WHERE created_at >= ${last7Days}
       ) as activities
       GROUP BY EXTRACT(HOUR FROM created_at)
       ORDER BY hour
@@ -142,28 +142,28 @@ export async function GET() {
           user_id,
           'post' as activity_type,
           created_at
-        FROM "MainPost" 
+        FROM main_posts 
         WHERE created_at >= ${last7Days}
         UNION ALL
         SELECT 
           user_id,
           'comment' as activity_type,
           created_at
-        FROM "MainComment" 
+        FROM main_comments 
         WHERE created_at >= ${last7Days}
         UNION ALL
         SELECT 
           user_id,
           'post' as activity_type,
           created_at
-        FROM "CommunityPost" 
+        FROM community_posts 
         WHERE created_at >= ${last7Days}
         UNION ALL
         SELECT 
           user_id,
           'comment' as activity_type,
           created_at
-        FROM "CommunityComment" 
+        FROM community_comments 
         WHERE created_at >= ${last7Days}
       ),
       user_stats AS (
@@ -184,7 +184,7 @@ export async function GET() {
         us.posts,
         us.comments
       FROM user_stats us
-      INNER JOIN "User" u ON us.user_id = u.id
+      INNER JOIN users u ON us.user_id = u.id
       WHERE u.is_active = true AND u.is_banned = false
       ORDER BY us.total_activities DESC
       LIMIT 10

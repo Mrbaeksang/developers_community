@@ -31,9 +31,9 @@ export async function GET() {
         COUNT(CASE WHEN type = 'main' THEN 1 END) as main_posts,
         COUNT(CASE WHEN type = 'community' THEN 1 END) as community_posts
       FROM (
-        SELECT created_at, 'main' as type FROM "MainPost" WHERE created_at >= ${last30Days}
+        SELECT created_at, 'main' as type FROM main_posts WHERE created_at >= ${last30Days}
         UNION ALL
-        SELECT created_at, 'community' as type FROM "CommunityPost" WHERE created_at >= ${last30Days}
+        SELECT created_at, 'community' as type FROM community_posts WHERE created_at >= ${last30Days}
       ) as all_posts
       GROUP BY DATE(created_at)
       ORDER BY date DESC
@@ -89,9 +89,9 @@ export async function GET() {
           COUNT(CASE WHEN mp.created_at >= ${last7Days} THEN 1 END) as recent_count,
           COUNT(CASE WHEN mp.created_at >= ${subDays(now, 14)} AND mp.created_at < ${last7Days} THEN 1 END) as previous_count,
           COUNT(*) as total_count
-        FROM "MainTag" t
-        INNER JOIN "MainPostTag" mpt ON t.id = mpt.tag_id
-        INNER JOIN "MainPost" mp ON mpt.post_id = mp.id
+        FROM main_tags t
+        INNER JOIN main_post_tags mpt ON t.id = mpt.tag_id
+        INNER JOIN main_posts mp ON mpt.post_id = mp.id
         WHERE mp.created_at >= ${subDays(now, 14)}
         GROUP BY t.name
       )
@@ -128,15 +128,15 @@ export async function GET() {
             p.view_count,
             COALESCE(l.like_count, 0) as like_count,
             COALESCE(c.comment_count, 0) as comment_count
-          FROM "MainPost" p
+          FROM main_posts p
           LEFT JOIN (
             SELECT post_id, COUNT(*) as like_count
-            FROM "MainLike"
+            FROM main_likes
             GROUP BY post_id
           ) l ON p.id = l.post_id
           LEFT JOIN (
             SELECT post_id, COUNT(*) as comment_count
-            FROM "MainComment"
+            FROM main_comments
             GROUP BY post_id
           ) c ON p.id = c.post_id
           WHERE p.created_at >= ${last7Days}

@@ -362,7 +362,9 @@ export function Sidebar({
                             <span>{post.author.name}</span>
                             <span>•</span>
                             <Flame className="h-3 w-3 text-orange-500" />
-                            <span>{post.weeklyViews.toLocaleString()}</span>
+                            <span>
+                              {post.weeklyViews?.toLocaleString() || '0'}
+                            </span>
                           </div>
                         </div>
                       </div>

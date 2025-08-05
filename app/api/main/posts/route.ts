@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
           // 마크다운 변환 및 포맷팅
           const formattedPosts = cursorResponse.items.map((post) => ({
             ...post,
+            tags: post.tags.map((postTag) => postTag.tag),
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),
           }))
@@ -125,6 +126,7 @@ export async function GET(request: NextRequest) {
           // 마크다운 변환 및 포맷팅
           const formattedPosts = posts.map((post) => ({
             ...post,
+            tags: post.tags.map((postTag) => postTag.tag),
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),
           }))

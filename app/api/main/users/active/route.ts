@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
               COUNT(DISTINCT ml.id) as like_count,
               -- 활동 점수: 게시글 3점, 댓글 2점, 좋아요 1점
               (COUNT(DISTINCT mp.id) * 3 + COUNT(DISTINCT mc.id) * 2 + COUNT(DISTINCT ml.id) * 1) as activity_score
-            FROM "User" u
-            LEFT JOIN "MainPost" mp ON u.id = mp."authorId" 
+            FROM users u
+            LEFT JOIN main_posts mp ON u.id = mp."authorId" 
               AND mp."createdAt" >= ${periodAgo}
               AND mp.status = 'PUBLISHED'
-            LEFT JOIN "MainComment" mc ON u.id = mc."authorId" 
+            LEFT JOIN main_comments mc ON u.id = mc."authorId" 
               AND mc."createdAt" >= ${periodAgo}
-            LEFT JOIN "MainLike" ml ON u.id = ml."userId" 
+            LEFT JOIN main_likes ml ON u.id = ml."userId" 
               AND ml."createdAt" >= ${periodAgo}
             WHERE u."isActive" = true 
               AND u."isBanned" = false
