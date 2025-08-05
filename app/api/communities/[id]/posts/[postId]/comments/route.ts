@@ -199,6 +199,7 @@ function formatComment(comment: CommentWithReplies): FormattedComment {
         createdAt: reply.createdAt.toISOString(),
         updatedAt: reply.updatedAt.toISOString(),
         timeAgo: formatTimeAgo(reply.createdAt),
+        replies: [], // FormattedComment는 항상 replies 배열을 가져야 함
       })) || [],
   }
 }
