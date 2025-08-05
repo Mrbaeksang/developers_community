@@ -142,38 +142,66 @@ export function RealtimeDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 병렬로 모든 데이터 가져오기
-        const [activitiesRes, errorsRes, trafficRes] = await Promise.all([
-          fetch('/api/activities/realtime'),
-          fetch('/api/admin/monitoring/errors'),
-          fetch('/api/admin/monitoring/traffic'),
-        ])
+        // 개별적으로 각 API 호출 (하나가 실패해도 다른 것들은 계속 진행)
 
         // 실시간 활동
-        if (activitiesRes.ok) {
-          const data = await activitiesRes.json()
-          const activities =
-            data.success && data.data
-              ? data.data.activities || []
-              : data.activities || []
-          setActivities(activities)
+        try {
+          const activitiesRes = await fetch('/api/activities/realtime')
+          if (activitiesRes.ok) {
+            const data = await activitiesRes.json()
+            if (data.success && data.data) {
+              setActivities(data.data.items || [])
+            }
+          } else {
+            console.warn('Activities API failed:', activitiesRes.status)
+            setActivities([])
+          }
+        } catch (err) {
+          console.error('Activities API error:', err)
+          setActivities([])
         }
 
         // 에러 모니터링
-        if (errorsRes.ok) {
-          const data = await errorsRes.json()
-          const errorData = data.success && data.data ? data.data : data
-          setErrors(errorData.errors || [])
+        try {
+          const errorsRes = await fetch('/api/admin/monitoring/errors')
+          if (errorsRes.ok) {
+            const data = await errorsRes.json()
+            if (data.success && data.data) {
+              setErrors(data.data.errors || [])
+            }
+          } else {
+            console.warn('Errors API failed:', errorsRes.status)
+            setErrors([])
+          }
+        } catch (err) {
+          console.error('Errors API error:', err)
+          setErrors([])
         }
 
         // 트래픽 모니터링
-        if (trafficRes.ok) {
-          const data = await trafficRes.json()
-          const trafficData = data.success && data.data ? data.data : data
-          setTraffic(trafficData)
+        try {
+          const trafficRes = await fetch('/api/admin/monitoring/traffic')
+          if (trafficRes.ok) {
+            const data = await trafficRes.json()
+            if (data.success && data.data) {
+              setTraffic(data.data)
+            }
+          } else {
+            console.warn('Traffic API failed:', trafficRes.status)
+            setTraffic({
+              activeUsers: 0,
+              apiCalls: { total: 0, topEndpoints: [] },
+              pageViews: { today: 0, topPages: [] },
+            })
+          }
+        } catch (err) {
+          console.error('Traffic API error:', err)
+          setTraffic({
+            activeUsers: 0,
+            apiCalls: { total: 0, topEndpoints: [] },
+            pageViews: { today: 0, topPages: [] },
+          })
         }
-      } catch (error) {
-        console.error('Failed to fetch realtime data:', error)
       } finally {
         setLoading(false)
       }
