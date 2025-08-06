@@ -97,11 +97,9 @@ export const getCachedTrendingPosts = unstable_cache(
   async ({
     limit = 10,
     category,
-    days = 7,
   }: {
     limit?: number
     category?: string | null
-    days?: number
   }) => {
     // Get all published posts
     const posts = await prisma.mainPost.findMany({
