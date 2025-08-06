@@ -13,12 +13,12 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react'
+import { formatCount } from '@/lib/post-format-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
-import { formatCount } from '@/lib/post-format-utils'
 import { getDefaultAvatar } from '@/lib/community-utils'
 import {
   getBannerUrl,
@@ -161,12 +161,12 @@ export default async function CommunitiesPage({
                 <div className="hidden md:flex items-center gap-6">
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
-                      {(communities || [])
-                        .reduce(
+                      {formatCount(
+                        (communities || []).reduce(
                           (acc: number, c: Community) => acc + c.memberCount,
                           0
                         )
-                        .toLocaleString()}
+                      )}
                     </p>
                     <p className="text-xs text-gray-600 flex items-center gap-1">
                       <Activity className="h-3 w-3" />
@@ -175,12 +175,12 @@ export default async function CommunitiesPage({
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
-                      {(communities || [])
-                        .reduce(
+                      {formatCount(
+                        (communities || []).reduce(
                           (acc: number, c: Community) => acc + c.postCount,
                           0
                         )
-                        .toLocaleString()}
+                      )}
                     </p>
                     <p className="text-xs text-gray-600 flex items-center gap-1">
                       <TrendingUp className="h-3 w-3" />총 게시글

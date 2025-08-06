@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { lazy, Suspense } from 'react'
+import { formatCount } from '@/lib/post-format-utils'
 import {
   Card,
   CardContent,
@@ -181,7 +182,7 @@ export default async function AdminPage() {
   const statsCards = [
     {
       title: '전체 사용자',
-      value: stats.totalUsers.toLocaleString(),
+      value: formatCount(stats.totalUsers),
       icon: Users,
       description: `이번 주 신규 +${stats.recentUsers}명`,
       bgColor: '',
@@ -189,7 +190,7 @@ export default async function AdminPage() {
     },
     {
       title: '전체 조회수',
-      value: stats.totalViews.toLocaleString(),
+      value: formatCount(stats.totalViews),
       icon: Eye,
       description: `오늘 조회수는 실시간 모니터링에서 확인`,
       bgColor: '',
@@ -197,7 +198,7 @@ export default async function AdminPage() {
     },
     {
       title: '전체 게시글',
-      value: stats.totalPosts.toLocaleString(),
+      value: formatCount(stats.totalPosts),
       icon: FileText,
       description: `이번 주 게시글 +${stats.weeklyPosts}개`,
       bgColor: '',
@@ -205,7 +206,7 @@ export default async function AdminPage() {
     },
     {
       title: '전체 커뮤니티',
-      value: stats.totalCommunities.toLocaleString(),
+      value: formatCount(stats.totalCommunities),
       icon: Users2,
       description: `이번 주 신규 +${stats.weeklyCommunities}개`,
       bgColor: '',

@@ -43,24 +43,44 @@ async function toggleBookmark(
     })
 
     if (existingBookmark) {
-      // 북마크 취소
-      await prisma.mainBookmark.delete({
-        where: {
-          id: existingBookmark.id,
-        },
-      })
+      // 북마크 취소 - deleteMany로 안전하게 처리
+      try {
+        await prisma.mainBookmark.deleteMany({
+          where: {
+            userId,
+            postId: id,
+          },
+        })
 
-      return successResponse({ bookmarked: false })
+        return successResponse({ bookmarked: false })
+      } catch (error) {
+        // 이미 삭제된 경우 무시
+        console.log('[Bookmark API] Already deleted, ignoring')
+        return successResponse({ bookmarked: false })
+      }
     } else {
-      // 북마크 추가
-      await prisma.mainBookmark.create({
-        data: {
-          userId,
-          postId: id,
-        },
-      })
+      // 북마크 추가 - upsert로 중복 방지
+      try {
+        await prisma.mainBookmark.upsert({
+          where: {
+            userId_postId: {
+              userId,
+              postId: id,
+            },
+          },
+          create: {
+            userId,
+            postId: id,
+          },
+          update: {}, // 이미 존재하면 아무것도 하지 않음
+        })
 
-      return successResponse({ bookmarked: true })
+        return successResponse({ bookmarked: true })
+      } catch (error) {
+        // 이미 북마크한 경우 무시
+        console.log('[Bookmark API] Already bookmarked, ignoring')
+        return successResponse({ bookmarked: true })
+      }
     }
   } catch (error) {
     return handleError(error)

@@ -50,13 +50,13 @@ export default function RootLayout({
                   <ChatProvider />
                   <VisitorTracker />
                   <PageViewTracker />
+                  <Analytics />
+                  <SpeedInsights />
                 </KakaoProvider>
               </NotificationProvider>
             </SessionProvider>
           </QueryProvider>
         </AsyncErrorBoundary>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   )

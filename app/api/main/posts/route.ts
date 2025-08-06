@@ -10,7 +10,11 @@ import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
-import { getPostOrderBy, getPaginationSkipTake } from '@/lib/db/query-helpers'
+import {
+  getPostOrderBy,
+  getPaginationSkipTake,
+  getBatchViewCounts,
+} from '@/lib/db/query-helpers'
 import { invalidateCache, CACHE_TAGS } from '@/lib/db/query-cache'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 import {
@@ -91,8 +95,19 @@ export async function GET(request: NextRequest) {
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
           // 마크다운 변환 및 포맷팅
+          // Redis 조회수 가져오기
+          const postIds = cursorResponse.items.map((p) => p.id)
+          const viewCountsMap =
+            postIds.length > 0
+              ? await getBatchViewCounts(postIds)
+              : new Map<string, number>()
+
           const formattedPosts = cursorResponse.items.map((post) => ({
             ...post,
+            viewCount: Math.max(
+              post.viewCount,
+              viewCountsMap.get(post.id) || 0
+            ),
             tags: post.tags.map((postTag) => postTag.tag),
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),
@@ -123,9 +138,20 @@ export async function GET(request: NextRequest) {
             prisma.mainPost.count({ where }),
           ])
 
+          // Redis 조회수 가져오기
+          const postIds = posts.map((p) => p.id)
+          const viewCountsMap =
+            postIds.length > 0
+              ? await getBatchViewCounts(postIds)
+              : new Map<string, number>()
+
           // 마크다운 변환 및 포맷팅
           const formattedPosts = posts.map((post) => ({
             ...post,
+            viewCount: Math.max(
+              post.viewCount,
+              viewCountsMap.get(post.id) || 0
+            ),
             tags: post.tags.map((postTag) => postTag.tag),
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),

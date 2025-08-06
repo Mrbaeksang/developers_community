@@ -20,6 +20,8 @@ const eslintConfig = [
       '@typescript-eslint/no-non-null-assertion': 'error', // warn → error로 변경
       '@typescript-eslint/strict-boolean-expressions': 'off',
       'no-console': ['error', { allow: ['warn', 'error'] }], // warn → error로 변경
+      '@typescript-eslint/prefer-optional-chain': 'error', // optional chaining 강제
+      '@typescript-eslint/no-unsafe-member-access': 'error', // 타입 없는 객체 접근 금지
     },
   },
 ]

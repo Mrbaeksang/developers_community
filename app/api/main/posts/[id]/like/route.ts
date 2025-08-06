@@ -44,51 +44,79 @@ async function toggleLike(
     })
 
     if (existingLike) {
-      // 좋아요 취소
-      await prisma.mainLike.delete({
-        where: {
-          id: existingLike.id,
-        },
-      })
+      // 좋아요 취소 - 트랜잭션으로 처리
+      try {
+        await prisma.$transaction(async (tx) => {
+          // 좋아요 삭제 (존재하는 경우에만)
+          await tx.mainLike.deleteMany({
+            where: {
+              userId,
+              postId: id,
+            },
+          })
 
-      // 좋아요 수 감소
-      await prisma.mainPost.update({
-        where: { id },
-        data: { likeCount: { decrement: 1 } },
-      })
+          // 좋아요 수 감소
+          await tx.mainPost.update({
+            where: { id },
+            data: { likeCount: { decrement: 1 } },
+          })
+        })
 
-      return successResponse({ liked: false })
-    } else {
-      // 좋아요 추가
-      await prisma.mainLike.create({
-        data: {
-          userId,
-          postId: id,
-        },
-      })
-
-      // 좋아요 수 증가
-      const updatedPost = await prisma.mainPost.update({
-        where: { id },
-        data: { likeCount: { increment: 1 } },
-        include: {
-          author: {
-            select: { id: true },
-          },
-        },
-      })
-
-      // 알림 생성 (작성자가 자신이 아닌 경우)
-      if (updatedPost.author.id !== userId) {
-        await createPostLikeNotification(
-          id,
-          updatedPost.author.id,
-          userId,
-          updatedPost.title
-        )
+        return successResponse({ liked: false })
+      } catch (error) {
+        // 이미 삭제된 경우 무시
+        console.log('[Like API] Already deleted, ignoring')
+        return successResponse({ liked: false })
       }
+    } else {
+      // 좋아요 추가 - upsert로 처리
+      try {
+        const result = await prisma.$transaction(async (tx) => {
+          // upsert로 중복 방지
+          await tx.mainLike.upsert({
+            where: {
+              userId_postId: {
+                userId,
+                postId: id,
+              },
+            },
+            create: {
+              userId,
+              postId: id,
+            },
+            update: {}, // 이미 존재하면 아무것도 하지 않음
+          })
 
-      return successResponse({ liked: true })
+          // 좋아요 수 증가
+          const updatedPost = await tx.mainPost.update({
+            where: { id },
+            data: { likeCount: { increment: 1 } },
+            include: {
+              author: {
+                select: { id: true },
+              },
+            },
+          })
+
+          return updatedPost
+        })
+
+        // 알림 생성 (작성자가 자신이 아닌 경우)
+        if (result.author.id !== userId) {
+          await createPostLikeNotification(
+            id,
+            result.author.id,
+            userId,
+            result.title
+          )
+        }
+
+        return successResponse({ liked: true })
+      } catch (error) {
+        // 이미 좋아요한 경우 무시
+        console.log('[Like API] Already liked, ignoring')
+        return successResponse({ liked: true })
+      }
     }
   } catch (error) {
     return handleError(error)

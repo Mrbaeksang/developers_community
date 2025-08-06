@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
+import { formatCount } from '@/lib/post-format-utils'
 
 interface TrendingTag {
   id: string
@@ -196,17 +197,6 @@ export function Sidebar({
               const textColor =
                 getLuminance(tag.color) > 128 ? '#000000' : '#ffffff'
 
-              // 숫자 포맷팅 (1000 -> 1K, 1500 -> 1.5K)
-              const formatCount = (count: number) => {
-                if (count >= 1000) {
-                  const formatted = (count / 1000).toFixed(1)
-                  return formatted.endsWith('.0')
-                    ? `${Math.floor(count / 1000)}K`
-                    : `${formatted}K`
-                }
-                return count.toString()
-              }
-
               return (
                 <Link
                   key={tag.id}
@@ -362,9 +352,7 @@ export function Sidebar({
                             <span>{post.author.name}</span>
                             <span>•</span>
                             <Flame className="h-3 w-3 text-orange-500" />
-                            <span>
-                              {post.weeklyViews?.toLocaleString() || '0'}
-                            </span>
+                            <span>{formatCount(post.weeklyViews)}</span>
                           </div>
                         </div>
                       </div>

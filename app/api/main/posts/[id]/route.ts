@@ -22,6 +22,7 @@ import {
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withCSRFProtection } from '@/lib/csrf'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { getViewCount } from '@/lib/redis'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -38,38 +39,50 @@ export async function GET(
       userId: session?.user?.id || 'anonymous',
     })
 
-    // Redis 캐싱 적용 - 개별 게시글은 10분 캐싱
+    // 기본적으로 PUBLISHED만 조회 가능
+    let whereClause: Prisma.MainPostWhereInput = {
+      id,
+      status: 'PUBLISHED',
+    }
+
+    // 로그인한 경우 추가 권한 체크
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { globalRole: true },
+      })
+
+      // ADMIN/MANAGER는 모든 게시글 조회 가능
+      if (user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER') {
+        whereClause = { id }
+      } else {
+        // 일반 사용자는 자신의 게시글은 상태와 관계없이 조회 가능
+        whereClause = {
+          id,
+          OR: [{ status: 'PUBLISHED' }, { authorId: session.user.id }],
+        }
+      }
+    }
+
+    // Redis 캐싱 적용 - 개별 게시글은 10분 캐싱 (조회수 제외)
     const cachedPost = await redisCache.getOrSet(
       cacheKey,
       async () => {
-        // 기본적으로 PUBLISHED만 조회 가능
-        let whereClause: Prisma.MainPostWhereInput = {
-          id,
-          status: 'PUBLISHED',
-        }
-
-        // 로그인한 경우 추가 권한 체크
-        if (session?.user?.id) {
-          const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { globalRole: true },
-          })
-
-          // ADMIN/MANAGER는 모든 게시글 조회 가능
-          if (user?.globalRole === 'ADMIN' || user?.globalRole === 'MANAGER') {
-            whereClause = { id }
-          } else {
-            // 일반 사용자는 자신의 게시글은 상태와 관계없이 조회 가능
-            whereClause = {
-              id,
-              OR: [{ status: 'PUBLISHED' }, { authorId: session.user.id }],
-            }
-          }
-        }
-
         const post = await prisma.mainPost.findFirst({
           where: whereClause,
-          include: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            content: true,
+            excerpt: true,
+            status: true,
+            isPinned: true,
+            viewCount: true, // viewCount 필드 추가
+            createdAt: true,
+            updatedAt: true,
+            authorId: true,
+            categoryId: true,
             author: {
               select: {
                 id: true,
@@ -104,9 +117,7 @@ export async function GET(
           return null
         }
 
-        // 조회수 증가는 별도 /view 엔드포인트에서 처리 (Redis 버퍼링)
-
-        // 태그 형식 변환 및 마크다운 변환
+        // 태그 형식 변환 및 마크다운 변환 (조회수 제외)
         return {
           ...post,
           content: markdownToHtml(post.content), // 마크다운을 HTML로 변환
@@ -115,6 +126,7 @@ export async function GET(
           createdAt: post.createdAt.toISOString(),
           updatedAt: post.updatedAt.toISOString(),
           timeAgo: formatTimeAgo(post.createdAt),
+          // viewCount는 캐시하지 않고 나중에 추가
         }
       },
       REDIS_TTL.API_MEDIUM * 2 // 10분 캐싱
@@ -124,7 +136,20 @@ export async function GET(
       return errorResponse('Post not found', 404)
     }
 
-    return successResponse(cachedPost)
+    // 캐시된 데이터에 최신 조회수 추가 (항상 DB에서 최신 값 조회)
+    const currentPost = await prisma.mainPost.findUnique({
+      where: { id },
+      select: { viewCount: true },
+    })
+
+    // Redis에서 조회수 가져오기 (Redis와 DB 중 더 큰 값 사용)
+    const redisViewCount = await getViewCount(id)
+    const finalViewCount = Math.max(redisViewCount, currentPost?.viewCount || 0)
+
+    return successResponse({
+      ...cachedPost,
+      viewCount: finalViewCount, // 최신 조회수로 업데이트
+    })
   } catch (error) {
     return handleError(error)
   }

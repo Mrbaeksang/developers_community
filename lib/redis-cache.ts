@@ -71,7 +71,10 @@ export class RedisCache {
     if (!this.client) return false
 
     try {
-      const stringValue = JSON.stringify(value)
+      // Handle BigInt serialization
+      const stringValue = JSON.stringify(value, (key, val) =>
+        typeof val === 'bigint' ? val.toString() : val
+      )
 
       if (ttl) {
         await this.client.setex(key, ttl, stringValue)

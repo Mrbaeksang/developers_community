@@ -107,6 +107,7 @@ export const postInclude = {
 
 /**
  * Redis에서 게시글 조회수를 일괄로 가져오는 함수
+ * post_views 해시를 사용하여 효율적으로 조회
  */
 export async function getBatchViewCounts(
   postIds: string[],
@@ -124,9 +125,10 @@ export async function getBatchViewCounts(
   }
 
   try {
+    // post_views 해시에서 한번에 조회
     const pipeline = client.pipeline()
     postIds.forEach((postId) => {
-      pipeline.get(`${prefix}:${postId}:views`)
+      pipeline.hget('post_views', postId)
     })
 
     const results = await pipeline.exec()
@@ -135,6 +137,9 @@ export async function getBatchViewCounts(
         const [err, value] = result || [null, null]
         if (!err && value && postIds[index]) {
           viewCountsMap.set(postIds[index], parseInt(value as string))
+        } else if (postIds[index]) {
+          // Redis에 없으면 0 반환
+          viewCountsMap.set(postIds[index], 0)
         }
       })
     }
@@ -147,6 +152,7 @@ export async function getBatchViewCounts(
 
 /**
  * 주간 조회수를 일괄로 가져오는 함수
+ * 현재 Redis에 저장된 전체 조회수를 사용 (날짜별 분리 안함)
  */
 export async function getBatchWeeklyViewCounts(
   postIds: string[],
@@ -165,50 +171,19 @@ export async function getBatchWeeklyViewCounts(
   }
 
   try {
-    // 날짜 배열 생성
-    const dates: string[] = []
-    for (let i = 0; i < days; i++) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      dates.push(date.toISOString().split('T')[0])
-    }
-
-    // 파이프라인 생성
+    // Redis에서 현재 조회수 가져오기 (post_views 해시 사용)
     const pipeline = client.pipeline()
-
     postIds.forEach((postId) => {
-      // 각 날짜별 조회수
-      dates.forEach((date) => {
-        pipeline.get(`${prefix}:${postId}:views:${date}`)
-      })
-      // 현재 버퍼 조회수
-      pipeline.get(`${prefix}:${postId}:views`)
+      pipeline.hget('post_views', postId)
     })
 
-    // 실행
     const results = await pipeline.exec()
-
     if (results) {
-      let resultIndex = 0
-
-      postIds.forEach((postId) => {
-        let weeklyViews = 0
-
-        // 날짜별 조회수 합산
-        for (let i = 0; i < dates.length; i++) {
-          const [err, value] = results[resultIndex++] || [null, null]
-          if (!err && value) {
-            weeklyViews += parseInt(value as string)
-          }
+      results.forEach((result, index) => {
+        const [err, value] = result || [null, null]
+        if (!err && value && postIds[index]) {
+          weeklyViewsMap.set(postIds[index], parseInt(value as string))
         }
-
-        // 버퍼 조회수 추가
-        const [err, bufferValue] = results[resultIndex++] || [null, null]
-        if (!err && bufferValue) {
-          weeklyViews += parseInt(bufferValue as string)
-        }
-
-        weeklyViewsMap.set(postId, weeklyViews)
       })
     }
   } catch (error) {

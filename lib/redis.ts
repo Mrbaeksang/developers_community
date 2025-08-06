@@ -87,6 +87,7 @@ export async function incrementViewCount(postId: string): Promise<number> {
     }
     // 조회수 증가
     const viewCount = await client.hincrby('post_views', postId, 1)
+    console.log(`[Redis] Incremented view count for ${postId}: ${viewCount}`)
 
     // 마일스톤 체크 (100, 500, 1000, 5000, 10000 등)
     const milestones = [100, 500, 1000, 5000, 10000, 50000, 100000]

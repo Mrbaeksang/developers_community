@@ -7,6 +7,32 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: `
+              default-src 'self';
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com;
+              style-src 'self' 'unsafe-inline';
+              img-src 'self' blob: data: https:;
+              font-src 'self' data:;
+              connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com;
+              form-action 'self' http://localhost:3000 http://localhost:3006;
+              frame-ancestors 'none';
+              base-uri 'self';
+              upgrade-insecure-requests;
+            `
+              .replace(/\s{2,}/g, ' ')
+              .trim(),
+          },
+        ],
+      },
+    ]
+  },
   experimental: {
     // Node.js 24 호환성을 위한 설정
     serverMinification: false,
@@ -73,6 +99,12 @@ const nextConfig: NextConfig = {
       fs: false,
       net: false,
       tls: false,
+    }
+
+    // rate-limiter-flexible의 drizzle-orm 의존성 문제 해결
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'drizzle-orm': false,
     }
 
     return config

@@ -1,9 +1,18 @@
 // 숫자 포맷팅 함수 (K notation)
-export const formatCount = (count: number): string => {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace('.0', '')}K`
+export const formatCount = (count: number | null | undefined): string => {
+  // null, undefined, NaN 체크
+  if (count == null || isNaN(count)) {
+    return '0'
   }
-  return count.toLocaleString()
+
+  // 안전한 숫자 변환
+  const safeCount = Number(count) || 0
+
+  if (safeCount >= 1000) {
+    return `${(safeCount / 1000).toFixed(1).replace('.0', '')}K`
+  }
+
+  return safeCount.toLocaleString()
 }
 
 // 색상 관련 함수는 color-utils.ts로 이동됨

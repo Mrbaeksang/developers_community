@@ -36,10 +36,17 @@ export function successResponse<T>(
   message?: string,
   status: number = 200
 ): NextResponse {
+  // Handle BigInt serialization
+  const serializedData = JSON.parse(
+    JSON.stringify(data, (key, val) =>
+      typeof val === 'bigint' ? val.toString() : val
+    )
+  )
+
   return NextResponse.json(
     {
       success: true,
-      data,
+      data: serializedData,
       ...(message && { message }),
     } as ApiResponse<T>,
     { status }

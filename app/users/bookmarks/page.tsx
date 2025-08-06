@@ -7,6 +7,7 @@ import { Bookmark, Calendar, Eye, MessageSquare, Heart } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { formatCount } from '@/lib/post-format-utils'
 
 interface BookmarkedPost {
   bookmarkId: string
@@ -153,7 +154,7 @@ export default async function BookmarksPage() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center">
                           <Eye className="mr-1 h-4 w-4" />
-                          {post.viewCount.toLocaleString()}
+                          {formatCount(post.viewCount)}
                         </span>
                         <span className="flex items-center">
                           <Heart className="mr-1 h-4 w-4" />

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
+import { formatCount } from '@/lib/post-format-utils'
 import {
   Activity,
   Users,
@@ -250,7 +251,7 @@ export function RealtimeDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {traffic.pageViews.today.toLocaleString()}
+                  {formatCount(traffic.pageViews.today)}
                 </div>
                 <p className="text-xs text-muted-foreground">누적 페이지뷰</p>
               </>
@@ -269,7 +270,7 @@ export function RealtimeDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {traffic.apiCalls.total.toLocaleString()}
+                  {formatCount(traffic.apiCalls.total)}
                 </div>
                 <p className="text-xs text-muted-foreground">최근 1시간</p>
               </>
