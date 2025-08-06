@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         // 주간 조회수 배치 조회
         const weeklyViewsMap =
           postIds.length > 0
-            ? await getBatchWeeklyViewCounts(postIds, 7)
+            ? await getBatchWeeklyViewCounts(postIds)
             : new Map<string, number>()
 
         // 주간 조회수로 필터링 및 정렬

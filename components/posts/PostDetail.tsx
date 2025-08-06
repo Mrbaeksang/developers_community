@@ -33,7 +33,6 @@ interface PostDetailProps {
     author: {
       id: string
       name: string | null
-      username: string | null
       image: string | null
     }
     category: {
@@ -284,16 +283,13 @@ export default function PostDetail({ post }: PostDetailProps) {
                 <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                   {post.author?.image
                     ? null
-                    : post.author?.name?.[0]?.toUpperCase() ||
-                      post.author?.username?.[0]?.toUpperCase() || (
+                    : post.author?.name?.[0]?.toUpperCase() || (
                         <User className="h-5 w-5" />
                       )}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium">
-                  {post.author?.name || post.author?.username || 'Unknown'}
-                </p>
+                <p className="font-medium">{post.author?.name || 'Unknown'}</p>
                 <p className="text-sm text-muted-foreground">
                   {(() => {
                     try {

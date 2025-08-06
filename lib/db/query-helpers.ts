@@ -110,8 +110,7 @@ export const postInclude = {
  * post_views 해시를 사용하여 효율적으로 조회
  */
 export async function getBatchViewCounts(
-  postIds: string[],
-  prefix: 'post' | 'community:post' = 'post'
+  postIds: string[]
 ): Promise<Map<string, number>> {
   const viewCountsMap = new Map<string, number>()
 
@@ -155,9 +154,7 @@ export async function getBatchViewCounts(
  * 현재 Redis에 저장된 전체 조회수를 사용 (날짜별 분리 안함)
  */
 export async function getBatchWeeklyViewCounts(
-  postIds: string[],
-  days: number = 7,
-  prefix: 'post' | 'community:post' = 'post'
+  postIds: string[]
 ): Promise<Map<string, number>> {
   const weeklyViewsMap = new Map<string, number>()
 

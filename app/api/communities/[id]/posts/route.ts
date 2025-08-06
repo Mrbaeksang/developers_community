@@ -152,10 +152,7 @@ export async function GET(
 
           // Redis에서 조회수 일괄 조회
           const postIds = cursorResponse.items.map((p) => p.id)
-          const viewCountsMap = await getBatchViewCounts(
-            postIds,
-            'community:post'
-          )
+          const viewCountsMap = await getBatchViewCounts(postIds)
 
           // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
           const formattedPosts = cursorResponse.items.map((post) => {
@@ -210,10 +207,7 @@ export async function GET(
 
           // Redis에서 조회수 일괄 조회
           const postIds = posts.map((p) => p.id)
-          const viewCountsMap = await getBatchViewCounts(
-            postIds,
-            'community:post'
-          )
+          const viewCountsMap = await getBatchViewCounts(postIds)
 
           // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
           const formattedPosts = posts.map((post) => {

@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { incrementViewCount } from '@/lib/redis'
 import { successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 
@@ -18,9 +17,7 @@ export async function POST(
       select: { viewCount: true },
     })
 
-    console.log(
-      `[View API] Updated viewCount for ${id}: ${updatedPost.viewCount}`
-    )
+    // 조회수 업데이트 성공
 
     // Redis 캐시 무효화 시도 (Redis가 있는 경우)
     try {
@@ -29,11 +26,10 @@ export async function POST(
       if (client) {
         // Redis에도 동기화
         await client.hset('post_views', id, updatedPost.viewCount)
-        console.log(`[View API] Synced to Redis: ${updatedPost.viewCount}`)
+        // Redis 동기화 성공
       }
-    } catch (redisError) {
+    } catch {
       // Redis 에러는 무시 (선택적 기능)
-      console.log('[View API] Redis sync skipped (Redis not available)')
     }
 
     return successResponse({ viewed: true, viewCount: updatedPost.viewCount })

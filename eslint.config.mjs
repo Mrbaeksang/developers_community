@@ -20,8 +20,9 @@ const eslintConfig = [
       '@typescript-eslint/no-non-null-assertion': 'error', // warn → error로 변경
       '@typescript-eslint/strict-boolean-expressions': 'off',
       'no-console': ['error', { allow: ['warn', 'error'] }], // warn → error로 변경
-      '@typescript-eslint/prefer-optional-chain': 'error', // optional chaining 강제
-      '@typescript-eslint/no-unsafe-member-access': 'error', // 타입 없는 객체 접근 금지
+      // 타입 정보가 필요한 규칙들 비활성화 (Next.js 설정 문제로 인해)
+      '@typescript-eslint/prefer-optional-chain': 'off', // 타입 정보 필요
+      '@typescript-eslint/no-unsafe-member-access': 'off', // 타입 정보 필요
     },
   },
 ]

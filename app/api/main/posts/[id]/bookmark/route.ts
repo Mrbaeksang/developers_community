@@ -53,9 +53,8 @@ async function toggleBookmark(
         })
 
         return successResponse({ bookmarked: false })
-      } catch (error) {
+      } catch {
         // 이미 삭제된 경우 무시
-        console.log('[Bookmark API] Already deleted, ignoring')
         return successResponse({ bookmarked: false })
       }
     } else {
@@ -76,9 +75,8 @@ async function toggleBookmark(
         })
 
         return successResponse({ bookmarked: true })
-      } catch (error) {
+      } catch {
         // 이미 북마크한 경우 무시
-        console.log('[Bookmark API] Already bookmarked, ignoring')
         return successResponse({ bookmarked: true })
       }
     }

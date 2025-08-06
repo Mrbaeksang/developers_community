@@ -116,7 +116,7 @@ export const getCachedTrendingPosts = unstable_cache(
 
     // Get weekly view counts
     const postIds = posts.map((p) => p.id)
-    const weeklyViewsMap = await getBatchWeeklyViewCounts(postIds, days)
+    const weeklyViewsMap = await getBatchWeeklyViewCounts(postIds)
 
     // Format and sort by weekly views
     const postsWithWeeklyViews = posts.map((post) => ({
@@ -196,7 +196,7 @@ export const getCachedCommunityPosts = unstable_cache(
     let viewCountsMap = new Map<string, number>()
     if (includeViewCounts && posts.length > 0) {
       const postIds = posts.map((p) => p.id)
-      viewCountsMap = await getBatchViewCounts(postIds, 'community:post')
+      viewCountsMap = await getBatchViewCounts(postIds)
     }
 
     // Format posts with user status

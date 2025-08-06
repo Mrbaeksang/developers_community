@@ -63,9 +63,8 @@ async function toggleLike(
         })
 
         return successResponse({ liked: false })
-      } catch (error) {
+      } catch {
         // 이미 삭제된 경우 무시
-        console.log('[Like API] Already deleted, ignoring')
         return successResponse({ liked: false })
       }
     } else {
@@ -112,9 +111,8 @@ async function toggleLike(
         }
 
         return successResponse({ liked: true })
-      } catch (error) {
+      } catch {
         // 이미 좋아요한 경우 무시
-        console.log('[Like API] Already liked, ignoring')
         return successResponse({ liked: true })
       }
     }
