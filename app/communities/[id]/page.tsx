@@ -17,8 +17,8 @@ import {
   getBannerUrl,
   getBannerType,
   getDefaultBannerById,
-} from '@/lib/banner-utils'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+} from '@/lib/ui/banner'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 interface Category {
   id: string

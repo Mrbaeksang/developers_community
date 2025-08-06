@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateCSRFToken } from '@/lib/csrf'
+import { generateCSRFToken } from '@/lib/auth/csrf'
 
 // GET /api/csrf-token - CSRF 토큰 발급
 export async function GET() {

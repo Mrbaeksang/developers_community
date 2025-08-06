@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
 import { NotificationType } from '@prisma/client'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { notificationSelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { notificationSelect } from '@/lib/cache/patterns'
 
 // 알림 타입 필터 스키마
 const notificationFilterSchema = z.object({

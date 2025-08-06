@@ -1,15 +1,12 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import {
-  getCursorCondition,
-  formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { getCursorCondition, formatCursorResponse } from '@/lib/post/pagination'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { successResponse } from '@/lib/api-response'
-import { prisma } from '@/lib/prisma'
+import { successResponse } from '@/lib/api/response'
+import { prisma } from '@/lib/core/prisma'
 
 // POST /api/main/posts/[id]/view - 조회수 증가 (Redis 버퍼링 + DB 동기화)
 export async function POST(
@@ -21,7 +21,7 @@ export async function POST(
 
     // Redis 캐시 무효화 시도 (Redis가 있는 경우)
     try {
-      const { redis } = await import('@/lib/redis')
+      const { redis } = await import('@/lib/core/redis')
       const client = redis()
       if (client) {
         // Redis에도 동기화

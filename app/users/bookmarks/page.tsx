@@ -7,7 +7,7 @@ import { Bookmark, Calendar, Eye, MessageSquare, Heart } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { formatCount } from '@/lib/common-types'
+import { formatCount } from '@/lib/common/types'
 
 interface BookmarkedPost {
   bookmarkId: string

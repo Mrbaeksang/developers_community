@@ -8,7 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface Props {
   children: ReactNode

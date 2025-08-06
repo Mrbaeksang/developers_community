@@ -13,10 +13,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Check, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community-utils'
-import { defaultBanners } from '@/lib/banner-utils'
-import { RECOMMENDED_BANNER_IMAGES } from '@/lib/unsplash-utils'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community/utils'
+import { defaultBanners } from '@/lib/ui/banner'
+import { RECOMMENDED_BANNER_IMAGES } from '@/lib/ui/unsplash'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 export default function CreateCommunityForm() {
   const router = useRouter()

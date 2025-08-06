@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
-import { redis } from '@/lib/redis'
+import { redis } from '@/lib/core/redis'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { successResponse } from '@/lib/api-response'
-import { throwNotFoundError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse } from '@/lib/api/response'
+import { throwNotFoundError } from '@/lib/api/errors'
 
 // POST /api/communities/[id]/posts/[postId]/view - 조회수 증가 (Redis 버퍼링)
 export async function POST(

@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { getCursorCondition } from '@/lib/pagination-utils'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { getCursorCondition } from '@/lib/post/pagination'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 
 // GET /api/main/posts/[id]/related - 관련 게시글 조회
 export async function GET(

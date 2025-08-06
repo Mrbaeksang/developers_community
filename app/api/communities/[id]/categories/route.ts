@@ -1,13 +1,13 @@
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { communityCategorySelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/api/errors'
+import { communityCategorySelect } from '@/lib/cache/patterns'
 
 // GET /api/communities/[id]/categories - 카테고리 목록 조회
 export async function GET(

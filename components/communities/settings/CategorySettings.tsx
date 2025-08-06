@@ -26,7 +26,7 @@ import {
 import { Plus, Edit2, Trash2, GripVertical, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Reorder } from 'framer-motion'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface Category {
   id: string

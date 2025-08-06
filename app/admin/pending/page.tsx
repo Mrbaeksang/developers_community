@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { PendingPostsManager } from '@/components/admin/PendingPostsManager'
 
 async function getPendingPosts() {

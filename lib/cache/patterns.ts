@@ -30,6 +30,8 @@ export const mainPostSelect = {
         id: true,
         name: true,
         slug: true,
+        color: true,
+        icon: true,
       },
     },
     tags: {
@@ -169,6 +171,8 @@ export const communityPostSelect = {
         id: true,
         name: true,
         slug: true,
+        color: true,
+        icon: true,
       },
     },
     _count: {

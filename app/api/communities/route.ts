@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { requireAuthAPI } from '@/lib/auth/session'
 import {
   CommunityVisibility,
   CommunityRole,
@@ -13,18 +13,18 @@ import {
   createdResponse,
   validationErrorResponse,
   successResponse,
-} from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { getAvatarFromName } from '@/lib/community-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { getAvatarFromName } from '@/lib/community/utils'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { communitySelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { communitySelect } from '@/lib/cache/patterns'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {

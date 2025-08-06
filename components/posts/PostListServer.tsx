@@ -1,7 +1,7 @@
 import { PostList } from '@/components/home/PostList'
-import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
-import type { CommonMainPost as Post } from '@/lib/common-types'
+import { prisma } from '@/lib/core/prisma'
+import { redis } from '@/lib/core/redis'
+import type { CommonMainPost as Post } from '@/lib/common/types'
 import { Prisma } from '@prisma/client'
 
 interface PostListServerProps {

@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
 import { z } from 'zod'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // 역할 변경 요청 스키마
 const updateRoleSchema = z.object({

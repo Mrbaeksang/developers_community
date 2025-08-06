@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityMembershipAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
+} from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
 
 // POST: 커뮤니티 게시글 좋아요
 async function likeCommunityPost(

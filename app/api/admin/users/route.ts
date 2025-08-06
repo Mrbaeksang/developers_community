@@ -1,7 +1,7 @@
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 export async function GET() {
   try {

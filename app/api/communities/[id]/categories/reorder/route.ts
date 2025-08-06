@@ -1,12 +1,12 @@
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // PATCH /api/communities/[id]/categories/reorder - 카테고리 순서 변경
 export async function PATCH(

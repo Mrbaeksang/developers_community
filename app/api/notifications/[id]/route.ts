@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { deletedResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { deletedResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // DELETE: 특정 알림 삭제
 export async function DELETE(

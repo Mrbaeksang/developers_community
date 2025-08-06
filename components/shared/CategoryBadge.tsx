@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { getTextColor } from '@/lib/color-utils'
+import { getTextColor } from '@/lib/ui/colors'
+import { getCategoryIcon } from '@/lib/post/display'
 import { LucideIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/core/utils'
 
 interface CategoryBadgeProps {
   category: {
@@ -22,13 +23,17 @@ interface CategoryBadgeProps {
 
 export function CategoryBadge({
   category,
-  icon: Icon,
+  icon: IconProp,
   showIcon = true,
   clickable = true,
   className,
 }: CategoryBadgeProps) {
   const backgroundColor = category.color || '#f3f4f6'
   const textColor = getTextColor(backgroundColor)
+
+  // 아이콘 결정: prop으로 받은 것 우선, 없으면 category.icon에서 찾기
+  const Icon =
+    IconProp || (showIcon ? getCategoryIcon(category.icon) : undefined)
 
   const badgeContent = (
     <>

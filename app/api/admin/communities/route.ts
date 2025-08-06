@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 export async function GET() {
   try {

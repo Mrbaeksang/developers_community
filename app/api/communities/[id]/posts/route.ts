@@ -1,32 +1,32 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireCommunityMembershipAPI } from '@/lib/auth-utils'
+import { requireCommunityMembershipAPI } from '@/lib/auth/session'
 import { CommunityVisibility } from '@prisma/client'
 import {
   successResponse,
   paginatedResponse,
   validationErrorResponse,
-} from '@/lib/api-response'
+} from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { communityPostSelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { communityPostSelect } from '@/lib/cache/patterns'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(

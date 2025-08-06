@@ -1,5 +1,5 @@
-import { redis } from '@/lib/redis'
-import { prisma } from '@/lib/prisma'
+import { redis } from '@/lib/core/redis'
+import { prisma } from '@/lib/core/prisma'
 
 /**
  * Redis에 버퍼링된 조회수를 DB에 동기화

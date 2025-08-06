@@ -1,15 +1,15 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
 import { CommunityVisibility, MembershipStatus } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // GET: 커뮤니티 상세 조회
 export async function GET(

@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Users, FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
-import { getAvatarUrl } from '@/lib/community-utils'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { getAvatarUrl } from '@/lib/community/utils'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 interface Community {
   id: string

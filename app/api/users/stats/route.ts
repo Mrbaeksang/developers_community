@@ -1,8 +1,8 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // 내 활동 통계 조회 - GET /api/users/stats
 export async function GET() {

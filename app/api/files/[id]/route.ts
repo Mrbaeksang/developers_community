@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { del } from '@vercel/blob'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwAuthorizationError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { requireAuthAPI } from '@/lib/auth-utils'
+} from '@/lib/api/errors'
+import { requireAuthAPI } from '@/lib/auth/session'
 
 // 파일 상세 조회 - GET /api/files/[id]
 export async function GET(

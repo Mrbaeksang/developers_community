@@ -1,6 +1,6 @@
-import { redis } from '@/lib/redis'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { redis } from '@/lib/core/redis'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
 
 export async function POST(request: Request) {
   try {

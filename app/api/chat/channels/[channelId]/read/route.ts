@@ -1,7 +1,7 @@
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwAuthorizationError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwAuthorizationError } from '@/lib/api/errors'
 
 // POST: 메시지 읽음 상태 업데이트
 export async function POST(

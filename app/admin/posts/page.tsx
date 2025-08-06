@@ -51,7 +51,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface MainPost {
   id: string

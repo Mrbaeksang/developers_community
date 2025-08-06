@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { paginatedResponse } from '@/lib/api-response'
-import { handleError, throwNotFoundError } from '@/lib/error-handler'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
+import { prisma } from '@/lib/core/prisma'
+import { paginatedResponse } from '@/lib/api/response'
+import { handleError, throwNotFoundError } from '@/lib/api/errors'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 
 // 태그별 게시글 조회
 export async function GET(

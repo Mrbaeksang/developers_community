@@ -1,12 +1,12 @@
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { categorySelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/api/errors'
+import { categorySelect } from '@/lib/cache/patterns'
 
 // 카테고리 상세 조회
 export async function GET(

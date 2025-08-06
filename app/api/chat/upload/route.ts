@@ -1,11 +1,11 @@
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
 import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {

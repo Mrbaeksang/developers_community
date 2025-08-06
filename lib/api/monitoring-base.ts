@@ -1,4 +1,4 @@
-import { redis } from '@/lib/redis'
+import { redis } from '@/lib/core/redis'
 
 // Redis 키 상수
 const KEYS = {

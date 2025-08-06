@@ -4,7 +4,7 @@ import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import remarkGfm from 'remark-gfm'
 import Image from 'next/image'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 // Lazy load ReactMarkdown only
 const ReactMarkdown = lazy(() => import('react-markdown'))

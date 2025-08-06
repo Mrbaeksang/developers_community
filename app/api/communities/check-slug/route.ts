@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 const checkSlugSchema = z.object({
   slug: z

@@ -1,20 +1,20 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { requireAuthAPI } from '@/lib/auth/session'
 import {
   successResponse,
   updatedResponse,
   validationErrorResponse,
-} from '@/lib/api-response'
+} from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { withCSRFProtection } from '@/lib/csrf'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { withCSRFProtection } from '@/lib/auth/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // 프로필 수정 스키마
 const updateProfileSchema = z.object({

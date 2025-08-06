@@ -25,7 +25,7 @@ import {
   LayoutGrid,
   LayoutList,
 } from 'lucide-react'
-import type { Post } from '@/lib/common-types'
+import type { Post } from '@/lib/common/types'
 
 interface Category {
   id: string

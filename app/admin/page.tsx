@@ -1,9 +1,9 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import Link from 'next/link'
 import { lazy, Suspense } from 'react'
-import { formatCount } from '@/lib/common-types'
+import { formatCount } from '@/lib/common/types'
 import {
   Card,
   CardContent,

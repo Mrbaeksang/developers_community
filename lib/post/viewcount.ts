@@ -3,7 +3,7 @@
  * MainPost와 CommunityPost를 위한 통일된 Redis 조회수 처리
  */
 
-import { redis } from '@/lib/redis'
+import { redis } from '@/lib/core/redis'
 
 // ViewCount 처리 결과 인터페이스
 export interface ViewCountResult {

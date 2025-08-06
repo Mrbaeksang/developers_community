@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { trackApiCall, logError, trackActiveUser } from '@/lib/monitoring'
+import {
+  trackApiCall,
+  logError,
+  trackActiveUser,
+} from '@/lib/api/monitoring-base'
 
 type RouteContext = {
   params?: Record<string, string | string[]>

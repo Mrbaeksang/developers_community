@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { NotificationType } from '@prisma/client'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface Notification {
   id: string

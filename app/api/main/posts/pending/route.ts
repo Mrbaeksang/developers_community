@@ -1,14 +1,13 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import {
-  getCursorCondition,
-  formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { getCursorCondition, formatCursorResponse } from '@/lib/post/pagination'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,54 +33,71 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
     const cursor = searchParams.get('cursor')
-    const cursorCondition = getCursorCondition(cursor)
 
-    // 승인 대기 게시글 조회 - 선택적 필드 로딩 적용
-    const pendingPosts = await prisma.mainPost.findMany({
-      where: {
-        status: 'PENDING',
-        ...cursorCondition,
-      },
-      select: {
-        ...mainPostSelect.detail, // 상세 정보 포함 (관리자용)
-        authorRole: true, // 작성자 역할 추가
-        metaTitle: true,
-        metaDescription: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: limit + 1, // 다음 페이지 확인용
+    // Redis 캐시 키 생성
+    const cacheKey = generateCacheKey('main:posts:pending', {
+      userId: session.user.id,
+      limit,
+      cursor: cursor || 'none',
     })
 
-    // 페이지네이션 처리
-    const hasMore = pendingPosts.length > limit
-    const posts = hasMore ? pendingPosts.slice(0, -1) : pendingPosts
+    // Redis 캐싱 적용 - 승인 대기 목록은 5분 캐싱
+    const cachedData = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        const cursorCondition = getCursorCondition(cursor)
 
-    const formattedPosts = posts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      content: post.content,
-      excerpt: post.excerpt,
-      createdAt: post.createdAt, // Date 객체 유지
-      timeAgo: formatTimeAgo(post.createdAt),
-      author: {
-        id: post.author.id,
-        name: post.author.name || 'Unknown',
-        email: post.author.email,
-        image: post.author.image || undefined,
-        role: post.author.role,
+        // 승인 대기 게시글 조회 - 목록용 선택 패턴 사용
+        const pendingPosts = await prisma.mainPost.findMany({
+          where: {
+            status: 'PENDING',
+            ...cursorCondition,
+          },
+          select: {
+            ...mainPostSelect.list, // 목록용 패턴 사용
+            authorRole: true, // 작성자 역할 추가
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: limit + 1, // 다음 페이지 확인용
+        })
+
+        // 페이지네이션 처리
+        const hasMore = pendingPosts.length > limit
+        const posts = hasMore ? pendingPosts.slice(0, -1) : pendingPosts
+
+        // Redis 조회수 통합 적용
+        const postsWithViews = await applyViewCountsToPosts(posts, {
+          debug: false,
+          useMaxValue: true,
+        })
+
+        const formattedPosts = postsWithViews.map((post) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          viewCount: post.viewCount, // Redis 통합 조회수
+          createdAt: post.createdAt, // Date 객체 유지
+          timeAgo: formatTimeAgo(post.createdAt),
+          author: {
+            id: post.author.id,
+            name: post.author.name || 'Unknown',
+            image: post.author.image || undefined,
+          },
+          authorRole: post.authorRole,
+          category: post.category,
+          tags: post.tags.map((t) => t.tag),
+          _count: post._count,
+        }))
+
+        return formatCursorResponse(formattedPosts, limit)
       },
-      authorRole: post.authorRole,
-      category: post.category,
-      tags: post.tags.map((t) => t.tag),
-      _count: post._count,
-      metaTitle: post.metaTitle,
-      metaDescription: post.metaDescription,
-    }))
+      REDIS_TTL.API_MEDIUM // 5분 캐싱
+    )
 
-    return successResponse(formatCursorResponse(formattedPosts, limit))
+    return successResponse(cachedData)
   } catch (error) {
     return handleError(error)
   }

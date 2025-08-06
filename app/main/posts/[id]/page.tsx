@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { lazy, Suspense } from 'react'
 import ClientPostDetail from '@/components/posts/ClientPostDetail'
-import { markdownToHtml } from '@/lib/markdown'
+import { markdownToHtml } from '@/lib/ui/markdown'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // 레이지 로딩으로 RelatedPosts 최적화

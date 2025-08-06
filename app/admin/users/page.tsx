@@ -51,10 +51,10 @@ import {
   AlertCircle,
   UserCog,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/core/utils'
 import { GlobalRole } from '@prisma/client'
-import { apiClient } from '@/lib/api'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { apiClient } from '@/lib/api/client'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 interface User {
   id: string

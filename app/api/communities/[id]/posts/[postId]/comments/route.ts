@@ -1,29 +1,29 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
 import {
   successResponse,
   createdResponse,
   validationErrorResponse,
-} from '@/lib/api-response'
+} from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { communityCommentSelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { communityCommentSelect } from '@/lib/cache/patterns'
 
 // GET: 커뮤니티 게시글 댓글 목록 조회
 export async function GET(

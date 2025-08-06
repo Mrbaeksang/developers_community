@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { PostList } from '@/components/home/PostList'
 import { Badge } from '@/components/ui/badge'
 import { Hash, FileText } from 'lucide-react'
-import type { CommonMainPost as Post } from '@/lib/common-types'
+import type { CommonMainPost as Post } from '@/lib/common/types'
 
 interface TagPageProps {
   params: Promise<{

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
 import { subDays, format } from 'date-fns'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 
 export async function GET() {
   try {
@@ -150,26 +152,16 @@ export async function GET() {
       FROM post_stats
     `
 
-    // 5. 인기 게시글 TOP 10 - 선택적 필드 로딩 적용
+    // 5. 인기 게시글 TOP 10 - 표준화된 select 패턴과 Redis 조회수 적용
     const topPosts = await prisma.mainPost.findMany({
       where: {
         createdAt: { gte: last7Days },
         status: 'PUBLISHED', // 게시된 게시글만
       },
       select: {
-        id: true,
-        title: true,
-        viewCount: true,
-        likeCount: true,
+        ...mainPostSelect.list, // 표준화된 목록 패턴 사용
+        likeCount: true, // 통계용 추가 필드
         commentCount: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            image: true,
-          },
-        },
       },
       orderBy: [
         { viewCount: 'desc' },
@@ -177,6 +169,12 @@ export async function GET() {
         { commentCount: 'desc' },
       ],
       take: 10,
+    })
+
+    // Redis 조회수 통합 적용
+    const topPostsWithViews = await applyViewCountsToPosts(topPosts, {
+      debug: false,
+      useMaxValue: true,
     })
 
     // 6. 게시글 상태별 통계
@@ -237,10 +235,10 @@ export async function GET() {
         avgComments: 0,
         engagementRate: 0,
       },
-      topPosts: topPosts.map((p) => ({
+      topPosts: topPostsWithViews.map((p) => ({
         id: p.id,
         title: p.title,
-        viewCount: p.viewCount,
+        viewCount: p.viewCount, // Redis 통합 조회수
         likeCount: p.likeCount,
         commentCount: p.commentCount,
         author: p.author

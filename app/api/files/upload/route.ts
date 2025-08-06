@@ -1,21 +1,21 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { FileType } from '@prisma/client'
 import { put } from '@vercel/blob'
 import {
   requireAuthAPI,
   checkBanStatus,
   getCommunityMembership,
-} from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
+} from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwValidationError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {

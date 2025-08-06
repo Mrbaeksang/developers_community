@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 // PUT: 특정 알림 읽음 처리
 export async function PUT(

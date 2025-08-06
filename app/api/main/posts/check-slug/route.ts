@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { handleError, throwValidationError } from '@/lib/api/errors'
 
 export async function GET(req: NextRequest) {
   try {

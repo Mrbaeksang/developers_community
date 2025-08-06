@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { categorySelect } from '@/lib/prisma-select-patterns'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { categorySelect } from '@/lib/cache/patterns'
 
 // 관리자용 전체 카테고리 조회 (비활성 포함)
 export async function GET() {

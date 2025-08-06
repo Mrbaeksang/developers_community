@@ -1,8 +1,8 @@
 'use client'
 
 import { Eye, Heart, MessageCircle } from 'lucide-react'
-import { formatCount } from '@/lib/common-types'
-import { cn } from '@/lib/utils'
+import { formatCount } from '@/lib/common/types'
+import { cn } from '@/lib/core/utils'
 
 interface PostStatsProps {
   viewCount?: number

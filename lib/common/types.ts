@@ -326,14 +326,17 @@ export type Post = CommonMainPost
 export type CommunityPost = CommonCommunityPost
 
 // 포맷 유틸리티 함수
-export function formatCount(count: number): string {
-  if (count >= 1000000) {
-    return `${(count / 1000000).toFixed(1)}M`
+export function formatCount(count: number | undefined | null): string {
+  // null이나 undefined인 경우 0으로 처리
+  const safeCount = count ?? 0
+
+  if (safeCount >= 1000000) {
+    return `${(safeCount / 1000000).toFixed(1)}M`
   }
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K`
+  if (safeCount >= 1000) {
+    return `${(safeCount / 1000).toFixed(1)}K`
   }
-  return count.toString()
+  return safeCount.toString()
 }
 
 // 색상 관련 유틸리티 함수

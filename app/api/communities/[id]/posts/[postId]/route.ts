@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireAuthAPI, hasCommunityPermission } from '@/lib/auth-utils'
+import { requireAuthAPI, hasCommunityPermission } from '@/lib/auth/session'
 import { CommunityVisibility, CommunityRole } from '@prisma/client'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(

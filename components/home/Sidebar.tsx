@@ -18,7 +18,7 @@ import {
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import { formatCount } from '@/lib/common-types'
+import { formatCount } from '@/lib/common/types'
 
 interface TrendingTag {
   id: string

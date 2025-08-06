@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { formatCount, getTextColor } from '@/lib/common-types'
+import { formatCount, getTextColor } from '@/lib/common/types'
 
 interface Author {
   id: string

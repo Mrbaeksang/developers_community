@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
 import {
   successResponse,
   errorResponse,
   createdResponse,
-} from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { trackApiCall } from '@/lib/monitoring'
-import { categorySelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { trackApiCall } from '@/lib/api/monitoring-base'
+import { categorySelect } from '@/lib/cache/patterns'
 
 export async function GET(request: Request) {
   const start = Date.now()

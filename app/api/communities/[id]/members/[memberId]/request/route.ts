@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { z } from 'zod'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // 가입 신청 처리 스키마
 const handleRequestSchema = z.object({

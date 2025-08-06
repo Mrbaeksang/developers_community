@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
 
 // POST /api/main/posts/[id]/bookmark - 북마크 토글
 async function toggleBookmark(

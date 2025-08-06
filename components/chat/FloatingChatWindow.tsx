@@ -21,7 +21,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useChatEvents, type ChatMessage } from '@/hooks/use-chat-events'
 import { useTypingIndicator } from '@/hooks/use-typing-indicator'
-import { uploadChatFile } from '@/lib/chat-utils'
+import { uploadChatFile } from '@/lib/chat/utils'
 
 // ChatMessage 타입을 use-chat-events에서 가져와서 사용
 

@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Megaphone, Pin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/core/utils'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 
 interface Author {

@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
 
 // GET /api/communities/[id]/announcements - 공지사항 목록 조회
 export async function GET(

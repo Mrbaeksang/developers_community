@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { CommunityPostEditor } from '@/components/communities/CommunityPostEditor'

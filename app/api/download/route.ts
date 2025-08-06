@@ -3,7 +3,7 @@ import {
   handleError,
   throwValidationError,
   throwNotFoundError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // GET: 파일 다운로드 처리
 export async function GET(req: NextRequest) {

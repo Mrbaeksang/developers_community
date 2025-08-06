@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { paginatedResponse, successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { prisma } from '@/lib/core/prisma'
+import { redis } from '@/lib/core/redis'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { paginatedResponse, successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { bookmarkSelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { bookmarkSelect } from '@/lib/cache/patterns'
 
 // 내 북마크 목록 조회 - GET /api/users/bookmarks
 export async function GET(request: NextRequest) {

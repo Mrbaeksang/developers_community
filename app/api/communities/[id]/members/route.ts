@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getSession, canAccessPrivateCommunity } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { getSession, canAccessPrivateCommunity } from '@/lib/auth/session'
 import {
   CommunityVisibility,
   MembershipStatus,
   CommunityRole,
 } from '@prisma/client'
-import { paginatedResponse, successResponse } from '@/lib/api-response'
+import { paginatedResponse, successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { parseHybridPagination, getCursorTake } from '@/lib/pagination-utils'
+} from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { parseHybridPagination, getCursorTake } from '@/lib/post/pagination'
 
 // GET: 커뮤니티 멤버 목록 조회
 export async function GET(

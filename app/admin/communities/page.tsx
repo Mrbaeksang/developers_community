@@ -49,10 +49,10 @@ import {
   Megaphone,
   UserCog,
 } from 'lucide-react'
-import { getAvatarUrl } from '@/lib/community-utils'
+import { getAvatarUrl } from '@/lib/community/utils'
 import { CommunityVisibility } from '@prisma/client'
-import { apiClient } from '@/lib/api'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { apiClient } from '@/lib/api/client'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 interface Community {
   id: string

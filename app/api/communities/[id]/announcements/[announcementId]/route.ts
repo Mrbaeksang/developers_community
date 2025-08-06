@@ -1,13 +1,13 @@
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole } from '@prisma/client'
-import { canModifyCommunityContent } from '@/lib/role-hierarchy'
-import { successResponse } from '@/lib/api-response'
+import { canModifyCommunityContent } from '@/lib/auth/roles'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // GET /api/communities/[id]/announcements/[announcementId] - 공지사항 상세 조회
 export async function GET(

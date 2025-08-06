@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
-import { formatCount } from '@/lib/common-types'
+import { formatCount } from '@/lib/common/types'
 import {
   Activity,
   Users,

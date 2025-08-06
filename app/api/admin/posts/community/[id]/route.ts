@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { deletedResponse } from '@/lib/api-response'
-import { handleError, throwNotFoundError } from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { deletedResponse } from '@/lib/api/response'
+import { handleError, throwNotFoundError } from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // 커뮤니티 게시글 삭제 (관리자만)
 async function deleteCommunityPost(

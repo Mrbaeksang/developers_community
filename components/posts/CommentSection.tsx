@@ -33,7 +33,7 @@ type Comment = {
   parentId: string | null
   replies?: Comment[]
 }
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface CommentSectionProps {
   postId: string

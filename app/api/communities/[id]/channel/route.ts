@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // GET: 커뮤니티의 기본 채팅 채널 정보 조회
 export async function GET(

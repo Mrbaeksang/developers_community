@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { trackPageView } from '@/lib/monitoring'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { trackPageView } from '@/lib/api/monitoring-base'
+import { handleError, throwValidationError } from '@/lib/api/errors'
 
 export async function POST(request: NextRequest) {
   try {

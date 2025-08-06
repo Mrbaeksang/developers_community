@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { nanoid } from 'nanoid'
-import { generateCSRFToken } from '@/lib/csrf'
+import { generateCSRFToken } from '@/lib/auth/csrf'
 
 // 추적하지 않을 경로
 const excludedPaths = [

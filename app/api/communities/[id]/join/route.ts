@@ -1,20 +1,20 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI, checkCommunityBan } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI, checkCommunityBan } from '@/lib/auth/session'
 import { createNotification } from '@/lib/notifications'
 import {
   MembershipStatus,
   CommunityVisibility,
   CommunityRole,
 } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
+} from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
 
 // POST: 커뮤니티 가입
 async function joinCommunity(

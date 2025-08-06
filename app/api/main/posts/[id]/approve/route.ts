@@ -1,11 +1,12 @@
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { prisma } from '@/lib/core/prisma'
 import {
   createPostApprovedNotification,
   createPostRejectedNotification,
 } from '@/lib/notifications'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { successResponse, errorResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { redisCache } from '@/lib/cache/redis'
 
 export async function POST(
   request: Request,
@@ -82,6 +83,11 @@ export async function POST(
         session.user.id
       )
     }
+
+    // Redis 캐시 무효화 - 승인/거부 시 관련 캐시 삭제
+    await redisCache.delPattern('api:cache:main:posts:*')
+    await redisCache.delPattern('api:cache:admin:main:posts:*')
+    await redisCache.delPattern(`api:cache:main:post:detail:*${id}*`)
 
     return successResponse(
       {

@@ -19,13 +19,13 @@ import {
   Package,
 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/core/utils'
 import { CategoryBadge } from '@/components/shared/CategoryBadge'
 import { TagBadge } from '@/components/shared/TagBadge'
 import { PostStats } from '@/components/shared/PostStats'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import type { CommonMainPost as Post } from '@/lib/common-types'
+import type { CommonMainPost as Post } from '@/lib/common/types'
 
 interface PostCardProps {
   post: Post

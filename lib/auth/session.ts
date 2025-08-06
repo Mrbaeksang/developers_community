@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { GlobalRole, CommunityRole, MembershipStatus } from '@prisma/client'
 
 // Enhanced Auth Types

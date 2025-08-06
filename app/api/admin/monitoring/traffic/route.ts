@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
-import { successResponse, errorResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { redis } from '@/lib/core/redis'
+import { successResponse, errorResponse } from '@/lib/api/response'
 
 export async function GET() {
   try {

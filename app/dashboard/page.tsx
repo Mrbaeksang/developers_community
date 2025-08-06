@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, MessageSquare, Users, Heart } from 'lucide-react'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 
 async function getDashboardStats(userId: string) {
   const [mainPosts, communityPosts, comments, likes, communities] =

@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // GET: 현재 고정 상태 조회
 export async function GET(

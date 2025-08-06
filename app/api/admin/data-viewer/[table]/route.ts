@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
 
 // Prisma 모델명 매핑 (camelCase)
 const TABLE_MAP: Record<string, string> = {

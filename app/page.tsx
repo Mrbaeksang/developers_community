@@ -1,6 +1,6 @@
 import dynamic from 'next/dynamic'
 import { HeroSection } from '@/components/home/HeroSection'
-import { getApiUrl } from '@/lib/api'
+import { getApiUrl } from '@/lib/api/client'
 
 // Dynamic imports for heavy components
 const WeeklyPopularPosts = dynamic(

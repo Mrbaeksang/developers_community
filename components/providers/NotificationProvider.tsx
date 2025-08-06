@@ -12,7 +12,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { NotificationType } from '@prisma/client'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface Notification {
   id: string

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { syncAllViewCounts } from '@/lib/redis-sync'
-import { successResponse, errorResponse } from '@/lib/api-response'
+import { syncAllViewCounts } from '@/lib/cache/redis-sync'
+import { successResponse, errorResponse } from '@/lib/api/response'
 
 // Vercel Cron Job 또는 수동 실행을 위한 API
 // GET /api/cron/sync-views

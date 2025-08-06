@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse, deletedResponse } from '@/lib/api-response'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse, deletedResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 interface Context {
   params: Promise<{ id: string }>

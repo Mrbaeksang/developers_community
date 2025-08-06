@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { MembershipStatus } from '@prisma/client'
-import { paginatedResponse } from '@/lib/api-response'
-import { handleError, throwNotFoundError } from '@/lib/error-handler'
+import { paginatedResponse } from '@/lib/api/response'
+import { handleError, throwNotFoundError } from '@/lib/api/errors'
 
 // GET: 사용자가 가입한 커뮤니티 목록 조회
 export async function GET(

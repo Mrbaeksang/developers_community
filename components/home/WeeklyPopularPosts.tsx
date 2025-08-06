@@ -19,7 +19,7 @@ import * as Icons from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { formatCount, getLuminance } from '@/lib/common-types'
+import { formatCount, getLuminance } from '@/lib/common/types'
 
 interface Post {
   id: string

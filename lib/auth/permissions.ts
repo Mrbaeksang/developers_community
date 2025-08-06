@@ -1,15 +1,15 @@
 import { CommunityRole, GlobalRole } from '@prisma/client'
+import { COMMUNITY_ROLE_HIERARCHY, GLOBAL_ROLE_HIERARCHY } from './roles'
 
-// 커뮤니티 역할 계층 정의
-export const COMMUNITY_ROLE_HIERARCHY = {
+// 역할 레벨 가져오기 (roles에서 정의된 배열 기반으로 변환)
+const COMMUNITY_ROLE_LEVELS = {
   [CommunityRole.MEMBER]: 0,
   [CommunityRole.MODERATOR]: 1,
   [CommunityRole.ADMIN]: 2,
   [CommunityRole.OWNER]: 3,
 }
 
-// 전역 역할 계층 정의
-export const GLOBAL_ROLE_HIERARCHY = {
+const GLOBAL_ROLE_LEVELS = {
   [GlobalRole.USER]: 0,
   [GlobalRole.MANAGER]: 1,
   [GlobalRole.ADMIN]: 2,
@@ -34,9 +34,7 @@ export function canModifyCommunityContent(
   }
 
   // 2. 작성자보다 높은 권한이어야 수정 가능
-  return (
-    COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[authorRole]
-  )
+  return COMMUNITY_ROLE_LEVELS[userRole] > COMMUNITY_ROLE_LEVELS[authorRole]
 }
 
 /**
@@ -76,9 +74,7 @@ export function canBanCommunityMember(
   targetRole: CommunityRole
 ): boolean {
   // 자기보다 낮은 권한만 Ban 가능
-  return (
-    COMMUNITY_ROLE_HIERARCHY[userRole] > COMMUNITY_ROLE_HIERARCHY[targetRole]
-  )
+  return COMMUNITY_ROLE_LEVELS[userRole] > COMMUNITY_ROLE_LEVELS[targetRole]
 }
 
 /**

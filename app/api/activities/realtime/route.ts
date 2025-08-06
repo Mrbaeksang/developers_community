@@ -1,11 +1,11 @@
-import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
+import { prisma } from '@/lib/core/prisma'
+import { redis } from '@/lib/core/redis'
 import { subMinutes } from 'date-fns'
 import type { ActivityType } from '@/types/activity'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { getCursorCondition } from '@/lib/pagination-utils'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { getCursorCondition } from '@/lib/post/pagination'
 
 // 내부 활동 타입 (Date 객체 사용)
 interface InternalActivity {

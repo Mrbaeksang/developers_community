@@ -3,7 +3,7 @@
 const { RateLimiterRedis, RateLimiterMemory } = require('rate-limiter-flexible')
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { redis } from '@/lib/redis'
+import { redis } from '@/lib/core/redis'
 
 // Rate Limiter 타입 정의
 type RateLimiterInstance =

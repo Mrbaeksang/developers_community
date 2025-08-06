@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
 import {
   errorResponse,
   paginatedResponse,
   createdResponse,
-} from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
-import { invalidateCache, CACHE_TAGS } from '@/lib/db/query-cache'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import { invalidateCache, CACHE_TAGS } from '@/lib/cache/query'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
+} from '@/lib/post/pagination'
+import { mainPostSelect } from '@/lib/cache/patterns'
 
 export async function GET(request: NextRequest) {
   try {

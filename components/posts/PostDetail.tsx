@@ -12,8 +12,8 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
-import { formatCount, getTextColor } from '@/lib/common-types'
-import { apiClient } from '@/lib/api'
+import { formatCount, getTextColor } from '@/lib/common/types'
+import { apiClient } from '@/lib/api/client'
 
 // 레이지 로딩으로 ShareModal 최적화 - 사용자가 공유 버튼을 클릭할 때만 로드
 const ShareModal = lazy(() => import('./ShareModal'))

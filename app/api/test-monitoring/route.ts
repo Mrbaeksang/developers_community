@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { trackApiCall, logError } from '@/lib/monitoring'
-import { handleError } from '@/lib/error-handler'
+import { trackApiCall, logError } from '@/lib/api/monitoring-base'
+import { handleError } from '@/lib/api/errors'
 
 export async function GET() {
   const start = Date.now()

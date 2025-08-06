@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwNotFoundError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { userSelect } from '@/lib/prisma-select-patterns'
+import { prisma } from '@/lib/core/prisma'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwNotFoundError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { userSelect } from '@/lib/cache/patterns'
 
 // 사용자 프로필 조회 - GET /api/users/[id]
 export async function GET(

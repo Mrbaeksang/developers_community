@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { CommunityVisibility } from '@prisma/client'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse, deletedResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse, deletedResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 async function updateCommunity(
   req: Request,

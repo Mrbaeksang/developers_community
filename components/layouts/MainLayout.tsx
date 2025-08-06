@@ -1,7 +1,7 @@
 'use client'
 
 import { Header } from './Header'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/core/utils'
 
 interface MainLayoutProps {
   children: React.ReactNode

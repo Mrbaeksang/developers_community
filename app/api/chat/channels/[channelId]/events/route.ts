@@ -1,14 +1,11 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import {
   saveConnection,
   removeConnection,
   broadcastOnlineCount,
-} from '@/lib/chat-broadcast'
-import {
-  throwNotFoundError,
-  throwAuthorizationError,
-} from '@/lib/error-handler'
+} from '@/lib/chat/broadcast'
+import { throwNotFoundError, throwAuthorizationError } from '@/lib/api/errors'
 
 // GET: SSE 스트림 연결
 export async function GET(

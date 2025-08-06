@@ -1,15 +1,15 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
 import { z } from 'zod'
-import { broadcastMessage } from '@/lib/chat-broadcast'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import { broadcastMessage } from '@/lib/chat/broadcast'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
   throwValidationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 const messageSchema = z.object({
   content: z.string().min(1).max(1000),

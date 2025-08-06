@@ -1,4 +1,4 @@
-import { redis } from './redis'
+import { redis } from '@/lib/core/redis'
 
 /**
  * Redis cache TTL configurations (in seconds)

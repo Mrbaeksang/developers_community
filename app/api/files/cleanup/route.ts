@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { del } from '@vercel/blob'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { requireRoleAPI } from '@/lib/auth-utils'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { requireRoleAPI } from '@/lib/auth/session'
 
 // 파일 정리 배치 작업 - POST /api/files/cleanup
 export async function POST() {

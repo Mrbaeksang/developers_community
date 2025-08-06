@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { notificationEmitter } from '@/lib/notification-emitter'
-import { handleError } from '@/lib/error-handler'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { notificationEmitter } from '@/lib/notifications/emitter'
+import { handleError } from '@/lib/api/errors'
+import { requireAuthAPI } from '@/lib/auth/session'
 
 // GET: SSE로 실시간 알림 스트리밍
 export async function GET(req: NextRequest) {

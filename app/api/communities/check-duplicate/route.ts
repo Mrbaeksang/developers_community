@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import {
   successResponse,
   errorResponse,
   validationErrorResponse,
-} from '@/lib/api-response'
+} from '@/lib/api/response'
 import { z } from 'zod'
 
 const checkDuplicateSchema = z.object({

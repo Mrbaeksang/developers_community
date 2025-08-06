@@ -1,28 +1,28 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { auth } from '@/auth'
 import { z } from 'zod'
-import { requireAuthAPI } from '@/lib/auth-utils'
+import { requireAuthAPI } from '@/lib/auth/session'
 import { PostStatus, Prisma } from '@prisma/client'
-import { canModifyMainContent } from '@/lib/role-hierarchy'
-import { markdownToHtml } from '@/lib/markdown'
+import { canModifyMainContent } from '@/lib/auth/roles'
+import { markdownToHtml } from '@/lib/ui/markdown'
 import {
   successResponse,
   errorResponse,
   updatedResponse,
   deletedResponse,
   validationErrorResponse,
-} from '@/lib/api-response'
+} from '@/lib/api/response'
 import {
   handleError,
   throwValidationError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { withCSRFProtection } from '@/lib/csrf'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
-import { getViewCount } from '@/lib/redis'
+} from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { withCSRFProtection } from '@/lib/auth/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { getViewCount } from '@/lib/core/redis'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(

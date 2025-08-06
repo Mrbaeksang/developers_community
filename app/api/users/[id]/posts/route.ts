@@ -1,21 +1,21 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import {
   errorResponse,
   paginatedResponse,
   successResponse,
-} from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
   getCursorCondition,
   getCursorTake,
   formatCursorResponse,
-} from '@/lib/pagination-utils'
-import { mainPostSelect } from '@/lib/prisma-select-patterns'
-import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
+} from '@/lib/post/pagination'
+import { mainPostSelect } from '@/lib/cache/patterns'
+import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(

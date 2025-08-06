@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { put } from '@vercel/blob'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 

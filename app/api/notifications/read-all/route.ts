@@ -1,7 +1,7 @@
-import { prisma } from '@/lib/prisma'
-import { requireAuthAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { prisma } from '@/lib/core/prisma'
+import { requireAuthAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 // PUT: 모든 알림 읽음 처리
 export async function PUT() {

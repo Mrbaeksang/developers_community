@@ -1,14 +1,18 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { z } from 'zod'
-import { requireAuthAPI, checkBanStatus, hasPermission } from '@/lib/auth-utils'
-import { successResponse, validationErrorResponse } from '@/lib/api-response'
+import {
+  requireAuthAPI,
+  checkBanStatus,
+  hasPermission,
+} from '@/lib/auth/session'
+import { successResponse, validationErrorResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
-} from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+} from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({

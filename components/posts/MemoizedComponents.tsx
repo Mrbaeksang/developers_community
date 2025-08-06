@@ -4,7 +4,7 @@ import { memo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
-import { getLuminance } from '@/lib/color-utils'
+import { getLuminance } from '@/lib/ui/colors'
 
 interface TagBadgeProps {
   tag: {

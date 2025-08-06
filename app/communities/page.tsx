@@ -13,19 +13,19 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react'
-import { formatCount } from '@/lib/common-types'
+import { formatCount } from '@/lib/common/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
-import { getDefaultAvatar } from '@/lib/community-utils'
+import { getDefaultAvatar } from '@/lib/community/utils'
 import {
   getBannerUrl,
   getBannerType,
   getDefaultBannerById,
-} from '@/lib/banner-utils'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+} from '@/lib/ui/banner'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 
 interface Community {
   id: string

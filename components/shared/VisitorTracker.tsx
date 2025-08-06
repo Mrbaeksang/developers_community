@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 export function VisitorTracker() {
   const pathname = usePathname()

@@ -28,7 +28,7 @@ import {
   Tag,
   FileText,
 } from 'lucide-react'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '@/lib/api/client'
 
 interface PostAuthor {
   id: string

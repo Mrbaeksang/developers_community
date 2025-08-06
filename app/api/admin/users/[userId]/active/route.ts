@@ -1,8 +1,8 @@
-import { prisma } from '@/lib/prisma'
-import { requireRoleAPI } from '@/lib/auth-utils'
-import { successResponse } from '@/lib/api-response'
-import { handleError, throwValidationError } from '@/lib/error-handler'
-import { withCSRFProtection } from '@/lib/csrf'
+import { prisma } from '@/lib/core/prisma'
+import { requireRoleAPI } from '@/lib/auth/session'
+import { successResponse } from '@/lib/api/response'
+import { handleError, throwValidationError } from '@/lib/api/errors'
+import { withCSRFProtection } from '@/lib/auth/csrf'
 
 async function updateUserActive(
   req: Request,

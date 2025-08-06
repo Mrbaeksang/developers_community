@@ -1,8 +1,8 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import { Prisma } from '@prisma/client'
-import { successResponse } from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
+import { successResponse } from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
 
 // GET: 사용자가 접근 가능한 채팅 채널 목록 조회
 export async function GET() {

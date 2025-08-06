@@ -4,8 +4,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, type LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { CategoryBadge } from '@/components/shared/CategoryBadge'
@@ -13,9 +12,24 @@ import { TagBadge } from '@/components/shared/TagBadge'
 import { PostStats } from '@/components/shared/PostStats'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 
+// 읽기 시간 계산 함수
+function calculateReadingTime(content: string): number {
+  const koreanCharCount = (content.match(/[가-힣]/g) || []).length
+  const englishWordCount = (content.match(/[a-zA-Z]+/g) || []).length
+  const otherCharCount = content.length - koreanCharCount - englishWordCount
+
+  return Math.max(
+    1,
+    Math.ceil(
+      koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
+    )
+  )
+}
+
 interface Post {
   id: string
   title: string
+  content: string // 읽기시간 계산용 추가
   excerpt: string
   viewCount: number
   createdAt: string
@@ -128,18 +142,7 @@ export function RecentPosts() {
       <CardContent className="p-0">
         <div className="divide-y-2 divide-gray-200">
           {posts.slice(0, 5).map((post) => {
-            const CategoryIcon =
-              post.category.icon &&
-              Icons[post.category.icon as keyof typeof Icons] &&
-              typeof Icons[post.category.icon as keyof typeof Icons] ===
-                'function'
-                ? (Icons[
-                    post.category.icon as keyof typeof Icons
-                  ] as LucideIcon)
-                : undefined
-
-            // Remove unused variables since CategoryBadge handles colors internally
-
+            const readingTime = calculateReadingTime(post.content || '')
             return (
               <Link
                 key={post.id}
@@ -156,17 +159,21 @@ export function RecentPosts() {
 
                   {/* 게시글 정보 */}
                   <div className="flex-1 min-w-0">
-                    {/* 카테고리 뱃지 */}
-                    <div className="mb-2">
+                    {/* 카테고리 뱃지와 읽기 시간 */}
+                    <div className="flex items-center gap-3 mb-2">
                       <CategoryBadge
                         category={{
                           ...post.category,
                           color: post.category.color || '#808080',
                         }}
-                        icon={CategoryIcon || undefined}
+                        showIcon={true}
                         clickable={false}
                         className="text-xs px-2.5 py-0.5"
                       />
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{readingTime}분</span>
+                      </div>
                     </div>
 
                     {/* 제목 */}
@@ -185,7 +192,7 @@ export function RecentPosts() {
                               color: tag.color || '#808080',
                             }}
                             size="sm"
-                            showIcon={false}
+                            showIcon={true}
                             clickable={false}
                             className="text-[10px] px-2 py-0.5"
                           />

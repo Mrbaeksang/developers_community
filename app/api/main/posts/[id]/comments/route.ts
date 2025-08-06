@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/core/prisma'
 import {
   createPostCommentNotification,
   createCommentReplyNotification,
 } from '@/lib/notifications'
-import { requireAuthAPI, checkBanStatus } from '@/lib/auth-utils'
+import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
 import {
   successResponse,
   errorResponse,
   createdResponse,
-} from '@/lib/api-response'
-import { handleError } from '@/lib/error-handler'
-import { formatTimeAgo } from '@/lib/date-utils'
-import { withRateLimit } from '@/lib/rate-limiter'
-import { withCSRFProtection } from '@/lib/csrf'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+} from '@/lib/api/response'
+import { handleError } from '@/lib/api/errors'
+import { formatTimeAgo } from '@/lib/ui/date'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { withCSRFProtection } from '@/lib/auth/csrf'
+import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { PostListServer } from '@/components/posts/PostListServer'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getApiUrl } from '@/lib/api'
+import { getApiUrl } from '@/lib/api/client'
 
 export const metadata = {
   title: '게시글 목록 | Dev Community',

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getDefaultBlurPlaceholder } from '@/lib/image-utils'
+import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 import {
   Select,
   SelectContent,

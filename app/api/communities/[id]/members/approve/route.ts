@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { requireCommunityRoleAPI } from '@/lib/auth-utils'
+import { prisma } from '@/lib/core/prisma'
+import { requireCommunityRoleAPI } from '@/lib/auth/session'
 import { CommunityRole, MembershipStatus } from '@prisma/client'
 import { createNotification } from '@/lib/notifications'
-import { successResponse } from '@/lib/api-response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwValidationError,
-} from '@/lib/error-handler'
+} from '@/lib/api/errors'
 
 // POST: 가입 승인 (비공개 커뮤니티)
 export async function POST(
