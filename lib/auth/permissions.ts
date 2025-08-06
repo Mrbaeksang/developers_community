@@ -1,5 +1,4 @@
 import { CommunityRole, GlobalRole } from '@prisma/client'
-import { COMMUNITY_ROLE_HIERARCHY, GLOBAL_ROLE_HIERARCHY } from './roles'
 
 // 역할 레벨 가져오기 (roles에서 정의된 배열 기반으로 변환)
 const COMMUNITY_ROLE_LEVELS = {
@@ -7,12 +6,6 @@ const COMMUNITY_ROLE_LEVELS = {
   [CommunityRole.MODERATOR]: 1,
   [CommunityRole.ADMIN]: 2,
   [CommunityRole.OWNER]: 3,
-}
-
-const GLOBAL_ROLE_LEVELS = {
-  [GlobalRole.USER]: 0,
-  [GlobalRole.MANAGER]: 1,
-  [GlobalRole.ADMIN]: 2,
 }
 
 /**

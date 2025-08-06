@@ -3,7 +3,6 @@
  * 게시글 표시 관련 유틸리티 함수들
  */
 
-import { clsx } from 'clsx'
 import {
   FolderOpen,
   Layout,
