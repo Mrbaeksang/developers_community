@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { handleError } from '@/lib/error-handler'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const slug = searchParams.get('slug')
 
     if (!slug) {
-      return NextResponse.json({ error: 'Slug is required' }, { status: 400 })
+      throw throwValidationError('Slug is required')
     }
 
     // Check if slug exists in database

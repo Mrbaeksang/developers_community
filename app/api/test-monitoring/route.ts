@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { trackApiCall, logError } from '@/lib/monitoring'
+import { handleError } from '@/lib/error-handler'
 
 export async function GET() {
   const start = Date.now()
@@ -24,13 +25,7 @@ export async function GET() {
       message: error instanceof Error ? error.message : 'Unknown error',
     })
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-      },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
 
@@ -55,12 +50,6 @@ export async function POST() {
       message: error instanceof Error ? error.message : 'Unknown error',
     })
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Test error',
-      },
-      { status: 400 }
-    )
+    return handleError(error)
   }
 }

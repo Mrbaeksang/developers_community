@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handleError, throwNotFoundError } from '@/lib/error-handler'
 
 export async function GET(
   request: Request,
@@ -39,10 +40,7 @@ export async function GET(
     })
 
     if (!user) {
-      return NextResponse.json(
-        { error: '사용자를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      throw throwNotFoundError('사용자를 찾을 수 없습니다.')
     }
 
     return NextResponse.json({
@@ -57,9 +55,6 @@ export async function GET(
     })
   } catch (error) {
     console.error('Failed to fetch user profile:', error)
-    return NextResponse.json(
-      { error: '프로필을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }

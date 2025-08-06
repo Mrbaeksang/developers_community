@@ -1,6 +1,6 @@
 import micromatch from 'micromatch'
 
-export default {
+const lintStagedConfig = {
   '*.{js,jsx,ts,tsx}': async (files) => {
     // Windows 경로 정규화
     const match = micromatch(files, '*.{js,jsx,ts,tsx}')
@@ -31,3 +31,5 @@ export default {
     return []
   },
 }
+
+export default lintStagedConfig

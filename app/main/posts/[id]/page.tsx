@@ -36,7 +36,7 @@ async function getPost(id: string) {
     const baseUrl =
       process.env['NEXT_PUBLIC_BASE_URL'] || 'http://localhost:3000'
     const res = await fetch(`${baseUrl}/api/main/posts/${id}`, {
-      cache: 'no-store',
+      next: { revalidate: 60 }, // 60초 캐시
     })
 
     if (!res.ok) {
@@ -61,7 +61,7 @@ async function getPost(id: string) {
       const commentsRes = await fetch(
         `${baseUrl}/api/main/posts/${id}/comments`,
         {
-          cache: 'no-store',
+          next: { revalidate: 30 }, // 30초 캐시
         }
       )
       if (commentsRes.ok) {

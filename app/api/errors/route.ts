@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { handleError, throwValidationError } from '@/lib/error-handler'
 
 interface ErrorReport {
   message: string
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Validate the error data
     if (!errorData.message || !errorData.timestamp) {
-      return NextResponse.json({ error: 'Invalid error data' }, { status: 400 })
+      throw throwValidationError('Invalid error data')
     }
 
     // Add user context if available
@@ -49,9 +50,6 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('Error processing error report:', error)
-    return NextResponse.json(
-      { error: 'Failed to process error report' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 }
