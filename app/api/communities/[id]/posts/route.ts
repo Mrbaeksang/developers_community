@@ -18,7 +18,10 @@ import {
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
-import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import {
+  applyViewCountsAndSort,
+  applyViewCountsToPosts,
+} from '@/lib/post/viewcount'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
   parseHybridPagination,
@@ -27,6 +30,7 @@ import {
   formatCursorResponse,
 } from '@/lib/post/pagination'
 import { communityPostSelect } from '@/lib/cache/patterns'
+import { formatCommunityPostForResponse } from '@/lib/post/display'
 
 // GET: 커뮤니티 게시글 목록 조회
 export async function GET(
@@ -162,20 +166,49 @@ export async function GET(
           const total = await prisma.communityPost.count({ where })
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-          // Redis 조회수 적용
-          const postsWithViews = await applyViewCountsToPosts(
-            cursorResponse.items
-          )
+          // Redis 조회수 적용 및 정렬
+          // latest/oldest인 경우 정렬 안함, 나머지는 해당 필드로 정렬
+          let postsWithViews
+          if (sort === 'latest' || sort === 'oldest') {
+            // 시간순 정렬은 DB에서 이미 처리됨, Redis 조회수만 적용
+            postsWithViews = await applyViewCountsToPosts(
+              cursorResponse.items,
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          } else {
+            // 수치 기반 정렬은 Redis 적용 후 재정렬 필요
+            const sortField =
+              sort === 'popular'
+                ? 'viewCount'
+                : sort === 'likes'
+                  ? 'likeCount'
+                  : sort === 'bookmarks'
+                    ? 'bookmarkCount'
+                    : sort === 'commented'
+                      ? 'commentCount'
+                      : 'viewCount'
 
-          // 사용자별 좋아요/북마크 상태 처리
+            postsWithViews = await applyViewCountsAndSort(
+              cursorResponse.items,
+              sortField as keyof (typeof cursorResponse.items)[0],
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          }
+
+          // 사용자별 좋아요/북마크 상태 처리 및 통합 포맷 적용
           const formattedPosts = postsWithViews.map((post) => {
-            return {
+            const postWithState = {
               ...post,
               isLiked: post.likes && post.likes.length > 0,
               isBookmarked: post.bookmarks && post.bookmarks.length > 0,
-              likes: undefined,
-              bookmarks: undefined,
             }
+            return formatCommunityPostForResponse(postWithState)
           })
 
           return {
@@ -213,24 +246,52 @@ export async function GET(
             prisma.communityPost.count({ where }),
           ])
 
-          // Redis 조회수 적용
-          const postsWithViews = await applyViewCountsToPosts(posts)
+          // Redis 조회수 적용 및 정렬
+          // latest/oldest인 경우 정렬 안함, 나머지는 해당 필드로 정렬
+          let postsWithViews
+          if (sort === 'latest' || sort === 'oldest') {
+            // 시간순 정렬은 DB에서 이미 처리됨, Redis 조회수만 적용
+            postsWithViews = await applyViewCountsToPosts(posts, {
+              debug: false,
+              useMaxValue: true,
+            })
+          } else {
+            // 수치 기반 정렬은 Redis 적용 후 재정렬 필요
+            const sortField =
+              sort === 'popular'
+                ? 'viewCount'
+                : sort === 'likes'
+                  ? 'likeCount'
+                  : sort === 'bookmarks'
+                    ? 'bookmarkCount'
+                    : sort === 'commented'
+                      ? 'commentCount'
+                      : 'viewCount'
 
-          // 사용자별 좋아요/북마크 상태 처리
+            postsWithViews = await applyViewCountsAndSort(
+              posts,
+              sortField as keyof (typeof posts)[0],
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          }
+
+          // 사용자별 좋아요/북마크 상태 처리 및 통합 포맷 적용
           const formattedPosts = postsWithViews.map((post) => {
-            return {
+            const postWithState = {
               ...post,
               isLiked: post.likes && post.likes.length > 0,
               isBookmarked: post.bookmarks && post.bookmarks.length > 0,
-              likes: undefined,
-              bookmarks: undefined,
             }
+            return formatCommunityPostForResponse(postWithState)
           })
 
           return { posts: formattedPosts, total }
         }
       },
-      REDIS_TTL.API_SHORT // 1분 캐싱 (커뮤니티는 더 자주 업데이트)
+      REDIS_TTL.API_SHORT // 30초 캐싱 (커뮤니티는 더 자주 업데이트)
     )
 
     // 응답 생성

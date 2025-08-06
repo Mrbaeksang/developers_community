@@ -4,87 +4,28 @@ import { memo, useMemo } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import {
-  Clock,
-  type LucideIcon,
-  Tag,
-  Cloud,
-  Code,
-  Database,
-  Globe,
-  Zap,
-  Cpu,
-  Server,
-  Layers,
-  Package,
-} from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/core/utils'
 import { CategoryBadge } from '@/components/shared/CategoryBadge'
 import { TagBadge } from '@/components/shared/TagBadge'
 import { PostStats } from '@/components/shared/PostStats'
+import { getCategoryIcon } from '@/lib/post/display'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import type { CommonMainPost as Post } from '@/lib/common/types'
+import type { CommonMainPost } from '@/lib/common/types'
 
-interface PostCardProps {
-  post: Post
-  className?: string
+// API 응답에서 추가된 필드들을 포함한 타입 (display.ts의 formatMainPostForResponse 결과)
+interface PostWithCalculatedFields extends CommonMainPost {
+  readingTime?: number
+  likeCount?: number
+  commentCount?: number
+  bookmarkCount?: number
 }
 
-// 카테고리 아이콘 매핑 함수
-function getCategoryIcon(
-  iconName: string | null | undefined,
-  categoryName: string
-): LucideIcon | undefined {
-  // 데이터베이스에 올바른 Lucide 아이콘 이름이 저장된 경우
-  const iconMap: Record<string, LucideIcon> = {
-    cloud: Cloud,
-    code: Code,
-    database: Database,
-    globe: Globe,
-    zap: Zap,
-    cpu: Cpu,
-    server: Server,
-    layers: Layers,
-    package: Package,
-    tag: Tag,
-  }
-
-  // 1. 정확한 아이콘 이름이 있으면 해당 아이콘 반환
-  if (iconName && iconMap[iconName.toLowerCase()]) {
-    return iconMap[iconName.toLowerCase()]
-  }
-
-  // 2. 카테고리 이름 기반 자동 매핑 (fallback)
-  const categoryLower = categoryName.toLowerCase()
-  if (categoryLower.includes('cloud') || categoryLower.includes('클라우드'))
-    return Cloud
-  if (
-    categoryLower.includes('next') ||
-    categoryLower.includes('react') ||
-    categoryLower.includes('javascript')
-  )
-    return Code
-  if (
-    categoryLower.includes('database') ||
-    categoryLower.includes('데이터베이스')
-  )
-    return Database
-  if (categoryLower.includes('web') || categoryLower.includes('웹'))
-    return Globe
-  if (categoryLower.includes('performance') || categoryLower.includes('성능'))
-    return Zap
-  if (categoryLower.includes('server') || categoryLower.includes('서버'))
-    return Server
-  if (
-    categoryLower.includes('architecture') ||
-    categoryLower.includes('아키텍처')
-  )
-    return Layers
-
-  // 3. 기본 태그 아이콘 반환
-  return Tag as LucideIcon
+interface PostCardProps {
+  post: PostWithCalculatedFields
+  className?: string
 }
 
 // PostCard 컴포넌트를 memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
@@ -98,8 +39,10 @@ export const PostCard = memo(function PostCard({
     locale: ko,
   })
 
-  // 읽는 시간 계산을 useMemo로 최적화 (content가 변경될 때만 재계산)
+  // API에서 제공된 readingTime 사용, 없으면 직접 계산
   const readingTime = useMemo(() => {
+    if (post.readingTime) return post.readingTime
+
     // 읽는 시간 계산 (한글: 분당 300자, 영문: 분당 250단어)
     const koreanCharCount = (post.content.match(/[가-힣]/g) || []).length
     const englishWordCount = (post.content.match(/[a-zA-Z]+/g) || []).length
@@ -112,7 +55,7 @@ export const PostCard = memo(function PostCard({
         koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
       )
     )
-  }, [post.content])
+  }, [post.content, post.readingTime])
 
   return (
     <Card
@@ -132,10 +75,7 @@ export const PostCard = memo(function PostCard({
             {post.category && (
               <CategoryBadge
                 category={post.category}
-                icon={
-                  getCategoryIcon(post.category.icon, post.category.name) ||
-                  undefined
-                }
+                icon={getCategoryIcon(post.category.icon) || undefined}
               />
             )}
           </div>
@@ -188,8 +128,8 @@ export const PostCard = memo(function PostCard({
 
           <PostStats
             viewCount={post.viewCount}
-            likeCount={post._count?.likes || 0}
-            commentCount={post._count?.comments || 0}
+            likeCount={post.likeCount || post._count?.likes || 0}
+            commentCount={post.commentCount || post._count?.comments || 0}
             size="sm"
             variant="pill"
           />

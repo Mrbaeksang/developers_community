@@ -5,61 +5,44 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Eye,
-  MessageCircle,
-  Heart,
-  Flame,
-  Crown,
-  Medal,
-  Trophy,
-  User,
-} from 'lucide-react'
-import * as Icons from 'lucide-react'
+import { Eye, MessageCircle, Heart, Flame, User, Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { formatCount, getLuminance } from '@/lib/common/types'
+import { formatCount } from '@/lib/common/types'
+import {
+  getCategoryIcon,
+  formatViewCount,
+  getTagColorClass,
+  getRankingBadge,
+} from '@/lib/post/display'
+import { getTextColor } from '@/lib/ui/colors'
+import { usePageFocusRefresh } from '@/lib/hooks/usePageFocusRefresh'
+import type { CommonMainPost } from '@/lib/common/types'
 
-interface Post {
-  id: string
-  title: string
-  excerpt: string
-  viewCount: number
-  weeklyViews: number
-  createdAt: string
-  author: {
-    id: string
-    name: string | null
-    image: string | null
-  }
-  category: {
+// API 응답에서 추가된 필드들을 포함한 타입
+interface PostWithCalculatedFields extends CommonMainPost {
+  readingTime?: number
+  likeCount?: number
+  commentCount?: number
+  weeklyViews?: number
+  weeklyScore?: number
+  tags: Array<{
     id: string
     name: string
     slug: string
-    color?: string
-    icon?: string | null
-  }
-  tags?: Array<{
-    id: string
-    name: string
-    slug: string
-    color?: string
+    color?: string | null
   }>
-  _count: {
-    comments: number
-    likes: number
-  }
 }
 
 // 주간 인기 게시글 가져오기
-const fetchWeeklyTrending = async (): Promise<Post[]> => {
+const fetchWeeklyTrending = async (): Promise<PostWithCalculatedFields[]> => {
   const response = await fetch('/api/main/posts/weekly-trending?limit=5')
   if (!response.ok) {
     throw new Error('Failed to fetch weekly trending posts')
   }
   const result = await response.json()
-  return result.data?.posts || []
+  return result.data?.items || []
 }
 
 export function WeeklyPopularPosts() {
@@ -70,10 +53,13 @@ export function WeeklyPopularPosts() {
   } = useQuery({
     queryKey: ['weeklyTrending'],
     queryFn: fetchWeeklyTrending,
-    staleTime: 5 * 60 * 1000, // 5분간 fresh 상태 유지
-    gcTime: 10 * 60 * 1000, // 10분간 캐시 유지
-    refetchInterval: 5 * 60 * 1000, // 5분마다 자동 새로고침
+    staleTime: 30 * 1000, // 30초간 fresh 상태 유지
+    gcTime: 60 * 1000, // 1분간 캐시 유지
+    refetchInterval: 30 * 1000, // 30초마다 자동 새로고침
   })
+
+  // 페이지 포커스 시 자동 새로고침
+  usePageFocusRefresh('weeklyTrending')
 
   if (isLoading) {
     return (
@@ -158,17 +144,9 @@ export function WeeklyPopularPosts() {
       <CardContent className="p-0">
         <div className="divide-y-2 divide-gray-200">
           {posts.map((post, index) => {
-            const CategoryIcon =
-              post.category.icon &&
-              Icons[post.category.icon as keyof typeof Icons]
-                ? (Icons[
-                    post.category.icon as keyof typeof Icons
-                  ] as React.ComponentType<{ className?: string }>)
-                : null
-
-            const categoryBgColor = post.category.color || '#6366f1'
-            const categoryTextColor =
-              getLuminance(categoryBgColor) > 128 ? '#000000' : '#FFFFFF'
+            const CategoryIcon = getCategoryIcon(post.category?.icon)
+            const categoryBgColor = post.category?.color || '#6366f1'
+            const categoryTextColor = getTextColor(categoryBgColor)
 
             return (
               <Link
@@ -179,39 +157,44 @@ export function WeeklyPopularPosts() {
                 <div className="flex items-start gap-4">
                   {/* 순위 뱃지 */}
                   <div className="flex-shrink-0">
-                    {index === 0 ? (
-                      <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                        <Crown className="h-6 w-6 text-white drop-shadow-sm" />
-                      </div>
-                    ) : index === 1 ? (
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                        <Medal className="h-6 w-6 text-white drop-shadow-sm" />
-                      </div>
-                    ) : index === 2 ? (
-                      <div className="w-10 h-10 bg-gradient-to-br from-orange-300 to-orange-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                        <Trophy className="h-6 w-6 text-white drop-shadow-sm" />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center font-black text-base group-hover:bg-gray-50 transition-colors">
-                        {index + 1}
-                      </div>
-                    )}
+                    {(() => {
+                      const badge = getRankingBadge(index + 1)
+                      const Icon = badge.icon
+
+                      return (
+                        <div className={badge.className}>
+                          {Icon && !badge.showNumber ? (
+                            <Icon className="h-6 w-6 text-white drop-shadow-sm" />
+                          ) : badge.showNumber ? (
+                            index + 1
+                          ) : null}
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* 게시글 정보 */}
                   <div className="flex-1 min-w-0">
-                    {/* 카테고리 뱃지 */}
-                    <Badge
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mb-2 hover:scale-105 transition-transform"
-                      style={{
-                        backgroundColor: categoryBgColor,
-                        color: categoryTextColor,
-                        borderColor: '#000',
-                      }}
-                    >
-                      {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
-                      {post.category.name}
-                    </Badge>
+                    {/* 카테고리 뱃지와 읽기 시간 */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform"
+                        style={{
+                          backgroundColor: categoryBgColor,
+                          color: categoryTextColor,
+                          borderColor: '#000',
+                        }}
+                      >
+                        <CategoryIcon className="h-3 w-3" />
+                        {post.category?.name || '일반'}
+                      </Badge>
+                      {post.readingTime && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>{post.readingTime}분</span>
+                        </div>
+                      )}
+                    </div>
 
                     {/* 제목 */}
                     <h3 className="font-bold text-base mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
@@ -222,22 +205,12 @@ export function WeeklyPopularPosts() {
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {post.tags.slice(0, 3).map((tag) => {
-                          const tagBgColor = tag.color || '#6366f1'
-                          const tagTextColor =
-                            getLuminance(tagBgColor) > 128
-                              ? '#000000'
-                              : '#FFFFFF'
+                          const tagClasses = getTagColorClass(tag.name)
 
                           return (
                             <span
                               key={tag.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border-2 hover:scale-105 transition-all duration-200"
-                              style={{
-                                backgroundColor: tagBgColor,
-                                color: tagTextColor,
-                                borderColor: tagBgColor,
-                                boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
-                              }}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:scale-105 transition-all duration-200 ${tagClasses}`}
                             >
                               #<span>{tag.name}</span>
                             </span>
@@ -281,24 +254,24 @@ export function WeeklyPopularPosts() {
                       </span>
                     </div>
 
-                    {/* 통계 정보 */}
+                    {/* 통계 정보 - 순서 통일: 조회수 → 좋아요 → 댓글 */}
                     <div className="flex items-center gap-4 mt-2">
                       <span className="flex items-center gap-1 text-xs text-gray-600">
                         <Eye className="h-3.5 w-3.5 text-orange-500" />
                         <span className="font-medium">
-                          {formatCount(post.weeklyViews)}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-600">
-                        <MessageCircle className="h-3.5 w-3.5 text-blue-500" />
-                        <span className="font-medium">
-                          {formatCount(post._count?.comments || 0)}
+                          {formatViewCount(post.weeklyViews || post.viewCount)}
                         </span>
                       </span>
                       <span className="flex items-center gap-1 text-xs text-gray-600">
                         <Heart className="h-3.5 w-3.5 text-red-500" />
                         <span className="font-medium">
-                          {formatCount(post._count?.likes || 0)}
+                          {formatCount(post.likeCount || 0)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-gray-600">
+                        <MessageCircle className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="font-medium">
+                          {formatCount(post.commentCount || 0)}
                         </span>
                       </span>
                     </div>

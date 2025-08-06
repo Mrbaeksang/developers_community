@@ -109,16 +109,7 @@ export async function getUnifiedBatchViewCounts(
   return viewCountsMap
 }
 
-/**
- * 단일 게시글의 Redis 조회수 가져오기
- */
-export async function getSingleViewCount(
-  postId: string,
-  options: BatchViewCountOptions = {}
-): Promise<number> {
-  const result = await getUnifiedBatchViewCounts([postId], options)
-  return result.get(postId) || 0
-}
+// getSingleViewCount 함수 제거 - 사용되지 않음
 
 /**
  * DB viewCount와 Redis viewCount를 결합하여 최종 viewCount 계산
@@ -163,6 +154,33 @@ export async function applyViewCountsToPosts<
       ...post,
       viewCount: finalViewCount,
     }
+  })
+}
+
+/**
+ * 게시글 목록에 Redis 조회수를 적용하고 정렬하는 통합 함수
+ * 모든 API에서 동일한 방식으로 조회수 처리 및 정렬을 보장
+ */
+export async function applyViewCountsAndSort<
+  T extends { id: string; viewCount: number },
+  K extends keyof T = 'viewCount',
+>(
+  posts: T[],
+  sortBy: K = 'viewCount' as K,
+  options: BatchViewCountOptions = {}
+): Promise<T[]> {
+  if (posts.length === 0) {
+    return posts
+  }
+
+  // 1. Redis 조회수 적용
+  const postsWithViews = await applyViewCountsToPosts(posts, options)
+
+  // 2. 정렬 (높은 순서대로) - number 타입으로 확실히 처리
+  return postsWithViews.sort((a, b) => {
+    const aValue = Number(a[sortBy]) || 0
+    const bValue = Number(b[sortBy]) || 0
+    return bValue - aValue
   })
 }
 

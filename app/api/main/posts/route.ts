@@ -8,10 +8,14 @@ import {
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
+import { formatMainPostForResponse } from '@/lib/post/display'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
-import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import {
+  applyViewCountsAndSort,
+  applyViewCountsToPosts,
+} from '@/lib/post/viewcount'
 import { invalidateCache, CACHE_TAGS } from '@/lib/cache/query'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
@@ -106,22 +110,48 @@ export async function GET(request: NextRequest) {
           const total = await prisma.mainPost.count({ where })
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-          // Redis 조회수 통합 적용
-          const postsWithUpdatedViews = await applyViewCountsToPosts(
-            cursorResponse.items,
-            {
-              debug: false,
-              useMaxValue: true,
-            }
-          )
+          // Redis 조회수 적용 및 정렬
+          // latest인 경우 정렬 안함, 나머지는 해당 필드로 정렬
+          let postsWithUpdatedViews
+          if (sort === 'latest' || sort === 'oldest') {
+            // 시간순 정렬은 DB에서 이미 처리됨, Redis 조회수만 적용
+            postsWithUpdatedViews = await applyViewCountsToPosts(
+              cursorResponse.items,
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          } else {
+            // 수치 기반 정렬은 Redis 적용 후 재정렬 필요
+            const sortField =
+              sort === 'popular'
+                ? 'viewCount'
+                : sort === 'likes'
+                  ? 'likeCount'
+                  : sort === 'bookmarks'
+                    ? 'bookmarkCount'
+                    : sort === 'commented'
+                      ? 'commentCount'
+                      : 'viewCount'
 
-          // 포맷팅
-          const formattedPosts = postsWithUpdatedViews.map((post) => ({
-            ...post,
-            tags: post.tags?.map?.((postTag) => postTag.tag) || [],
-            createdAt: post.createdAt.toISOString(),
-            timeAgo: formatTimeAgo(post.createdAt),
-          }))
+            postsWithUpdatedViews = await applyViewCountsAndSort(
+              cursorResponse.items,
+              sortField as keyof (typeof cursorResponse.items)[0],
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          }
+
+          // 포맷팅 - 통합 포맷터 사용
+          const formattedPosts = postsWithUpdatedViews.map((post) => {
+            return formatMainPostForResponse({
+              ...post,
+              timeAgo: formatTimeAgo(post.createdAt),
+            })
+          })
 
           return {
             posts: formattedPosts,
@@ -146,24 +176,50 @@ export async function GET(request: NextRequest) {
             prisma.mainPost.count({ where }),
           ])
 
-          // Redis 조회수 통합 적용
-          const postsWithUpdatedViews = await applyViewCountsToPosts(posts, {
-            debug: false,
-            useMaxValue: true,
-          })
+          // Redis 조회수 적용 및 정렬
+          // latest인 경우 정렬 안함, 나머지는 해당 필드로 정렬
+          let postsWithUpdatedViews
+          if (sort === 'latest' || sort === 'oldest') {
+            // 시간순 정렬은 DB에서 이미 처리됨, Redis 조회수만 적용
+            postsWithUpdatedViews = await applyViewCountsToPosts(posts, {
+              debug: false,
+              useMaxValue: true,
+            })
+          } else {
+            // 수치 기반 정렬은 Redis 적용 후 재정렬 필요
+            const sortField =
+              sort === 'popular'
+                ? 'viewCount'
+                : sort === 'likes'
+                  ? 'likeCount'
+                  : sort === 'bookmarks'
+                    ? 'bookmarkCount'
+                    : sort === 'commented'
+                      ? 'commentCount'
+                      : 'viewCount'
 
-          // 포맷팅
-          const formattedPosts = postsWithUpdatedViews.map((post) => ({
-            ...post,
-            tags: post.tags?.map?.((postTag) => postTag.tag) || [],
-            createdAt: post.createdAt.toISOString(),
-            timeAgo: formatTimeAgo(post.createdAt),
-          }))
+            postsWithUpdatedViews = await applyViewCountsAndSort(
+              posts,
+              sortField as keyof (typeof posts)[0],
+              {
+                debug: false,
+                useMaxValue: true,
+              }
+            )
+          }
+
+          // 포맷팅 - 통합 포맷터 사용
+          const formattedPosts = postsWithUpdatedViews.map((post) => {
+            return formatMainPostForResponse({
+              ...post,
+              timeAgo: formatTimeAgo(post.createdAt),
+            })
+          })
 
           return { posts: formattedPosts, total }
         }
       },
-      REDIS_TTL.API_MEDIUM // 5분 캐싱
+      REDIS_TTL.API_SHORT // 30초 캐싱 (목록은 자주 변경)
     )
 
     // 응답 생성

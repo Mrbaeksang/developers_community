@@ -46,6 +46,11 @@ import {
   Car,
   Plane,
   Factory,
+  Crown,
+  Medal,
+  Trophy,
+  Award,
+  Star,
   LucideIcon,
 } from 'lucide-react'
 
@@ -321,5 +326,234 @@ export function getAuthorRoleBadge(role?: string): {
   return {
     show: true,
     ...roleStyle,
+  }
+}
+
+/**
+ * 읽기 시간 계산
+ * 한글, 영어, 기타 문자에 따라 다른 속도로 계산
+ */
+export function calculateReadingTime(content: string): number {
+  const koreanCharCount = (content.match(/[가-힣]/g) || []).length
+  const englishWordCount = (content.match(/[a-zA-Z]+/g) || []).length
+  const otherCharCount = content.length - koreanCharCount - englishWordCount
+
+  return Math.max(
+    1,
+    Math.ceil(
+      koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
+    )
+  )
+}
+
+/**
+ * 메인 포스트 타입 정의
+ */
+interface MainPostInput {
+  id: string
+  title: string
+  slug: string
+  content: string
+  excerpt: string | null
+  createdAt: Date | string
+  isPinned: boolean
+  status?: string
+  viewCount: number
+  likeCount?: number
+  commentCount?: number
+  bookmarkCount?: number
+  author: {
+    id: string
+    name: string | null
+    username?: string | null
+    image: string | null
+  }
+  category: {
+    id: string
+    name: string
+    slug: string
+    color: string | null
+    icon: string | null
+  }
+  tags?: Array<{
+    tag?: {
+      id: string
+      name: string
+      slug: string
+      color: string | null
+    }
+    id?: string
+    name?: string
+    slug?: string
+    color?: string | null
+  }>
+  _count?: {
+    likes?: number
+    comments?: number
+    bookmarks?: number
+  }
+  timeAgo?: string
+  weeklyViews?: number
+  weeklyScore?: number
+}
+
+/**
+ * 통합 게시글 응답 포맷터
+ * 모든 API에서 동일한 형식의 데이터 반환 보장
+ */
+export function formatMainPostForResponse(post: MainPostInput) {
+  // tags 처리 - 중첩 구조 평탄화
+  const tags =
+    post.tags?.map?.((postTag) => {
+      // postTag.tag가 있으면 중첩 구조, 없으면 이미 평탄화됨
+      if ('tag' in postTag && postTag.tag) {
+        return postTag.tag
+      }
+      return postTag
+    }) || []
+
+  // 통일된 응답 형식
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    excerpt: post.excerpt,
+    createdAt:
+      typeof post.createdAt === 'string'
+        ? post.createdAt
+        : post.createdAt.toISOString(),
+    isPinned: post.isPinned,
+    status: post.status,
+    viewCount: post.viewCount,
+    // _count 평탄화 - 직접 필드로 제공
+    likeCount: post.likeCount || post._count?.likes || 0,
+    commentCount: post.commentCount || post._count?.comments || 0,
+    bookmarkCount: post.bookmarkCount || post._count?.bookmarks || 0,
+    author: post.author,
+    category: post.category,
+    tags: tags,
+    // 계산된 필드
+    readingTime: calculateReadingTime(post.content),
+    timeAgo: post.timeAgo, // 이미 계산된 경우 사용
+    // 추가 필드들 (있는 경우만)
+    ...(post.weeklyViews !== undefined && { weeklyViews: post.weeklyViews }),
+    ...(post.weeklyScore !== undefined && { weeklyScore: post.weeklyScore }),
+  }
+}
+
+/**
+ * 커뮤니티 포스트 타입 정의
+ */
+interface CommunityPostInput {
+  id: string
+  title: string
+  content: string
+  createdAt: Date | string
+  viewCount: number
+  likeCount?: number
+  commentCount?: number
+  bookmarkCount?: number
+  author: {
+    id: string
+    name: string | null
+    email?: string // optional로 변경 (username이 있을 수 있음)
+    username?: string | null
+    image: string | null
+  }
+  category?: {
+    id: string
+    name: string
+    color: string | null
+  } | null
+  _count?: {
+    likes?: number
+    comments?: number
+    bookmarks?: number
+  }
+  isLiked?: boolean
+  isBookmarked?: boolean
+}
+
+/**
+ * 통합 커뮤니티 게시글 응답 포맷터
+ * 메인 게시글과 유사한 형식으로 통일
+ */
+export function formatCommunityPostForResponse(post: CommunityPostInput) {
+  return {
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    createdAt:
+      typeof post.createdAt === 'string'
+        ? post.createdAt
+        : post.createdAt.toISOString(),
+    viewCount: post.viewCount,
+    // _count 평탄화 - 직접 필드로 제공
+    likeCount: post.likeCount || post._count?.likes || 0,
+    commentCount: post.commentCount || post._count?.comments || 0,
+    bookmarkCount: post.bookmarkCount || post._count?.bookmarks || 0,
+    author: post.author,
+    category: post.category,
+    // 계산된 필드
+    readingTime: calculateReadingTime(post.content),
+    // 사용자별 상태
+    isLiked: post.isLiked || false,
+    isBookmarked: post.isBookmarked || false,
+  }
+}
+
+/**
+ * 순위 배지 컴포넌트와 스타일
+ * 주간 인기 게시글 등에서 사용
+ */
+export function getRankingBadge(rank: number): {
+  icon: LucideIcon | null
+  className: string
+  showNumber: boolean
+} {
+  switch (rank) {
+    case 1:
+      return {
+        icon: Crown,
+        className:
+          'w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform',
+        showNumber: false,
+      }
+    case 2:
+      return {
+        icon: Medal,
+        className:
+          'w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform',
+        showNumber: false,
+      }
+    case 3:
+      return {
+        icon: Trophy,
+        className:
+          'w-10 h-10 bg-gradient-to-br from-orange-300 to-orange-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform',
+        showNumber: false,
+      }
+    case 4:
+      return {
+        icon: Award,
+        className:
+          'w-10 h-10 bg-gradient-to-br from-purple-300 to-purple-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform',
+        showNumber: false,
+      }
+    case 5:
+      return {
+        icon: Star,
+        className:
+          'w-10 h-10 bg-gradient-to-br from-pink-300 to-pink-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform',
+        showNumber: false,
+      }
+    default:
+      return {
+        icon: null,
+        className:
+          'w-10 h-10 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-xl flex items-center justify-center font-black text-base group-hover:bg-gray-50 transition-colors',
+        showNumber: true,
+      }
   }
 }

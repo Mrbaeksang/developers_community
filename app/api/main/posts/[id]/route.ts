@@ -129,7 +129,7 @@ export async function GET(
           // viewCount는 캐시하지 않고 나중에 추가
         }
       },
-      REDIS_TTL.API_MEDIUM * 2 // 10분 캐싱
+      REDIS_TTL.API_SHORT // 30초 캐싱 (상세 페이지도 조회수 때문에 짧게)
     )
 
     if (!cachedPost) {

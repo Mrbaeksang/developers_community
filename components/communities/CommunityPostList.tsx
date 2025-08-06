@@ -33,12 +33,18 @@ interface Post {
   createdAt: string
   author: Author
   category: Category | null
-  _count: {
-    comments: number
-    likes: number
-  }
+  likeCount: number // 평탄화된 필드
+  commentCount: number // 평탄화된 필드
+  bookmarkCount?: number // 평탄화된 필드
+  readingTime?: number // API에서 계산된 필드
   isLiked: boolean
   isBookmarked: boolean
+  // 폴백을 위한 _count (optional)
+  _count?: {
+    comments?: number
+    likes?: number
+    bookmarks?: number
+  }
 }
 
 interface CommunityPostListProps {
@@ -241,11 +247,13 @@ export function CommunityPostList({
                       <Heart
                         className={`h-4 w-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`}
                       />
-                      {formatCount(post._count.likes)}
+                      {formatCount(post.likeCount || post._count?.likes || 0)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageSquare className="h-4 w-4" />
-                      {formatCount(post._count.comments)}
+                      {formatCount(
+                        post.commentCount || post._count?.comments || 0
+                      )}
                     </span>
                   </div>
                 </div>

@@ -11,55 +11,24 @@ import { CategoryBadge } from '@/components/shared/CategoryBadge'
 import { TagBadge } from '@/components/shared/TagBadge'
 import { PostStats } from '@/components/shared/PostStats'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
+import { usePageFocusRefresh } from '@/lib/hooks/usePageFocusRefresh'
+import type { CommonMainPost } from '@/lib/common/types'
 
-// 읽기 시간 계산 함수
-function calculateReadingTime(content: string): number {
-  const koreanCharCount = (content.match(/[가-힣]/g) || []).length
-  const englishWordCount = (content.match(/[a-zA-Z]+/g) || []).length
-  const otherCharCount = content.length - koreanCharCount - englishWordCount
-
-  return Math.max(
-    1,
-    Math.ceil(
-      koreanCharCount / 300 + englishWordCount / 250 + otherCharCount / 800
-    )
-  )
-}
-
-interface Post {
-  id: string
-  title: string
-  content: string // 읽기시간 계산용 추가
-  excerpt: string
-  viewCount: number
-  createdAt: string
-  isPinned?: boolean
-  author: {
-    id: string
-    name: string | null
-    image: string | null
-  }
-  category: {
+// API 응답에서 추가된 필드들을 포함한 타입
+interface PostWithCalculatedFields extends CommonMainPost {
+  readingTime?: number
+  likeCount?: number
+  commentCount?: number
+  tags: Array<{
     id: string
     name: string
     slug: string
-    color?: string
-    icon?: string | null
-  }
-  tags?: Array<{
-    id: string
-    name: string
-    slug: string
-    color?: string
+    color?: string | null
   }>
-  _count: {
-    comments: number
-    likes: number
-  }
 }
 
 // 최근 게시글 가져오기 함수
-const fetchRecentPosts = async (): Promise<Post[]> => {
+const fetchRecentPosts = async (): Promise<PostWithCalculatedFields[]> => {
   const response = await fetch('/api/main/posts?limit=10&sort=latest')
   if (!response.ok) throw new Error('Failed to fetch recent posts')
   const result = await response.json()
@@ -70,10 +39,13 @@ export function RecentPosts() {
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['recentPosts'],
     queryFn: fetchRecentPosts,
-    staleTime: 2 * 60 * 1000, // 2분간 fresh
-    gcTime: 5 * 60 * 1000, // 5분간 캐시
-    refetchInterval: 2 * 60 * 1000, // 2분마다 자동 새로고침
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 60 * 1000, // 1분간 캐시
+    refetchInterval: 30 * 1000, // 30초마다 자동 새로고침
   })
+
+  // 페이지 포커스 시 자동 새로고침
+  usePageFocusRefresh('recentPosts')
 
   if (isLoading) {
     return (
@@ -142,7 +114,7 @@ export function RecentPosts() {
       <CardContent className="p-0">
         <div className="divide-y-2 divide-gray-200">
           {posts.slice(0, 5).map((post) => {
-            const readingTime = calculateReadingTime(post.content || '')
+            const readingTime = post.readingTime || 1
             return (
               <Link
                 key={post.id}
@@ -161,15 +133,17 @@ export function RecentPosts() {
                   <div className="flex-1 min-w-0">
                     {/* 카테고리 뱃지와 읽기 시간 */}
                     <div className="flex items-center gap-3 mb-2">
-                      <CategoryBadge
-                        category={{
-                          ...post.category,
-                          color: post.category.color || '#808080',
-                        }}
-                        showIcon={true}
-                        clickable={false}
-                        className="text-xs px-2.5 py-0.5"
-                      />
+                      {post.category && (
+                        <CategoryBadge
+                          category={{
+                            ...post.category,
+                            color: post.category.color || '#808080',
+                          }}
+                          showIcon={true}
+                          clickable={false}
+                          className="text-xs px-2.5 py-0.5"
+                        />
+                      )}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>{readingTime}분</span>
@@ -226,8 +200,8 @@ export function RecentPosts() {
                     {/* 통계 정보 */}
                     <PostStats
                       viewCount={post.viewCount}
-                      likeCount={post._count?.likes || 0}
-                      commentCount={post._count?.comments || 0}
+                      likeCount={post.likeCount || 0}
+                      commentCount={post.commentCount || 0}
                       size="sm"
                       variant="minimal"
                       className="mt-2"

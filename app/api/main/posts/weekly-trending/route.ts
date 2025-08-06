@@ -3,6 +3,7 @@ import { prisma } from '@/lib/core/prisma'
 import { successResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
+import { formatMainPostForResponse } from '@/lib/post/display'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { getCursorCondition, formatCursorResponse } from '@/lib/post/pagination'
 import { mainPostSelect } from '@/lib/cache/patterns'
@@ -48,44 +49,51 @@ export async function GET(request: NextRequest) {
         const hasMore = posts.length > limit
         const postList = hasMore ? posts.slice(0, -1) : posts
 
-        // 표준화된 viewCount 적용 (Redis 통합)
-        const postsWithUpdatedViews = await applyViewCountsToPosts(postList, {
+        // 1. 먼저 Redis 조회수를 적용
+        const postsWithRedisViews = await applyViewCountsToPosts(postList, {
           debug: false,
           useMaxValue: true,
         })
 
-        // 주간 트렌딩 점수 계산 및 정렬
-        const postsWithWeeklyScore = postsWithUpdatedViews
-          .map((post) => {
-            // 인기도 점수 계산: viewCount + (좋아요 * 2) + (댓글 * 1.5)
-            const weeklyScore =
-              post.viewCount + post.likeCount * 2 + post.commentCount * 1.5
-            return {
-              ...post,
-              weeklyViews: post.viewCount, // 호환성을 위해 weeklyViews로도 제공
-              weeklyScore,
-            }
-          })
-          .filter((post) => post.weeklyScore > 5) // 최소 점수 기준
-          .sort((a, b) => b.weeklyScore - a.weeklyScore)
-          .slice(0, limit)
-
-        // 응답 포맷팅
-        const formattedPosts = postsWithWeeklyScore.map((post) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { weeklyScore, ...postData } = post
+        // 2. Redis가 적용된 viewCount로 주간 트렌딩 점수 계산
+        const postsWithWeeklyScore = postsWithRedisViews.map((post) => {
+          // 인기도 점수 계산: viewCount + (좋아요 * 2) + (댓글 * 1.5)
+          const weeklyScore =
+            post.viewCount + post.likeCount * 2 + post.commentCount * 1.5
           return {
-            ...postData,
-            timeAgo: formatTimeAgo(post.createdAt),
-            // 호환성을 위해 weeklyViews와 weeklyScore 모두 제공
-            weeklyViews: post.weeklyViews,
-            weeklyScore: post.weeklyScore,
+            ...post,
+            weeklyViews: post.viewCount, // 호환성을 위해 weeklyViews로도 제공
+            weeklyScore,
           }
         })
 
-        return formatCursorResponse(formattedPosts, limit)
+        // 3. weeklyScore 기준으로 정렬
+        const sortedPosts = postsWithWeeklyScore.sort(
+          (a, b) => b.weeklyScore - a.weeklyScore
+        )
+
+        // 최소 점수 기준 필터링 및 limit 적용
+        const filteredPosts = sortedPosts
+          .filter((post) => post.weeklyScore > 5)
+          .slice(0, limit)
+
+        // 커서 응답 생성 (Date 객체 필요)
+        const cursorResponse = formatCursorResponse(filteredPosts, limit)
+
+        // 응답 포맷팅 - 통합 포맷터 사용
+        const formattedItems = cursorResponse.items.map((post) => {
+          return formatMainPostForResponse({
+            ...post,
+            timeAgo: formatTimeAgo(post.createdAt),
+          })
+        })
+
+        return {
+          ...cursorResponse,
+          items: formattedItems,
+        }
       },
-      REDIS_TTL.API_LONG / 2 // 30분 캐싱
+      REDIS_TTL.API_MEDIUM // 2분 캐싱 (계산 비용은 높지만 자주 업데이트 필요)
     )
 
     return successResponse(cachedData)

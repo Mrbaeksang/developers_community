@@ -44,21 +44,30 @@ export async function POST(
       return successResponse({ success: true })
     }
 
-    // Redis에 조회수 버퍼링
-    const viewKey = `community:${community.id}:post:${postId}:views`
+    // DB에서 직접 조회수 증가
+    const updatedPost = await prisma.communityPost.update({
+      where: { id: postId },
+      data: { viewCount: { increment: 1 } },
+      select: { viewCount: true },
+    })
 
+    // Redis 동기화 및 캐시 무효화
     const client = redis()
     if (client) {
-      // 조회수 증가
-      await client.incr(viewKey)
+      // Redis에도 동기화 (post_views 해시 사용)
+      await client.hset('post_views', postId, updatedPost.viewCount)
 
-      // TTL 설정 (24시간)
-      await client.expire(viewKey, 86400)
-    } else {
-      console.warn('Redis client not available for community post view count')
+      // 해당 게시글 상세 캐시 무효화 (조회수가 바로 반영되도록)
+      const { redisCache } = await import('@/lib/cache/redis')
+      await redisCache.delPattern(
+        `api:cache:community:post:detail:*postId*${postId}*`
+      )
+      await redisCache.delPattern(
+        `api:cache:community:posts:*communityId*${community.id}*`
+      )
     }
 
-    return successResponse({ success: true })
+    return successResponse({ success: true, viewCount: updatedPost.viewCount })
   } catch {
     // Redis 오류 시에도 정상 응답 (사용자 경험 우선)
     return successResponse({ success: true })

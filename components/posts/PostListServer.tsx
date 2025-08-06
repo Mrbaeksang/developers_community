@@ -3,6 +3,7 @@ import { prisma } from '@/lib/core/prisma'
 import { redis } from '@/lib/core/redis'
 import type { CommonMainPost as Post } from '@/lib/common/types'
 import { Prisma } from '@prisma/client'
+import { formatMainPostForResponse } from '@/lib/post/display'
 
 interface PostListServerProps {
   category?: string
@@ -151,50 +152,18 @@ export async function PostListServer({
     // Redis 오류 시 빈 Map 사용 (DB 조회수만 표시)
   }
 
-  // 타입 변환
+  // 타입 변환 - formatMainPostForResponse 사용
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formattedPosts: Post[] = allPosts.map((post: any) => ({
-    id: post.id,
-    title: post.title,
-    slug: post.slug,
-    content: post.content,
-    excerpt: post.excerpt || '',
-    type: 'ARTICLE' as const,
-    status: post.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
-    viewCount: post.viewCount + (redisViewCounts.get(post.id) || 0), // DB + Redis 조회수
-    createdAt: post.createdAt.toISOString(),
-    updatedAt: post.updatedAt.toISOString(),
-    publishedAt: post.approvedAt?.toISOString() || post.createdAt.toISOString(),
-    authorId: post.authorId,
-    categoryId: post.categoryId,
-    isPinned: post.isPinned,
-    author: {
-      id: post.author.id,
-      name: post.author.name,
-      email: post.author.email,
-      image: post.author.image,
-    },
-    category: post.category
-      ? {
-          id: post.category.id,
-          name: post.category.name,
-          slug: post.category.slug,
-          color: post.category.color || undefined,
-          icon: post.category.icon || undefined,
-        }
-      : null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tags: post.tags.map((pt: any) => ({
-      id: pt.tag.id,
-      name: pt.tag.name,
-      slug: pt.tag.slug,
-      color: pt.tag.color,
-    })),
-    _count: {
-      likes: post._count.likes,
-      comments: post._count.comments,
-    },
-  }))
+  const formattedPosts = allPosts.map((post: any) => {
+    // Redis 조회수 적용
+    const postWithRedisViews = {
+      ...post,
+      viewCount: post.viewCount + (redisViewCounts.get(post.id) || 0),
+    }
+
+    // 통합 포맷터 사용
+    return formatMainPostForResponse(postWithRedisViews) as Post
+  })
 
   const formattedCategories = categories.map((cat) => ({
     id: cat.id,

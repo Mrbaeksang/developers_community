@@ -67,7 +67,9 @@
       "Bash(# UI\ncp C:/Users/qortk/IdeaProjects/my_project/lib/color-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/colors.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/image-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/images.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/unsplash-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/unsplash.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/markdown.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/markdown.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/date-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/date.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/banner-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/ui/banner.ts\n\necho \"\"UI files copied\"\")",
       "Bash(# Chat\ncp C:/Users/qortk/IdeaProjects/my_project/lib/chat-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/chat/utils.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/chat-broadcast.ts C:/Users/qortk/IdeaProjects/my_project/lib/chat/broadcast.ts\n\n# Notifications\ncp C:/Users/qortk/IdeaProjects/my_project/lib/notifications.ts C:/Users/qortk/IdeaProjects/my_project/lib/notifications/index.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/notification-emitter.ts C:/Users/qortk/IdeaProjects/my_project/lib/notifications/emitter.ts\n\n# Community\ncp C:/Users/qortk/IdeaProjects/my_project/lib/community-utils.ts C:/Users/qortk/IdeaProjects/my_project/lib/community/utils.ts\n\n# Common\ncp C:/Users/qortk/IdeaProjects/my_project/lib/common-types.ts C:/Users/qortk/IdeaProjects/my_project/lib/common/types.ts\ncp C:/Users/qortk/IdeaProjects/my_project/lib/debounce.ts C:/Users/qortk/IdeaProjects/my_project/lib/common/debounce.ts\n\necho \"\"All files copied to new structure\"\")",
       "Bash(bash:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "mcp__desktop-commander__search_files",
+      "mcp__desktop-commander__search_code"
     ],
     "deny": []
   }

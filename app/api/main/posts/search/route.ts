@@ -4,9 +4,10 @@ import { Prisma } from '@prisma/client'
 import { successResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { mainPostSelect } from '@/lib/cache/patterns'
-import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import { applyViewCountsAndSort } from '@/lib/post/viewcount'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { formatTimeAgo } from '@/lib/ui/date'
+import { formatMainPostForResponse } from '@/lib/post/display'
 
 export async function GET(request: NextRequest) {
   try {
@@ -116,19 +117,23 @@ export async function GET(request: NextRequest) {
           select: mainPostSelect.list, // 목록용 패턴 사용
         })
 
-        // Redis 조회수 통합 적용
-        const resultsWithViews = await applyViewCountsToPosts(results, {
-          debug: false,
-          useMaxValue: true,
-        })
+        // Redis 조회수 적용 및 viewCount 기준 정렬
+        const resultsWithViews = await applyViewCountsAndSort(
+          results,
+          'viewCount',
+          {
+            debug: false,
+            useMaxValue: true,
+          }
+        )
 
-        // 응답 데이터 형식화
-        const formattedResults = resultsWithViews.map((post) => ({
-          ...post,
-          tags: post.tags.map((postTag) => postTag.tag),
-          createdAt: post.createdAt.toISOString(),
-          timeAgo: formatTimeAgo(post.createdAt),
-        }))
+        // 응답 데이터 형식화 - 통합 포맷터 사용
+        const formattedResults = resultsWithViews.map((post) => {
+          return formatMainPostForResponse({
+            ...post,
+            timeAgo: formatTimeAgo(post.createdAt),
+          })
+        })
 
         return { results: formattedResults }
       },

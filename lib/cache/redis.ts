@@ -6,10 +6,10 @@ import { redis } from '@/lib/core/redis'
 export const REDIS_TTL = {
   // View counts buffer (very short)
   VIEW_BUFFER: 60, // 1 minute
-  // API responses
-  API_SHORT: 60, // 1 minute
-  API_MEDIUM: 300, // 5 minutes
-  API_LONG: 3600, // 1 hour
+  // API responses - 프로덕션 환경 최적화
+  API_SHORT: 30, // 30초 (목록 등 자주 변경되는 데이터)
+  API_MEDIUM: 120, // 2분 (검색 결과 등)
+  API_LONG: 600, // 10분 (집계 데이터, 주간 인기 등)
   // Session data
   SESSION: 86400, // 24 hours
 } as const

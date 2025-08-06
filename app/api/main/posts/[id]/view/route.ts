@@ -22,11 +22,15 @@ export async function POST(
     // Redis 캐시 무효화 시도 (Redis가 있는 경우)
     try {
       const { redis } = await import('@/lib/core/redis')
+      const { redisCache } = await import('@/lib/cache/redis')
       const client = redis()
       if (client) {
         // Redis에도 동기화
         await client.hset('post_views', id, updatedPost.viewCount)
         // Redis 동기화 성공
+
+        // 해당 게시글 상세 캐시 무효화 (조회수가 바로 반영되도록)
+        await redisCache.delPattern(`api:cache:main:post:detail:*id*${id}*`)
       }
     } catch {
       // Redis 에러는 무시 (선택적 기능)

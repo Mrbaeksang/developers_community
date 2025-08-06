@@ -25,7 +25,15 @@ import {
   LayoutGrid,
   LayoutList,
 } from 'lucide-react'
-import type { Post } from '@/lib/common/types'
+import type { CommonMainPost } from '@/lib/common/types'
+
+// API 응답에서 추가된 필드들을 포함한 타입
+interface PostWithCalculatedFields extends CommonMainPost {
+  readingTime?: number
+  likeCount?: number
+  commentCount?: number
+  bookmarkCount?: number
+}
 
 interface Category {
   id: string
@@ -35,7 +43,7 @@ interface Category {
 }
 
 interface PostListProps {
-  initialPosts?: Post[]
+  initialPosts?: PostWithCalculatedFields[]
   categories?: Category[]
   isLoading?: boolean
   currentCategory?: string
@@ -129,7 +137,10 @@ export function PostList({
   const filteredPosts = useMemo(() => {
     return selectedCategory === 'all'
       ? posts
-      : posts.filter((post: Post) => post.category?.slug === selectedCategory)
+      : posts.filter(
+          (post: PostWithCalculatedFields) =>
+            post.category?.slug === selectedCategory
+        )
   }, [posts, selectedCategory])
 
   // 정렬된 게시물 목록 (고정 게시글 우선 정렬) - useMemo로 최적화
@@ -148,7 +159,10 @@ export function PostList({
         case 'popular':
           return b.viewCount - a.viewCount
         case 'discussed':
-          return (b._count?.comments || 0) - (a._count?.comments || 0)
+          return (
+            (b.commentCount || b._count?.comments || 0) -
+            (a.commentCount || a._count?.comments || 0)
+          )
         default:
           return 0
       }
@@ -158,7 +172,8 @@ export function PostList({
   // 탭별 필터링 - useMemo로 최적화
   const { trendingPosts, recentPosts } = useMemo(() => {
     const trending = sortedPosts.filter(
-      (post) => post.viewCount > 100 || (post._count?.likes || 0) > 10
+      (post) =>
+        post.viewCount > 100 || (post.likeCount || post._count?.likes || 0) > 10
     )
 
     const dayAgo = new Date()
@@ -367,7 +382,7 @@ export function PostList({
             }
           >
             {sortedPosts.length > 0 ? (
-              sortedPosts.map((post: Post) => (
+              sortedPosts.map((post: PostWithCalculatedFields) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
@@ -383,7 +398,7 @@ export function PostList({
             }
           >
             {trendingPosts.length > 0 ? (
-              trendingPosts.map((post: Post) => (
+              trendingPosts.map((post: PostWithCalculatedFields) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
@@ -399,7 +414,7 @@ export function PostList({
             }
           >
             {recentPosts.length > 0 ? (
-              recentPosts.map((post: Post) => (
+              recentPosts.map((post: PostWithCalculatedFields) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
