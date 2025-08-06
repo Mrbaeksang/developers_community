@@ -9,7 +9,7 @@ import {
   formatCursorResponse,
 } from '@/lib/pagination-utils'
 import { mainPostSelect } from '@/lib/prisma-select-patterns'
-import { getBatchWeeklyViewCounts } from '@/lib/db/query-helpers'
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       async () => {
         const cursorCondition = getCursorCondition(cursor)
 
-        // 주간 트렌딩 게시글 조회 - 선택적 필드 로딩 적용
+        // 주간 트렌딩 게시글 조회 - 표준화된 패턴 사용 (include만 사용)
         const posts = await prisma.mainPost.findMany({
           where: {
             status: 'PUBLISHED',
@@ -40,11 +40,7 @@ export async function GET(request: NextRequest) {
             }),
             ...cursorCondition,
           },
-          select: {
-            ...mainPostSelect.list,
-            likeCount: true,
-            commentCount: true,
-          },
+          select: mainPostSelect.list,
           orderBy: {
             createdAt: 'desc',
           },
@@ -55,40 +51,38 @@ export async function GET(request: NextRequest) {
         const hasMore = posts.length > limit
         const postList = hasMore ? posts.slice(0, -1) : posts
 
-        // 게시글 ID 목록 추출
-        const postIds = postList.map((p) => p.id)
+        // 표준화된 viewCount 적용 (Redis 통합)
+        const postsWithUpdatedViews = await applyViewCountsToPosts(postList, {
+          debug: false,
+          useMaxValue: true,
+        })
 
-        // 주간 조회수 배치 조회
-        const weeklyViewsMap =
-          postIds.length > 0
-            ? await getBatchWeeklyViewCounts(postIds)
-            : new Map<string, number>()
-
-        // 주간 조회수로 필터링 및 정렬
-        const postsWithWeeklyViews = postList
-          .map((post) => ({
-            ...post,
-            weeklyViews: weeklyViewsMap.get(post.id) || 0,
-          }))
-          .filter((post) => post.weeklyViews > 0) // 주간 조회수가 있는 것만
-          .sort((a, b) => {
-            // 인기도 점수 계산: 주간 조회수 + (좋아요 * 2) + (댓글 * 1.5)
-            const scoreA =
-              a.weeklyViews + a.likeCount * 2 + a.commentCount * 1.5
-            const scoreB =
-              b.weeklyViews + b.likeCount * 2 + b.commentCount * 1.5
-            return scoreB - scoreA
+        // 주간 트렌딩 점수 계산 및 정렬
+        const postsWithWeeklyScore = postsWithUpdatedViews
+          .map((post) => {
+            // 인기도 점수 계산: viewCount + (좋아요 * 2) + (댓글 * 1.5)
+            const weeklyScore =
+              post.viewCount + post.likeCount * 2 + post.commentCount * 1.5
+            return {
+              ...post,
+              weeklyViews: post.viewCount, // 호환성을 위해 weeklyViews로도 제공
+              weeklyScore,
+            }
           })
+          .filter((post) => post.weeklyScore > 5) // 최소 점수 기준
+          .sort((a, b) => b.weeklyScore - a.weeklyScore)
           .slice(0, limit)
 
         // 응답 포맷팅
-        const formattedPosts = postsWithWeeklyViews.map((post) => {
+        const formattedPosts = postsWithWeeklyScore.map((post) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { likeCount, commentCount, weeklyViews, ...postData } = post
+          const { weeklyScore, ...postData } = post
           return {
             ...postData,
             timeAgo: formatTimeAgo(post.createdAt),
-            weeklyViews,
+            // 호환성을 위해 weeklyViews와 weeklyScore 모두 제공
+            weeklyViews: post.weeklyViews,
+            weeklyScore: post.weeklyScore,
           }
         })
 

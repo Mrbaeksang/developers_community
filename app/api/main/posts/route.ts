@@ -10,11 +10,8 @@ import { handleError } from '@/lib/error-handler'
 import { formatTimeAgo } from '@/lib/date-utils'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
-import {
-  getPostOrderBy,
-  getPaginationSkipTake,
-  getBatchViewCounts,
-} from '@/lib/db/query-helpers'
+// Removed deprecated query-helpers import - using direct pagination
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 import { invalidateCache, CACHE_TAGS } from '@/lib/db/query-cache'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 import {
@@ -62,7 +59,22 @@ export async function GET(request: NextRequest) {
     }
 
     // 정렬 조건
-    const orderBy = getPostOrderBy(sort)
+    const orderBy = (() => {
+      switch (sort) {
+        case 'popular':
+          return { viewCount: 'desc' as const }
+        case 'likes':
+          return { likeCount: 'desc' as const }
+        case 'bookmarks':
+          return { bookmarkCount: 'desc' as const }
+        case 'commented':
+          return { commentCount: 'desc' as const }
+        case 'oldest':
+          return { createdAt: 'asc' as const }
+        default:
+          return { createdAt: 'desc' as const }
+      }
+    })()
 
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('main:posts', {
@@ -94,21 +106,19 @@ export async function GET(request: NextRequest) {
           const total = await prisma.mainPost.count({ where })
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-          // 마크다운 변환 및 포맷팅
-          // Redis 조회수 가져오기
-          const postIds = cursorResponse.items.map((p) => p.id)
-          const viewCountsMap =
-            postIds.length > 0
-              ? await getBatchViewCounts(postIds)
-              : new Map<string, number>()
+          // Redis 조회수 통합 적용
+          const postsWithUpdatedViews = await applyViewCountsToPosts(
+            cursorResponse.items,
+            {
+              debug: false,
+              useMaxValue: true,
+            }
+          )
 
-          const formattedPosts = cursorResponse.items.map((post) => ({
+          // 포맷팅
+          const formattedPosts = postsWithUpdatedViews.map((post) => ({
             ...post,
-            viewCount: Math.max(
-              post.viewCount,
-              viewCountsMap.get(post.id) || 0
-            ),
-            tags: post.tags.map((postTag) => postTag.tag),
+            tags: post.tags?.map?.((postTag) => postTag.tag) || [],
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),
           }))
@@ -122,10 +132,8 @@ export async function GET(request: NextRequest) {
         }
         // 기존 오프셋 기반 페이지네이션 (호환성)
         else {
-          const { skip, take } = getPaginationSkipTake({
-            page: pagination.page,
-            limit: pagination.limit,
-          })
+          const skip = (pagination.page - 1) * pagination.limit
+          const take = pagination.limit
 
           const [posts, total] = await Promise.all([
             prisma.mainPost.findMany({
@@ -138,21 +146,16 @@ export async function GET(request: NextRequest) {
             prisma.mainPost.count({ where }),
           ])
 
-          // Redis 조회수 가져오기
-          const postIds = posts.map((p) => p.id)
-          const viewCountsMap =
-            postIds.length > 0
-              ? await getBatchViewCounts(postIds)
-              : new Map<string, number>()
+          // Redis 조회수 통합 적용
+          const postsWithUpdatedViews = await applyViewCountsToPosts(posts, {
+            debug: false,
+            useMaxValue: true,
+          })
 
-          // 마크다운 변환 및 포맷팅
-          const formattedPosts = posts.map((post) => ({
+          // 포맷팅
+          const formattedPosts = postsWithUpdatedViews.map((post) => ({
             ...post,
-            viewCount: Math.max(
-              post.viewCount,
-              viewCountsMap.get(post.id) || 0
-            ),
-            tags: post.tags.map((postTag) => postTag.tag),
+            tags: post.tags?.map?.((postTag) => postTag.tag) || [],
             createdAt: post.createdAt.toISOString(),
             timeAgo: formatTimeAgo(post.createdAt),
           }))

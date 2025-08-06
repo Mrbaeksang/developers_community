@@ -126,6 +126,11 @@ export async function GET(req: NextRequest) {
             'notification',
             notificationHandler
           )
+          try {
+            controller.close()
+          } catch {
+            // 이미 닫혔을 수 있음
+          }
         })
       },
     })

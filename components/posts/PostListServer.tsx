@@ -1,7 +1,7 @@
 import { PostList } from '@/components/home/PostList'
 import { prisma } from '@/lib/prisma'
 import { redis } from '@/lib/redis'
-import type { Post } from '@/lib/types'
+import type { CommonMainPost as Post } from '@/lib/common-types'
 import { Prisma } from '@prisma/client'
 
 interface PostListServerProps {
@@ -179,10 +179,10 @@ export async function PostListServer({
           id: post.category.id,
           name: post.category.name,
           slug: post.category.slug,
-          color: post.category.color,
-          icon: post.category.icon,
+          color: post.category.color || undefined,
+          icon: post.category.icon || undefined,
         }
-      : undefined,
+      : null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tags: post.tags.map((pt: any) => ({
       id: pt.tag.id,

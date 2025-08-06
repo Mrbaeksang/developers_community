@@ -17,7 +17,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
-import type { Comment } from '@/lib/types'
+// Comment type defined locally
+type Comment = {
+  id: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  isEdited?: boolean
+  parentId: string | null
+  replies?: Comment[]
+}
 import { apiClient } from '@/lib/api'
 
 interface CommentSectionProps {

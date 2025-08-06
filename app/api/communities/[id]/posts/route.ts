@@ -17,11 +17,8 @@ import {
 } from '@/lib/error-handler'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { withCSRFProtection } from '@/lib/csrf'
-import {
-  getBatchViewCounts,
-  getPostOrderBy,
-  getPaginationSkipTake,
-} from '@/lib/db/query-helpers'
+// Removed deprecated query-helpers import - using direct pagination
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 import {
   parseHybridPagination,
@@ -105,7 +102,22 @@ export async function GET(
     }
 
     // 정렬 옵션
-    const orderBy = getPostOrderBy(sort)
+    const orderBy = (() => {
+      switch (sort) {
+        case 'popular':
+          return { viewCount: 'desc' as const }
+        case 'likes':
+          return { likeCount: 'desc' as const }
+        case 'bookmarks':
+          return { bookmarkCount: 'desc' as const }
+        case 'commented':
+          return { commentCount: 'desc' as const }
+        case 'oldest':
+          return { createdAt: 'asc' as const }
+        default:
+          return { createdAt: 'desc' as const }
+      }
+    })()
 
     // Redis 캐시 키 생성 - 로그인 상태에 따라 다른 캐시 사용
     const cacheKey = generateCacheKey('community:posts', {
@@ -150,17 +162,15 @@ export async function GET(
           const total = await prisma.communityPost.count({ where })
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-          // Redis에서 조회수 일괄 조회
-          const postIds = cursorResponse.items.map((p) => p.id)
-          const viewCountsMap = await getBatchViewCounts(postIds)
+          // Redis 조회수 적용
+          const postsWithViews = await applyViewCountsToPosts(
+            cursorResponse.items
+          )
 
-          // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
-          const formattedPosts = cursorResponse.items.map((post) => {
-            const redisViews = viewCountsMap.get(post.id) || 0
-
+          // 사용자별 좋아요/북마크 상태 처리
+          const formattedPosts = postsWithViews.map((post) => {
             return {
               ...post,
-              viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
               isLiked: post.likes && post.likes.length > 0,
               isBookmarked: post.bookmarks && post.bookmarks.length > 0,
               likes: undefined,
@@ -177,10 +187,8 @@ export async function GET(
         }
         // 기존 오프셋 기반 페이지네이션 (호환성)
         else {
-          const { skip, take } = getPaginationSkipTake({
-            page: pagination.page,
-            limit: pagination.limit,
-          })
+          const skip = (pagination.page - 1) * pagination.limit
+          const take = pagination.limit
 
           const [posts, total] = await Promise.all([
             prisma.communityPost.findMany({
@@ -205,17 +213,13 @@ export async function GET(
             prisma.communityPost.count({ where }),
           ])
 
-          // Redis에서 조회수 일괄 조회
-          const postIds = posts.map((p) => p.id)
-          const viewCountsMap = await getBatchViewCounts(postIds)
+          // Redis 조회수 적용
+          const postsWithViews = await applyViewCountsToPosts(posts)
 
-          // 사용자별 좋아요/북마크 상태 처리 및 Redis 조회수 포함
-          const formattedPosts = posts.map((post) => {
-            const redisViews = viewCountsMap.get(post.id) || 0
-
+          // 사용자별 좋아요/북마크 상태 처리
+          const formattedPosts = postsWithViews.map((post) => {
             return {
               ...post,
-              viewCount: post.viewCount + redisViews, // DB 조회수 + Redis 조회수
               isLiked: post.likes && post.likes.length > 0,
               isBookmarked: post.bookmarks && post.bookmarks.length > 0,
               likes: undefined,

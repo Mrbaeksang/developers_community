@@ -17,7 +17,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
-import type { Comment } from '@/lib/types'
+// Comment type defined locally
+type Comment = {
+  id: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  isEdited?: boolean
+  parentId: string | null
+  replies?: Comment[]
+}
 
 interface CommunityCommentSectionProps {
   postId: string
@@ -262,9 +277,7 @@ export function CommunityCommentSection({
           <Avatar className="h-8 w-8 border-2 border-black">
             <AvatarImage src={comment.author.image || undefined} />
             <AvatarFallback className="font-bold text-xs">
-              {comment.author.name?.[0] ||
-                comment.author.email?.[0]?.toUpperCase() ||
-                '?'}
+              {comment.author.name?.[0]?.toUpperCase() || '?'}
             </AvatarFallback>
           </Avatar>
 

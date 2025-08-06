@@ -25,7 +25,7 @@ import { TagBadge } from '@/components/shared/TagBadge'
 import { PostStats } from '@/components/shared/PostStats'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import type { Post } from '@/lib/types'
+import type { CommonMainPost as Post } from '@/lib/common-types'
 
 interface PostCardProps {
   post: Post

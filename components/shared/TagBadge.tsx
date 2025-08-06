@@ -10,7 +10,7 @@ interface TagBadgeProps {
     id: string
     name: string
     slug?: string
-    color: string
+    color?: string | null
   }
   showIcon?: boolean
   clickable?: boolean
@@ -25,7 +25,8 @@ export function TagBadge({
   size = 'sm',
   className,
 }: TagBadgeProps) {
-  const textColor = getTextColor(tag.color)
+  const backgroundColor = tag.color || '#e5e7eb'
+  const textColor = getTextColor(backgroundColor)
 
   const sizeClasses = {
     sm: 'text-xs px-2.5 py-1.5',
@@ -49,7 +50,7 @@ export function TagBadge({
         className
       )}
       style={{
-        backgroundColor: tag.color,
+        backgroundColor: backgroundColor,
         color: textColor,
       }}
     >

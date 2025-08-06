@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { paginatedResponse } from '@/lib/api-response'
 import { handleError, throwNotFoundError } from '@/lib/error-handler'
+import { mainPostSelect } from '@/lib/prisma-select-patterns'
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 
 // 태그별 게시글 조회
 export async function GET(
@@ -36,43 +38,7 @@ export async function GET(
             },
           },
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              color: true,
-            },
-          },
-          tags: {
-            include: {
-              tag: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  color: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-              likes: true,
-              bookmarks: true,
-            },
-          },
-        },
+        select: mainPostSelect.list,
         orderBy: {
           createdAt: 'desc',
         },
@@ -91,13 +57,15 @@ export async function GET(
       }),
     ])
 
-    // tags 데이터 형식 변환
+    // tags 데이터 형식 변환 및 Redis 조회수 적용
     const formattedPosts = posts.map((post) => ({
       ...post,
       tags: post.tags.map((postTag) => postTag.tag),
     }))
 
-    return paginatedResponse(formattedPosts, page, limit, totalCount)
+    const postsWithViews = await applyViewCountsToPosts(formattedPosts)
+
+    return paginatedResponse(postsWithViews, page, limit, totalCount)
   } catch (error) {
     return handleError(error)
   }

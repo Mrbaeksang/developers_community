@@ -8,6 +8,7 @@ import {
 } from '@/lib/api-response'
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
+import { tagSelect } from '@/lib/prisma-select-patterns'
 
 export async function GET(request: Request) {
   try {
@@ -38,14 +39,7 @@ export async function GET(request: Request) {
             postCount: { gt: 0 }, // 게시글이 있는 태그만
             ...cursorCondition,
           },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            postCount: true,
-            color: true,
-            description: true,
-          },
+          select: tagSelect.list,
           orderBy: [
             { postCount: 'desc' },
             { name: 'asc' }, // 동일 카운트일 경우 이름순
@@ -70,7 +64,6 @@ export async function GET(request: Request) {
             slug: tag.slug,
             count: tag.postCount,
             color: tag.color,
-            description: tag.description || undefined,
           })),
           nextCursor,
           hasMore,

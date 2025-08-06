@@ -19,7 +19,7 @@ import {
   FileText,
   User,
 } from 'lucide-react'
-import { formatCount, getTextColor } from '@/lib/post-format-utils'
+import { formatCount, getTextColor } from '@/lib/common-types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

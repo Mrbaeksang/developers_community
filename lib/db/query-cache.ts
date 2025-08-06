@@ -1,10 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import {
-  postInclude,
-  getBatchViewCounts,
-  getBatchWeeklyViewCounts,
-} from './query-helpers'
+import { redis } from '@/lib/redis'
+import { mainPostSelect } from '@/lib/prisma-select-patterns'
 
 /**
  * Cache tags for invalidation
@@ -59,7 +56,7 @@ export const getCachedMainPosts = unstable_cache(
         orderBy,
         skip,
         take,
-        include: postInclude.withTags,
+        select: mainPostSelect.list,
       }),
       prisma.mainPost.count({ where }),
     ])
@@ -109,7 +106,7 @@ export const getCachedTrendingPosts = unstable_cache(
           category: { slug: category },
         }),
       },
-      include: postInclude.withTags,
+      select: mainPostSelect.list,
     })
 
     // Get weekly view counts
@@ -119,7 +116,9 @@ export const getCachedTrendingPosts = unstable_cache(
     // Format and sort by weekly views
     const postsWithWeeklyViews = posts.map((post) => ({
       ...post,
-      tags: post.tags.map((postTag) => postTag.tag),
+      tags: post.tags.map(
+        (postTag: { tag: (typeof post.tags)[0]['tag'] }) => postTag.tag
+      ),
       weeklyViews: weeklyViewsMap.get(post.id) || 0,
     }))
 
@@ -263,4 +262,92 @@ export async function invalidateCache(tags: string | string[]) {
   } else {
     revalidateTag(tags)
   }
+}
+
+/**
+ * Get batch view counts from Redis
+ */
+async function getBatchViewCounts(
+  postIds: string[]
+): Promise<Map<string, number>> {
+  const viewCountsMap = new Map<string, number>()
+
+  try {
+    const redisClient = redis()
+    if (!redisClient) return viewCountsMap
+
+    const pipeline = redisClient.pipeline()
+    postIds.forEach((id) => {
+      pipeline.hget('post_views', id)
+    })
+
+    const results = await pipeline.exec()
+    if (results) {
+      results.forEach((result, index) => {
+        const [err, value] = result
+        if (!err && value) {
+          viewCountsMap.set(postIds[index], parseInt(value as string) || 0)
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Failed to get batch view counts:', error)
+  }
+
+  return viewCountsMap
+}
+
+/**
+ * Get batch weekly view counts from Redis
+ */
+async function getBatchWeeklyViewCounts(
+  postIds: string[]
+): Promise<Map<string, number>> {
+  const viewCountsMap = new Map<string, number>()
+
+  try {
+    const redisClient = redis()
+    if (!redisClient) return viewCountsMap
+
+    // Get current week start date
+    const now = new Date()
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+
+    const pipeline = redisClient.pipeline()
+
+    // Get weekly views for each post
+    postIds.forEach((id) => {
+      // Get views for last 7 days
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart)
+        date.setDate(date.getDate() + i)
+        const dateKey = date.toISOString().split('T')[0]
+        pipeline.hget(`post_views:daily:${dateKey}`, id)
+      }
+    })
+
+    const results = await pipeline.exec()
+    if (results) {
+      // Process results - 7 results per post
+      postIds.forEach((postId, postIndex) => {
+        let weeklyTotal = 0
+        for (let i = 0; i < 7; i++) {
+          const resultIndex = postIndex * 7 + i
+          if (results[resultIndex]) {
+            const [err, value] = results[resultIndex]
+            if (!err && value) {
+              weeklyTotal += parseInt(value as string) || 0
+            }
+          }
+        }
+        viewCountsMap.set(postId, weeklyTotal)
+      })
+    }
+  } catch (error) {
+    console.error('Failed to get batch weekly view counts:', error)
+  }
+
+  return viewCountsMap
 }

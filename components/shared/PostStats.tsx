@@ -1,7 +1,7 @@
 'use client'
 
 import { Eye, Heart, MessageCircle } from 'lucide-react'
-import { formatCount } from '@/lib/post-format-utils'
+import { formatCount } from '@/lib/common-types'
 import { cn } from '@/lib/utils'
 
 interface PostStatsProps {

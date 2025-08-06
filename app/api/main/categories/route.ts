@@ -9,6 +9,7 @@ import {
 import { handleError } from '@/lib/error-handler'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/redis-cache'
 import { trackApiCall } from '@/lib/monitoring'
+import { categorySelect } from '@/lib/prisma-select-patterns'
 
 export async function GET(request: Request) {
   const start = Date.now()
@@ -38,29 +39,13 @@ export async function GET(request: Request) {
             }
           : {}
 
-        // 카테고리 조회 - select 패턴 사용
+        // 카테고리 조회 - 표준화된 select 패턴 사용
         const categories = await prisma.mainCategory.findMany({
           where: {
             ...(!includeInactive && { isActive: true }),
             ...cursorCondition,
           },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            color: true,
-            icon: true,
-            order: true,
-            isActive: true,
-            _count: {
-              select: {
-                posts: {
-                  where: !includeInactive ? { status: 'PUBLISHED' } : undefined,
-                },
-              },
-            },
-          },
+          select: categorySelect.list,
           orderBy: [
             { order: 'asc' },
             { name: 'asc' }, // order가 같을 경우 이름순

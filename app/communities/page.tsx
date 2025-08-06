@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Activity,
 } from 'lucide-react'
-import { formatCount } from '@/lib/post-format-utils'
+import { formatCount } from '@/lib/common-types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

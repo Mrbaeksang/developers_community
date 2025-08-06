@@ -58,7 +58,8 @@
       "mcp__github__search_repositories",
       "Bash(cmd //c:*)",
       "WebFetch(domain:vercel.com)",
-      "Bash(npm outdated)"
+      "Bash(npm outdated)",
+      "mcp__exa__web_search_exa"
     ],
     "deny": []
   }

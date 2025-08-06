@@ -136,13 +136,9 @@ const eslintConfig = [
   {
     files: ['components/**/*.tsx'],
     rules: {
-      'no-restricted-syntax': [
-        'warn', // error → warn
-        {
-          selector: "CallExpression[callee.name='fetch']",
-          message: 'fetch 대신 @/lib/api의 apiClient 사용 권장',
-        },
-      ],
+      // fetch 사용 허용 - 클라이언트 컴포넌트는 apiClient 마이그레이션 보류
+      // TODO: 추후 점진적으로 apiClient로 마이그레이션 예정
+      'no-restricted-syntax': 'off',
     },
   },
 

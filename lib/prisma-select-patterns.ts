@@ -15,6 +15,8 @@ export const mainPostSelect = {
     createdAt: true,
     isPinned: true,
     viewCount: true,
+    likeCount: true,
+    commentCount: true,
     author: {
       select: {
         id: true,
@@ -37,6 +39,7 @@ export const mainPostSelect = {
             id: true,
             name: true,
             slug: true,
+            color: true,
           },
         },
       },
@@ -61,6 +64,9 @@ export const mainPostSelect = {
     isPinned: true,
     createdAt: true,
     updatedAt: true,
+    viewCount: true,
+    likeCount: true,
+    commentCount: true,
     author: {
       select: {
         id: true,
@@ -75,6 +81,8 @@ export const mainPostSelect = {
         id: true,
         name: true,
         slug: true,
+        color: true,
+        icon: true,
         description: true,
       },
     },
@@ -85,6 +93,7 @@ export const mainPostSelect = {
             id: true,
             name: true,
             slug: true,
+            color: true,
           },
         },
       },
@@ -94,6 +103,44 @@ export const mainPostSelect = {
         comments: true,
         likes: true,
         bookmarks: true,
+      },
+    },
+  },
+}
+
+// 커뮤니티 카테고리 필드 선택 패턴
+export const communityCategorySelect = {
+  // 리스트용
+  list: {
+    id: true,
+    name: true,
+    slug: true,
+    description: true,
+    color: true,
+    icon: true,
+    order: true,
+    isActive: true,
+    _count: {
+      select: {
+        posts: true,
+      },
+    },
+  },
+
+  // 상세 조회용
+  detail: {
+    id: true,
+    name: true,
+    slug: true,
+    description: true,
+    color: true,
+    icon: true,
+    order: true,
+    isActive: true,
+    communityId: true,
+    _count: {
+      select: {
+        posts: true,
       },
     },
   },
@@ -156,6 +203,8 @@ export const communityPostSelect = {
         id: true,
         name: true,
         slug: true,
+        color: true,
+        icon: true,
         description: true,
       },
     },
@@ -370,6 +419,69 @@ export const communityMemberSelect = {
   },
 }
 
+// Category patterns
+export const categorySelect = {
+  // 목록용 (가벼운 버전)
+  list: {
+    id: true,
+    name: true,
+    slug: true,
+    description: true,
+    color: true,
+    icon: true,
+    order: true,
+    isActive: true,
+    _count: {
+      select: {
+        posts: true,
+      },
+    },
+  },
+
+  // 상세용 (모든 필드)
+  detail: {
+    id: true,
+    name: true,
+    slug: true,
+    description: true,
+    color: true,
+    icon: true,
+    order: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+    _count: {
+      select: {
+        posts: true,
+      },
+    },
+  },
+}
+
+// Tag patterns
+export const tagSelect = {
+  // 목록용
+  list: {
+    id: true,
+    name: true,
+    slug: true,
+    color: true,
+    postCount: true,
+  },
+
+  // 상세용
+  detail: {
+    id: true,
+    name: true,
+    slug: true,
+    color: true,
+    description: true,
+    postCount: true,
+    createdAt: true,
+    updatedAt: true,
+  },
+}
+
 /**
  * Include 패턴을 Select 패턴으로 변환하는 헬퍼
  * 기존 코드와의 호환성 유지
@@ -388,13 +500,21 @@ export function convertIncludeToSelect(
           result[key] = { select: userSelect.basic }
           break
         case 'category':
-          result[key] = { select: { id: true, name: true, slug: true } }
+          result[key] = {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+              icon: true,
+            },
+          }
           break
         case 'tags':
           result[key] = {
             select: {
               tag: {
-                select: { id: true, name: true, slug: true },
+                select: { id: true, name: true, slug: true, color: true },
               },
             },
           }

@@ -6,6 +6,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { categorySelect } from '@/lib/prisma-select-patterns'
 
 // 카테고리 상세 조회
 export async function GET(
@@ -17,23 +18,14 @@ export async function GET(
 
     const category = await prisma.mainCategory.findUnique({
       where: { id },
-      include: {
-        _count: {
-          select: {
-            posts: true,
-          },
-        },
-      },
+      select: categorySelect.detail,
     })
 
     if (!category) {
       throwNotFoundError('카테고리를 찾을 수 없습니다')
     }
 
-    return successResponse({
-      ...category,
-      postCount: category._count.posts,
-    })
+    return successResponse(category)
   } catch (error) {
     return handleError(error)
   }

@@ -12,7 +12,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
-import type { Comment } from '@/lib/types'
+// Comment type defined locally
+type Comment = {
+  id: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  isEdited?: boolean
+  parentId: string | null
+  replies?: Comment[]
+}
 
 interface CommentItemProps {
   comment: Comment

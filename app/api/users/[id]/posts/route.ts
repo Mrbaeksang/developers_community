@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { redis } from '@/lib/redis'
 import {
   errorResponse,
   paginatedResponse,
@@ -16,6 +15,7 @@ import {
   formatCursorResponse,
 } from '@/lib/pagination-utils'
 import { mainPostSelect } from '@/lib/prisma-select-patterns'
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 
 // 사용자별 게시글 목록 조회 - GET /api/users/[id]/posts
 export async function GET(
@@ -88,26 +88,18 @@ export async function GET(
           const totalCount = await prisma.mainPost.count({ where })
           const cursorResponse = formatCursorResponse(posts, pagination.limit)
 
-          // 응답 데이터 형식화 및 Redis 조회수 포함
-          const formattedPosts = await Promise.all(
-            cursorResponse.items.map(async (post) => {
-              // Redis에서 버퍼링된 조회수 가져오기
-              let redisViews = 0
-              const client = redis()
-              if (client) {
-                const bufferKey = `post:${post.id}:views`
-                const bufferedViews = await client.get(bufferKey)
-                redisViews = parseInt(bufferedViews || '0')
-              }
-
-              return {
-                ...post,
-                viewCount: (post.viewCount || 0) + redisViews, // DB 조회수 + Redis 조회수
-                createdAt: post.createdAt.toISOString(),
-                timeAgo: formatTimeAgo(post.createdAt),
-              }
-            })
+          // 표준화된 viewCount 적용 (Redis 통합)
+          const postsWithUpdatedViews = await applyViewCountsToPosts(
+            cursorResponse.items,
+            { debug: false, useMaxValue: true }
           )
+
+          // 응답 데이터 형식화
+          const formattedPosts = postsWithUpdatedViews.map((post) => ({
+            ...post,
+            createdAt: post.createdAt.toISOString(),
+            timeAgo: formatTimeAgo(post.createdAt),
+          }))
 
           return {
             posts: formattedPosts,
@@ -134,26 +126,18 @@ export async function GET(
             prisma.mainPost.count({ where }),
           ])
 
-          // 응답 데이터 형식화 및 Redis 조회수 포함
-          const formattedPosts = await Promise.all(
-            posts.map(async (post) => {
-              // Redis에서 버퍼링된 조회수 가져오기
-              let redisViews = 0
-              const client = redis()
-              if (client) {
-                const bufferKey = `post:${post.id}:views`
-                const bufferedViews = await client.get(bufferKey)
-                redisViews = parseInt(bufferedViews || '0')
-              }
+          // 표준화된 viewCount 적용 (Redis 통합)
+          const postsWithUpdatedViews = await applyViewCountsToPosts(posts, {
+            debug: false,
+            useMaxValue: true,
+          })
 
-              return {
-                ...post,
-                viewCount: (post.viewCount || 0) + redisViews, // DB 조회수 + Redis 조회수
-                createdAt: post.createdAt.toISOString(),
-                timeAgo: formatTimeAgo(post.createdAt),
-              }
-            })
-          )
+          // 응답 데이터 형식화
+          const formattedPosts = postsWithUpdatedViews.map((post) => ({
+            ...post,
+            createdAt: post.createdAt.toISOString(),
+            timeAgo: formatTimeAgo(post.createdAt),
+          }))
 
           return { posts: formattedPosts, total: totalCount }
         }

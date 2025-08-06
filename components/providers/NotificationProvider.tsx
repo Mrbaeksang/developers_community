@@ -111,14 +111,18 @@ export function NotificationProvider({
     if (!session?.user?.id) return
 
     try {
-      const res = await fetch('/api/notifications?limit=10')
-      if (res.ok) {
-        const result = await res.json()
-        // successResponse 형식으로 오는 경우 data 필드에서 실제 데이터 추출
-        if (result.data) {
-          setNotifications(result.data.notifications || [])
-          setUnreadCount(result.data.unreadCount || 0)
+      const result = await apiClient<{
+        notifications: Notification[]
+        unreadCount: number
+      }>('/api/notifications?limit=10')
+      if (result.success) {
+        // apiClient는 { success: true, ...data }를 반환하므로 직접 접근 가능
+        const successResult = result as typeof result & {
+          notifications: Notification[]
+          unreadCount: number
         }
+        setNotifications(successResult.notifications || [])
+        setUnreadCount(successResult.unreadCount || 0)
       }
     } catch (error) {
       console.error('Failed to refresh notifications:', error)
@@ -185,6 +189,15 @@ export function NotificationProvider({
       return
     }
 
+    // Development 환경에서는 SSE 에러 최소화를 위한 옵션
+    if (
+      process.env.NODE_ENV === 'development' &&
+      process.env.NEXT_PUBLIC_DISABLE_SSE === 'true'
+    ) {
+      console.warn('[SSE] Disabled in development mode')
+      return
+    }
+
     // 기존 연결이 있다면 정리
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -199,8 +212,15 @@ export function NotificationProvider({
       setReconnectAttempts(0) // 연결 성공 시 재시도 횟수 초기화
     }
 
-    source.onerror = () => {
+    source.onerror = (event) => {
       setIsConnected(false)
+
+      // Development 환경에서는 에러 로깅 최소화
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[SSE] Connection lost, retrying...', event)
+      } else {
+        console.error('[SSE Client] Connection error:', event)
+      }
 
       // 최대 5번까지만 재연결 시도
       if (reconnectAttempts < 5) {

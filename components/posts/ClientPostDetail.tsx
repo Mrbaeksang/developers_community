@@ -3,7 +3,22 @@
 import { SessionProvider } from 'next-auth/react'
 import PostDetail from './PostDetail'
 import CommentSection from './CommentSection'
-import type { Comment } from '@/lib/types'
+// Comment type defined locally
+type Comment = {
+  id: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  author: {
+    id: string
+    name: string | null
+    image: string | null
+  }
+  isEdited?: boolean
+  parentId: string | null
+  replies?: Comment[]
+}
 
 interface ClientPostDetailProps {
   post: {

@@ -7,7 +7,7 @@ import { ko } from 'date-fns/locale'
 import { Eye, Heart, MessageSquare, TrendingUp, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { formatCount, getTextColor } from '@/lib/post-format-utils'
+import { formatCount, getTextColor } from '@/lib/common-types'
 
 interface RelatedPost {
   id: string

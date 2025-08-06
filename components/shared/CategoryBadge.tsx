@@ -11,7 +11,7 @@ interface CategoryBadgeProps {
     id: string
     name: string
     slug: string
-    color: string
+    color?: string | null
     icon?: string | null
   }
   icon?: LucideIcon
@@ -27,7 +27,8 @@ export function CategoryBadge({
   clickable = true,
   className,
 }: CategoryBadgeProps) {
-  const textColor = getTextColor(category.color)
+  const backgroundColor = category.color || '#f3f4f6'
+  const textColor = getTextColor(backgroundColor)
 
   const badgeContent = (
     <>
@@ -45,9 +46,9 @@ export function CategoryBadge({
         className
       )}
       style={{
-        backgroundColor: category.color,
+        backgroundColor: backgroundColor,
         color: textColor,
-        borderColor: category.color,
+        borderColor: backgroundColor,
       }}
     >
       {badgeContent}

@@ -7,6 +7,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/error-handler'
+import { communityCategorySelect } from '@/lib/prisma-select-patterns'
 
 // GET /api/communities/[id]/categories - 카테고리 목록 조회
 export async function GET(
@@ -39,32 +40,11 @@ export async function GET(
         communityId: community.id,
         ...(includeInactive ? {} : { isActive: true }),
       },
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: {
-                status: 'PUBLISHED',
-              },
-            },
-          },
-        },
-      },
+      select: communityCategorySelect.list,
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
     })
 
-    return successResponse(
-      categories.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        slug: cat.slug,
-        description: cat.description,
-        color: cat.color,
-        order: cat.order,
-        isActive: cat.isActive,
-        postCount: cat._count.posts,
-      }))
-    )
+    return successResponse(categories)
   } catch (error) {
     return handleError(error)
   }

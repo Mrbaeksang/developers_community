@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { PostList } from '@/components/home/PostList'
 import { Badge } from '@/components/ui/badge'
 import { Hash, FileText } from 'lucide-react'
-import type { Post } from '@/lib/types'
+import type { CommonMainPost as Post } from '@/lib/common-types'
 
 interface TagPageProps {
   params: Promise<{

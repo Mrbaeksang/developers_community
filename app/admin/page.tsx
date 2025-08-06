@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { lazy, Suspense } from 'react'
-import { formatCount } from '@/lib/post-format-utils'
+import { formatCount } from '@/lib/common-types'
 import {
   Card,
   CardContent,

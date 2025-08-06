@@ -8,6 +8,7 @@ import {
   mainPostSelect,
   communityPostSelect,
 } from '@/lib/prisma-select-patterns'
+import { applyViewCountsToPosts } from '@/lib/common-viewcount-utils'
 
 // 검색 스키마
 const searchSchema = z.object({
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
           content: string
           excerpt?: string | null
           createdAt: Date
+          viewCount: number // Redis 통합 조회수 추가
           type: 'main' | 'community'
           url: string
           author: {
@@ -162,25 +164,41 @@ export async function GET(req: NextRequest) {
             }),
           ])
 
+          // Redis viewCount 적용
+          const mainPostsWithViews = await applyViewCountsToPosts(mainPosts, {
+            debug: false,
+            useMaxValue: true,
+          })
+
+          const communityPostsWithViews = await applyViewCountsToPosts(
+            communityPosts,
+            {
+              debug: false,
+              useMaxValue: true,
+            }
+          )
+
           results.posts = [
-            ...mainPosts.map((post) => ({
+            ...mainPostsWithViews.map((post) => ({
               id: post.id,
               title: post.title,
               content: post.content,
               excerpt: post.excerpt,
               createdAt: post.createdAt,
+              viewCount: post.viewCount, // Redis 통합 조회수 포함
               type: 'main' as const,
               url: `/main/posts/${post.id}`,
               author: post.author,
               category: post.category,
               _count: post._count,
             })),
-            ...communityPosts.map((post) => ({
+            ...communityPostsWithViews.map((post) => ({
               id: post.id,
               title: post.title,
               content: post.content,
               excerpt: null,
               createdAt: post.createdAt,
+              viewCount: post.viewCount, // Redis 통합 조회수 포함
               type: 'community' as const,
               url: `/communities/${post.community.id}/posts/${post.id}`,
               author: post.author,
