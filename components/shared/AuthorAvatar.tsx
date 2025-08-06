@@ -63,6 +63,17 @@ export function AuthorAvatar({
   const displayName = author.name || author.username || '익명'
   const initial = displayName[0]?.toUpperCase() || '?'
 
+  // Google 이미지는 프록시를 통해 로드 (429 에러 방지)
+  const getImageSrc = (imageUrl: string | null | undefined) => {
+    if (!imageUrl) return undefined
+
+    if (imageUrl.startsWith('https://lh3.googleusercontent.com/')) {
+      return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`
+    }
+
+    return imageUrl
+  }
+
   const avatarElement = (
     <Avatar
       className={cn(
@@ -73,7 +84,7 @@ export function AuthorAvatar({
         avatarClassName
       )}
     >
-      <AvatarImage src={author.image || undefined} alt={displayName} />
+      <AvatarImage src={getImageSrc(author.image)} alt={displayName} />
       <AvatarFallback className="bg-primary/10 font-bold">
         {author.name || author.username ? (
           initial
