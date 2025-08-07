@@ -14,11 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { toast as sonnerToast } from 'sonner'
+import { TagSelector } from '@/components/forms/TagSelector'
 import {
-  X,
   AlertCircle,
   Maximize2,
   Minimize2,
@@ -35,6 +34,12 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Upload,
+  X,
+  FileText,
+  Archive,
+  Film,
+  Music,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import {
@@ -56,16 +61,16 @@ interface Category {
   slug: string
 }
 
-interface Tag {
-  id: string
-  name: string
-  slug: string
-  count?: number
-  color?: string
-}
-
 interface PostEditorProps {
   userRole?: string
+}
+
+interface UploadedFile {
+  id: string
+  name: string
+  size: number
+  type: string
+  url: string
 }
 
 // Character limits based on database schema
@@ -83,14 +88,6 @@ const fetchCategories = async (): Promise<Category[]> => {
   const result = await res.json()
   // API가 { data: { items: [...], pagination: {...} } } 형식으로 반환
   return result.data?.items || []
-}
-
-// 태그 가져오기 함수
-const fetchTags = async (): Promise<Tag[]> => {
-  const res = await fetch('/api/main/tags?limit=15')
-  if (!res.ok) throw new Error('Failed to fetch tags')
-  const result = await res.json()
-  return result.data?.tags || []
 }
 
 export function PostEditor({ userRole }: PostEditorProps) {
@@ -112,7 +109,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
   const [excerpt, setExcerpt] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState('')
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
 
   // Real-time validation states
   const [validationErrors, setValidationErrors] = useState({
@@ -120,7 +117,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
     content: '',
     excerpt: '',
     category: '',
-    tag: '',
   })
 
   // Validate input field in real-time (defined early for use in other functions)
@@ -145,13 +141,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
       case 'category':
         if (!value) return '카테고리를 선택해주세요.'
         return ''
-      case 'tag':
-        if (!value) return ''
-        if (value.length > CHARACTER_LIMITS.tag)
-          return `태그는 ${CHARACTER_LIMITS.tag}자 이하여야 합니다.`
-        if (!/^[a-zA-Z0-9가-힣\s-]+$/.test(value))
-          return '태그는 문자, 숫자, 하이픈만 사용할 수 있습니다.'
-        return ''
       default:
         return ''
     }
@@ -163,14 +152,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
     queryFn: fetchCategories,
     staleTime: 10 * 60 * 1000, // 10분간 fresh
     gcTime: 30 * 60 * 1000, // 30분간 캐시
-  })
-
-  // 태그 조회
-  const { data: existingTags = [] } = useQuery({
-    queryKey: ['tags', 'popular'],
-    queryFn: fetchTags,
-    staleTime: 5 * 60 * 1000, // 5분간 fresh
-    gcTime: 10 * 60 * 1000, // 10분간 캐시
   })
 
   // Auto-save mutation
@@ -270,6 +251,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
           metaTitle,
           metaDescription,
           isPinned: false,
+          fileIds: uploadedFiles.map((f) => f.id),
         }),
       })
 
@@ -331,7 +313,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
         content: validateField('content', content),
         excerpt: validateField('excerpt', excerpt),
         category: validateField('category', categoryId),
-        tag: '',
       }
 
       setValidationErrors(errors)
@@ -362,6 +343,59 @@ export function PostEditor({ userRole }: PostEditorProps) {
       createPostMutation,
     ]
   )
+
+  // File upload mutation
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error('Failed to upload file')
+
+      const data = await res.json()
+      return data.success && data.data ? data.data : data
+    },
+    onSuccess: (fileData) => {
+      setUploadedFiles((prev) => [...prev, fileData])
+      sonnerToast.success('파일이 업로드되었습니다.')
+    },
+    onError: (error) => {
+      console.error('File upload error:', error)
+      sonnerToast.error('파일 업로드에 실패했습니다.')
+    },
+  })
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files
+    if (!selectedFiles || selectedFiles.length === 0) return
+
+    // 파일 크기 확인 (10MB)
+    const file = selectedFiles[0]
+    if (file.size > 10 * 1024 * 1024) {
+      sonnerToast.error('파일 크기는 10MB를 초과할 수 없습니다.')
+      return
+    }
+
+    uploadFileMutation.mutate(file)
+  }
+
+  const removeFile = (fileId: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId))
+  }
+
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) return <ImageIcon className="h-4 w-4" />
+    if (type.startsWith('video/')) return <Film className="h-4 w-4" />
+    if (type.startsWith('audio/')) return <Music className="h-4 w-4" />
+    if (type.includes('zip') || type.includes('rar'))
+      return <Archive className="h-4 w-4" />
+    return <FileText className="h-4 w-4" />
+  }
 
   // Common image upload handler (defined after validateField but before useEffect)
   const handleImageUpload = useCallback(
@@ -580,38 +614,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasUnsavedChanges, isSubmitting])
-
-  // Note: Categories and tags are already loaded via React Query at the top of the component
-
-  // 태그 추가
-  const handleAddTag = () => {
-    if (!tagInput.trim()) return
-
-    // Validate tag
-    const error = validateField('tag', tagInput)
-    if (error) {
-      setValidationErrors((prev) => ({ ...prev, tag: error }))
-      return
-    }
-
-    const tagSlug = tagInput.toLowerCase().replace(/\s+/g, '-')
-    if (!selectedTags.includes(tagSlug)) {
-      if (selectedTags.length >= 10) {
-        sonnerToast.error('태그는 최대 10개까지 추가할 수 있습니다.')
-        return
-      }
-      setSelectedTags([...selectedTags, tagSlug])
-      setTagInput('')
-      setValidationErrors((prev) => ({ ...prev, tag: '' }))
-    } else {
-      sonnerToast.error('이미 추가된 태그입니다.')
-    }
-  }
-
-  // 태그 제거
-  const handleRemoveTag = (tagSlug: string) => {
-    setSelectedTags(selectedTags.filter((slug) => slug !== tagSlug))
-  }
 
   const editorClasses = isFullscreen
     ? 'fixed inset-0 z-50 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 overflow-auto'
@@ -970,101 +972,75 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     (최대 10개)
                   </span>
                 </Label>
-                <div className="mb-3 flex gap-2">
-                  <Input
-                    id="tags"
-                    value={tagInput}
-                    onChange={(e) => {
-                      setTagInput(e.target.value)
-                      const error = validateField('tag', e.target.value)
-                      setValidationErrors((prev) => ({ ...prev, tag: error }))
-                    }}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleAddTag()
-                      }
-                    }}
-                    placeholder="태그를 입력하고 Enter를 누르세요"
-                    className={`flex-1 border-2 border-black focus:ring-4 focus:ring-blue-200 ${
-                      validationErrors.tag
-                        ? 'border-red-500 focus:ring-red-200'
-                        : ''
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddTag}
-                    variant="outline"
-                    className="border-2 border-black hover:bg-gray-100"
-                    disabled={isSubmitting}
-                  >
-                    추가
-                  </Button>
+                <TagSelector
+                  value={selectedTags}
+                  onChange={setSelectedTags}
+                  maxTags={10}
+                  placeholder="태그를 입력하고 Enter를 누르세요"
+                  disabled={isSubmitting}
+                  showPopularTags={true}
+                />
+              </div>
+
+              {/* 파일 업로드 */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="files"
+                  className="mb-2 block text-lg font-bold text-black"
+                >
+                  파일 첨부 (선택사항)
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    (최대 10MB)
+                  </span>
+                </Label>
+                <div className="mt-2">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={isSubmitting || uploadingImage}
+                      className="hidden"
+                    />
+                    <div className="border-2 border-dashed border-black p-8 text-center hover:bg-gray-50 transition-colors rounded-lg">
+                      <Upload className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm font-medium">
+                        클릭하거나 파일을 드래그하세요
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        이미지, 문서, 압축파일 등 (최대 10MB)
+                      </p>
+                    </div>
+                  </label>
                 </div>
-                {validationErrors.tag && (
-                  <p className="mb-2 text-sm text-red-500 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {validationErrors.tag}
-                  </p>
-                )}
-                {/* Selected tags */}
-                {selectedTags.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {selectedTags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="border-2 border-black bg-yellow-200 px-3 py-1 text-black hover:bg-yellow-300"
+
+                {/* 업로드된 파일 목록 */}
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {uploadedFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                       >
-                        {tag}
-                        <button
+                        <div className="flex items-center gap-3">
+                          {getFileIcon(file.type)}
+                          <div>
+                            <p className="text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {Math.round(file.size / 1024)}KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
                           type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-2 hover:text-red-600"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFile(file.id)}
                           disabled={isSubmitting}
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </div>
-                )}
-                {/* Popular tags */}
-                {existingTags.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-sm text-gray-600">인기 태그:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {existingTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          onClick={() => {
-                            if (!selectedTags.includes(tag.slug)) {
-                              if (selectedTags.length >= 10) {
-                                sonnerToast.error(
-                                  '태그는 최대 10개까지 추가할 수 있습니다.'
-                                )
-                                return
-                              }
-                              setSelectedTags([...selectedTags, tag.slug])
-                            }
-                          }}
-                          className="rounded-full border-2 border-gray-300 bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:border-black hover:bg-gray-200 disabled:opacity-50"
-                          disabled={
-                            selectedTags.includes(tag.slug) || isSubmitting
-                          }
-                        >
-                          {tag.name}
-                          {tag.count && (
-                            <span className="ml-1 text-xs text-gray-500">
-                              ({tag.count})
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>

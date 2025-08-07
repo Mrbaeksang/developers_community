@@ -325,6 +325,7 @@ const createPostSchema = z.object({
   content: z.string().min(1, '내용을 입력해주세요'),
   categoryId: z.string().optional(),
   fileIds: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(), // 태그 slug 배열
 })
 
 async function createCommunityPost(
@@ -370,7 +371,7 @@ async function createCommunityPost(
       return validationErrorResponse(errors)
     }
 
-    const { title, content, categoryId, fileIds } = validation.data
+    const { title, content, categoryId, fileIds, tags } = validation.data
 
     // 파일 업로드 권한 확인
     if (
@@ -405,6 +406,36 @@ async function createCommunityPost(
       throwAuthorizationError('커뮤니티 멤버가 아닙니다')
     }
 
+    // 태그 처리 - 각 태그를 생성하거나 찾기
+    const tagConnections = []
+    if (tags && tags.length > 0) {
+      for (const tagSlug of tags) {
+        // 태그 이름 생성 (slug에서)
+        const tagName = tagSlug.replace(/-/g, ' ')
+
+        // 태그 생성 또는 찾기
+        const tag = await prisma.communityTag.upsert({
+          where: {
+            communityId_slug: {
+              communityId: id,
+              slug: tagSlug,
+            },
+          },
+          update: {
+            postCount: { increment: 1 },
+          },
+          create: {
+            name: tagName,
+            slug: tagSlug,
+            communityId: id,
+            postCount: 1,
+          },
+        })
+
+        tagConnections.push({ tagId: tag.id })
+      }
+    }
+
     // 게시글 생성
     const post = await prisma.communityPost.create({
       data: {
@@ -419,12 +450,23 @@ async function createCommunityPost(
               connect: fileIds.map((id) => ({ id })),
             }
           : undefined,
+        tags:
+          tagConnections.length > 0
+            ? {
+                create: tagConnections,
+              }
+            : undefined,
       },
       include: {
         author: {
           select: { id: true, name: true, email: true, image: true },
         },
         category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
         _count: {
           select: { comments: true, likes: true },
         },

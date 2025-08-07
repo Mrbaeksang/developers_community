@@ -92,7 +92,7 @@
 ## 🔴 미구현 컴포넌트 (실제로 필요한 것)
 
 ### 1. **forms/** (폼 관련)
-- ❌ **TagSelector** - 태그 선택기
+- ✅ **TagSelector** - 태그 선택기 (완료!)
 - ❌ **CategorySelector** - 카테고리 선택기
 - ❌ **ImageUploader** - 이미지 업로더 (DropzoneArea와 별개)
 
@@ -117,18 +117,18 @@
 
 ### 7. **shared/** (공통)
 - ✅ **Pagination** - 페이지네이션 (완료!)
-- ❌ **LoadingSpinner** - 로딩 스피너
-- ❌ **EmptyState** - 빈 상태
+- ✅ **LoadingSpinner** - 로딩 스피너 (완료!)
+- ✅ **EmptyState** - 빈 상태 (완료!)
 
 ## 📝 실제 구현 우선순위
 
 ### 🔥 1순위 (즉시 필요)
 1. ~~**Pagination**~~ ✅ 완료 - 모든 목록 페이지에 적용
-2. **LoadingSpinner** - 모든 로딩 상태
-3. **EmptyState** - 데이터 없을 때
+2. ~~**LoadingSpinner**~~ ✅ 완료 - 모든 로딩 상태
+3. ~~**EmptyState**~~ ✅ 완료 - 데이터 없을 때
 
 ### ⚡ 2순위 (핵심 기능)
-4. **TagSelector** - 글쓰기 필수
+4. ~~**TagSelector**~~ ✅ 완료 - 글쓰기 태그 선택
 5. **CategorySelector** - 글쓰기 필수
 6. **CommentForm** - 댓글 작성
 
