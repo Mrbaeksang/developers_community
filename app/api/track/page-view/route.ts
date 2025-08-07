@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const session = await auth()
     const userId = session?.user?.id
 
-    // 페이지뷰 추적
+    // 페이지뷰 추적 - Rate Limit 우회 (모니터링은 제한 없어야 함)
     await trackPageView(page, userId)
 
     return NextResponse.json({ success: true })

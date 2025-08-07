@@ -78,7 +78,8 @@ const fetchCategories = async (): Promise<Category[]> => {
   const res = await fetch('/api/main/categories')
   if (!res.ok) throw new Error('Failed to fetch categories')
   const result = await res.json()
-  return result.data || result
+  // API가 { data: { items: [...], pagination: {...} } } 형식으로 반환
+  return result.data?.items || []
 }
 
 // 태그 가져오기 함수
@@ -709,15 +710,21 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     <SelectValue placeholder="카테고리를 선택해주세요" />
                   </SelectTrigger>
                   <SelectContent className="border-2 border-black">
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id}
-                        className="text-lg font-medium hover:bg-indigo-100"
-                      >
-                        {category.name}
+                    {Array.isArray(categories) && categories.length > 0 ? (
+                      categories.map((category) => (
+                        <SelectItem
+                          key={category.id}
+                          value={category.id}
+                          className="text-lg font-medium hover:bg-indigo-100"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-category" disabled>
+                        카테고리가 없습니다
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
                 {validationErrors.category && (

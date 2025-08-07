@@ -4,6 +4,7 @@ import { redis } from '@/lib/core/redis'
 import type { MainPostFormatted } from '@/lib/post/types'
 import { Prisma } from '@prisma/client'
 import { formatMainPostForResponse } from '@/lib/post/display'
+import { Pagination } from '@/components/shared/Pagination'
 
 interface PostListServerProps {
   category?: string
@@ -31,7 +32,7 @@ export async function PostListServer({
 
   // 페이지네이션 설정
   const pageNumber = parseInt(page)
-  const pageSize = 10
+  const pageSize = 5 // 테스트를 위해 5개로 줄임
   const skip = (pageNumber - 1) * pageSize
 
   // 카테고리 필터 설정
@@ -80,44 +81,53 @@ export async function PostListServer({
     },
   }
 
-  const [pinnedPosts, regularPosts, categories] = await Promise.all([
-    // 1. 고정 게시글만 조회 (전체에서)
-    prisma.mainPost.findMany({
-      where: {
-        ...where,
-        isPinned: true,
-      },
-      orderBy: getRegularOrderBy(), // 고정 게시글도 선택한 정렬 방식으로 정렬
-      include: includeOptions,
-    }),
-    // 2. 일반 게시글만 조회 (페이지네이션 적용)
-    prisma.mainPost.findMany({
-      where: {
-        ...where,
-        isPinned: false,
-      },
-      orderBy: getRegularOrderBy(),
-      skip,
-      take: pageSize,
-      include: includeOptions,
-    }),
-    // 3. 카테고리 조회
-    prisma.mainCategory.findMany({
-      include: {
-        posts: {
-          where: {
-            status: 'PUBLISHED',
-          },
-          select: {
-            id: true,
+  const [pinnedPosts, regularPosts, totalCount, categories] = await Promise.all(
+    [
+      // 1. 고정 게시글만 조회 (전체에서)
+      prisma.mainPost.findMany({
+        where: {
+          ...where,
+          isPinned: true,
+        },
+        orderBy: getRegularOrderBy(), // 고정 게시글도 선택한 정렬 방식으로 정렬
+        include: includeOptions,
+      }),
+      // 2. 일반 게시글만 조회 (페이지네이션 적용)
+      prisma.mainPost.findMany({
+        where: {
+          ...where,
+          isPinned: false,
+        },
+        orderBy: getRegularOrderBy(),
+        skip,
+        take: pageSize,
+        include: includeOptions,
+      }),
+      // 3. 전체 일반 게시글 개수 조회
+      prisma.mainPost.count({
+        where: {
+          ...where,
+          isPinned: false,
+        },
+      }),
+      // 4. 카테고리 조회
+      prisma.mainCategory.findMany({
+        include: {
+          posts: {
+            where: {
+              status: 'PUBLISHED',
+            },
+            select: {
+              id: true,
+            },
           },
         },
-      },
-      orderBy: {
-        order: 'asc',
-      },
-    }),
-  ])
+        orderBy: {
+          order: 'asc',
+        },
+      }),
+    ]
+  )
 
   // 고정 게시글과 일반 게시글 합치기 (고정이 항상 먼저)
   const allPosts = [...pinnedPosts, ...regularPosts]
@@ -172,12 +182,23 @@ export async function PostListServer({
     postCount: cat.posts.length,
   }))
 
+  // 총 페이지 수 계산
+  const totalPages = Math.ceil(totalCount / pageSize)
+
   return (
-    <PostList
-      initialPosts={formattedPosts}
-      categories={formattedCategories}
-      isLoading={false}
-      currentCategory={category}
-    />
+    <>
+      <PostList
+        initialPosts={formattedPosts}
+        categories={formattedCategories}
+        isLoading={false}
+        currentCategory={category}
+      />
+      <Pagination
+        currentPage={pageNumber}
+        totalPages={totalPages}
+        baseUrl="/main/posts"
+        className="mt-8"
+      />
+    </>
   )
 }

@@ -6,11 +6,11 @@ import { MessageSquare, Heart, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { formatCount, getTextColor } from '@/lib/common/types'
+import { Pagination } from '@/components/shared/Pagination'
 
 interface Author {
   id: string
@@ -264,27 +264,12 @@ export function CommunityPostList({
       ))}
 
       {/* Pagination */}
-      {pagination.pages > 1 && (
-        <div className="flex justify-center gap-2 mt-8">
-          {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(
-            (p) => (
-              <Button
-                key={p}
-                variant={p === page ? 'default' : 'outline'}
-                size="sm"
-                asChild
-                className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-              >
-                <Link
-                  href={`/communities/${communitySlug}/posts?page=${p}${category ? `&category=${category}` : ''}${search ? `&search=${search}` : ''}${sort ? `&sort=${sort}` : ''}`}
-                >
-                  {p}
-                </Link>
-              </Button>
-            )
-          )}
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={pagination.pages}
+        baseUrl={`/communities/${communitySlug}/posts`}
+        className="mt-8"
+      />
     </div>
   )
 }
