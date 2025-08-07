@@ -11,7 +11,7 @@ import {
   throwAuthorizationError,
   throwValidationError,
 } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(
@@ -307,5 +307,5 @@ async function deleteCommunityPost(
 }
 
 // CSRF 보호 적용
-export const PATCH = withCSRFProtection(updateCommunityPost)
-export const DELETE = withCSRFProtection(deleteCommunityPost)
+export const PATCH = withSecurity(updateCommunityPost, { requireCSRF: true })
+export const DELETE = withSecurity(deleteCommunityPost, { requireCSRF: true })

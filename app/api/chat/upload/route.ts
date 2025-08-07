@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/core/prisma'
 import { requireAuthAPI } from '@/lib/auth/session'
 import { put } from '@vercel/blob'
@@ -5,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
 import { withRateLimiting } from '@/lib/security/compatibility'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+// CSRF protection is now handled within withRateLimiting
 import { ActionCategory } from '@/lib/security/actions'
 
 // 허용되는 파일 타입 및 크기 정의
@@ -30,7 +31,11 @@ const ALLOWED_TYPES = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 // POST: 채팅용 파일 업로드
-async function uploadFile(req: Request) {
+async function uploadFile(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: { params: Promise<Record<string, string | string[]>> }
+) {
   try {
     // 인증 확인
     const session = await requireAuthAPI()
@@ -120,7 +125,7 @@ async function uploadFile(req: Request) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(
-  withRateLimiting(uploadFile, { action: ActionCategory.FILE_UPLOAD })
-)
+// Rate Limiting 적용 (CSRF는 필요시 withRateLimiting 내부에서 처리)
+export const POST = withRateLimiting(uploadFile, {
+  action: ActionCategory.FILE_UPLOAD,
+})

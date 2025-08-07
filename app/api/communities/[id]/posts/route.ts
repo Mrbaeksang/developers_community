@@ -17,7 +17,7 @@ import {
 } from '@/lib/api/errors'
 import { withRateLimiting } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 // Removed deprecated query-helpers import - using direct pagination
 import {
   applyViewCountsAndSort,
@@ -447,10 +447,11 @@ async function createCommunityPost(
 }
 
 // Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
-export const POST = withCSRFProtection(
+export const POST = withSecurity(
   withRateLimiting(createCommunityPost, {
     action: ActionCategory.POST_CREATE,
     enablePatternDetection: true,
     enableAbuseTracking: true,
-  })
+  }),
+  { requireCSRF: true }
 )

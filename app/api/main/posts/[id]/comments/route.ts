@@ -14,7 +14,7 @@ import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { withRateLimiting } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
@@ -242,10 +242,11 @@ async function createComment(
 }
 
 // Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
-export const POST = withCSRFProtection(
+export const POST = withSecurity(
   withRateLimiting(createComment, {
     action: ActionCategory.COMMENT_CREATE,
     enablePatternDetection: true,
     enableAbuseTracking: true,
-  })
+  }),
+  { requireCSRF: true }
 )

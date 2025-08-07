@@ -2,7 +2,7 @@ import { prisma } from '@/lib/core/prisma'
 import { requireRoleAPI } from '@/lib/auth/session'
 import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 async function updateUserActive(
   req: Request,
@@ -46,4 +46,4 @@ async function updateUserActive(
 }
 
 // CSRF 보호 적용
-export const PUT = withCSRFProtection(updateUserActive)
+export const PUT = withSecurity(updateUserActive, { requireCSRF: true })

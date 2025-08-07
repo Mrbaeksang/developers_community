@@ -20,7 +20,7 @@ import {
   throwAuthorizationError,
 } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { getViewCount } from '@/lib/core/redis'
 
@@ -392,5 +392,5 @@ async function deletePost(
 }
 
 // CSRF 보호 적용
-export const PUT = withCSRFProtection(updatePost)
-export const DELETE = withCSRFProtection(deletePost)
+export const PUT = withSecurity(updatePost, { requireCSRF: true })
+export const DELETE = withSecurity(deletePost, { requireCSRF: true })

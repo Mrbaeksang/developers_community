@@ -13,7 +13,7 @@ import {
   throwValidationError,
 } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
 // 프로필 수정 스키마
@@ -224,4 +224,4 @@ async function updateProfile(request: NextRequest) {
 }
 
 // CSRF 보호 적용
-export const PUT = withCSRFProtection(updateProfile)
+export const PUT = withSecurity(updateProfile, { requireCSRF: true })

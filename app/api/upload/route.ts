@@ -4,9 +4,8 @@ import { put } from '@vercel/blob'
 import { requireAuthAPI } from '@/lib/auth/session'
 import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
-import { withRateLimiting } from '@/lib/security/compatibility'
+import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
-import { withCSRFProtection } from '@/lib/auth/csrf'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -32,7 +31,11 @@ function getFileType(
   return 'OTHER'
 }
 
-async function uploadFile(req: NextRequest) {
+async function uploadFile(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: { params: Promise<Record<string, string | string[]>> }
+) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -89,11 +92,10 @@ async function uploadFile(req: NextRequest) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
-export const POST = withCSRFProtection(
-  withRateLimiting(uploadFile, {
-    action: ActionCategory.FILE_UPLOAD,
-    enablePatternDetection: true,
-    enableAbuseTracking: true,
-  })
-)
+// 통합 보안 미들웨어 적용 - 새로운 보안 시스템 사용
+export const POST = withSecurity(uploadFile, {
+  action: ActionCategory.FILE_UPLOAD,
+  requireCSRF: true,
+  enablePatternDetection: true,
+  enableAbuseTracking: true,
+})

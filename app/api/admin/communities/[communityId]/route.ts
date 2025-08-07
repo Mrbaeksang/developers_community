@@ -4,7 +4,7 @@ import { CommunityVisibility } from '@prisma/client'
 import { requireRoleAPI } from '@/lib/auth/session'
 import { successResponse, deletedResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 async function updateCommunity(
   req: Request,
@@ -83,5 +83,5 @@ async function deleteCommunity(
 }
 
 // CSRF 보호 적용
-export const PUT = withCSRFProtection(updateCommunity)
-export const DELETE = withCSRFProtection(deleteCommunity)
+export const PUT = withSecurity(updateCommunity, { requireCSRF: true })
+export const DELETE = withSecurity(deleteCommunity, { requireCSRF: true })

@@ -7,7 +7,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 interface Context {
   params: Promise<{ id: string }>
@@ -136,5 +136,5 @@ async function deleteCategory(req: NextRequest, context: Context) {
 }
 
 // CSRF 보호 적용
-export const PATCH = withCSRFProtection(updateCategory)
-export const DELETE = withCSRFProtection(deleteCategory)
+export const PATCH = withSecurity(updateCategory, { requireCSRF: true })
+export const DELETE = withSecurity(deleteCategory, { requireCSRF: true })

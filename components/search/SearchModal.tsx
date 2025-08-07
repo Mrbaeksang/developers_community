@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useDebounce } from '@/hooks/use-debounce'
+import { useDebounce } from '@/hooks/useDebounce'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'

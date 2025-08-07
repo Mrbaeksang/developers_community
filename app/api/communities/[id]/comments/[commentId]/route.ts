@@ -13,7 +13,7 @@ import {
   throwValidationError,
   throwAuthorizationError,
 } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 // 댓글 수정 스키마
 const updateCommentSchema = z.object({
@@ -260,5 +260,7 @@ async function deleteCommunityComment(
 }
 
 // CSRF 보호 적용
-export const PATCH = withCSRFProtection(updateCommunityComment)
-export const DELETE = withCSRFProtection(deleteCommunityComment)
+export const PATCH = withSecurity(updateCommunityComment, { requireCSRF: true })
+export const DELETE = withSecurity(deleteCommunityComment, {
+  requireCSRF: true,
+})

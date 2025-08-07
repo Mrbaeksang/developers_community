@@ -3,7 +3,7 @@ import { prisma } from '@/lib/core/prisma'
 import { requireRoleAPI } from '@/lib/auth/session'
 import { successResponse, createdResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 // 카테고리 목록 조회 + 새 카테고리 생성
 export async function GET() {
@@ -89,4 +89,4 @@ async function createCategory(req: NextRequest) {
 }
 
 // CSRF 보호 적용
-export const POST = withCSRFProtection(createCategory)
+export const POST = withSecurity(createCategory, { requireCSRF: true })

@@ -106,22 +106,4 @@ export function csrfErrorResponse(): NextResponse {
   )
 }
 
-// Route Handler용 CSRF 미들웨어
-type RouteHandler<TContext = unknown> = (
-  req: NextRequest,
-  context: TContext
-) => Promise<Response> | Response
-
-export function withCSRFProtection<TContext = unknown>(
-  handler: RouteHandler<TContext>
-): RouteHandler<TContext> {
-  return async function (req: NextRequest, context: TContext) {
-    const isValid = await verifyCSRFToken(req)
-
-    if (!isValid) {
-      return csrfErrorResponse()
-    }
-
-    return handler(req, context)
-  }
-}
+// 레거시 함수 제거 - 모든 API가 withSecurity로 마이그레이션됨

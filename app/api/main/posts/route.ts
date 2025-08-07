@@ -9,9 +9,8 @@ import {
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { formatMainPostForResponse } from '@/lib/post/display'
-import { withRateLimiting } from '@/lib/security/compatibility'
+import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
-import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
 import {
   applyViewCountsAndSort,
@@ -248,7 +247,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function createPost(request: NextRequest) {
+async function createPost(
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: { params: Promise<Record<string, string | string[]>> }
+) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof NextResponse) {
@@ -445,11 +448,10 @@ async function createPost(request: NextRequest) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
-export const POST = withCSRFProtection(
-  withRateLimiting(createPost, {
-    action: ActionCategory.POST_CREATE,
-    enablePatternDetection: true,
-    enableAbuseTracking: true,
-  })
-)
+// 통합 보안 미들웨어 적용 (Rate Limiting + CSRF)
+export const POST = withSecurity(createPost, {
+  action: ActionCategory.POST_CREATE,
+  requireCSRF: true,
+  enablePatternDetection: true,
+  enableAbuseTracking: true,
+})

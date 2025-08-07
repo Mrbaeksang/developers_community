@@ -6,9 +6,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RateLimiter } from './rate-limiter'
 import { AbuseTracker, AbuseType, RestrictionInfo } from './abuse-tracker'
-import { PatternDetector } from './pattern-detector'
-import { ActionCategory, getActionFromPath } from './actions'
+import { ActionCategory } from './actions'
 import { withRateLimitHandler } from './middleware'
+// 통합 미들웨어 사용
+import {
+  withSecurity as withSecurityUnified,
+  withRateLimiting as withRateLimitingUnified,
+  SecurityOptions,
+} from './unified-middleware'
 
 export interface RateLimitOptions {
   // 기본 옵션
@@ -31,104 +36,40 @@ export interface RateLimitOptions {
  * Next.js App Router context type
  */
 interface RouteContext {
-  params?: Promise<Record<string, string | string[]>>
+  params: Promise<Record<string, string | string[]>>
 }
 
 /**
  * API Route Handler Wrapper (App Router)
- * Next.js 13+ App Router용 래퍼
+ * 통합 미들웨어로 리다이렉트
  */
 export function withRateLimiting<T extends RouteContext = RouteContext>(
   handler: (req: NextRequest, context: T) => Promise<NextResponse>,
   options: RateLimitOptions = {}
 ) {
-  return async (req: NextRequest, context: T): Promise<NextResponse> => {
-    try {
-      // 액션 결정
-      const action =
-        options.action ||
-        getActionFromPath(req.method, req.nextUrl.pathname) ||
-        ActionCategory.POST_READ
-
-      // Edge Runtime에서는 미들웨어가 처리
-      // 여기서는 추가 검증만 수행
-      const rateLimitHeader = req.headers.get('X-RateLimit-Remaining')
-      if (rateLimitHeader && parseInt(rateLimitHeader) <= 0) {
-        return NextResponse.json(
-          {
-            error: 'Too Many Requests',
-            message: 'Rate limit exceeded. Please try again later.',
-          },
-          { status: 429 }
-        )
-      }
-
-      // 패턴 감지 (옵션)
-      if (options.enablePatternDetection) {
-        const userId = await getUserId(req)
-        if (userId) {
-          const detection = await PatternDetector.detect(userId, action, {
-            ip: getClientIp(req),
-            userAgent: req.headers.get('user-agent') || undefined,
-          })
-
-          if (detection.detected && detection.suggestedAction !== 'allow') {
-            // 악용 추적
-            if (options.enableAbuseTracking) {
-              await AbuseTracker.recordIncident(
-                userId,
-                AbuseType.PATTERN_DETECTION,
-                action,
-                {
-                  patterns: detection.patterns,
-                  severity: detection.severity,
-                }
-              )
-            }
-
-            if (
-              detection.suggestedAction === 'block' ||
-              detection.suggestedAction === 'ban'
-            ) {
-              return NextResponse.json(
-                {
-                  error: 'Forbidden',
-                  message: 'Suspicious activity detected. Access denied.',
-                },
-                { status: 403 }
-              )
-            }
-          }
-        }
-      }
-
-      // 핸들러 실행
-      const response = await handler(req, context)
-
-      // 성공적인 요청 로깅
-      if (options.enablePatternDetection || options.enableAbuseTracking) {
-        const userId = await getUserId(req)
-        if (userId) {
-          await PatternDetector.logBehavior(
-            userId,
-            action,
-            response.status < 400,
-            {
-              ip: getClientIp(req),
-              userAgent: req.headers.get('user-agent') || undefined,
-            }
-          )
-        }
-      }
-
-      return response
-    } catch (error) {
-      console.error('Rate limiting wrapper error:', error)
-
-      // 에러 발생 시에도 요청은 통과시킴
-      return handler(req, context)
-    }
+  // 통합 미들웨어 사용 (CSRF 스킵)
+  const securityOptions: SecurityOptions = {
+    ...options,
+    skipCSRF: true, // Rate limiting만 적용
   }
+
+  return withRateLimitingUnified(handler, securityOptions)
+}
+
+/**
+ * Security Wrapper - Rate Limiting + CSRF
+ * 전체 보안 기능 적용
+ */
+export function withSecurity<T extends RouteContext = RouteContext>(
+  handler: (req: NextRequest, context: T) => Promise<NextResponse>,
+  options: RateLimitOptions & { requireCSRF?: boolean } = {}
+) {
+  const securityOptions: SecurityOptions = {
+    ...options,
+    requireCSRF: options.requireCSRF !== false, // 기본값 true
+  }
+
+  return withSecurityUnified(handler, securityOptions)
 }
 
 /**
@@ -196,71 +137,6 @@ export async function checkRateLimit(
       resetAt: new Date(Date.now() + 60000),
     }
   }
-}
-
-/**
- * 사용자 ID 추출 헬퍼
- */
-async function getUserId(req: NextRequest | Request): Promise<string | null> {
-  // 1. Authorization 헤더
-  const authHeader = req.headers.get('authorization')
-  if (authHeader) {
-    // 실제로는 JWT 디코딩 필요
-    // 여기서는 간단한 해시 사용
-    return `auth:${simpleHash(authHeader)}`
-  }
-
-  // 2. 세션 쿠키 (NextRequest인 경우)
-  if ('cookies' in req) {
-    const sessionCookie =
-      req.cookies.get('next-auth.session-token') ||
-      req.cookies.get('__Secure-next-auth.session-token')
-    if (sessionCookie) {
-      return `session:${simpleHash(sessionCookie.value)}`
-    }
-  }
-
-  // 3. IP 주소 기반
-  const ip = getClientIp(req)
-  if (ip) {
-    return `ip:${ip}`
-  }
-
-  return null
-}
-
-/**
- * 클라이언트 IP 추출
- */
-function getClientIp(req: NextRequest | Request): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  const realIp = req.headers.get('x-real-ip')
-  const cfIp = req.headers.get('cf-connecting-ip')
-
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  if (realIp) {
-    return realIp
-  }
-  if (cfIp) {
-    return cfIp
-  }
-
-  return 'unknown'
-}
-
-/**
- * 간단한 해시 함수
- */
-function simpleHash(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
-  }
-  return Math.abs(hash).toString(36)
 }
 
 /**

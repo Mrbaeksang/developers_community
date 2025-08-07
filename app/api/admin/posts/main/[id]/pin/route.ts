@@ -7,7 +7,7 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/api/errors'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 
 // GET: 현재 고정 상태 조회
 export async function GET(
@@ -82,4 +82,4 @@ async function togglePostPin(
 }
 
 // CSRF 보호 적용
-export const PATCH = withCSRFProtection(togglePostPin)
+export const PATCH = withSecurity(togglePostPin, { requireCSRF: true })

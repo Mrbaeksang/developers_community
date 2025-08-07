@@ -15,7 +15,7 @@ import {
   successResponse,
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
-import { withRateLimiting } from '@/lib/security/compatibility'
+import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
 import { getAvatarFromName } from '@/lib/community/utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
@@ -172,7 +172,11 @@ const createCommunitySchema = z.object({
   maxFileSize: z.number().min(1048576).max(104857600).default(10485760), // 1MB ~ 100MB, default 10MB
 })
 
-async function createCommunity(req: NextRequest) {
+async function createCommunity(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: { params: Promise<Record<string, string | string[]>> }
+) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof NextResponse) {
@@ -303,7 +307,8 @@ async function createCommunity(req: NextRequest) {
   }
 }
 
-// Rate Limiting 적용 - 커뮤니티 생성은 분당 3회로 제한
-export const POST = withRateLimiting(createCommunity, {
+// 통합 보안 미들웨어 적용 - 커뮤니티 생성은 분당 3회로 제한
+export const POST = withSecurity(createCommunity, {
   action: ActionCategory.COMMUNITY_CREATE,
+  requireCSRF: true,
 })

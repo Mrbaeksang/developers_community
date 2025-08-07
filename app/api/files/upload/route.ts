@@ -14,8 +14,7 @@ import {
   throwNotFoundError,
   throwAuthorizationError,
 } from '@/lib/api/errors'
-import { withRateLimiting } from '@/lib/security/compatibility'
-import { withCSRFProtection } from '@/lib/auth/csrf'
+import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
 
 // 파일 타입 확인 함수
@@ -47,7 +46,11 @@ async function getImageDimensions(): Promise<{
 // POST: 파일 업로드
 // TODO: 실제 파일 저장 구현 필요 (Vercel Blob, S3, Cloudinary 등)
 // 현재는 메타데이터만 DB에 저장하고 실제 파일은 저장하지 않음
-async function uploadFile(req: NextRequest) {
+async function uploadFile(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: { params: Promise<Record<string, string | string[]>> }
+) {
   try {
     const session = await requireAuthAPI()
     if (session instanceof Response) {
@@ -170,7 +173,8 @@ async function uploadFile(req: NextRequest) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(
-  withRateLimiting(uploadFile, { action: ActionCategory.FILE_UPLOAD })
-)
+// 통합 보안 미들웨어 적용 (Rate Limiting + CSRF)
+export const POST = withSecurity(uploadFile, {
+  action: ActionCategory.FILE_UPLOAD,
+  requireCSRF: true,
+})
