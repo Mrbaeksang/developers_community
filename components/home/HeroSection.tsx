@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { Activity } from '@/types/activity'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 
 export function HeroSection() {
   const [stats, setStats] = useState({
@@ -207,16 +208,7 @@ function RealtimeActivityFeed() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-          </div>
-        ))}
-      </div>
-    )
+    return <SkeletonLoader lines={3} className="space-y-3" />
   }
 
   if (activities.length === 0) {

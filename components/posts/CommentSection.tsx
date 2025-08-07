@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 // Comment type defined locally
 type Comment = {
   id: string
@@ -431,8 +432,17 @@ export default function CommentSection({
               disabled={createCommentMutation.isPending}
               className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
             >
-              <Send className="h-4 w-4 mr-2" />
-              댓글 작성
+              {createCommentMutation.isPending ? (
+                <>
+                  <ButtonSpinner />
+                  작성 중...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  댓글 작성
+                </>
+              )}
             </Button>
           </div>
         </form>

@@ -3,13 +3,14 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { Search, X, FileText, Loader2 } from 'lucide-react'
+import { Search, X, FileText } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -207,7 +208,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         <ScrollArea className="max-h-[500px] bg-gray-50">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <LoadingSpinner size="lg" />
             </div>
           ) : results.length > 0 ? (
             <div className="p-4 space-y-3">

@@ -47,6 +47,9 @@ const ReactMarkdown = dynamic(() => import('react-markdown'), {
 // Lazy load dropzone
 const DropzoneArea = lazy(() => import('./DropzoneArea'))
 
+// Import LoadingSpinner components
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+
 interface Category {
   id: string
   name: string
@@ -1137,7 +1140,14 @@ export function PostEditor({ userRole }: PostEditorProps) {
                 className="border-2 border-black hover:bg-gray-100"
                 disabled={isSubmitting}
               >
-                임시저장
+                {isSubmitting ? (
+                  <>
+                    <ButtonSpinner />
+                    저장 중...
+                  </>
+                ) : (
+                  '임시저장'
+                )}
               </Button>
               <Button
                 type="button"
@@ -1145,7 +1155,16 @@ export function PostEditor({ userRole }: PostEditorProps) {
                 className="border-2 border-black bg-blue-500 font-bold text-white hover:bg-blue-600 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 disabled={isSubmitting}
               >
-                {userRole === 'ADMIN' ? <>게시글 발행</> : <>검토 요청</>}
+                {isSubmitting ? (
+                  <>
+                    <ButtonSpinner />
+                    처리 중...
+                  </>
+                ) : userRole === 'ADMIN' ? (
+                  '게시글 발행'
+                ) : (
+                  '검토 요청'
+                )}
               </Button>
             </div>
           </div>

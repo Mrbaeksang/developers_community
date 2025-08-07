@@ -53,6 +53,7 @@ import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { apiClient } from '@/lib/api/client'
 import { Pagination } from '@/components/shared/Pagination'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 interface MainPost {
   id: string
@@ -367,14 +368,7 @@ export default function PostsPage() {
   if (loading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-          <div className="space-y-4">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
+        <PageLoadingSpinner />
       </div>
     )
   }
