@@ -6,6 +6,7 @@ import {
   subMonths,
   subDays,
   subHours,
+  subMinutes,
   isWithinInterval,
   startOfDay,
   endOfDay,
@@ -237,7 +238,7 @@ export function getDateBefore(
     case 'hours':
       return subHours(now, amount)
     case 'minutes':
-      return subDays(now, amount) // subMinutes 대신 subDays 사용 (실수 수정)
+      return subMinutes(now, amount)
     case 'months':
       return subMonths(now, amount)
     default:
@@ -303,6 +304,7 @@ export {
   subMonths,
   subDays,
   subHours,
+  subMinutes,
   addDays,
   addHours,
   addMinutes,

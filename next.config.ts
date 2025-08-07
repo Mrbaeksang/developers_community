@@ -14,20 +14,57 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com;
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' blob: data: https:;
-              font-src 'self' data:;
-              connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com;
-              form-action 'self' http://localhost:3000 http://localhost:3006;
-              frame-ancestors 'none';
-              base-uri 'self';
-              upgrade-insecure-requests;
-            `
-              .replace(/\s{2,}/g, ' ')
-              .trim(),
+            value:
+              process.env.NODE_ENV === 'development'
+                ? // Development: More permissive for DX
+                  `
+                  default-src 'self';
+                  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com;
+                  style-src 'self' 'unsafe-inline';
+                  img-src 'self' blob: data: https:;
+                  font-src 'self' data:;
+                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com ws://localhost:* http://localhost:*;
+                  form-action 'self' http://localhost:3000 http://localhost:3006;
+                  frame-ancestors 'none';
+                  base-uri 'self';
+                `
+                    .replace(/\s{2,}/g, ' ')
+                    .trim()
+                : // Production: Stricter security
+                  `
+                  default-src 'self';
+                  script-src 'self' https://vercel.live https://*.vercel-scripts.com;
+                  style-src 'self' 'unsafe-inline';
+                  img-src 'self' blob: data: https:;
+                  font-src 'self' data:;
+                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com;
+                  form-action 'self';
+                  frame-ancestors 'none';
+                  base-uri 'self';
+                  upgrade-insecure-requests;
+                `
+                    .replace(/\s{2,}/g, ' ')
+                    .trim(),
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
         ],
       },
