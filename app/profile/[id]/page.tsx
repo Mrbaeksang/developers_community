@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/core/prisma'
 import { Pagination } from '@/components/shared/Pagination'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 interface UserProfile {
   id: string
@@ -437,12 +438,12 @@ export default async function ProfilePage({
 
         <TabsContent value="posts">
           {posts.mainPosts.length === 0 && posts.communityPosts.length === 0 ? (
-            <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4" />
-                <p>아직 작성한 게시글이 없습니다.</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={FileText}
+              title="아직 작성한 게시글이 없습니다"
+              description="첫 번째 게시글을 작성해보세요!"
+              size="lg"
+            />
           ) : (
             <>
               <div className="space-y-4">
@@ -541,12 +542,12 @@ export default async function ProfilePage({
 
         <TabsContent value="comments">
           {comments.length === 0 ? (
-            <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                <p>아직 작성한 댓글이 없습니다.</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={MessageSquare}
+              title="아직 작성한 댓글이 없습니다"
+              description="게시글에 댓글을 달아 의견을 나눠보세요"
+              size="lg"
+            />
           ) : (
             <div className="space-y-2">
               {comments.map((comment) => (
@@ -580,12 +581,12 @@ export default async function ProfilePage({
 
         <TabsContent value="likes">
           {likedPosts.posts.length === 0 ? (
-            <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <Heart className="h-12 w-12 mx-auto mb-4" />
-                <p>아직 좋아요한 게시글이 없습니다.</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Heart}
+              title="아직 좋아요한 게시글이 없습니다"
+              description="마음에 드는 게시글에 좋아요를 눌러보세요"
+              size="lg"
+            />
           ) : (
             <>
               <div className="space-y-2">
@@ -639,12 +640,12 @@ export default async function ProfilePage({
         {isOwnProfile && (
           <TabsContent value="bookmarks">
             {bookmarks.posts.length === 0 ? (
-              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <Bookmark className="h-12 w-12 mx-auto mb-4" />
-                  <p>아직 북마크한 게시글이 없습니다.</p>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={Bookmark}
+                title="아직 북마크한 게시글이 없습니다"
+                description="나중에 다시 읽고 싶은 게시글을 북마크하세요"
+                size="lg"
+              />
             ) : (
               <>
                 <div className="space-y-2">

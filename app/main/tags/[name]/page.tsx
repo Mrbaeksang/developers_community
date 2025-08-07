@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Hash, FileText } from 'lucide-react'
 import type { MainPostFormatted } from '@/lib/post/types'
 import { formatMainPostForResponse } from '@/lib/post/display'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 interface TagPageProps {
   params: Promise<{
@@ -184,15 +185,12 @@ export default async function TagPage({ params }: TagPageProps) {
       {data.posts.length > 0 ? (
         <PostList initialPosts={data.posts} />
       ) : (
-        <div className="text-center py-12">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">
-            해당 태그의 게시글이 없습니다
-          </h2>
-          <p className="text-muted-foreground">
-            #{data.tag.name} 태그가 달린 게시글이 아직 없습니다.
-          </p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="해당 태그의 게시글이 없습니다"
+          description={`#${data.tag.name} 태그가 달린 게시글이 아직 없습니다.`}
+          size="lg"
+        />
       )}
     </div>
   )

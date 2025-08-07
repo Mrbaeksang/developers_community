@@ -10,11 +10,13 @@ import {
   X,
   Edit2,
   Trash2,
+  MessageCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
@@ -310,9 +312,12 @@ export default function FloatingChatWindow({
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
           {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              아직 메시지가 없습니다. 첫 메시지를 보내보세요!
-            </div>
+            <EmptyState
+              icon={MessageCircle}
+              title="아직 메시지가 없습니다"
+              description="첫 메시지를 보내보세요!"
+              size="sm"
+            />
           ) : (
             messages.map((message) => (
               <div key={message.id} className="flex gap-3 group">

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { Users, FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/community/utils'
@@ -63,8 +64,13 @@ export function ActiveCommunities() {
             <h3 className="font-bold">활발한 커뮤니티</h3>
           </div>
         </CardHeader>
-        <CardContent className="p-4 text-center text-sm text-muted-foreground">
-          아직 활발한 커뮤니티가 없습니다.
+        <CardContent className="p-4">
+          <EmptyState
+            icon={Users}
+            title="아직 활발한 커뮤니티가 없습니다"
+            description="커뮤니티가 생성되고 활동이 시작되면 여기에 표시됩니다"
+            size="sm"
+          />
         </CardContent>
       </Card>
     )

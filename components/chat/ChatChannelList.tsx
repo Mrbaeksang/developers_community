@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import dynamic from 'next/dynamic'
@@ -122,9 +123,12 @@ export default function ChatChannelList() {
         </CardHeader>
         <CardContent className="space-y-3">
           {channels.length === 0 ? (
-            <div className="text-center text-muted-foreground py-4">
-              참여 가능한 채팅방이 없습니다.
-            </div>
+            <EmptyState
+              icon={MessageCircle}
+              title="참여 가능한 채팅방이 없습니다"
+              description="커뮤니티에 가입하거나 전체 채팅에 참여해보세요"
+              size="sm"
+            />
           ) : (
             channels.map((channel) => (
               <div

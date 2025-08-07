@@ -6,6 +6,7 @@ import { Megaphone, Pin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/core/utils'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 interface Author {
   id: string
@@ -32,12 +33,12 @@ export default function CommunityAnnouncements({
 }: CommunityAnnouncementsProps) {
   if (announcements.length === 0) {
     return (
-      <div className="bg-white border-2 border-black rounded-lg p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <div className="text-center">
-          <Megaphone className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">아직 공지사항이 없습니다.</p>
-        </div>
-      </div>
+      <EmptyState
+        icon={Megaphone}
+        title="아직 공지사항이 없습니다"
+        description="커뮤니티의 중요한 소식이 여기에 표시됩니다"
+        size="lg"
+      />
     )
   }
 

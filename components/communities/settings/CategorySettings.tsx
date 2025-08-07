@@ -23,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Edit2, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Edit2, Trash2, GripVertical, FolderPlus } from 'lucide-react'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/hooks/use-toast'
 import { Reorder } from 'framer-motion'
@@ -313,9 +314,16 @@ export function CategorySettings({
       {/* 카테고리 목록 */}
       <div className="space-y-4">
         {categories.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            아직 카테고리가 없습니다. 첫 카테고리를 만들어보세요!
-          </div>
+          <EmptyState
+            icon={FolderPlus}
+            title="아직 카테고리가 없습니다"
+            description="첫 카테고리를 만들어보세요!"
+            action={{
+              label: '카테고리 추가',
+              onClick: () => setIsCreateOpen(true),
+            }}
+            size="lg"
+          />
         ) : (
           <Reorder.Group
             axis="y"

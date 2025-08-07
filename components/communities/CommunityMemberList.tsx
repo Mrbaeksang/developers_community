@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState, SearchEmptyState } from '@/components/shared/EmptyState'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -327,13 +328,21 @@ export default function CommunityMemberList({
 
         {/* 멤버가 없을 때 */}
         {!isLoading && !isError && members.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              {debouncedSearch
-                ? '검색 결과가 없습니다.'
-                : '아직 멤버가 없습니다.'}
-            </p>
+          <div className="col-span-full">
+            {debouncedSearch ? (
+              <SearchEmptyState
+                title="검색 결과가 없습니다"
+                description="다른 검색어를 시도해보세요"
+                onReset={() => setSearch('')}
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="아직 멤버가 없습니다"
+                description="커뮤니티에 첫 번째 멤버가 되어보세요!"
+                size="lg"
+              />
+            )}
           </div>
         )}
       </div>
