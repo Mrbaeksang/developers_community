@@ -15,7 +15,8 @@ import {
   successResponse,
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { getAvatarFromName } from '@/lib/community/utils'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import {
@@ -303,4 +304,6 @@ async function createCommunity(req: NextRequest) {
 }
 
 // Rate Limiting 적용 - 커뮤니티 생성은 분당 3회로 제한
-export const POST = withRateLimit(createCommunity, 'post')
+export const POST = withRateLimiting(createCommunity, {
+  action: ActionCategory.COMMUNITY_CREATE,
+})

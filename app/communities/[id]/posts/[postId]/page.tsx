@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
-import { CommunityPostDetail } from '@/components/communities/CommunityPostDetail'
+import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
+import { CommunityCommentSection } from '@/components/communities/CommunityCommentSection'
 
 interface Post {
   id: string
@@ -35,6 +36,8 @@ interface Post {
     comments: number
     likes: number
   }
+  likeCount: number
+  commentCount: number
   isLiked: boolean
   isBookmarked: boolean
   files: {
@@ -117,7 +120,18 @@ export default async function CommunityPostDetailPage({
         </nav>
 
         {/* Post Detail */}
-        <CommunityPostDetail post={post} currentUserId={session?.user?.id} />
+        <UnifiedPostDetail
+          post={post}
+          postType="community"
+          currentUserId={session?.user?.id}
+        />
+
+        {/* Comments Section */}
+        <CommunityCommentSection
+          postId={post.id}
+          communityId={post.community.id}
+          currentUserId={session?.user?.id}
+        />
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import { PostList } from '@/components/home/PostList'
 import { prisma } from '@/lib/core/prisma'
 import { redis } from '@/lib/core/redis'
-import type { CommonMainPost as Post } from '@/lib/common/types'
+import type { MainPostFormatted } from '@/lib/post/types'
 import { Prisma } from '@prisma/client'
 import { formatMainPostForResponse } from '@/lib/post/display'
 
@@ -162,7 +162,7 @@ export async function PostListServer({
     }
 
     // 통합 포맷터 사용
-    return formatMainPostForResponse(postWithRedisViews) as Post
+    return formatMainPostForResponse(postWithRedisViews) as MainPostFormatted
   })
 
   const formattedCategories = categories.map((cat) => ({

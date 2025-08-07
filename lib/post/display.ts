@@ -398,10 +398,23 @@ interface MainPostInput {
 }
 
 /**
+ * 포맷 옵션 인터페이스
+ */
+export interface FormatOptions {
+  preserveDate?: boolean // true면 Date 객체 유지, false면 ISO string으로 변환
+  includeCalculatedFields?: boolean // readingTime 등 계산된 필드 포함 여부
+}
+
+/**
  * 통합 게시글 응답 포맷터
  * 모든 API에서 동일한 형식의 데이터 반환 보장
  */
-export function formatMainPostForResponse(post: MainPostInput) {
+export function formatMainPostForResponse(
+  post: MainPostInput,
+  options: FormatOptions = {}
+) {
+  const { preserveDate = false, includeCalculatedFields = true } = options
+
   // tags 처리 - 중첩 구조 평탄화
   const tags =
     post.tags?.map?.((postTag) => {
@@ -412,6 +425,13 @@ export function formatMainPostForResponse(post: MainPostInput) {
       return postTag
     }) || []
 
+  // createdAt 처리 - 옵션에 따라 Date 또는 string 반환
+  const createdAt = preserveDate
+    ? post.createdAt
+    : typeof post.createdAt === 'string'
+      ? post.createdAt
+      : post.createdAt.toISOString()
+
   // 통일된 응답 형식
   return {
     id: post.id,
@@ -419,12 +439,15 @@ export function formatMainPostForResponse(post: MainPostInput) {
     slug: post.slug,
     content: post.content,
     excerpt: post.excerpt,
-    createdAt:
-      typeof post.createdAt === 'string'
-        ? post.createdAt
-        : post.createdAt.toISOString(),
+    createdAt,
     isPinned: post.isPinned,
-    status: post.status,
+    status: (post.status || 'PUBLISHED') as
+      | 'DRAFT'
+      | 'PENDING'
+      | 'PUBLISHED'
+      | 'REJECTED'
+      | 'ARCHIVED'
+      | 'DELETED',
     viewCount: post.viewCount,
     // _count 평탄화 - 직접 필드로 제공
     likeCount: post.likeCount || post._count?.likes || 0,
@@ -433,9 +456,11 @@ export function formatMainPostForResponse(post: MainPostInput) {
     author: post.author,
     category: post.category,
     tags: tags,
-    // 계산된 필드
-    readingTime: calculateReadingTime(post.content),
-    timeAgo: post.timeAgo, // 이미 계산된 경우 사용
+    // 계산된 필드 (옵션에 따라 포함)
+    ...(includeCalculatedFields && {
+      readingTime: calculateReadingTime(post.content),
+    }),
+    ...(post.timeAgo && { timeAgo: post.timeAgo }),
     // 추가 필드들 (있는 경우만)
     ...(post.weeklyViews !== undefined && { weeklyViews: post.weeklyViews }),
     ...(post.weeklyScore !== undefined && { weeklyScore: post.weeklyScore }),
@@ -479,15 +504,32 @@ interface CommunityPostInput {
  * 통합 커뮤니티 게시글 응답 포맷터
  * 메인 게시글과 유사한 형식으로 통일
  */
-export function formatCommunityPostForResponse(post: CommunityPostInput) {
+export function formatCommunityPostForResponse(
+  post: CommunityPostInput & {
+    files?: Array<{
+      id: string
+      filename: string
+      size: number
+      mimeType: string
+      url: string
+    }>
+  },
+  options: FormatOptions = {}
+) {
+  const { preserveDate = false, includeCalculatedFields = true } = options
+
+  // createdAt 처리 - 옵션에 따라 Date 또는 string 반환
+  const createdAt = preserveDate
+    ? post.createdAt
+    : typeof post.createdAt === 'string'
+      ? post.createdAt
+      : post.createdAt.toISOString()
+
   return {
     id: post.id,
     title: post.title,
     content: post.content,
-    createdAt:
-      typeof post.createdAt === 'string'
-        ? post.createdAt
-        : post.createdAt.toISOString(),
+    createdAt,
     viewCount: post.viewCount,
     // _count 평탄화 - 직접 필드로 제공
     likeCount: post.likeCount || post._count?.likes || 0,
@@ -495,11 +537,72 @@ export function formatCommunityPostForResponse(post: CommunityPostInput) {
     bookmarkCount: post.bookmarkCount || post._count?.bookmarks || 0,
     author: post.author,
     category: post.category,
-    // 계산된 필드
-    readingTime: calculateReadingTime(post.content),
+    // 계산된 필드 (옵션에 따라 포함)
+    ...(includeCalculatedFields && {
+      readingTime: calculateReadingTime(post.content),
+    }),
     // 사용자별 상태
     isLiked: post.isLiked || false,
     isBookmarked: post.isBookmarked || false,
+    // 파일 첨부 (커뮤니티 게시글만)
+    ...(post.files && { files: post.files }),
+  }
+}
+
+/**
+ * 통합 게시글 타입 정의
+ * Main과 Community 게시글의 공통 타입
+ */
+export interface UnifiedPostDetail {
+  id: string
+  title: string
+  content: string
+  excerpt?: string | null
+  status?: string
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  bookmarkCount?: number
+  createdAt: string
+  updatedAt?: string
+  author: {
+    id: string
+    name: string | null
+    email?: string
+    username?: string | null
+    image: string | null
+  }
+  category?: {
+    id: string
+    name: string
+    slug?: string
+    color: string | null
+    icon?: string | null
+  } | null
+  tags?: Array<{
+    id: string
+    name: string
+    slug?: string
+    color: string | null
+  }>
+  files?: Array<{
+    id: string
+    filename: string
+    size: number
+    mimeType: string
+    url: string
+  }>
+  community?: {
+    id: string
+    name: string
+    slug: string
+  }
+  isLiked?: boolean
+  isBookmarked?: boolean
+  _count?: {
+    comments: number
+    likes: number
+    bookmarks?: number
   }
 }
 

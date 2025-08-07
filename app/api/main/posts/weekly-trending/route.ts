@@ -8,8 +8,10 @@ import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { getCursorCondition, formatCursorResponse } from '@/lib/post/pagination'
 import { mainPostSelect } from '@/lib/cache/patterns'
 import { applyViewCountsToPosts } from '@/lib/post/viewcount'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 
-export async function GET(request: NextRequest) {
+async function getWeeklyTrending(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -101,3 +103,8 @@ export async function GET(request: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 읽기 작업이지만 캐싱되므로 가벼운 rate limiting만 적용
+export const GET = withRateLimiting(getWeeklyTrending, {
+  action: ActionCategory.POST_READ,
+})

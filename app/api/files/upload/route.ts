@@ -14,8 +14,9 @@ import {
   throwNotFoundError,
   throwAuthorizationError,
 } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
 import { withCSRFProtection } from '@/lib/auth/csrf'
+import { ActionCategory } from '@/lib/security/actions'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -170,4 +171,6 @@ async function uploadFile(req: NextRequest) {
 }
 
 // Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(withRateLimit(uploadFile, 'upload'))
+export const POST = withCSRFProtection(
+  withRateLimiting(uploadFile, { action: ActionCategory.FILE_UPLOAD })
+)

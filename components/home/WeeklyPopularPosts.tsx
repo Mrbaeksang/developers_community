@@ -1,6 +1,5 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,53 +9,18 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatCount } from '@/lib/common/types'
+import { TagBadge } from '@/components/shared/TagBadge'
 import {
   getCategoryIcon,
   formatViewCount,
-  getTagColorClass,
   getRankingBadge,
 } from '@/lib/post/display'
 import { getTextColor } from '@/lib/ui/colors'
 import { usePageFocusRefresh } from '@/lib/hooks/usePageFocusRefresh'
-import type { CommonMainPost } from '@/lib/common/types'
-
-// API 응답에서 추가된 필드들을 포함한 타입
-interface PostWithCalculatedFields extends CommonMainPost {
-  readingTime?: number
-  likeCount?: number
-  commentCount?: number
-  weeklyViews?: number
-  weeklyScore?: number
-  tags: Array<{
-    id: string
-    name: string
-    slug: string
-    color?: string | null
-  }>
-}
-
-// 주간 인기 게시글 가져오기
-const fetchWeeklyTrending = async (): Promise<PostWithCalculatedFields[]> => {
-  const response = await fetch('/api/main/posts/weekly-trending?limit=5')
-  if (!response.ok) {
-    throw new Error('Failed to fetch weekly trending posts')
-  }
-  const result = await response.json()
-  return result.data?.items || []
-}
+import { useWeeklyTrending } from '@/lib/hooks/usePostQuery'
 
 export function WeeklyPopularPosts() {
-  const {
-    data: posts = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['weeklyTrending'],
-    queryFn: fetchWeeklyTrending,
-    staleTime: 30 * 1000, // 30초간 fresh 상태 유지
-    gcTime: 60 * 1000, // 1분간 캐시 유지
-    refetchInterval: 30 * 1000, // 30초마다 자동 새로고침
-  })
+  const { data: posts = [], isLoading, error } = useWeeklyTrending(5)
 
   // 페이지 포커스 시 자동 새로고침
   usePageFocusRefresh('weeklyTrending')
@@ -204,18 +168,19 @@ export function WeeklyPopularPosts() {
                     {/* 태그 */}
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
-                        {post.tags.slice(0, 3).map((tag) => {
-                          const tagClasses = getTagColorClass(tag.name)
-
-                          return (
-                            <span
-                              key={tag.id}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] hover:scale-105 transition-all duration-200 ${tagClasses}`}
-                            >
-                              #<span>{tag.name}</span>
-                            </span>
-                          )
-                        })}
+                        {post.tags.slice(0, 3).map((tag) => (
+                          <TagBadge
+                            key={tag.id}
+                            tag={{
+                              ...tag,
+                              color: tag.color || '#808080',
+                            }}
+                            size="sm"
+                            showIcon={true}
+                            clickable={false}
+                            className="text-[10px] px-2 py-0.5"
+                          />
+                        ))}
                         {post.tags.length > 3 && (
                           <span className="px-2 py-0.5 text-[10px] font-semibold text-gray-500">
                             +{post.tags.length - 3}

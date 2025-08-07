@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,138 +33,110 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
-import { CommunityCommentSection } from './CommunityCommentSection'
+import { useSession } from 'next-auth/react'
+import type { UnifiedPostDetail as UnifiedPostDetailType } from '@/lib/post/display'
+import { apiClient } from '@/lib/api/client'
 
-interface Post {
-  id: string
-  title: string
-  content: string
-  viewCount: number
-  createdAt: string
-  author: {
-    id: string
-    name: string | null
-    email: string
-    image: string | null
-  }
-  category: {
-    id: string
-    name: string
-    color: string | null
-  } | null
-  community: {
-    id: string
-    name: string
-    slug: string
-  }
-  _count: {
-    comments: number
-    likes: number
-  }
-  isLiked: boolean
-  isBookmarked: boolean
-  files: {
-    id: string
-    filename: string
-    size: number
-    mimeType: string
-    url: string
-  }[]
+interface UnifiedPostDetailProps {
+  post: UnifiedPostDetailType
+  postType?: 'main' | 'community'
+  currentUserId?: string
 }
 
-interface CommunityPostDetailProps {
-  post: Post
-  currentUserId?: string | undefined
-}
-
-export function CommunityPostDetail({
+export function UnifiedPostDetail({
   post,
+  postType = 'main',
   currentUserId,
-}: CommunityPostDetailProps) {
+}: UnifiedPostDetailProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [likeCount, setLikeCount] = useState(post._count.likes)
+  const { data: session } = useSession()
+  const [likeCount, setLikeCount] = useState(
+    post.likeCount || post._count?.likes || 0
+  )
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isProcessingLike, setIsProcessingLike] = useState(false)
+  const [isProcessingBookmark, setIsProcessingBookmark] = useState(false)
+  const likeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const bookmarkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const effectiveUserId = currentUserId || session?.user?.id
+  const isAuthor = effectiveUserId === post.author.id
+  const isCommunityPost = postType === 'community' || !!post.community
+
+  // API 경로 결정
+  const apiBasePath =
+    isCommunityPost && post.community
+      ? `/api/communities/${post.community.id}/posts/${post.id}`
+      : `/api/main/posts/${post.id}`
 
   // 좋아요 상태 조회
-  const { data: isLiked = post.isLiked } = useQuery({
-    queryKey: ['communityPostLike', post.community.id, post.id],
+  const { data: isLiked = post.isLiked || false } = useQuery({
+    queryKey: [postType + 'PostLike', post.id],
     queryFn: async () => {
-      if (!currentUserId) return false
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}/like/status`
+      if (!effectiveUserId) return false
+      const endpoint = isCommunityPost
+        ? `${apiBasePath}/like/status`
+        : `${apiBasePath}/like`
+
+      const response = await apiClient<{ isLiked?: boolean; liked?: boolean }>(
+        endpoint
       )
-      if (!res.ok) return false
-      const data = await res.json()
-      return data.isLiked || false
+      if (!response.success) return false
+      return response.data?.isLiked || response.data?.liked || false
     },
-    enabled: !!currentUserId,
-    initialData: post.isLiked,
+    enabled: !!effectiveUserId,
+    initialData: post.isLiked || false,
     staleTime: Infinity,
   })
 
   // 북마크 상태 조회
-  const { data: isBookmarked = post.isBookmarked } = useQuery({
-    queryKey: ['communityPostBookmark', post.community.id, post.id],
+  const { data: isBookmarked = post.isBookmarked || false } = useQuery({
+    queryKey: [postType + 'PostBookmark', post.id],
     queryFn: async () => {
-      if (!currentUserId) return false
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}/bookmark/status`
-      )
-      if (!res.ok) return false
-      const data = await res.json()
-      return data.isBookmarked || false
+      if (!effectiveUserId) return false
+      const endpoint = isCommunityPost
+        ? `${apiBasePath}/bookmark/status`
+        : `${apiBasePath}/bookmark`
+
+      const response = await apiClient<{
+        isBookmarked?: boolean
+        bookmarked?: boolean
+      }>(endpoint)
+      if (!response.success) return false
+      return response.data?.isBookmarked || response.data?.bookmarked || false
     },
-    enabled: !!currentUserId,
-    initialData: post.isBookmarked,
+    enabled: !!effectiveUserId,
+    initialData: post.isBookmarked || false,
     staleTime: Infinity,
   })
 
-  const isAuthor = currentUserId === post.author.id
-
-  // 조회수 증가 mutation
-  const viewMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}/view`,
-        { method: 'POST' }
-      )
-      if (!res.ok) throw new Error('Failed to increment view')
-      return res.json()
-    },
-  })
-
-  // 조회수 증가 (Redis 버퍼링)
+  // 조회수 증가
   useEffect(() => {
-    viewMutation.mutate()
-  }, [viewMutation])
+    const incrementView = async () => {
+      await fetch(`${apiBasePath}/view`, { method: 'POST' })
+    }
+    incrementView()
+  }, [apiBasePath])
 
-  // 좋아요 토글 mutation
+  // 좋아요 토글
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}/like`,
-        {
-          method: isLiked ? 'DELETE' : 'POST',
-        }
-      )
-      if (!res.ok) throw new Error('좋아요 처리 실패')
-      return res.json()
+      const method = isCommunityPost ? (isLiked ? 'DELETE' : 'POST') : 'POST'
+      const response = await apiClient(`${apiBasePath}/like`, { method })
+      if (!response.success) throw new Error('좋아요 처리 실패')
+      return response.data
     },
     onMutate: async () => {
       await queryClient.cancelQueries({
-        queryKey: ['communityPostLike', post.community.id, post.id],
+        queryKey: [postType + 'PostLike', post.id],
       })
       const previousLike = queryClient.getQueryData([
-        'communityPostLike',
-        post.community.id,
+        postType + 'PostLike',
         post.id,
       ])
 
-      queryClient.setQueryData(
-        ['communityPostLike', post.community.id, post.id],
-        !isLiked
-      )
+      queryClient.setQueryData([postType + 'PostLike', post.id], !isLiked)
       setLikeCount((prev) => (!isLiked ? prev + 1 : prev - 1))
 
       return { previousLike }
@@ -172,7 +144,7 @@ export function CommunityPostDetail({
     onError: (err, variables, context) => {
       if (context?.previousLike !== undefined) {
         queryClient.setQueryData(
-          ['communityPostLike', post.community.id, post.id],
+          [postType + 'PostLike', post.id],
           context.previousLike
         )
         setLikeCount((prev) => (context.previousLike ? prev : prev - 1))
@@ -181,43 +153,59 @@ export function CommunityPostDetail({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['communityPostLike', post.community.id, post.id],
+        queryKey: [postType + 'PostLike', post.id],
       })
     },
   })
 
-  const handleLike = () => {
-    if (!currentUserId) {
+  const handleLike = useCallback(() => {
+    if (!effectiveUserId) {
       toast.error('로그인이 필요합니다.')
       return
     }
-    likeMutation.mutate()
-  }
 
-  // 북마크 토글 mutation
+    // 중복 클릭 방지
+    if (isProcessingLike) return
+
+    // debounce 처리 (300ms)
+    if (likeTimeoutRef.current) {
+      clearTimeout(likeTimeoutRef.current)
+    }
+
+    setIsProcessingLike(true)
+
+    likeTimeoutRef.current = setTimeout(() => {
+      likeMutation.mutate(undefined, {
+        onSettled: () => {
+          setIsProcessingLike(false)
+        },
+      })
+    }, 300)
+  }, [effectiveUserId, isProcessingLike, likeMutation])
+
+  // 북마크 토글
   const bookmarkMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}/bookmark`,
-        {
-          method: isBookmarked ? 'DELETE' : 'POST',
-        }
-      )
-      if (!res.ok) throw new Error('북마크 처리 실패')
-      return res.json()
+      const method = isCommunityPost
+        ? isBookmarked
+          ? 'DELETE'
+          : 'POST'
+        : 'POST'
+      const response = await apiClient(`${apiBasePath}/bookmark`, { method })
+      if (!response.success) throw new Error('북마크 처리 실패')
+      return response.data
     },
     onMutate: async () => {
       await queryClient.cancelQueries({
-        queryKey: ['communityPostBookmark', post.community.id, post.id],
+        queryKey: [postType + 'PostBookmark', post.id],
       })
       const previousBookmark = queryClient.getQueryData([
-        'communityPostBookmark',
-        post.community.id,
+        postType + 'PostBookmark',
         post.id,
       ])
 
       queryClient.setQueryData(
-        ['communityPostBookmark', post.community.id, post.id],
+        [postType + 'PostBookmark', post.id],
         !isBookmarked
       )
 
@@ -226,7 +214,7 @@ export function CommunityPostDetail({
     onError: (err, variables, context) => {
       if (context?.previousBookmark !== undefined) {
         queryClient.setQueryData(
-          ['communityPostBookmark', post.community.id, post.id],
+          [postType + 'PostBookmark', post.id],
           context.previousBookmark
         )
       }
@@ -234,7 +222,7 @@ export function CommunityPostDetail({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['communityPostBookmark', post.community.id, post.id],
+        queryKey: [postType + 'PostBookmark', post.id],
       })
       toast.success(
         !isBookmarked ? '북마크에 저장되었습니다.' : '북마크가 해제되었습니다.'
@@ -242,25 +230,37 @@ export function CommunityPostDetail({
     },
   })
 
-  const handleBookmark = () => {
-    if (!currentUserId) {
+  const handleBookmark = useCallback(() => {
+    if (!effectiveUserId) {
       toast.error('로그인이 필요합니다.')
       return
     }
-    bookmarkMutation.mutate()
-  }
 
-  // 게시글 삭제 mutation
+    // 중복 클릭 방지
+    if (isProcessingBookmark) return
+
+    // debounce 처리 (300ms)
+    if (bookmarkTimeoutRef.current) {
+      clearTimeout(bookmarkTimeoutRef.current)
+    }
+
+    setIsProcessingBookmark(true)
+
+    bookmarkTimeoutRef.current = setTimeout(() => {
+      bookmarkMutation.mutate(undefined, {
+        onSettled: () => {
+          setIsProcessingBookmark(false)
+        },
+      })
+    }, 300)
+  }, [effectiveUserId, isProcessingBookmark, bookmarkMutation])
+
+  // 게시글 삭제
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(
-        `/api/communities/${post.community.id}/posts/${post.id}`,
-        {
-          method: 'DELETE',
-        }
-      )
-      if (!res.ok) throw new Error('삭제 실패')
-      return res.json()
+      const response = await apiClient(apiBasePath, { method: 'DELETE' })
+      if (!response.success) throw new Error('삭제 실패')
+      return response.data
     },
     onMutate: () => {
       setIsDeleting(true)
@@ -272,11 +272,13 @@ export function CommunityPostDetail({
     },
     onSuccess: () => {
       toast.success('게시글이 삭제되었습니다.')
-      // 게시글 목록 캐시 무효화
-      queryClient.invalidateQueries({
-        queryKey: ['communityPosts', post.community.id],
-      })
-      router.push(`/communities/${post.community.slug}/posts`)
+      queryClient.invalidateQueries({ queryKey: [postType + 'Posts'] })
+
+      if (post.community) {
+        router.push(`/communities/${post.community.slug}/posts`)
+      } else {
+        router.push('/main/posts')
+      }
     },
   })
 
@@ -366,7 +368,11 @@ export function CommunityPostDetail({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
                         <Link
-                          href={`/communities/${post.community.slug}/posts/${post.id}/edit`}
+                          href={
+                            post.community
+                              ? `/communities/${post.community.slug}/posts/${post.id}/edit`
+                              : `/main/posts/${post.id}/edit`
+                          }
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           수정
@@ -399,20 +405,45 @@ export function CommunityPostDetail({
               </span>
               <span className="flex items-center gap-1">
                 <MessageSquare className="h-4 w-4" />
-                {formatCount(post._count.comments)}
+                {formatCount(post.commentCount || post._count?.comments || 0)}
               </span>
             </div>
+
+            {/* Tags (메인 게시글만) */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant="secondary"
+                    style={{
+                      backgroundColor: tag.color || '#808080',
+                      color: getTextColor(tag.color || '#808080'),
+                      borderColor: tag.color || '#808080',
+                      boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
+                    }}
+                    className="text-xs border-2 font-bold"
+                  >
+                    #{tag.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <Separator className="my-6" />
 
           {/* Content */}
           <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap">{post.content}</div>
+            {isCommunityPost ? (
+              <div className="whitespace-pre-wrap">{post.content}</div>
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            )}
           </div>
 
-          {/* Files */}
-          {post.files.length > 0 && (
+          {/* Files (커뮤니티 게시글만) */}
+          {post.files && post.files.length > 0 && (
             <>
               <Separator className="my-6" />
               <div className="space-y-2">
@@ -444,7 +475,7 @@ export function CommunityPostDetail({
                 variant={isLiked ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleLike}
-                disabled={likeMutation.isPending}
+                disabled={likeMutation.isPending || isProcessingLike}
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
               >
                 <Heart
@@ -456,7 +487,7 @@ export function CommunityPostDetail({
                 variant={isBookmarked ? 'default' : 'outline'}
                 size="sm"
                 onClick={handleBookmark}
-                disabled={bookmarkMutation.isPending}
+                disabled={bookmarkMutation.isPending || isProcessingBookmark}
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
               >
                 <Bookmark
@@ -472,13 +503,6 @@ export function CommunityPostDetail({
           </div>
         </CardContent>
       </Card>
-
-      {/* Comments Section */}
-      <CommunityCommentSection
-        postId={post.id}
-        communityId={post.community.id}
-        currentUserId={currentUserId}
-      />
     </div>
   )
 }

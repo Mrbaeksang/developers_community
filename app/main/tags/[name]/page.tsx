@@ -3,7 +3,8 @@ import { prisma } from '@/lib/core/prisma'
 import { PostList } from '@/components/home/PostList'
 import { Badge } from '@/components/ui/badge'
 import { Hash, FileText } from 'lucide-react'
-import type { CommonMainPost as Post } from '@/lib/common/types'
+import type { MainPostFormatted } from '@/lib/post/types'
+import { formatMainPostForResponse } from '@/lib/post/display'
 
 interface TagPageProps {
   params: Promise<{
@@ -64,6 +65,7 @@ async function getTagWithPosts(tagName: string) {
                         id: true,
                         name: true,
                         slug: true,
+                        color: true,
                       },
                     },
                   },
@@ -95,40 +97,33 @@ async function getTagWithPosts(tagName: string) {
       return null
     }
 
-    // 게시글 데이터 변환 (Post 타입에 맞게)
-    const posts: Post[] = tag.posts
+    // 게시글 데이터 변환 (MainPostFormatted 타입에 맞게)
+    const posts: MainPostFormatted[] = tag.posts
       .filter((p) => p.post) // null 체크
-      .map(({ post }) => ({
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        content: post.content,
-        excerpt: post.excerpt || undefined,
-        authorId: post.authorId,
-        author: {
-          id: post.author.id,
-          name: post.author.name,
-          email: post.author.email,
-          image: post.author.image,
-        },
-        categoryId: post.categoryId,
-        category: post.category,
-        status: post.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED',
-        viewCount: post.viewCount,
-        createdAt: post.createdAt.toISOString(),
-        updatedAt: post.updatedAt.toISOString(),
-        tags: post.tags.map((t) => ({
-          id: t.tag.id,
-          name: t.tag.name,
-          slug: t.tag.slug,
-          color: '#64748b', // 기본 색상
-          postCount: 0,
-        })),
-        _count: {
-          comments: post._count.comments,
-          likes: post._count.likes,
-        },
-      }))
+      .map(({ post }) =>
+        formatMainPostForResponse({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          content: post.content,
+          excerpt: post.excerpt,
+          createdAt: post.createdAt,
+          isPinned: false,
+          status: post.status,
+          viewCount: post.viewCount,
+          likeCount: post._count.likes,
+          commentCount: post._count.comments,
+          bookmarkCount: 0,
+          author: post.author,
+          category: post.category,
+          tags: post.tags,
+          _count: {
+            likes: post._count.likes,
+            comments: post._count.comments,
+            bookmarks: 0,
+          },
+        })
+      ) as MainPostFormatted[]
 
     return {
       tag: {

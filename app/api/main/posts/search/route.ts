@@ -8,8 +8,10 @@ import { applyViewCountsAndSort } from '@/lib/post/viewcount'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { formatMainPostForResponse } from '@/lib/post/display'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 
-export async function GET(request: NextRequest) {
+async function searchPosts(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q')
@@ -145,3 +147,9 @@ export async function GET(request: NextRequest) {
     return handleError(error)
   }
 }
+
+// Rate Limiting 적용 - 검색은 리소스 집약적이므로 Rate Limiting 필요
+export const GET = withRateLimiting(searchPosts, {
+  action: ActionCategory.POST_READ,
+  enablePatternDetection: true,
+})

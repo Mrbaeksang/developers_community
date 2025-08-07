@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { PostCard } from '@/components/posts/PostCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -25,15 +24,8 @@ import {
   LayoutGrid,
   LayoutList,
 } from 'lucide-react'
-import type { CommonMainPost } from '@/lib/common/types'
-
-// API 응답에서 추가된 필드들을 포함한 타입
-interface PostWithCalculatedFields extends CommonMainPost {
-  readingTime?: number
-  likeCount?: number
-  commentCount?: number
-  bookmarkCount?: number
-}
+import type { MainPostFormatted } from '@/lib/post/types'
+import { useMainPosts } from '@/lib/hooks/usePostQuery'
 
 interface Category {
   id: string
@@ -43,33 +35,13 @@ interface Category {
 }
 
 interface PostListProps {
-  initialPosts?: PostWithCalculatedFields[]
+  initialPosts?: MainPostFormatted[]
   categories?: Category[]
   isLoading?: boolean
   currentCategory?: string
 }
 
 // 메인 게시글 가져오기 함수
-const fetchMainPosts = async ({
-  category,
-  sort,
-  page = '1',
-}: {
-  category?: string
-  sort?: string
-  page?: string
-}) => {
-  const params = new URLSearchParams()
-  if (category && category !== 'all') params.append('category', category)
-  if (sort && sort !== 'latest') params.append('sort', sort)
-  params.append('page', page)
-
-  const res = await fetch(`/api/main/posts?${params}`)
-  if (!res.ok) throw new Error('Failed to fetch posts')
-
-  const data = await res.json()
-  return data.data || { posts: [], categories: [] }
-}
 
 export function PostList({
   initialPosts = [],
@@ -89,25 +61,39 @@ export function PostList({
   const page = searchParams.get('page') || '1'
 
   // React Query로 데이터 가져오기
-  const { data, isLoading } = useQuery({
-    queryKey: ['mainPosts', selectedCategory, sortBy, page],
-    queryFn: () =>
-      fetchMainPosts({ category: selectedCategory, sort: sortBy, page }),
-    staleTime: 3 * 60 * 1000, // 3분간 fresh
-    gcTime: 10 * 60 * 1000, // 10분간 캐시
-    initialData:
-      initialPosts.length > 0
-        ? { posts: initialPosts, categories: initialCategories }
-        : undefined,
-  })
+  const { data, isLoading } = useMainPosts(
+    {
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
+      sort: sortBy as 'latest' | 'popular' | 'views' | 'comments',
+      page: parseInt(page),
+    },
+    {
+      initialData:
+        initialPosts.length > 0
+          ? {
+              success: true,
+              data: {
+                items: initialPosts,
+                totalCount: initialPosts.length,
+                pageInfo: {
+                  currentPage: parseInt(page),
+                  pageSize: 10,
+                  hasNext: false,
+                  hasPrev: parseInt(page) > 1,
+                },
+              },
+            }
+          : undefined,
+    }
+  )
 
   const posts = useMemo(() => {
-    return data?.posts || initialPosts || []
-  }, [data?.posts, initialPosts])
+    return data?.data?.items || initialPosts || []
+  }, [data?.data?.items, initialPosts])
 
   const categories = useMemo(() => {
-    return data?.categories || initialCategories || []
-  }, [data?.categories, initialCategories])
+    return initialCategories || []
+  }, [initialCategories])
 
   // URL 업데이트 함수
   const updateURL = (params: Record<string, string>) => {
@@ -138,8 +124,7 @@ export function PostList({
     return selectedCategory === 'all'
       ? posts
       : posts.filter(
-          (post: PostWithCalculatedFields) =>
-            post.category?.slug === selectedCategory
+          (post: MainPostFormatted) => post.category?.slug === selectedCategory
         )
   }, [posts, selectedCategory])
 
@@ -159,10 +144,7 @@ export function PostList({
         case 'popular':
           return b.viewCount - a.viewCount
         case 'discussed':
-          return (
-            (b.commentCount || b._count?.comments || 0) -
-            (a.commentCount || a._count?.comments || 0)
-          )
+          return (b.commentCount || 0) - (a.commentCount || 0)
         default:
           return 0
       }
@@ -172,8 +154,7 @@ export function PostList({
   // 탭별 필터링 - useMemo로 최적화
   const { trendingPosts, recentPosts } = useMemo(() => {
     const trending = sortedPosts.filter(
-      (post) =>
-        post.viewCount > 100 || (post.likeCount || post._count?.likes || 0) > 10
+      (post) => post.viewCount > 100 || (post.likeCount || 0) > 10
     )
 
     const dayAgo = new Date()
@@ -382,7 +363,7 @@ export function PostList({
             }
           >
             {sortedPosts.length > 0 ? (
-              sortedPosts.map((post: PostWithCalculatedFields) => (
+              sortedPosts.map((post: MainPostFormatted) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
@@ -398,7 +379,7 @@ export function PostList({
             }
           >
             {trendingPosts.length > 0 ? (
-              trendingPosts.map((post: PostWithCalculatedFields) => (
+              trendingPosts.map((post: MainPostFormatted) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
@@ -414,7 +395,7 @@ export function PostList({
             }
           >
             {recentPosts.length > 0 ? (
-              recentPosts.map((post: PostWithCalculatedFields) => (
+              recentPosts.map((post: MainPostFormatted) => (
                 <PostCard key={post.id} post={post} />
               ))
             ) : (

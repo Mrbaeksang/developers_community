@@ -4,7 +4,8 @@ import { put } from '@vercel/blob'
 import { requireAuthAPI } from '@/lib/auth/session'
 import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -88,5 +89,11 @@ async function uploadFile(req: NextRequest) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(withRateLimit(uploadFile, 'upload'))
+// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
+export const POST = withCSRFProtection(
+  withRateLimiting(uploadFile, {
+    action: ActionCategory.FILE_UPLOAD,
+    enablePatternDetection: true,
+    enableAbuseTracking: true,
+  })
+)

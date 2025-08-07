@@ -13,7 +13,8 @@ import {
   throwNotFoundError,
   throwValidationError,
 } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
@@ -316,7 +317,11 @@ async function createCommunityComment(
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용 - 커뮤니티 댓글 작성
+// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
 export const POST = withCSRFProtection(
-  withRateLimit(createCommunityComment, 'comment')
+  withRateLimiting(createCommunityComment, {
+    action: ActionCategory.COMMENT_CREATE,
+    enablePatternDetection: true,
+    enableAbuseTracking: true,
+  })
 )

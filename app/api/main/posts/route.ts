@@ -9,7 +9,8 @@ import {
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { formatMainPostForResponse } from '@/lib/post/display'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
 import {
@@ -444,5 +445,11 @@ async function createPost(request: NextRequest) {
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(withRateLimit(createPost, 'post'))
+// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
+export const POST = withCSRFProtection(
+  withRateLimiting(createPost, {
+    action: ActionCategory.POST_CREATE,
+    enablePatternDetection: true,
+    enableAbuseTracking: true,
+  })
+)

@@ -14,7 +14,8 @@ import {
   throwValidationError,
   throwAuthorizationError,
 } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 
 // POST: 커뮤니티 가입
 async function joinCommunity(
@@ -166,7 +167,9 @@ async function joinCommunity(
 }
 
 // Rate Limiting 적용 - 커뮤니티 가입은 분당 10회로 제한
-export const POST = withRateLimit(joinCommunity, 'post')
+export const POST = withRateLimiting(joinCommunity, {
+  action: ActionCategory.COMMUNITY_JOIN,
+})
 
 // DELETE: 커뮤니티 탈퇴
 async function leaveCommunity(
@@ -255,4 +258,6 @@ async function leaveCommunity(
 }
 
 // Rate Limiting 적용 - 커뮤니티 탈퇴도 분당 10회로 제한
-export const DELETE = withRateLimit(leaveCommunity, 'post')
+export const DELETE = withRateLimiting(leaveCommunity, {
+  action: ActionCategory.COMMUNITY_LEAVE,
+})

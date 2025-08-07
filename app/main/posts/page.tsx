@@ -14,13 +14,51 @@ interface PostsPageProps {
   searchParams: Promise<{ category?: string; sort?: string; page?: string }>
 }
 
+interface TrendingTag {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  postCount: number
+  weeklyPosts: number
+  trendingScore: number
+}
+
+interface WeeklyMVPUser {
+  id: string
+  name: string | null
+  username: string | null
+  email: string
+  image: string | null
+  bio: string | null
+  globalRole: string
+  weeklyStats: {
+    postCount: number
+    totalViews: number
+    totalLikes: number
+    totalComments: number
+    engagementScore: number
+  }
+  rank: number
+}
+
+interface WeeklyTrendingPost {
+  id: string
+  title: string
+  viewCount: number
+  weeklyViews: number
+  author: {
+    name: string | null
+  }
+}
+
 async function getSidebarData() {
   try {
     const [tagsRes, usersRes, trendingRes] = await Promise.all([
-      fetch(`${getApiUrl()}/api/main/tags?limit=8`, {
+      fetch(`${getApiUrl()}/api/main/tags/trending?limit=8`, {
         next: { revalidate: 3600 }, // 1 hour cache for tags
       }),
-      fetch(`${getApiUrl()}/api/main/users/active?limit=5`, {
+      fetch(`${getApiUrl()}/api/main/users/weekly-mvp?limit=5`, {
         next: { revalidate: 300 }, // 5 minutes cache for active users
       }),
       fetch(`${getApiUrl()}/api/main/posts/weekly-trending?limit=3`, {
@@ -29,15 +67,47 @@ async function getSidebarData() {
     ])
 
     const [tagsData, usersData, trendingData] = await Promise.all([
-      tagsRes.ok ? tagsRes.json() : { tags: [] },
-      usersRes.ok ? usersRes.json() : { users: [] },
-      trendingRes.ok ? trendingRes.json() : { posts: [] },
+      tagsRes.ok ? tagsRes.json() : { data: [] },
+      usersRes.ok ? usersRes.json() : { data: [] },
+      trendingRes.ok ? trendingRes.json() : { data: { posts: [] } },
     ])
 
+    // Map the API response to the expected format for Sidebar
+    const mappedTags = ((tagsData.data || []) as TrendingTag[]).map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      count: tag.postCount || tag.weeklyPosts || 0,
+      color: tag.color || '#3B82F6',
+    }))
+
+    const mappedUsers = ((usersData.data || []) as WeeklyMVPUser[]).map(
+      (user) => ({
+        id: user.id,
+        name: user.name || user.username || 'Unknown',
+        image: user.image || undefined,
+        postCount: user.weeklyStats?.postCount || 0,
+      })
+    )
+
+    // For trending posts, map the weekly trending response
+    const mappedPosts = (
+      (trendingData.data?.items ||
+        trendingData.data ||
+        []) as WeeklyTrendingPost[]
+    ).map((post) => ({
+      id: post.id,
+      title: post.title,
+      viewCount: post.viewCount || 0,
+      weeklyViews: post.weeklyViews || post.viewCount || 0,
+      author: {
+        name: post.author?.name || 'Unknown',
+      },
+    }))
+
     return {
-      trendingTags: tagsData.tags || [],
-      activeUsers: usersData.users || [],
-      trendingPosts: trendingData.posts || [],
+      trendingTags: mappedTags,
+      activeUsers: mappedUsers,
+      trendingPosts: mappedPosts,
     }
   } catch (error) {
     console.error('사이드바 데이터 조회 실패:', error)

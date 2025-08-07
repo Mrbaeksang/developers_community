@@ -12,7 +12,8 @@ import {
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 
@@ -240,5 +241,11 @@ async function createComment(
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(withRateLimit(createComment, 'comment'))
+// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
+export const POST = withCSRFProtection(
+  withRateLimiting(createComment, {
+    action: ActionCategory.COMMENT_CREATE,
+    enablePatternDetection: true,
+    enableAbuseTracking: true,
+  })
+)

@@ -4,8 +4,9 @@ import { put } from '@vercel/blob'
 import { v4 as uuidv4 } from 'uuid'
 import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
 import { withCSRFProtection } from '@/lib/auth/csrf'
+import { ActionCategory } from '@/lib/security/actions'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {
@@ -120,4 +121,6 @@ async function uploadFile(req: Request) {
 }
 
 // Rate Limiting과 CSRF 보호 적용
-export const POST = withCSRFProtection(withRateLimit(uploadFile, 'upload'))
+export const POST = withCSRFProtection(
+  withRateLimiting(uploadFile, { action: ActionCategory.FILE_UPLOAD })
+)

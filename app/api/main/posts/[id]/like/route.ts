@@ -5,7 +5,8 @@ import { createPostLikeNotification } from '@/lib/notifications'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 
 // POST /api/main/posts/[id]/like - 좋아요 토글
 async function toggleLike(
@@ -121,8 +122,12 @@ async function toggleLike(
   }
 }
 
-// Rate Limiting 적용 - 좋아요는 분당 60회로 제한
-export const POST = withRateLimit(toggleLike, 'general')
+// Rate Limiting 적용 - 새로운 Rate Limiting 시스템 사용
+export const POST = withRateLimiting(toggleLike, {
+  action: ActionCategory.POST_LIKE,
+  enablePatternDetection: true,
+  enableAbuseTracking: true,
+})
 
 // GET /api/main/posts/[id]/like - 좋아요 상태 확인
 export async function GET(

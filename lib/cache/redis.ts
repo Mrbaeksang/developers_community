@@ -1,5 +1,8 @@
 import { redis } from '@/lib/core/redis'
 
+// Re-export redis for convenience
+export { redis }
+
 /**
  * Redis cache TTL configurations (in seconds)
  */

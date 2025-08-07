@@ -13,18 +13,10 @@ import { PostStats } from '@/components/shared/PostStats'
 import { getCategoryIcon } from '@/lib/post/display'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import type { CommonMainPost } from '@/lib/common/types'
-
-// API 응답에서 추가된 필드들을 포함한 타입 (display.ts의 formatMainPostForResponse 결과)
-interface PostWithCalculatedFields extends CommonMainPost {
-  readingTime?: number
-  likeCount?: number
-  commentCount?: number
-  bookmarkCount?: number
-}
+import type { MainPostFormatted } from '@/lib/post/types'
 
 interface PostCardProps {
-  post: PostWithCalculatedFields
+  post: MainPostFormatted
   className?: string
 }
 
@@ -128,8 +120,8 @@ export const PostCard = memo(function PostCard({
 
           <PostStats
             viewCount={post.viewCount}
-            likeCount={post.likeCount || post._count?.likes || 0}
-            commentCount={post.commentCount || post._count?.comments || 0}
+            likeCount={post.likeCount || 0}
+            commentCount={post.commentCount || 0}
             size="sm"
             variant="pill"
           />

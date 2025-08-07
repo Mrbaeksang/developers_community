@@ -15,7 +15,8 @@ import {
   throwAuthorizationError,
   throwValidationError,
 } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 import { withCSRFProtection } from '@/lib/auth/csrf'
 // Removed deprecated query-helpers import - using direct pagination
 import {
@@ -445,7 +446,11 @@ async function createCommunityPost(
   }
 }
 
-// Rate Limiting과 CSRF 보호 적용 - 커뮤니티 게시글 작성
+// Rate Limiting과 CSRF 보호 적용 - 새로운 Rate Limiting 시스템 사용
 export const POST = withCSRFProtection(
-  withRateLimit(createCommunityPost, 'post')
+  withRateLimiting(createCommunityPost, {
+    action: ActionCategory.POST_CREATE,
+    enablePatternDetection: true,
+    enableAbuseTracking: true,
+  })
 )

@@ -4,7 +4,8 @@ import { prisma } from '@/lib/core/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
-import { withRateLimit } from '@/lib/api/rate-limit'
+import { withRateLimiting } from '@/lib/security/compatibility'
+import { ActionCategory } from '@/lib/security/actions'
 
 // POST /api/main/posts/[id]/bookmark - 북마크 토글
 async function toggleBookmark(
@@ -85,8 +86,12 @@ async function toggleBookmark(
   }
 }
 
-// Rate Limiting 적용 - 북마크는 분당 60회로 제한
-export const POST = withRateLimit(toggleBookmark, 'general')
+// Rate Limiting 적용 - 새로운 Rate Limiting 시스템 사용
+export const POST = withRateLimiting(toggleBookmark, {
+  action: ActionCategory.POST_BOOKMARK,
+  enablePatternDetection: true,
+  enableAbuseTracking: true,
+})
 
 // GET /api/main/posts/[id]/bookmark - 북마크 상태 확인
 export async function GET(
