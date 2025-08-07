@@ -10,6 +10,7 @@ interface PaginationProps {
   totalPages: number
   baseUrl?: string
   className?: string
+  onPageChange?: (page: number) => void // 클라이언트 사이드 페이지네이션용
 }
 
 export function Pagination({
@@ -17,6 +18,7 @@ export function Pagination({
   totalPages,
   baseUrl = '',
   className = '',
+  onPageChange,
 }: PaginationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -32,7 +34,14 @@ export function Pagination({
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return
-    router.push(createPageUrl(page))
+
+    // 클라이언트 사이드 페이지네이션
+    if (onPageChange) {
+      onPageChange(page)
+    } else {
+      // URL 기반 페이지네이션
+      router.push(createPageUrl(page))
+    }
   }
 
   // 페이지 번호 생성 (최대 5개 표시)

@@ -13,6 +13,7 @@ import { auth } from '@/auth'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { prisma } from '@/lib/core/prisma'
+import { Pagination } from '@/components/shared/Pagination'
 
 interface UserProfile {
   id: string
@@ -85,61 +86,82 @@ async function getProfile(userId: string) {
 }
 
 // 사용자의 게시글 목록 가져오기
-async function getUserPosts(userId: string) {
-  const [mainPosts, communityPosts] = await Promise.all([
-    prisma.mainPost.findMany({
-      where: {
-        authorId: userId,
-        status: 'PUBLISHED',
-      },
-      select: {
-        id: true,
-        title: true,
-        excerpt: true,
-        createdAt: true,
-        viewCount: true,
-        likeCount: true,
-        commentCount: true,
-        category: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 10,
-    }),
-    prisma.communityPost.findMany({
-      where: {
-        authorId: userId,
-        status: 'PUBLISHED',
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        createdAt: true,
-        viewCount: true,
-        likeCount: true,
-        commentCount: true,
-        community: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 10,
-    }),
-  ])
+async function getUserPosts(userId: string, page: number = 1) {
+  const pageSize = 5
+  const skip = (page - 1) * pageSize
 
-  return { mainPosts, communityPosts }
+  const [mainPosts, communityPosts, mainCount, communityCount] =
+    await Promise.all([
+      prisma.mainPost.findMany({
+        where: {
+          authorId: userId,
+          status: 'PUBLISHED',
+        },
+        select: {
+          id: true,
+          title: true,
+          excerpt: true,
+          createdAt: true,
+          viewCount: true,
+          likeCount: true,
+          commentCount: true,
+          category: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      prisma.communityPost.findMany({
+        where: {
+          authorId: userId,
+          status: 'PUBLISHED',
+        },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          createdAt: true,
+          viewCount: true,
+          likeCount: true,
+          commentCount: true,
+          community: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      prisma.mainPost.count({
+        where: {
+          authorId: userId,
+          status: 'PUBLISHED',
+        },
+      }),
+      prisma.communityPost.count({
+        where: {
+          authorId: userId,
+          status: 'PUBLISHED',
+        },
+      }),
+    ])
+
+  const totalCount = mainCount + communityCount
+  const totalPages = Math.ceil(totalCount / pageSize)
+
+  return { mainPosts, communityPosts, totalPages }
 }
 
 // 사용자의 댓글 목록 가져오기
@@ -170,95 +192,133 @@ async function getUserComments(userId: string) {
 }
 
 // 사용자가 좋아요한 게시글 목록 가져오기
-async function getUserLikedPosts(userId: string) {
-  const likes = await prisma.mainLike.findMany({
-    where: {
-      userId: userId,
-    },
-    select: {
-      post: {
-        select: {
-          id: true,
-          title: true,
-          excerpt: true,
-          createdAt: true,
-          viewCount: true,
-          likeCount: true,
-          commentCount: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
+async function getUserLikedPosts(userId: string, page: number = 1) {
+  const pageSize = 10
+  const skip = (page - 1) * pageSize
+
+  const [likes, totalCount] = await Promise.all([
+    prisma.mainLike.findMany({
+      where: {
+        userId: userId,
+      },
+      select: {
+        post: {
+          select: {
+            id: true,
+            title: true,
+            excerpt: true,
+            createdAt: true,
+            viewCount: true,
+            likeCount: true,
+            commentCount: true,
+            category: {
+              select: {
+                name: true,
+                slug: true,
+              },
             },
           },
         },
+        createdAt: true,
       },
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 10,
-  })
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: pageSize,
+    }),
+    prisma.mainLike.count({
+      where: {
+        userId: userId,
+      },
+    }),
+  ])
 
-  return likes.map((like) => ({ ...like.post, likedAt: like.createdAt }))
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const posts = likes.map((like) => ({ ...like.post, likedAt: like.createdAt }))
+
+  return { posts, totalPages }
 }
 
 // 사용자의 북마크 목록 가져오기 (본인만 볼 수 있음)
-async function getUserBookmarks(userId: string) {
-  const bookmarks = await prisma.mainBookmark.findMany({
-    where: {
-      userId: userId,
-    },
-    select: {
-      post: {
-        select: {
-          id: true,
-          title: true,
-          excerpt: true,
-          createdAt: true,
-          viewCount: true,
-          likeCount: true,
-          commentCount: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
+async function getUserBookmarks(userId: string, page: number = 1) {
+  const pageSize = 10
+  const skip = (page - 1) * pageSize
+
+  const [bookmarks, totalCount] = await Promise.all([
+    prisma.mainBookmark.findMany({
+      where: {
+        userId: userId,
+      },
+      select: {
+        post: {
+          select: {
+            id: true,
+            title: true,
+            excerpt: true,
+            createdAt: true,
+            viewCount: true,
+            likeCount: true,
+            commentCount: true,
+            category: {
+              select: {
+                name: true,
+                slug: true,
+              },
             },
           },
         },
+        createdAt: true,
       },
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 10,
-  })
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: pageSize,
+    }),
+    prisma.mainBookmark.count({
+      where: {
+        userId: userId,
+      },
+    }),
+  ])
 
-  return bookmarks.map((bookmark) => ({
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const posts = bookmarks.map((bookmark) => ({
     ...bookmark.post,
     bookmarkedAt: bookmark.createdAt,
   }))
+
+  return { posts, totalPages }
 }
 
 export default async function ProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { id } = await params
+  const search = await searchParams
   const session = await auth()
+
+  // 각 탭별 페이지 번호
+  const postsPage = parseInt((search.postsPage as string) || '1')
+  const likesPage = parseInt((search.likesPage as string) || '1')
+  const bookmarksPage = parseInt((search.bookmarksPage as string) || '1')
 
   const isOwnProfile = session?.user?.id === id
   const profile = await getProfile(id)
 
   // 프로필 데이터 가져오기
   const [posts, comments, likedPosts, bookmarks] = await Promise.all([
-    getUserPosts(id),
+    getUserPosts(id, postsPage),
     getUserComments(id),
-    getUserLikedPosts(id),
-    isOwnProfile ? getUserBookmarks(id) : Promise.resolve([]), // 북마크는 본인만
+    getUserLikedPosts(id, likesPage),
+    isOwnProfile
+      ? getUserBookmarks(id, bookmarksPage)
+      : Promise.resolve({ posts: [], totalPages: 0 }), // 북마크는 본인만
   ])
 
   return (
@@ -384,88 +444,98 @@ export default async function ProfilePage({
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {posts.mainPosts.length > 0 && (
-                <div>
-                  <h3 className="font-bold mb-2">메인 게시글</h3>
-                  <div className="space-y-2">
-                    {posts.mainPosts.map((post) => (
-                      <Card
-                        key={post.id}
-                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <Link
-                                href={`/main/posts/${post.id}`}
-                                className="hover:underline"
-                              >
-                                <h4 className="font-bold">{post.title}</h4>
-                              </Link>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {post.excerpt}
-                              </p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                <span>{post.category?.name}</span>
-                                <span>조회 {post.viewCount}</span>
-                                <span>좋아요 {post.likeCount}</span>
-                                <span>댓글 {post.commentCount}</span>
-                                <span>
-                                  {new Date(post.createdAt).toLocaleDateString(
-                                    'ko-KR'
-                                  )}
-                                </span>
+            <>
+              <div className="space-y-4">
+                {posts.mainPosts.length > 0 && (
+                  <div>
+                    <h3 className="font-bold mb-2">메인 게시글</h3>
+                    <div className="space-y-2">
+                      {posts.mainPosts.map((post) => (
+                        <Card
+                          key={post.id}
+                          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <Link
+                                  href={`/main/posts/${post.id}`}
+                                  className="hover:underline"
+                                >
+                                  <h4 className="font-bold">{post.title}</h4>
+                                </Link>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {post.excerpt}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                  <span>{post.category?.name}</span>
+                                  <span>조회 {post.viewCount}</span>
+                                  <span>좋아요 {post.likeCount}</span>
+                                  <span>댓글 {post.commentCount}</span>
+                                  <span>
+                                    {new Date(
+                                      post.createdAt
+                                    ).toLocaleDateString('ko-KR')}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              {posts.communityPosts.length > 0 && (
-                <div>
-                  <h3 className="font-bold mb-2">커뮤니티 게시글</h3>
-                  <div className="space-y-2">
-                    {posts.communityPosts.map((post) => (
-                      <Card
-                        key={post.id}
-                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <Link
-                                href={`/communities/${post.community?.slug}/posts/${post.id}`}
-                                className="hover:underline"
-                              >
-                                <h4 className="font-bold">{post.title}</h4>
-                              </Link>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {post.content}
-                              </p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                <span>{post.community?.name}</span>
-                                <span>조회 {post.viewCount}</span>
-                                <span>좋아요 {post.likeCount}</span>
-                                <span>댓글 {post.commentCount}</span>
-                                <span>
-                                  {new Date(post.createdAt).toLocaleDateString(
-                                    'ko-KR'
-                                  )}
-                                </span>
+                )}
+                {posts.communityPosts.length > 0 && (
+                  <div>
+                    <h3 className="font-bold mb-2">커뮤니티 게시글</h3>
+                    <div className="space-y-2">
+                      {posts.communityPosts.map((post) => (
+                        <Card
+                          key={post.id}
+                          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <Link
+                                  href={`/communities/${post.community?.slug}/posts/${post.id}`}
+                                  className="hover:underline"
+                                >
+                                  <h4 className="font-bold">{post.title}</h4>
+                                </Link>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {post.content}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                  <span>{post.community?.name}</span>
+                                  <span>조회 {post.viewCount}</span>
+                                  <span>좋아요 {post.likeCount}</span>
+                                  <span>댓글 {post.commentCount}</span>
+                                  <span>
+                                    {new Date(
+                                      post.createdAt
+                                    ).toLocaleDateString('ko-KR')}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+              {posts.totalPages > 1 && (
+                <Pagination
+                  currentPage={postsPage}
+                  totalPages={posts.totalPages}
+                  baseUrl={`/profile/${id}?postsPage`}
+                  className="mt-4"
+                />
               )}
-            </div>
+            </>
           )}
         </TabsContent>
 
@@ -509,7 +579,7 @@ export default async function ProfilePage({
         </TabsContent>
 
         <TabsContent value="likes">
-          {likedPosts.length === 0 ? (
+          {likedPosts.posts.length === 0 ? (
             <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <CardContent className="py-8 text-center text-muted-foreground">
                 <Heart className="h-12 w-12 mx-auto mb-4" />
@@ -517,55 +587,9 @@ export default async function ProfilePage({
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {likedPosts.map((post) => (
-                <Card
-                  key={post.id}
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Link
-                          href={`/main/posts/${post.id}`}
-                          className="hover:underline"
-                        >
-                          <h4 className="font-bold">{post.title}</h4>
-                        </Link>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {post.excerpt}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>{post.category?.name}</span>
-                          <span>조회 {post.viewCount}</span>
-                          <span>좋아요 {post.likeCount}</span>
-                          <span>댓글 {post.commentCount}</span>
-                          <span>
-                            좋아요한 날짜:{' '}
-                            {new Date(post.likedAt).toLocaleDateString('ko-KR')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {isOwnProfile && (
-          <TabsContent value="bookmarks">
-            {bookmarks.length === 0 ? (
-              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <Bookmark className="h-12 w-12 mx-auto mb-4" />
-                  <p>아직 북마크한 게시글이 없습니다.</p>
-                </CardContent>
-              </Card>
-            ) : (
+            <>
               <div className="space-y-2">
-                {bookmarks.map((post) => (
+                {likedPosts.posts.map((post) => (
                   <Card
                     key={post.id}
                     className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
@@ -588,8 +612,8 @@ export default async function ProfilePage({
                             <span>좋아요 {post.likeCount}</span>
                             <span>댓글 {post.commentCount}</span>
                             <span>
-                              북마크한 날짜:{' '}
-                              {new Date(post.bookmarkedAt).toLocaleDateString(
+                              좋아요한 날짜:{' '}
+                              {new Date(post.likedAt).toLocaleDateString(
                                 'ko-KR'
                               )}
                             </span>
@@ -600,6 +624,74 @@ export default async function ProfilePage({
                   </Card>
                 ))}
               </div>
+              {likedPosts.totalPages > 1 && (
+                <Pagination
+                  currentPage={likesPage}
+                  totalPages={likedPosts.totalPages}
+                  baseUrl={`/profile/${id}?likesPage`}
+                  className="mt-4"
+                />
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        {isOwnProfile && (
+          <TabsContent value="bookmarks">
+            {bookmarks.posts.length === 0 ? (
+              <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Bookmark className="h-12 w-12 mx-auto mb-4" />
+                  <p>아직 북마크한 게시글이 없습니다.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {bookmarks.posts.map((post) => (
+                    <Card
+                      key={post.id}
+                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <Link
+                              href={`/main/posts/${post.id}`}
+                              className="hover:underline"
+                            >
+                              <h4 className="font-bold">{post.title}</h4>
+                            </Link>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {post.excerpt}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                              <span>{post.category?.name}</span>
+                              <span>조회 {post.viewCount}</span>
+                              <span>좋아요 {post.likeCount}</span>
+                              <span>댓글 {post.commentCount}</span>
+                              <span>
+                                북마크한 날짜:{' '}
+                                {new Date(post.bookmarkedAt).toLocaleDateString(
+                                  'ko-KR'
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {bookmarks.totalPages > 1 && (
+                  <Pagination
+                    currentPage={bookmarksPage}
+                    totalPages={bookmarks.totalPages}
+                    baseUrl={`/profile/${id}?bookmarksPage`}
+                    className="mt-4"
+                  />
+                )}
+              </>
             )}
           </TabsContent>
         )}

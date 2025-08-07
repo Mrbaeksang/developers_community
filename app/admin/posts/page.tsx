@@ -52,6 +52,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { apiClient } from '@/lib/api/client'
+import { Pagination } from '@/components/shared/Pagination'
 
 interface MainPost {
   id: string
@@ -129,6 +130,11 @@ export default function PostsPage() {
   const [selectedPostType, setSelectedPostType] = useState<
     'main' | 'community'
   >('main')
+
+  // 페이지네이션 상태
+  const [mainPage, setMainPage] = useState(1)
+  const [communityPage, setCommunityPage] = useState(1)
+  const pageSize = 10
 
   // 메인 게시글 조회
   const fetchMainPosts = async () => {
@@ -343,6 +349,21 @@ export default function PostsPage() {
     return matchesSearch && matchesStatus
   })
 
+  // 페이지네이션 적용
+  const paginatedMainPosts = filteredMainPosts.slice(
+    (mainPage - 1) * pageSize,
+    mainPage * pageSize
+  )
+  const paginatedCommunityPosts = filteredCommunityPosts.slice(
+    (communityPage - 1) * pageSize,
+    communityPage * pageSize
+  )
+
+  const mainTotalPages = Math.ceil(filteredMainPosts.length / pageSize)
+  const communityTotalPages = Math.ceil(
+    filteredCommunityPosts.length / pageSize
+  )
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -440,7 +461,7 @@ export default function PostsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMainPosts.map((post) => (
+                  {paginatedMainPosts.map((post) => (
                     <TableRow key={post.id}>
                       <TableCell>
                         <div className="max-w-[300px]">
@@ -535,6 +556,16 @@ export default function PostsPage() {
                   ))}
                 </TableBody>
               </Table>
+              {mainTotalPages > 1 && (
+                <div className="mt-4 pb-4">
+                  <Pagination
+                    currentPage={mainPage}
+                    totalPages={mainTotalPages}
+                    onPageChange={setMainPage}
+                    className=""
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -560,7 +591,7 @@ export default function PostsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCommunityPosts.map((post) => (
+                  {paginatedCommunityPosts.map((post) => (
                     <TableRow key={post.id}>
                       <TableCell>
                         <div className="max-w-[250px]">
@@ -650,6 +681,16 @@ export default function PostsPage() {
                   ))}
                 </TableBody>
               </Table>
+              {communityTotalPages > 1 && (
+                <div className="mt-4 pb-4">
+                  <Pagination
+                    currentPage={communityPage}
+                    totalPages={communityTotalPages}
+                    onPageChange={setCommunityPage}
+                    className=""
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
