@@ -46,7 +46,7 @@ import {
   Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { debounce } from 'lodash'
+import debounce from 'lodash/debounce'
 
 // Lazy load ReactMarkdown for better performance
 const ReactMarkdown = lazy(() => import('react-markdown'))
