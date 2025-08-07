@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { Users, FileText, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/community/utils'
@@ -48,11 +48,7 @@ export function ActiveCommunities() {
           </div>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-16" />
-            ))}
-          </div>
+          <SkeletonLoader lines={3} />
         </CardContent>
       </Card>
     )

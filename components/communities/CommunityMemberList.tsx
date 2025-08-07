@@ -12,10 +12,10 @@ import {
   User,
   Search,
   ChevronDown,
-  Loader2,
   MessageSquare,
   FileText,
 } from 'lucide-react'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -292,15 +292,15 @@ export default function CommunityMemberList({
 
         {/* 로딩 인디케이터 */}
         {isLoading && (
-          <div className="col-span-full flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="col-span-full">
+            <PageLoadingSpinner />
           </div>
         )}
 
         {/* 무한 스크롤 로딩 */}
         {isFetchingNextPage && (
-          <div className="col-span-full flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="col-span-full">
+            <PageLoadingSpinner />
           </div>
         )}
 

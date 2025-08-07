@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Settings, Play, AlertTriangle } from 'lucide-react'
+import { Settings, Play, AlertTriangle } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { toast } from 'sonner'
 import { TestActionModal } from './TestActionModal'
 
@@ -110,7 +111,7 @@ export function TestActionCard({
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <ButtonSpinner className="mr-2" />
                   처리 중...
                 </>
               ) : (

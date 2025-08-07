@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -58,14 +58,8 @@ export function RecentPosts() {
             <h2 className="text-xl font-black">최근 게시글</h2>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="p-4">
-                <Skeleton className="h-20" />
-              </div>
-            ))}
-          </div>
+        <CardContent className="p-6">
+          <SkeletonLoader lines={5} />
         </CardContent>
       </Card>
     )

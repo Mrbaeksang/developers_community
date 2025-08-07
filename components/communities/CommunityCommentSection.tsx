@@ -6,10 +6,13 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { MessageSquare, Send, MoreVertical, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  ButtonSpinner,
+  SkeletonLoader,
+} from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -339,7 +342,11 @@ export function CommunityCommentSection({
                     disabled={updateCommentMutation.isPending}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
-                    수정
+                    {updateCommentMutation.isPending ? (
+                      <ButtonSpinner />
+                    ) : (
+                      '수정'
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -390,7 +397,11 @@ export function CommunityCommentSection({
                     disabled={createReplyMutation.isPending}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
-                    답글 작성
+                    {createReplyMutation.isPending ? (
+                      <ButtonSpinner />
+                    ) : (
+                      '답글 작성'
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -430,15 +441,7 @@ export function CommunityCommentSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex gap-3">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            </div>
-          ))}
+          <SkeletonLoader lines={4} />
         </CardContent>
       </Card>
     )
@@ -467,8 +470,14 @@ export function CommunityCommentSection({
               disabled={createCommentMutation.isPending || !newComment.trim()}
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
             >
-              <Send className="h-4 w-4 mr-2" />
-              댓글 작성
+              {createCommentMutation.isPending ? (
+                <ButtonSpinner />
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  댓글 작성
+                </>
+              )}
             </Button>
           </div>
         ) : (

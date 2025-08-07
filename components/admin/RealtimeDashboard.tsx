@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import {
+  SkeletonLoader,
+  ButtonSpinner,
+} from '@/components/shared/LoadingSpinner'
 import { Progress } from '@/components/ui/progress'
 import { formatCount } from '@/lib/common/types'
 import {
@@ -228,7 +231,7 @@ export function RealtimeDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-20" />
+              <ButtonSpinner />
             ) : (
               <>
                 <div className="text-2xl font-bold">{traffic.activeUsers}</div>
@@ -247,7 +250,7 @@ export function RealtimeDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-20" />
+              <ButtonSpinner />
             ) : (
               <>
                 <div className="text-2xl font-bold">
@@ -266,7 +269,7 @@ export function RealtimeDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-20" />
+              <ButtonSpinner />
             ) : (
               <>
                 <div className="text-2xl font-bold">
@@ -285,7 +288,7 @@ export function RealtimeDashboard() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-20" />
+              <ButtonSpinner />
             ) : (
               <>
                 <div className="text-2xl font-bold">{errors.length}</div>
@@ -311,12 +314,8 @@ export function RealtimeDashboard() {
           {loading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-32 mb-2" />
-                    <Skeleton className="h-3 w-full" />
-                  </div>
+                <div key={i} className="p-3">
+                  <SkeletonLoader lines={2} />
                 </div>
               ))}
             </div>
@@ -352,9 +351,7 @@ export function RealtimeDashboard() {
           <CardContent>
             {loading ? (
               <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
+                <SkeletonLoader lines={3} />
               </div>
             ) : errors.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -408,9 +405,7 @@ export function RealtimeDashboard() {
           <CardContent>
             {loading ? (
               <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-8 w-full" />
-                ))}
+                <SkeletonLoader lines={5} />
               </div>
             ) : traffic.apiCalls.topEndpoints.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -451,9 +446,7 @@ export function RealtimeDashboard() {
         <CardContent>
           {loading ? (
             <div className="grid gap-2 md:grid-cols-2">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
+              <SkeletonLoader lines={6} />
             </div>
           ) : traffic.pageViews.topPages.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">

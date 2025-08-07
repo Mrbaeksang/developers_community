@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, CheckCheck, Loader2, X } from 'lucide-react'
+import { Bell, CheckCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { useMutation } from '@tanstack/react-query'
 import {
   DropdownMenu,
@@ -230,7 +231,7 @@ export default function NotificationDropdown() {
                         disabled={deleteNotificationMutation.isPending}
                       >
                         {deleteNotificationMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <ButtonSpinner />
                         ) : (
                           <X className="h-4 w-4" />
                         )}

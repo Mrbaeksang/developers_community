@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { formatCount, getTextColor } from '@/lib/common/types'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -478,9 +479,13 @@ export function UnifiedPostDetail({
                 disabled={likeMutation.isPending || isProcessingLike}
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
               >
-                <Heart
-                  className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current' : ''}`}
-                />
+                {likeMutation.isPending || isProcessingLike ? (
+                  <ButtonSpinner />
+                ) : (
+                  <Heart
+                    className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current' : ''}`}
+                  />
+                )}
                 {isLiked ? '좋아요 취소' : '좋아요'}
               </Button>
               <Button
@@ -490,9 +495,13 @@ export function UnifiedPostDetail({
                 disabled={bookmarkMutation.isPending || isProcessingBookmark}
                 className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
               >
-                <Bookmark
-                  className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`}
-                />
+                {bookmarkMutation.isPending || isProcessingBookmark ? (
+                  <ButtonSpinner />
+                ) : (
+                  <Bookmark
+                    className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`}
+                  />
+                )}
                 {isBookmarked ? '북마크 해제' : '북마크'}
               </Button>
             </div>

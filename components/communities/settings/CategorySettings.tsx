@@ -23,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Edit2, Trash2, GripVertical, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, GripVertical } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/hooks/use-toast'
 import { Reorder } from 'framer-motion'
 import { apiClient } from '@/lib/api/client'
@@ -464,9 +465,7 @@ export function CategorySettings({
               취소
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {createMutation.isPending && <ButtonSpinner className="mr-2" />}
               생성
             </Button>
           </DialogFooter>
@@ -572,9 +571,7 @@ export function CategorySettings({
               취소
             </Button>
             <Button onClick={handleEdit} disabled={updateMutation.isPending}>
-              {updateMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {updateMutation.isPending && <ButtonSpinner className="mr-2" />}
               수정
             </Button>
           </DialogFooter>
@@ -603,9 +600,7 @@ export function CategorySettings({
               disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleteMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {deleteMutation.isPending && <ButtonSpinner className="mr-2" />}
               삭제
             </AlertDialogAction>
           </AlertDialogFooter>

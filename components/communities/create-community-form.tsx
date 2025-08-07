@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // Removed Switch import - using custom toggle
-import { Check, X, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Check, X, Image as ImageIcon } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community/utils'
@@ -451,7 +452,7 @@ export default function CreateCommunityForm() {
                       </span>
                       <span>
                         {isCheckingName && (
-                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                          <ButtonSpinner className="text-gray-400" />
                         )}
                         {!isCheckingName && nameAvailable === true && (
                           <Check className="h-5 w-5 text-green-600" />
@@ -527,7 +528,7 @@ export default function CreateCommunityForm() {
                         </span>
                         <span>
                           {isCheckingSlug && (
-                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                            <ButtonSpinner className="text-gray-400" />
                           )}
                           {!isCheckingSlug && slugAvailable === true && (
                             <Check className="h-5 w-5 text-green-600" />
@@ -1267,7 +1268,7 @@ export default function CreateCommunityForm() {
                 >
                   {createCommunityMutation.isPending || isCreating ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <ButtonSpinner className="mr-2" />
                       커뮤니티 생성 중...
                     </>
                   ) : (

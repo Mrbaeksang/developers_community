@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Loader2 } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 
 interface TestActionModalProps {
   isOpen: boolean
@@ -267,7 +267,7 @@ export function TestActionModal({
             취소
           </Button>
           <Button onClick={handleExecute} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <ButtonSpinner className="mr-2" />}
             실행
           </Button>
         </DialogFooter>

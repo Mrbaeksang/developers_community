@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { PostListServer } from '@/components/posts/PostListServer'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { getApiUrl } from '@/lib/api/client'
 
 export const metadata = {
@@ -147,7 +147,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               fallback={
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-48" />
+                    <div
+                      key={i}
+                      className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-6"
+                    >
+                      <SkeletonLoader lines={4} />
+                    </div>
                   ))}
                 </div>
               }
@@ -158,7 +163,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
           {/* 사이드바 */}
           <aside className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96" />}>
+            <Suspense
+              fallback={
+                <div className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-6">
+                  <SkeletonLoader lines={10} />
+                </div>
+              }
+            >
               <SidebarContainer sidebarData={sidebarData} />
             </Suspense>
           </aside>

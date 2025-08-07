@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
 import {
   ChevronRight,
   TrendingUp,
@@ -167,7 +167,7 @@ export function PostList({
   }, [sortedPosts])
 
   if (isLoading || externalLoading) {
-    return <PostListSkeleton />
+    return <PageLoadingSpinner />
   }
 
   return (
@@ -404,22 +404,6 @@ export function PostList({
           </div>
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function PostListSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-10 w-[180px]" />
-      </div>
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
     </div>
   )
 }

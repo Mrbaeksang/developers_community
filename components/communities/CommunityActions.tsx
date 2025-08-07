@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -133,7 +134,11 @@ export function CommunityActions({
           disabled={leaveCommunityMutation.isPending}
           className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
-          <LogOut className="h-4 w-4 mr-2" />
+          {leaveCommunityMutation.isPending ? (
+            <ButtonSpinner />
+          ) : (
+            <LogOut className="h-4 w-4 mr-2" />
+          )}
           {leaveCommunityMutation.isPending ? '처리중...' : '탈퇴'}
         </Button>
       )}
@@ -154,6 +159,7 @@ export function CommunityActions({
           disabled={joinCommunityMutation.isPending}
           className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
         >
+          {joinCommunityMutation.isPending && <ButtonSpinner />}
           {joinCommunityMutation.isPending ? '처리중...' : '가입하기'}
         </Button>
       )}

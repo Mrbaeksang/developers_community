@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import {
   FileText,
   Users,
@@ -102,7 +102,14 @@ function DashboardSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <Skeleton key={i} className="h-24" />
+        <Card
+          key={i}
+          className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        >
+          <CardContent className="p-6">
+            <SkeletonLoader lines={3} />
+          </CardContent>
+        </Card>
       ))}
     </div>
   )

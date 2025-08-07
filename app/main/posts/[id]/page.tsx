@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { lazy, Suspense } from 'react'
 import ClientPostDetail from '@/components/posts/ClientPostDetail'
 import { markdownToHtml } from '@/lib/ui/markdown'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 
 // 레이지 로딩으로 RelatedPosts 최적화
 const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
@@ -12,15 +12,7 @@ const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
 function RelatedPostsSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-6 w-24" />
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-3 w-3/4" />
-          </div>
-        ))}
-      </div>
+      <SkeletonLoader lines={5} />
     </div>
   )
 }

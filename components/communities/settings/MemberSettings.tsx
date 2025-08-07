@@ -10,12 +10,12 @@ import {
   ShieldCheck,
   User,
   MoreVertical,
-  Loader2,
   UserX,
   Ban,
   Clock,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -511,9 +511,7 @@ export function MemberSettings({
 
           {/* 멤버 목록 */}
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <LoadingSpinner size="lg" className="py-8" />
           ) : members.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               멤버가 없습니다.
@@ -554,9 +552,7 @@ export function MemberSettings({
 
         <TabsContent value="pending" className="space-y-4">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <LoadingSpinner size="lg" className="py-8" />
           ) : pendingMembers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />

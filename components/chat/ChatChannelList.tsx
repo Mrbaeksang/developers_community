@@ -6,7 +6,7 @@ import { MessageCircle, Globe } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import dynamic from 'next/dynamic'
@@ -83,14 +83,7 @@ export default function ChatChannelList() {
         <CardContent className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="p-3 rounded-lg border-2 border-black">
-              <div className="flex items-start gap-3">
-                <Skeleton className="h-8 w-8 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-              </div>
+              <SkeletonLoader lines={3} />
             </div>
           ))}
         </CardContent>

@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Bell, CheckCheck, Loader2, Trash2, Filter } from 'lucide-react'
+import { Bell, CheckCheck, Trash2, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -314,9 +315,7 @@ export default function NotificationsPage() {
 
       {/* 알림 목록 */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+        <PageLoadingSpinner />
       ) : notifications.length === 0 ? (
         <Card className="p-16 text-center border-2 border-black">
           <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

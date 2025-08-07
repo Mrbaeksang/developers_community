@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Community, CommunityVisibility } from '@prisma/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -205,7 +205,7 @@ export function GeneralSettings({ community }: GeneralSettingsProps) {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <ButtonSpinner className="mr-2" />
               저장 중...
             </>
           ) : (

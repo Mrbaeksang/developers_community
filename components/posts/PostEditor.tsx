@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label'
 import { toast as sonnerToast } from 'sonner'
 import {
   X,
-  Loader2,
   AlertCircle,
   Maximize2,
   Minimize2,
@@ -38,6 +37,10 @@ import {
   Heading3,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import {
+  LoadingSpinner,
+  ButtonSpinner,
+} from '@/components/shared/LoadingSpinner'
 
 // Dynamic imports for heavy dependencies
 const ReactMarkdown = dynamic(() => import('react-markdown'), {
@@ -46,9 +49,6 @@ const ReactMarkdown = dynamic(() => import('react-markdown'), {
 
 // Lazy load dropzone
 const DropzoneArea = lazy(() => import('./DropzoneArea'))
-
-// Import LoadingSpinner components
-import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 
 interface Category {
   id: string
@@ -623,7 +623,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 flex flex-col items-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <LoadingSpinner size="xl" />
             <div className="text-center">
               <p className="text-lg font-bold">
                 {submitState === 'submitting' &&
@@ -866,7 +866,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     disabled={isSubmitting}
                   />
                   {uploadingImage ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ButtonSpinner />
                   ) : (
                     <ImageIcon className="h-4 w-4" />
                   )}

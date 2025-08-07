@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useChatEvents } from '@/hooks/use-chat-events'
 import { useSession } from 'next-auth/react'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 
 // 레이지 로딩으로 FloatingChatWindow 최적화
 const FloatingChatWindow = lazy(() => import('./FloatingChatWindow'))
@@ -15,18 +15,7 @@ const FloatingChatWindow = lazy(() => import('./FloatingChatWindow'))
 function ChatSkeleton() {
   return (
     <div className="flex flex-col h-full p-4">
-      <div className="space-y-3 flex-1">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <Skeleton className="h-10 w-full mt-4" />
+      <SkeletonLoader lines={8} className="flex-1" />
     </div>
   )
 }

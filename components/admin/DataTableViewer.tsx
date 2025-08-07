@@ -19,8 +19,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, RefreshCw, Database } from 'lucide-react'
+import { RefreshCw, Database } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  ButtonSpinner,
+  LoadingSpinner,
+} from '@/components/shared/LoadingSpinner'
 
 interface DataTableViewerProps {
   className?: string
@@ -112,11 +116,7 @@ export function DataTableViewer({ className }: DataTableViewerProps) {
               onClick={fetchData}
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
+              {loading ? <ButtonSpinner /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -141,7 +141,7 @@ export function DataTableViewer({ className }: DataTableViewerProps) {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      <LoadingSpinner size="lg" className="mx-auto" />
                     </TableCell>
                   </TableRow>
                 ) : data.length === 0 ? (

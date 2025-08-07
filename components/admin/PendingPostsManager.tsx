@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -276,7 +277,11 @@ export function PendingPostsManager({
                     rejectMutation.isPending || approveMutation.isPending
                   }
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
+                  {rejectMutation.isPending ? (
+                    <ButtonSpinner />
+                  ) : (
+                    <XCircle className="mr-2 h-4 w-4" />
+                  )}
                   {selectedPost?.id === post.id ? '거부 확정' : '거부'}
                 </Button>
                 <Button
@@ -286,7 +291,11 @@ export function PendingPostsManager({
                     rejectMutation.isPending || approveMutation.isPending
                   }
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {approveMutation.isPending ? (
+                    <ButtonSpinner />
+                  ) : (
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                  )}
                   승인
                 </Button>
               </div>

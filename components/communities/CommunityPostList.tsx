@@ -6,7 +6,7 @@ import { MessageSquare, Heart, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { formatCount, getTextColor } from '@/lib/common/types'
@@ -129,16 +129,7 @@ export function CommunityPostList({
             className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
             <CardContent className="p-6">
-              <div className="space-y-3">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              </div>
+              <SkeletonLoader lines={4} />
             </CardContent>
           </Card>
         ))}

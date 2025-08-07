@@ -22,8 +22,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, Database } from 'lucide-react'
+import { Search, Database } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
 
 // Prisma 모델 목록 (한글 설명 포함)
 const TABLES = [
@@ -941,7 +942,7 @@ export default function DatabaseViewerPage() {
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <PageLoadingSpinner />
               <p className="text-gray-500 font-medium">
                 데이터를 불러오는 중...
               </p>

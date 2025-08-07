@@ -3,14 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Calendar,
-  FileText,
-  MessageSquare,
-  Heart,
-  Loader2,
-  User,
-} from 'lucide-react'
+import { Calendar, FileText, MessageSquare, Heart, User } from 'lucide-react'
+import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,7 +76,7 @@ export function ProfileDropdown({
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <ButtonSpinner />
           </div>
         ) : profile ? (
           <div className="p-4 space-y-4">
