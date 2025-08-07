@@ -25,6 +25,7 @@ import {
   ButtonSpinner,
   LoadingSpinner,
 } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 interface DataTableViewerProps {
   className?: string
@@ -146,11 +147,13 @@ export function DataTableViewer({ className }: DataTableViewerProps) {
                   </TableRow>
                 ) : data.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="text-center text-muted-foreground"
-                    >
-                      데이터가 없습니다
+                    <TableCell colSpan={columns.length || 1} className="p-8">
+                      <EmptyState
+                        icon={Database}
+                        title="데이터가 없습니다"
+                        description="이 테이블에는 아직 데이터가 없습니다"
+                        size="sm"
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

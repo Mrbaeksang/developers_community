@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import {
   ChevronRight,
   TrendingUp,
@@ -367,7 +368,14 @@ export function PostList({
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
-              <EmptyState />
+              <div className="col-span-2">
+                <EmptyState
+                  icon={FileText}
+                  title="아직 게시물이 없습니다"
+                  description="첫 번째 게시물을 작성해보세요"
+                  size="lg"
+                />
+              </div>
             )}
           </div>
         </TabsContent>
@@ -383,7 +391,14 @@ export function PostList({
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
-              <EmptyState message="아직 트렌딩 게시물이 없습니다." />
+              <div className="col-span-2">
+                <EmptyState
+                  icon={TrendingUp}
+                  title="아직 트렌딩 게시물이 없습니다"
+                  description="인기 게시물이 여기에 표시됩니다"
+                  size="lg"
+                />
+              </div>
             )}
           </div>
         </TabsContent>
@@ -399,23 +414,18 @@ export function PostList({
                 <PostCard key={post.id} post={post} />
               ))
             ) : (
-              <EmptyState message="최근 24시간 동안 작성된 게시물이 없습니다." />
+              <div className="col-span-2">
+                <EmptyState
+                  icon={Clock}
+                  title="최근 24시간 동안 작성된 게시물이 없습니다"
+                  description="새로운 게시물이 작성되면 여기에 표시됩니다"
+                  size="lg"
+                />
+              </div>
             )}
           </div>
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function EmptyState({
-  message = '아직 게시물이 없습니다.',
-}: {
-  message?: string
-}) {
-  return (
-    <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed">
-      <p className="text-muted-foreground">{message}</p>
     </div>
   )
 }

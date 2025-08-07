@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { Clock } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -76,11 +77,13 @@ export function RecentPosts() {
             <h2 className="text-xl font-black">최근 게시글</h2>
           </div>
         </CardHeader>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          <div className="flex flex-col items-center gap-3">
-            <Clock className="h-12 w-12 text-gray-300" />
-            <p>아직 게시글이 없습니다.</p>
-          </div>
+        <CardContent className="p-8">
+          <EmptyState
+            icon={Clock}
+            title="아직 게시글이 없습니다"
+            description="새로운 게시글이 작성되면 여기에 표시됩니다"
+            size="sm"
+          />
         </CardContent>
       </Card>
     )

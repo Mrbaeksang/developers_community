@@ -2,9 +2,9 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Bookmark, Calendar, Eye, MessageSquare, Heart } from 'lucide-react'
 import Link from 'next/link'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { formatCount } from '@/lib/common/types'
@@ -87,32 +87,16 @@ export default async function BookmarksPage() {
       </Card>
 
       {bookmarks.length === 0 ? (
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="py-12 text-center">
-            <Bookmark className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-semibold mb-2">
-              아직 북마크한 게시글이 없습니다
-            </p>
-            <p className="text-muted-foreground mb-6">
-              관심 있는 게시글을 북마크하고 나중에 다시 읽어보세요
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Link href="/main/posts">
-                <Button className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
-                  메인 게시글 둘러보기
-                </Button>
-              </Link>
-              <Link href="/communities">
-                <Button
-                  variant="outline"
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
-                >
-                  커뮤니티 둘러보기
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Bookmark}
+          title="아직 북마크한 게시글이 없습니다"
+          description="관심 있는 게시글을 북마크하고 나중에 다시 읽어보세요"
+          action={{
+            label: '게시글 둘러보기',
+            onClick: () => (window.location.href = '/main/posts'),
+          }}
+          size="lg"
+        />
       ) : (
         <div className="space-y-4">
           {bookmarks.map((bookmark: BookmarkedPost) => {

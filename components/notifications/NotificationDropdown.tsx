@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Bell, CheckCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { useMutation } from '@tanstack/react-query'
 import {
   DropdownMenu,
@@ -173,8 +174,13 @@ export default function NotificationDropdown() {
 
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              알림이 없습니다.
+            <div className="p-4">
+              <EmptyState
+                icon={Bell}
+                title="알림이 없습니다"
+                description="새로운 알림이 오면 여기에 표시됩니다"
+                size="sm"
+              />
             </div>
           ) : (
             <div className="divide-y divide-border">

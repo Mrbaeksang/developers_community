@@ -6,6 +6,7 @@ import { ko } from 'date-fns/locale'
 import { Bell, CheckCheck, Trash2, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -317,15 +318,16 @@ export default function NotificationsPage() {
       {isLoading ? (
         <PageLoadingSpinner />
       ) : notifications.length === 0 ? (
-        <Card className="p-16 text-center border-2 border-black">
-          <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg font-bold mb-2">알림이 없습니다</p>
-          <p className="text-muted-foreground">
-            {showUnreadOnly
+        <EmptyState
+          icon={Bell}
+          title="알림이 없습니다"
+          description={
+            showUnreadOnly
               ? '읽지 않은 알림이 없습니다.'
-              : '아직 받은 알림이 없습니다.'}
-          </p>
-        </Card>
+              : '아직 받은 알림이 없습니다.'
+          }
+          size="lg"
+        />
       ) : (
         <div className="space-y-4">
           {notifications.map((notification) => {

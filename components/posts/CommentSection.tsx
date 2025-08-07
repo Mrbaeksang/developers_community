@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 // Comment type defined locally
 type Comment = {
   id: string
@@ -449,9 +450,12 @@ export default function CommentSection({
 
         {/* Comments List */}
         {comments.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!
-          </p>
+          <EmptyState
+            icon={MessageSquare}
+            title="아직 댓글이 없습니다"
+            description="첫 번째 댓글을 작성해보세요!"
+            size="sm"
+          />
         ) : (
           <div className="space-y-4">
             {comments.map((comment) => (

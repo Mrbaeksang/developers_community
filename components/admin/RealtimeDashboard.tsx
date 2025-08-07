@@ -7,6 +7,7 @@ import {
   SkeletonLoader,
   ButtonSpinner,
 } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { Progress } from '@/components/ui/progress'
 import { formatCount } from '@/lib/common/types'
 import {
@@ -320,9 +321,12 @@ export function RealtimeDashboard() {
               ))}
             </div>
           ) : !activities || activities.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              최근 5분간 활동이 없습니다
-            </p>
+            <EmptyState
+              icon={Activity}
+              title="최근 5분간 활동이 없습니다"
+              description="사용자 활동이 발생하면 여기에 표시됩니다"
+              size="sm"
+            />
           ) : (
             <div className="space-y-1">
               {activities.map((activity) => (
@@ -354,9 +358,13 @@ export function RealtimeDashboard() {
                 <SkeletonLoader lines={3} />
               </div>
             ) : errors.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                에러가 없습니다 👍
-              </p>
+              <EmptyState
+                icon={AlertCircle}
+                title="에러가 없습니다 👍"
+                description="시스템이 정상적으로 작동하고 있습니다"
+                variant="success"
+                size="sm"
+              />
             ) : (
               <div className="space-y-2">
                 {errors.slice(0, 5).map((error) => (
@@ -408,9 +416,12 @@ export function RealtimeDashboard() {
                 <SkeletonLoader lines={5} />
               </div>
             ) : traffic.apiCalls.topEndpoints.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                아직 데이터가 없습니다
-              </p>
+              <EmptyState
+                icon={TrendingUp}
+                title="아직 데이터가 없습니다"
+                description="API 호출이 발생하면 통계가 표시됩니다"
+                size="sm"
+              />
             ) : (
               <div className="space-y-3">
                 {traffic.apiCalls.topEndpoints.map((endpoint) => (
@@ -449,9 +460,12 @@ export function RealtimeDashboard() {
               <SkeletonLoader lines={6} />
             </div>
           ) : traffic.pageViews.topPages.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              아직 페이지뷰 데이터가 없습니다
-            </p>
+            <EmptyState
+              icon={Eye}
+              title="아직 페이지뷰 데이터가 없습니다"
+              description="사용자가 페이지를 방문하면 통계가 표시됩니다"
+              size="sm"
+            />
           ) : (
             <div className="grid gap-2 md:grid-cols-2">
               {traffic.pageViews.topPages.map((page, index) => (

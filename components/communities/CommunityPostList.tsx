@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { EmptyState, ErrorEmptyState } from '@/components/shared/EmptyState'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { formatCount, getTextColor } from '@/lib/common/types'
@@ -139,32 +140,19 @@ export function CommunityPostList({
 
   // 에러 처리
   if (error) {
-    return (
-      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <CardContent className="py-12 text-center">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-bold text-lg mb-2">
-            게시글을 불러올 수 없습니다
-          </h3>
-          <p className="text-muted-foreground">잠시 후 다시 시도해주세요.</p>
-        </CardContent>
-      </Card>
-    )
+    return <ErrorEmptyState />
   }
 
   if (!isLoading && (!posts || posts.length === 0)) {
     return (
-      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <CardContent className="py-12 text-center">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-bold text-lg mb-2">게시글이 없습니다</h3>
-          <p className="text-muted-foreground">
-            {search
-              ? '검색 결과가 없습니다.'
-              : '첫 번째 게시글을 작성해보세요!'}
-          </p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={MessageSquare}
+        title="게시글이 없습니다"
+        description={
+          search ? '검색 결과가 없습니다.' : '첫 번째 게시글을 작성해보세요!'
+        }
+        size="lg"
+      />
     )
   }
 

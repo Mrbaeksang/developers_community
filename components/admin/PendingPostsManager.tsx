@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -158,13 +159,13 @@ export function PendingPostsManager({
 
   if (posts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">
-          승인 대기 게시글이 없습니다
-        </h2>
-        <p className="text-muted-foreground">모든 게시글이 처리되었습니다.</p>
-      </div>
+      <EmptyState
+        icon={CheckCircle}
+        title="승인 대기 게시글이 없습니다"
+        description="모든 게시글이 처리되었습니다."
+        variant="success"
+        size="lg"
+      />
     )
   }
 
