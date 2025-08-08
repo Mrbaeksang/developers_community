@@ -7,6 +7,42 @@ import {
 } from '@/lib/chat/broadcast'
 import { throwNotFoundError, throwAuthorizationError } from '@/lib/api/errors'
 
+// 활성 연결 추적
+const activeConnections = new Map<
+  string,
+  { controller: ReadableStreamDefaultController; lastActivity: number }
+>()
+const MAX_CONNECTIONS_PER_CHANNEL = 100
+const CONNECTION_TIMEOUT = 10 * 60 * 1000 // 10분
+
+// 주기적으로 비활성 연결 정리
+const cleanupInterval = setInterval(() => {
+  const now = Date.now()
+  for (const [connectionId, conn] of activeConnections) {
+    if (now - conn.lastActivity > CONNECTION_TIMEOUT) {
+      try {
+        conn.controller.close()
+      } catch {}
+      activeConnections.delete(connectionId)
+      removeConnection(connectionId)
+    }
+  }
+}, 120000) // 2분마다 정리
+
+// Vercel 종료 시 정리
+if (typeof process !== 'undefined') {
+  process.on('beforeExit', () => {
+    clearInterval(cleanupInterval)
+    for (const [connectionId, conn] of activeConnections) {
+      try {
+        conn.controller.close()
+      } catch {}
+      removeConnection(connectionId)
+    }
+    activeConnections.clear()
+  })
+}
+
 // GET: SSE 스트림 연결
 export async function GET(
   req: Request,
@@ -47,12 +83,27 @@ export async function GET(
     }
   }
 
+  // 채널당 연결 수 제한
+  const channelConnections = Array.from(activeConnections.entries()).filter(
+    ([id]) => id.includes(channelId)
+  )
+
+  if (channelConnections.length >= MAX_CONNECTIONS_PER_CHANNEL) {
+    return new Response('Too many connections for this channel', {
+      status: 429,
+    })
+  }
+
   // SSE 스트림 생성
   const stream = new ReadableStream({
     start(controller) {
       const connectionId = `${userId}-${channelId}-${Date.now()}`
 
-      // 연결 저장
+      // 연결 저장 (두 곳에 저장)
+      activeConnections.set(connectionId, {
+        controller,
+        lastActivity: Date.now(),
+      })
       saveConnection(connectionId, controller, userId, channelId)
 
       // 초기 연결 확인 메시지
@@ -69,33 +120,42 @@ export async function GET(
         broadcastOnlineCount(channelId)
       }, 100)
 
-      // Keepalive 인터벌 설정 (30초마다 ping)
-      const keepAliveInterval = setInterval(() => {
-        try {
-          controller.enqueue(`:keepalive\n\n`)
-        } catch {
-          // 연결이 끊어진 경우
-          clearInterval(keepAliveInterval)
-          removeConnection(connectionId)
-        }
-      }, 30000)
-
-      // 연결 종료 시 정리
-      req.signal?.addEventListener('abort', () => {
-        clearInterval(keepAliveInterval)
+      // 정리 함수
+      const cleanup = () => {
+        activeConnections.delete(connectionId)
         removeConnection(connectionId)
-
+        if (keepAliveInterval) {
+          clearInterval(keepAliveInterval)
+        }
         // 온라인 카운트 업데이트
         setTimeout(() => {
           broadcastOnlineCount(channelId)
         }, 100)
-
         try {
           controller.close()
         } catch {
           // 이미 닫힌 경우 무시
         }
-      })
+      }
+
+      // Keepalive 인터벌 설정 (2분마다 ping - 메모리 사용량 줄이기)
+      const keepAliveInterval = setInterval(() => {
+        const connection = activeConnections.get(connectionId)
+        if (!connection) {
+          clearInterval(keepAliveInterval)
+          return
+        }
+
+        try {
+          connection.lastActivity = Date.now()
+          controller.enqueue(`:keepalive\n\n`)
+        } catch {
+          cleanup()
+        }
+      }, 120000) // 2분으로 변경
+
+      // 연결 종료 시 정리
+      req.signal?.addEventListener('abort', cleanup)
     },
   })
 

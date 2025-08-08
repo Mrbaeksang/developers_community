@@ -1,8 +1,14 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/cleanup-images",
-      "schedule": "0 3 * * *"
+  "functions": {
+    "app/api/chat/channels/[channelId]/events/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/notifications/sse/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/**/route.ts": {
+      "maxDuration": 30
     }
-  ]
+  },
+  "regions": ["icn1"]
 }
