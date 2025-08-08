@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/core/prisma'
 import { del } from '@vercel/blob'
+import { handleError } from '@/lib/api/errors'
 
 // 30일 이상 된 이미지 정리 (메인 게시판 자유게시판/Q&A 제외)
 const CLEANUP_DAYS = 30
@@ -88,6 +89,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Cleanup cron error:', error)
-    return NextResponse.json({ error: 'Cleanup failed' }, { status: 500 })
+    return handleError(error)
   }
 }
