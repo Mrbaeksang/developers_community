@@ -2,46 +2,54 @@
 
 import { useEffect } from 'react'
 
-interface KakaoSDK {
-  init: (appKey: string) => void
-  isInitialized: () => boolean
-  Share: {
-    sendDefault: (settings: {
-      objectType: string
-      content: {
-        title: string
-        description: string
-        imageUrl: string
-        link: {
-          mobileWebUrl: string
-          webUrl: string
-        }
-      }
-      buttons?: Array<{
-        title: string
-        link: {
-          mobileWebUrl: string
-          webUrl: string
-        }
-      }>
-    }) => void
-  }
-}
-
 declare global {
   interface Window {
-    Kakao: KakaoSDK
+    Kakao?: {
+      init: (appKey: string) => void
+      isInitialized: () => boolean
+      Share?: {
+        sendDefault: (settings: object) => void
+      }
+    }
   }
 }
 
 export function KakaoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Kakao SDK 초기화
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      // 실제 앱 키로 교체 필요
-      window.Kakao.init(
-        process.env['NEXT_PUBLIC_KAKAO_APP_KEY'] || 'YOUR_KAKAO_APP_KEY'
-      )
+    const initKakao = () => {
+      if (window.Kakao && !window.Kakao.isInitialized()) {
+        const appKey = process.env['NEXT_PUBLIC_KAKAO_APP_KEY']
+        if (appKey) {
+          try {
+            window.Kakao.init(appKey)
+          } catch (error) {
+            console.error('Failed to initialize Kakao SDK:', error)
+          }
+        } else {
+          console.error('Kakao App Key is not configured')
+        }
+      }
+    }
+
+    // SDK 로드 체크
+    if (window.Kakao) {
+      initKakao()
+    } else {
+      // SDK가 아직 로드되지 않았다면 잠시 기다린 후 재시도
+      const checkInterval = setInterval(() => {
+        if (window.Kakao) {
+          clearInterval(checkInterval)
+          initKakao()
+        }
+      }, 100)
+
+      // 5초 후에도 로드되지 않으면 중단
+      setTimeout(() => {
+        clearInterval(checkInterval)
+        if (!window.Kakao) {
+          console.error('Failed to load Kakao SDK')
+        }
+      }, 5000)
     }
   }, [])
 

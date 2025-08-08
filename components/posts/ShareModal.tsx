@@ -47,13 +47,43 @@ export default function ShareModal({
   }
 
   const shareToKakao = () => {
-    if (window.Kakao) {
+    try {
+      // Kakao SDK 체크
+      if (!window.Kakao) {
+        toast({
+          title: '카카오톡 공유 준비중',
+          description: '잠시 후 다시 시도해주세요',
+        })
+        return
+      }
+
+      // SDK 초기화 체크
+      if (!window.Kakao.isInitialized()) {
+        toast({
+          title: '카카오톡 공유 오류',
+          description: 'SDK가 초기화되지 않았습니다',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Share 객체 체크
+      if (!window.Kakao.Share || !window.Kakao.Share.sendDefault) {
+        toast({
+          title: '카카오톡 공유 오류',
+          description: '공유 기능을 사용할 수 없습니다',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // 공유 실행
       window.Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
           title: title,
           description: '개발자 커뮤니티에서 확인해보세요',
-          imageUrl: '/og-image.png', // 나중에 실제 이미지로 변경
+          imageUrl: `${window.location.origin}/og-image.png`,
           link: {
             mobileWebUrl: url,
             webUrl: url,
@@ -68,6 +98,13 @@ export default function ShareModal({
             },
           },
         ],
+      })
+    } catch (error) {
+      console.error('Kakao share error:', error)
+      toast({
+        title: '공유 실패',
+        description: '카카오톡 공유 중 오류가 발생했습니다',
+        variant: 'destructive',
       })
     }
   }
