@@ -307,6 +307,15 @@ export function UnifiedPostDetail({
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
+  // HTML 내 이미지를 최적화 (lazy loading, WebP 포맷 힌트 추가)
+  const optimizeImagesInContent = (html: string) => {
+    // img 태그에 loading="lazy" 추가
+    return html.replace(
+      /<img([^>]*?)(?<!loading=["'][^"']*["'])([^>]*?)>/gi,
+      '<img$1 loading="lazy"$2>'
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -439,7 +448,12 @@ export function UnifiedPostDetail({
             {isCommunityPost ? (
               <div className="whitespace-pre-wrap">{post.content}</div>
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+              <div
+                className="post-content"
+                dangerouslySetInnerHTML={{
+                  __html: optimizeImagesInContent(post.content),
+                }}
+              />
             )}
           </div>
 

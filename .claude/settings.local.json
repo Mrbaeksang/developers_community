@@ -69,7 +69,8 @@
       "Bash(bash:*)",
       "Bash(sed:*)",
       "mcp__desktop-commander__search_files",
-      "mcp__desktop-commander__search_code"
+      "mcp__desktop-commander__search_code",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

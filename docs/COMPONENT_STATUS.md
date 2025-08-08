@@ -110,7 +110,7 @@
 - ❌ **CommunityList** - 커뮤니티 목록
 
 ### 5. **comments/** (댓글)
-- ❌ **CommentForm** - 댓글 작성 폼 (CommentSection과 분리)
+- ✅ **CommentForm** - 댓글 작성 폼 (완료! - 마크다운 툴바, 자동저장, 중복제출 방지)
 
 ### 6. **search/** (검색)
 - ❌ **SearchFilters** - 검색 필터

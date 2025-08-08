@@ -1,19 +1,10 @@
 'use client'
 
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-  Suspense,
-  lazy,
-} from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { TagSelector } from '@/components/forms/TagSelector'
@@ -26,24 +17,13 @@ import {
   Archive,
   Film,
   Music,
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Link,
-  Code,
-  Quote,
-  Eye,
-  EyeOff,
   Maximize2,
   Minimize2,
   Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { debounce } from 'lodash'
-
-// Lazy load ReactMarkdown for better performance
-const ReactMarkdown = lazy(() => import('react-markdown'))
+import { RichTextEditor } from '@/components/shared/RichTextEditor'
 
 interface Category {
   id: string
@@ -81,7 +61,6 @@ export function CommunityPostEditor({
 }: CommunityPostEditorProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // Form state
   const [title, setTitle] = useState('')
@@ -93,20 +72,32 @@ export function CommunityPostEditor({
   // UI state
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   // 파일 업로드 mutation
+
   const uploadFileMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
 
+      // Get CSRF token from cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrf-token='))
+        ?.split('=')[1]
+
+      const headers: Record<string, string> = {}
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        headers,
       })
 
       if (!res.ok) throw new Error('Failed to upload file')
@@ -156,69 +147,6 @@ export function CommunityPostEditor({
       return <Archive className="h-4 w-4" />
     return <FileText className="h-4 w-4" />
   }
-
-  // Markdown helper functions
-  const insertMarkdown = useCallback(
-    (type: string) => {
-      if (!contentRef.current) return
-
-      const textarea = contentRef.current
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = content.substring(start, end)
-      let newText = ''
-      let cursorPosition = start
-
-      switch (type) {
-        case 'bold':
-          newText = `**${selectedText || '굵은 텍스트'}**`
-          cursorPosition = start + 2
-          break
-        case 'italic':
-          newText = `*${selectedText || '기울임 텍스트'}*`
-          cursorPosition = start + 1
-          break
-        case 'ul':
-          newText = `\n- ${selectedText || '목록 항목'}`
-          cursorPosition = start + 3
-          break
-        case 'ol':
-          newText = `\n1. ${selectedText || '번호 항목'}`
-          cursorPosition = start + 4
-          break
-        case 'link':
-          newText = `[${selectedText || '링크 텍스트'}](url)`
-          cursorPosition = start + 1
-          break
-        case 'code':
-          if (selectedText.includes('\n')) {
-            newText = `\`\`\`\n${selectedText}\n\`\`\``
-            cursorPosition = start + 4
-          } else {
-            newText = `\`${selectedText || '코드'}\``
-            cursorPosition = start + 1
-          }
-          break
-        case 'quote':
-          newText = `> ${selectedText || '인용문'}`
-          cursorPosition = start + 2
-          break
-        default:
-          return
-      }
-
-      const newContent =
-        content.substring(0, start) + newText + content.substring(end)
-      setContent(newContent)
-
-      // Set cursor position after state update
-      setTimeout(() => {
-        textarea.focus()
-        textarea.setSelectionRange(cursorPosition, cursorPosition)
-      }, 0)
-    },
-    [content]
-  )
 
   // Autosave functionality
   const saveToLocalStorage = useCallback(() => {
@@ -411,131 +339,15 @@ export function CommunityPostEditor({
               />
             </div>
 
-            {/* Content with Preview Grid */}
-            <div
-              className={`grid ${showPreview ? 'grid-cols-1 lg:grid-cols-2 gap-6' : 'grid-cols-1'}`}
-            >
-              {/* Editor Column */}
-              <div>
-                {/* Markdown Toolbar */}
-                <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border-2 border-black bg-gray-50 p-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('bold')}
-                    className="hover:bg-gray-100"
-                    title="굵게"
-                    disabled={isSubmitting}
-                  >
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('italic')}
-                    className="hover:bg-gray-100"
-                    title="기울임"
-                    disabled={isSubmitting}
-                  >
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <div className="mx-1 w-px bg-gray-300" />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('ul')}
-                    className="hover:bg-gray-100"
-                    title="글머리 기호"
-                    disabled={isSubmitting}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('ol')}
-                    className="hover:bg-gray-100"
-                    title="번호 목록"
-                    disabled={isSubmitting}
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
-                  <div className="mx-1 w-px bg-gray-300" />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('link')}
-                    className="hover:bg-gray-100"
-                    title="링크"
-                    disabled={isSubmitting}
-                  >
-                    <Link className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('code')}
-                    className="hover:bg-gray-100"
-                    title="코드"
-                    disabled={isSubmitting}
-                  >
-                    <Code className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertMarkdown('quote')}
-                    className="hover:bg-gray-100"
-                    title="인용"
-                    disabled={isSubmitting}
-                  >
-                    <Quote className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Content Textarea */}
-                <div>
-                  <Label htmlFor="content">내용</Label>
-                  <Textarea
-                    id="content"
-                    ref={contentRef}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="마크다운 문법을 사용할 수 있습니다."
-                    rows={showPreview ? 15 : 10}
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] font-mono"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-
-              {/* Preview Column */}
-              {showPreview && (
-                <div className="border-l-2 border-gray-200 pl-6">
-                  <h3 className="mb-4 text-lg font-bold">미리보기</h3>
-                  <div className="prose prose-sm max-w-none">
-                    <h1 className="text-2xl font-bold">
-                      {title || '제목을 입력해주세요'}
-                    </h1>
-                    <Suspense
-                      fallback={
-                        <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />
-                      }
-                    >
-                      <ReactMarkdown>
-                        {content || '내용을 입력해주세요'}
-                      </ReactMarkdown>
-                    </Suspense>
-                  </div>
-                </div>
-              )}
+            {/* Rich Text Editor */}
+            <div>
+              <Label>내용</Label>
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                placeholder="내용을 입력하세요..."
+                disabled={isSubmitting}
+              />
             </div>
 
             {/* 태그 */}
@@ -615,23 +427,6 @@ export function CommunityPostEditor({
             {/* 버튼 */}
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                  title={showPreview ? '미리보기 닫기' : '미리보기 열기'}
-                >
-                  {showPreview ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">
-                    {showPreview ? '미리보기 닫기' : '미리보기'}
-                  </span>
-                </Button>
                 <Button
                   type="button"
                   variant="outline"

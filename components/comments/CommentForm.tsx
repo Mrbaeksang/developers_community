@@ -3,17 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Send,
-  Bold,
-  Italic,
-  Code,
-  Link,
-  Smile,
-  Save,
-  X,
-  Image as ImageIcon,
-} from 'lucide-react'
+import { Send, Bold, Italic, Code, Link, Smile, Save, X } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -23,6 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { debounce } from 'lodash'
 import { apiClient } from '@/lib/api/client'
+import { ImageUploader } from '@/components/shared/ImageUploader'
 
 interface CommentFormProps {
   postId: string
@@ -155,6 +146,29 @@ export function CommentForm({
       debouncedSave()
     }
   }, [content, enableDraft, debouncedSave])
+
+  // 이미지 마크다운 삽입
+  const handleImageInsert = useCallback(
+    (markdown: string) => {
+      if (!textareaRef.current) return
+
+      const textarea = textareaRef.current
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+
+      const newContent =
+        content.substring(0, start) + markdown + content.substring(end)
+      setContent(newContent)
+
+      // 이미지 마크다운 뒤로 커서 이동
+      setTimeout(() => {
+        const newPosition = start + markdown.length
+        textarea.focus()
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
+    },
+    [content]
+  )
 
   // 마크다운 삽입 함수
   const insertMarkdown = (type: string, text = '') => {
@@ -448,16 +462,11 @@ export function CommentForm({
             </PopoverContent>
           </Popover>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 opacity-50 cursor-not-allowed"
-            title="이미지 업로드 (준비중)"
-            disabled
-          >
-            <ImageIcon className="h-4 w-4" />
-          </Button>
+          <ImageUploader
+            onImageInsert={handleImageInsert}
+            disabled={isSubmitting}
+            showPreview={true}
+          />
 
           {/* 자동 저장 표시 */}
           {enableDraft && lastSaved && (

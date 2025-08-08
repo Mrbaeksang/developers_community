@@ -60,6 +60,7 @@ async function uploadFile(
     const blob = await put(file.name, file, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
+      addRandomSuffix: true,
     })
 
     // DB에 파일 정보 저장

@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
-import remarkGfm from 'remark-gfm'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -15,39 +14,19 @@ import {
   AlertCircle,
   Maximize2,
   Minimize2,
-  Eye,
-  EyeOff,
-  Image as ImageIcon,
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Link,
-  Code,
-  Quote,
-  Heading1,
-  Heading2,
-  Heading3,
   Upload,
   X,
   FileText,
   Archive,
   Film,
   Music,
+  Image as ImageIcon,
 } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import {
   LoadingSpinner,
   ButtonSpinner,
 } from '@/components/shared/LoadingSpinner'
-
-// Dynamic imports for heavy dependencies
-const ReactMarkdown = dynamic(() => import('react-markdown'), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />,
-})
-
-// Lazy load dropzone
-const DropzoneArea = lazy(() => import('./DropzoneArea'))
+import { RichTextEditor } from '@/components/shared/RichTextEditor'
 
 interface Category {
   id: string
@@ -97,10 +76,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
   >('idle')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // 폼 상태
   const [title, setTitle] = useState('')
@@ -240,9 +216,22 @@ export function PostEditor({ userRole }: PostEditorProps) {
       const metaDescription =
         data.excerpt || data.content.substring(0, 155).replace(/\n/g, ' ')
 
+      // Get CSRF token from cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrf-token='))
+        ?.split('=')[1]
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
+
       const response = await fetch('/api/main/posts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           ...data,
           excerpt: data.excerpt || data.content.substring(0, 200),
@@ -396,73 +385,6 @@ export function PostEditor({ userRole }: PostEditorProps) {
     return <FileText className="h-4 w-4" />
   }
 
-  // Common image upload handler (defined after validateField but before useEffect)
-  const handleImageUpload = useCallback(
-    async (file: File) => {
-      // Check if file is an image
-      if (!file.type.startsWith('image/')) {
-        sonnerToast.error('이미지 파일만 업로드할 수 있습니다.')
-        return
-      }
-
-      // Check file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        sonnerToast.error('파일 크기는 10MB 이하여야 합니다.')
-        return
-      }
-
-      setUploadingImage(true)
-
-      try {
-        // Upload to server
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(
-            error.error?.message || '이미지 업로드에 실패했습니다.'
-          )
-        }
-
-        const result = await response.json()
-        const imageUrl = result.data.url
-        const markdownImage = `\n![${file.name}](${imageUrl})\n`
-
-        if (contentRef.current) {
-          const position = contentRef.current.selectionStart
-          const newContent =
-            content.slice(0, position) + markdownImage + content.slice(position)
-          setContent(newContent)
-
-          // Set cursor position after the image
-          setTimeout(() => {
-            contentRef.current?.focus()
-            const newPosition = position + markdownImage.length
-            contentRef.current?.setSelectionRange(newPosition, newPosition)
-          }, 0)
-        }
-
-        sonnerToast.success('이미지가 업로드되었습니다.')
-      } catch (error) {
-        console.error('Image upload failed:', error)
-        sonnerToast.error(
-          error instanceof Error
-            ? error.message
-            : '이미지 업로드에 실패했습니다.'
-        )
-      } finally {
-        setUploadingImage(false)
-      }
-    },
-    [content]
-  )
-
   // Auto-save functionality
   useEffect(() => {
     const autoSave = setInterval(() => {
@@ -474,7 +396,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
     return () => clearInterval(autoSave)
   }, [hasUnsavedChanges, title, content, handleAutoSave])
 
-  // Keyboard shortcuts and clipboard paste
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Enter: Submit
@@ -492,107 +414,14 @@ export function PostEditor({ userRole }: PostEditorProps) {
         e.preventDefault()
         setIsFullscreen(!isFullscreen)
       }
-      // Ctrl+/: Toggle preview
-      else if (e.ctrlKey && e.key === '/') {
-        e.preventDefault()
-        setShowPreview(!showPreview)
-      }
-    }
-
-    const handlePaste = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
-      if (!items) return
-
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault()
-          const file = item.getAsFile()
-          if (file) {
-            await handleImageUpload(file)
-          }
-        }
-      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('paste', handlePaste)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('paste', handlePaste)
     }
-  }, [isFullscreen, showPreview, handleImageUpload, handleSubmit])
-
-  // Markdown toolbar functions
-  const insertMarkdown = (type: string) => {
-    if (!contentRef.current) return
-
-    const textarea = contentRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = content.substring(start, end)
-
-    let newText = ''
-    let cursorOffset = 0
-
-    switch (type) {
-      case 'bold':
-        newText = `**${selectedText || '굵은 텍스트'}**`
-        cursorOffset = selectedText ? newText.length : 2
-        break
-      case 'italic':
-        newText = `*${selectedText || '기울임 텍스트'}*`
-        cursorOffset = selectedText ? newText.length : 1
-        break
-      case 'h1':
-        newText = `# ${selectedText || '제목 1'}`
-        cursorOffset = 2
-        break
-      case 'h2':
-        newText = `## ${selectedText || '제목 2'}`
-        cursorOffset = 3
-        break
-      case 'h3':
-        newText = `### ${selectedText || '제목 3'}`
-        cursorOffset = 4
-        break
-      case 'ul':
-        newText = `- ${selectedText || '목록 항목'}`
-        cursorOffset = 2
-        break
-      case 'ol':
-        newText = `1. ${selectedText || '번호 목록 항목'}`
-        cursorOffset = 3
-        break
-      case 'link':
-        newText = `[${selectedText || '링크 텍스트'}](URL)`
-        cursorOffset = selectedText ? newText.length - 5 : 1
-        break
-      case 'code':
-        if (selectedText.includes('\n')) {
-          newText = `\`\`\`\n${selectedText}\n\`\`\``
-          cursorOffset = 4
-        } else {
-          newText = `\`${selectedText || '코드'}\``
-          cursorOffset = selectedText ? newText.length : 1
-        }
-        break
-      case 'quote':
-        newText = `> ${selectedText || '인용문'}`
-        cursorOffset = 2
-        break
-    }
-
-    const newContent =
-      content.substring(0, start) + newText + content.substring(end)
-    setContent(newContent)
-
-    // Set cursor position
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
-    }, 0)
-  }
+  }, [isFullscreen, handleSubmit])
 
   // 폼 데이터 변경 감지
   useEffect(() => {
@@ -645,7 +474,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
         </div>
 
         <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 lg:p-10">
-          <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-2' : ''}`}>
+          <div className="grid gap-6">
             {/* Editor Column */}
             <div>
               {/* Title input */}
@@ -716,142 +545,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
                 )}
               </div>
 
-              {/* Markdown toolbar */}
-              <div className="mb-2 flex flex-wrap gap-1 border-b-2 border-gray-200 pb-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('bold')}
-                  className="hover:bg-gray-100"
-                  title="굵게 (Ctrl+B)"
-                  disabled={isSubmitting}
-                >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('italic')}
-                  className="hover:bg-gray-100"
-                  title="기울임 (Ctrl+I)"
-                  disabled={isSubmitting}
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-                <div className="mx-1 w-px bg-gray-300" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('h1')}
-                  className="hover:bg-gray-100"
-                  title="제목 1"
-                  disabled={isSubmitting}
-                >
-                  <Heading1 className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('h2')}
-                  className="hover:bg-gray-100"
-                  title="제목 2"
-                  disabled={isSubmitting}
-                >
-                  <Heading2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('h3')}
-                  className="hover:bg-gray-100"
-                  title="제목 3"
-                  disabled={isSubmitting}
-                >
-                  <Heading3 className="h-4 w-4" />
-                </Button>
-                <div className="mx-1 w-px bg-gray-300" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('ul')}
-                  className="hover:bg-gray-100"
-                  title="글머리 기호"
-                  disabled={isSubmitting}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('ol')}
-                  className="hover:bg-gray-100"
-                  title="번호 목록"
-                  disabled={isSubmitting}
-                >
-                  <ListOrdered className="h-4 w-4" />
-                </Button>
-                <div className="mx-1 w-px bg-gray-300" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('link')}
-                  className="hover:bg-gray-100"
-                  title="링크"
-                  disabled={isSubmitting}
-                >
-                  <Link className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('code')}
-                  className="hover:bg-gray-100"
-                  title="코드"
-                  disabled={isSubmitting}
-                >
-                  <Code className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => insertMarkdown('quote')}
-                  className="hover:bg-gray-100"
-                  title="인용"
-                  disabled={isSubmitting}
-                >
-                  <Quote className="h-4 w-4" />
-                </Button>
-                <div className="mx-1 w-px bg-gray-300" />
-                <label className="flex items-center cursor-pointer hover:bg-gray-100 px-2 py-1 rounded">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImageUpload(file)
-                    }}
-                    disabled={isSubmitting}
-                  />
-                  {uploadingImage ? (
-                    <ButtonSpinner />
-                  ) : (
-                    <ImageIcon className="h-4 w-4" />
-                  )}
-                </label>
-              </div>
-
-              {/* Content textarea with dropzone */}
+              {/* Rich Text Editor */}
               <div className="mb-6">
                 <Label
                   htmlFor="content"
@@ -862,34 +556,19 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     ({content.length}/{CHARACTER_LIMITS.content})
                   </span>
                 </Label>
-                <Suspense
-                  fallback={
-                    <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
-                  }
-                >
-                  <DropzoneArea onDrop={handleImageUpload} isDragActive={false}>
-                    <Textarea
-                      id="content"
-                      ref={contentRef}
-                      value={content}
-                      onChange={(e) => {
-                        setContent(e.target.value)
-                        const error = validateField('content', e.target.value)
-                        setValidationErrors((prev) => ({
-                          ...prev,
-                          content: error,
-                        }))
-                      }}
-                      placeholder="마크다운 문법을 사용할 수 있습니다. 이미지는 드래그 앤 드롭으로 업로드하세요."
-                      className={`min-h-[400px] resize-none border-2 border-black font-mono text-base focus:ring-4 focus:ring-blue-200 ${
-                        validationErrors.content
-                          ? 'border-red-500 focus:ring-red-200'
-                          : ''
-                      }`}
-                      disabled={isSubmitting}
-                    />
-                  </DropzoneArea>
-                </Suspense>
+                <RichTextEditor
+                  content={content}
+                  onChange={(value) => {
+                    setContent(value)
+                    const error = validateField('content', value)
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      content: error,
+                    }))
+                  }}
+                  placeholder="내용을 입력하세요..."
+                  disabled={isSubmitting}
+                />
                 {validationErrors.content && (
                   <p className="mt-1 text-sm text-red-500 flex items-center">
                     <AlertCircle className="h-4 w-4 mr-1" />
@@ -974,7 +653,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
                     <input
                       type="file"
                       onChange={handleFileUpload}
-                      disabled={isSubmitting || uploadingImage}
+                      disabled={isSubmitting}
                       className="hidden"
                     />
                     <div className="border-2 border-dashed border-black p-8 text-center hover:bg-gray-50 transition-colors rounded-lg">
@@ -1021,49 +700,11 @@ export function PostEditor({ userRole }: PostEditorProps) {
                 )}
               </div>
             </div>
-
-            {/* Preview Column */}
-            {showPreview && (
-              <div className="border-l-2 border-gray-200 pl-6">
-                <h2 className="mb-4 text-2xl font-bold text-black">미리보기</h2>
-                <div className="prose prose-lg max-w-none">
-                  <h1>{title || '제목을 입력해주세요'}</h1>
-                  <Suspense
-                    fallback={
-                      <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />
-                    }
-                  >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {content || '내용을 입력해주세요'}
-                    </ReactMarkdown>
-                  </Suspense>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Action buttons */}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t-2 border-gray-200 pt-6">
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                variant="outline"
-                className="border-2 border-black hover:bg-gray-100"
-                disabled={isSubmitting}
-              >
-                {showPreview ? (
-                  <>
-                    <EyeOff className="mr-2 h-4 w-4" />
-                    미리보기 숨기기
-                  </>
-                ) : (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" />
-                    미리보기
-                  </>
-                )}
-              </Button>
               <Button
                 type="button"
                 onClick={() => setIsFullscreen(!isFullscreen)}
@@ -1123,10 +764,7 @@ export function PostEditor({ userRole }: PostEditorProps) {
 
           {/* Keyboard shortcuts help */}
           <div className="mt-4 text-sm text-gray-600">
-            <p>
-              단축키: Ctrl+Enter (발행), Ctrl+S (임시저장), F11 (전체화면),
-              Ctrl+/ (미리보기)
-            </p>
+            <p>단축키: Ctrl+Enter (발행), Ctrl+S (임시저장), F11 (전체화면)</p>
           </div>
         </div>
       </div>

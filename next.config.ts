@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
                   default-src 'self';
                   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.vercel-scripts.com;
                   style-src 'self' 'unsafe-inline';
-                  img-src 'self' blob: data: https:;
+                  img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
                   font-src 'self' data:;
                   connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com ws://localhost:* http://localhost:*;
                   form-action 'self' http://localhost:3000 http://localhost:3006;
@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
                   default-src 'self';
                   script-src 'self' https://vercel.live https://*.vercel-scripts.com;
                   style-src 'self' 'unsafe-inline';
-                  img-src 'self' blob: data: https:;
+                  img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
                   font-src 'self' data:;
                   connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com;
                   form-action 'self';
@@ -65,6 +65,34 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+      // Vercel Blob Storage 이미지 캐싱 최적화
+      {
+        source: '/_next/image',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable', // 1년 캐시
+          },
+        ],
+      },
+      {
+        source: '/:all*.(jpg|jpeg|gif|png|webp|svg|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable', // 정적 이미지 1년 캐시
+          },
+        ],
+      },
+      {
+        source: '/:all*.blob.vercel-storage.com/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, s-maxage=31536000', // 브라우저 30일, CDN 1년
           },
         ],
       },
@@ -98,8 +126,15 @@ const nextConfig: NextConfig = {
       'tailwind-merge',
     ],
   },
-  // 이미지 도메인 설정
+  // 이미지 최적화 설정 (비용 절감)
   images: {
+    // WebP 포맷 우선 사용
+    formats: ['image/webp', 'image/avif'],
+    // 이미지 크기 최적화
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 최소화 활성화
+    minimumCacheTTL: 60 * 60 * 24 * 365, // 1년
     remotePatterns: [
       {
         protocol: 'https',
@@ -124,6 +159,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+        pathname: '/**',
+      },
+      // Vercel Blob Storage 추가
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
         pathname: '/**',
       },
     ],

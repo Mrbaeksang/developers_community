@@ -46,12 +46,12 @@ const rateLimiter = initRateLimitMiddleware({
     [ActionCategory.POST_LIKE, createRateLimitRule(60000, 30)], // 1분에 30회
     [ActionCategory.POST_BOOKMARK, createRateLimitRule(60000, 20)], // 1분에 20회
 
-    // 콘텐츠 생성 제한
-    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 10)], // 1시간에 10개
-    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 10)], // 1분에 10개
+    // 콘텐츠 생성 제한 - 더 관대하게 설정
+    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 30)], // 1시간에 30개로 증가
+    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 20)], // 1분에 20개로 증가
 
-    // 파일 업로드 제한
-    [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 20)], // 1시간에 20개
+    // 파일 업로드 제한 - 더 관대하게 설정
+    [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 50)], // 1시간에 50개로 증가
   ]),
 })
 
@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://dapi.kakao.com https://developers.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://cdn.jsdelivr.net https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
     font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com;
+    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
     connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
     object-src 'none';
