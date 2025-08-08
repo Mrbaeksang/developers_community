@@ -22,6 +22,7 @@ import {
 import { formatCount, getTextColor } from '@/lib/common/types'
 import { Button } from '@/components/ui/button'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import ShareModal from '@/components/posts/ShareModal'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -290,14 +291,10 @@ export function UnifiedPostDetail({
     deleteMutation.mutate()
   }
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
-      toast.success('링크가 복사되었습니다.')
-    } catch (error) {
-      console.error('Failed to share post:', error)
-      toast.error('링크 복사에 실패했습니다.')
-    }
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+  const handleShare = () => {
+    setIsShareModalOpen(true)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -526,6 +523,14 @@ export function UnifiedPostDetail({
           </div>
         </CardContent>
       </Card>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        url={window.location.href}
+        title={post.title}
+      />
     </div>
   )
 }

@@ -1,8 +1,11 @@
 # 🧩 컴포넌트 현황 분석
 
+> 최종 업데이트: 2025-01-08
+
 ## 📊 전체 현황
-- **총 컴포넌트**: 89개 파일
+- **총 컴포넌트**: 93개 파일 (+4)
 - **폴더 구조**: 12개 카테고리
+- **최근 추가**: ImageUploader, RichTextEditor, ResizableImage, ShareModal
 
 ## 📁 폴더별 컴포넌트 현황
 
@@ -15,7 +18,7 @@
 - separator, skeleton, slider, sonner, switch
 - table, tabs, textarea
 
-#### 2. **shared/** (공통 컴포넌트 - 8개)
+#### 2. **shared/** (공통 컴포넌트 - 13개)
 - AuthorAvatar ✅ (작성자 아바타)
 - CategoryBadge ✅ (카테고리 배지)
 - PageViewTracker ✅ (페이지뷰 추적)
@@ -24,8 +27,13 @@
 - TagBadge ✅ (태그 배지)
 - VisitorTracker ✅ (방문자 추적)
 - **Pagination** ✅ (페이지네이션 - URL/상태 기반 모두 지원)
+- **LoadingSpinner** ✅ (로딩 스피너)
+- **EmptyState** ✅ (빈 상태)
+- **ImageUploader** ✅ (이미지 업로더 - 드래그앤드롭, 썸네일, 크기 조절)
+- **RichTextEditor** ✅ (리치 텍스트 에디터 - 서식 지원)
+- **ResizableImage** ✅ (이미지 리사이징 - 동적 크기 조절)
 
-#### 3. **posts/** (게시글 관련 - 11개)
+#### 3. **posts/** (게시글 관련 - 12개)
 - PostCard ✅ (게시글 카드)
 - PostEditor ✅ (게시글 에디터 - 기본 기능)
 - PostListServer ✅ (서버 컴포넌트)
@@ -37,6 +45,7 @@
 - DropzoneArea ✅ (파일 드롭존)
 - MemoizedComponents ✅ (메모이제이션)
 - UnifiedPostDetail ✅ (통합 게시글 상세)
+- ShareModal ✅ (공유 모달 - URL, 카카오, 이메일)
 
 #### 4. **communities/** (커뮤니티 - 11개)
 - CommunityPostList ✅
@@ -95,7 +104,6 @@
 ### 1. **forms/** (폼 관련)
 - ✅ **TagSelector** - 태그 선택기 (완료! - Neobrutalism 디자인, 실시간 검증, slug 생성)
 - ✅ **CategorySelector** - 카테고리 선택기 (완료! - Neobrutalism 디자인, 검색, 색상 표시, 그룹화)
-- ❌ **ImageUploader** - 이미지 업로더 (DropzoneArea와 별개)
 
 ### 2. **users/** (사용자 관련)
 - ❌ **UserStats** - 사용자 통계 컴포넌트
@@ -120,6 +128,8 @@
 - ✅ **Pagination** - 페이지네이션 (완료!)
 - ✅ **LoadingSpinner** - 로딩 스피너 (완료!)
 - ✅ **EmptyState** - 빈 상태 (완료!)
+- ✅ **ImageUploader** - 이미지 업로더 (완료!)
+- ✅ **RichTextEditor** - 리치 텍스트 에디터 (완료!)
 
 ## 📝 실제 구현 우선순위
 
@@ -131,14 +141,13 @@
 ### ⚡ 2순위 (핵심 기능)
 4. ~~**TagSelector**~~ ✅ 완료 - 글쓰기 태그 선택 (PostEditor, CommunityPostEditor 모두 적용)
 5. ~~**CategorySelector**~~ ✅ 완료 - 글쓰기 필수 (PostEditor, CommunityPostEditor 모두 적용)
-6. **CommentForm** - 댓글 작성
+6. ~~**CommentForm**~~ ✅ 완료 - 댓글 작성 (마크다운 툴바, 자동저장, 중복제출 방지)
 
 ### 📊 3순위 (개선용)
 7. **UserStats** - 프로필 개선
 8. **ActivityFeed** - 대시보드 개선
 9. **CommunityCard** - 커뮤니티 목록 개선
 10. **SearchFilters** - 검색 개선
-11. **ImageUploader** - 이미지 업로드 개선
 
 ## 💡 발견한 사실
 

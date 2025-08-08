@@ -54,8 +54,13 @@ async function getPost(communityId: string, postId: string) {
     const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
 
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000')
     const res = await fetch(
-      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${communityId}/posts/${postId}`,
+      `${baseUrl}/api/communities/${communityId}/posts/${postId}`,
       {
         cache: 'no-store',
         headers: {

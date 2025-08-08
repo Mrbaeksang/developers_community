@@ -1,7 +1,8 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { lazy, Suspense } from 'react'
-import ClientPostDetail from '@/components/posts/ClientPostDetail'
+import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
+import CommentSection from '@/components/posts/CommentSection'
 import { markdownToHtml } from '@/lib/ui/markdown'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 
@@ -25,8 +26,12 @@ interface PageProps {
 
 async function getPost(id: string) {
   try {
+    // Vercel 배포 환경에서는 자동으로 URL 감지
     const baseUrl =
-      process.env['NEXT_PUBLIC_BASE_URL'] || 'http://localhost:3000'
+      process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000')
     const res = await fetch(`${baseUrl}/api/main/posts/${id}`, {
       next: { revalidate: 60 }, // 60초 캐시
     })
@@ -111,7 +116,13 @@ export default async function PostDetailPage({ params }: PageProps) {
   return (
     <div className="container mx-auto py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto">
-        <ClientPostDetail post={post} />
+        <div className="space-y-8">
+          <UnifiedPostDetail post={post} postType="main" />
+          <CommentSection
+            postId={post.id}
+            initialComments={post.comments || []}
+          />
+        </div>
         <aside className="space-y-6">
           <Suspense fallback={<RelatedPostsSkeleton />}>
             <RelatedPosts postId={post.id} />
