@@ -170,7 +170,6 @@ export default function NotificationsPage() {
     switch (notification.type) {
       case 'POST_LIKE':
       case 'POST_COMMENT':
-      case 'POST_MENTION':
       case 'POST_APPROVED':
         return postId ? `/main/posts/${postId}` : null
 
@@ -179,7 +178,6 @@ export default function NotificationsPage() {
 
       case 'COMMENT_REPLY':
       case 'COMMENT_LIKE':
-      case 'COMMENT_MENTION':
         return postId ? `/main/posts/${postId}#comment-${commentId}` : null
 
       case 'COMMUNITY_INVITE':
@@ -228,8 +226,6 @@ export default function NotificationsPage() {
         return '게시글 좋아요'
       case 'POST_COMMENT':
         return '게시글 댓글'
-      case 'POST_MENTION':
-        return '게시글 멘션'
       case 'POST_APPROVED':
         return '게시글 승인'
       case 'POST_REJECTED':

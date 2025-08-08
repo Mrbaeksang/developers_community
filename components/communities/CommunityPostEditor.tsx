@@ -17,13 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { TagSelector } from '@/components/forms/TagSelector'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { CategorySelector } from '@/components/forms/CategorySelector'
 import {
   Upload,
   X,
@@ -55,7 +49,11 @@ interface Category {
   id: string
   name: string
   slug: string
+  description?: string | null
   color: string
+  icon?: string | null
+  isActive?: boolean
+  communityId?: string
 }
 
 interface CommunityPostEditorProps {
@@ -388,31 +386,15 @@ export function CommunityPostEditor({
             {categories.length > 0 && (
               <div>
                 <Label htmlFor="category">카테고리</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger className="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <SelectValue placeholder="카테고리를 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent className="border-2 border-black">
-                    <SelectItem value="none" className="cursor-pointer">
-                      카테고리 없음
-                    </SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id}
-                        className="cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CategorySelector
+                  value={categoryId === 'none' ? null : categoryId}
+                  onChange={(value) => setCategoryId(value || 'none')}
+                  categories={categories}
+                  disabled={isSubmitting}
+                  allowNone={true}
+                  showDescription={false}
+                  groupByApproval={false}
+                />
               </div>
             )}
 

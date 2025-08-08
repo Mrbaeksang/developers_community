@@ -7,16 +7,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { toast as sonnerToast } from 'sonner'
 import { TagSelector } from '@/components/forms/TagSelector'
+import { CategorySelector } from '@/components/forms/CategorySelector'
 import {
   AlertCircle,
   Maximize2,
@@ -59,6 +53,11 @@ interface Category {
   id: string
   name: string
   slug: string
+  description?: string | null
+  color: string
+  icon?: string | null
+  isActive?: boolean
+  requiresApproval?: boolean
 }
 
 interface PostEditorProps {
@@ -692,46 +691,23 @@ export function PostEditor({ userRole }: PostEditorProps) {
                 >
                   카테고리 <span className="text-red-500">*</span>
                 </Label>
-                <Select
+                <CategorySelector
                   value={categoryId}
-                  onValueChange={(value) => {
-                    setCategoryId(value)
-                    const error = validateField('category', value)
+                  onChange={(value) => {
+                    setCategoryId(value || '')
+                    const error = validateField('category', value || '')
                     setValidationErrors((prev) => ({
                       ...prev,
                       category: error,
                     }))
                   }}
+                  categories={categories || []}
                   disabled={isSubmitting}
-                >
-                  <SelectTrigger
-                    id="category"
-                    className={`border-2 border-black text-lg font-medium focus:ring-4 focus:ring-blue-200 ${
-                      validationErrors.category
-                        ? 'border-red-500 focus:ring-red-200'
-                        : ''
-                    }`}
-                  >
-                    <SelectValue placeholder="카테고리를 선택해주세요" />
-                  </SelectTrigger>
-                  <SelectContent className="border-2 border-black">
-                    {Array.isArray(categories) && categories.length > 0 ? (
-                      categories.map((category) => (
-                        <SelectItem
-                          key={category.id}
-                          value={category.id}
-                          className="text-lg font-medium hover:bg-indigo-100"
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-category" disabled>
-                        카테고리가 없습니다
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                  allowNone={false}
+                  showDescription={true}
+                  groupByApproval={true}
+                  className={validationErrors.category ? 'border-red-500' : ''}
+                />
                 {validationErrors.category && (
                   <p className="mt-1 text-sm text-red-500 flex items-center">
                     <AlertCircle className="h-4 w-4 mr-1" />

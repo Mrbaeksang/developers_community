@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Edit, Trash2, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import ReactMarkdown from 'react-markdown'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
+import { CommentForm } from '@/components/comments/CommentForm'
 // Comment type defined locally
 type Comment = {
   id: string
@@ -44,7 +45,7 @@ interface CommentItemProps {
   onReplyCancel: (commentId: string) => void
   onEditClick: (commentId: string, content: string) => void
   onEditChange: (content: string) => void
-  onEditSubmit: (commentId: string) => void
+  onEditSubmit: (commentId: string, content: string) => void
   onEditCancel: () => void
   onDeleteClick: (commentId: string) => void
 }
@@ -141,33 +142,101 @@ export default function CommentItem({
               )}
             </div>
             {isEditing ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => onEditChange(e.target.value)}
-                  className="border-2 border-black"
-                  rows={3}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => onEditSubmit(comment.id)}
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-                  >
-                    수정 완료
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={onEditCancel}
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-                  >
-                    취소
-                  </Button>
-                </div>
-              </div>
+              <CommentForm
+                postId="" // 수정 모드에서는 postId 불필요
+                commentId={comment.id}
+                mode="edit"
+                initialContent={editContent}
+                onSubmit={async (content) => {
+                  // onEditSubmit이 Promise를 반환하도록 수정 필요
+                  onEditChange(content)
+                  await onEditSubmit(comment.id, content)
+                }}
+                onCancel={onEditCancel}
+                placeholder="댓글을 수정하세요..."
+                buttonText="수정 완료"
+                showToolbar={true}
+                enableDraft={false}
+                minRows={3}
+                maxRows={10}
+                autoFocus={true}
+              />
             ) : (
-              <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown
+                  components={{
+                    // 링크를 새 탭에서 열도록 설정
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    // 코드 블록 스타일링
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || '')
+                      const isInline = !match
+                      return isInline ? (
+                        <code
+                          className="px-1 py-0.5 bg-gray-100 text-red-600 rounded text-sm font-mono"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      ) : (
+                        <code
+                          className="block p-3 bg-gray-100 rounded-lg text-sm font-mono overflow-x-auto"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      )
+                    },
+                    // 인용문 스타일링
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600">
+                        {children}
+                      </blockquote>
+                    ),
+                    // 리스트 스타일링
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-inside space-y-1">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-inside space-y-1">
+                        {children}
+                      </ol>
+                    ),
+                    // 제목 크기 제한 (댓글에서는 작은 제목만 허용)
+                    h1: ({ children }) => (
+                      <strong className="text-base">{children}</strong>
+                    ),
+                    h2: ({ children }) => (
+                      <strong className="text-base">{children}</strong>
+                    ),
+                    h3: ({ children }) => (
+                      <strong className="text-sm">{children}</strong>
+                    ),
+                    h4: ({ children }) => (
+                      <strong className="text-sm">{children}</strong>
+                    ),
+                    h5: ({ children }) => (
+                      <strong className="text-sm">{children}</strong>
+                    ),
+                    h6: ({ children }) => (
+                      <strong className="text-sm">{children}</strong>
+                    ),
+                  }}
+                >
+                  {comment.content}
+                </ReactMarkdown>
+              </div>
             )}
           </div>
 
@@ -188,33 +257,24 @@ export default function CommentItem({
           {/* 답글 작성 폼 */}
           {isReplying && (
             <div className="mt-3 ml-12">
-              <div className="flex gap-2">
-                <Textarea
-                  value={replyContent}
-                  onChange={(e) => onReplyChange(comment.id, e.target.value)}
-                  placeholder="답글을 작성해주세요..."
-                  className="flex-1 min-h-[80px] border-2 border-black focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  rows={2}
-                />
-                <div className="flex flex-col gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => onReplySubmit(comment.id)}
-                    disabled={isSubmitting || !replyContent.trim()}
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  >
-                    답글 작성
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onReplyCancel(comment.id)}
-                    className="border-2 border-black"
-                  >
-                    취소
-                  </Button>
-                </div>
-              </div>
+              <CommentForm
+                postId={comment.id}
+                parentId={comment.id}
+                mode="reply"
+                onSubmit={async (content) => {
+                  // onReplySubmit이 Promise를 반환하도록 수정 필요
+                  onReplyChange(comment.id, content)
+                  await onReplySubmit(comment.id)
+                }}
+                onCancel={() => onReplyCancel(comment.id)}
+                placeholder="답글을 작성해주세요..."
+                buttonText="답글 작성"
+                showToolbar={true}
+                enableDraft={false}
+                minRows={2}
+                maxRows={5}
+                autoFocus={true}
+              />
             </div>
           )}
         </div>

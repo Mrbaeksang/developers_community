@@ -25,9 +25,9 @@
 - VisitorTracker ✅ (방문자 추적)
 - **Pagination** ✅ (페이지네이션 - URL/상태 기반 모두 지원)
 
-#### 3. **posts/** (게시글 관련 - 10개)
+#### 3. **posts/** (게시글 관련 - 11개)
 - PostCard ✅ (게시글 카드)
-- PostEditor ✅ (게시글 에디터)
+- PostEditor ✅ (게시글 에디터 - 기본 기능)
 - PostListServer ✅ (서버 컴포넌트)
 - ClientPostDetail ✅ (클라이언트 상세)
 - CommentSection ✅ (댓글 섹션)
@@ -36,10 +36,11 @@
 - MarkdownPreview ✅ (마크다운 미리보기)
 - DropzoneArea ✅ (파일 드롭존)
 - MemoizedComponents ✅ (메모이제이션)
+- UnifiedPostDetail ✅ (통합 게시글 상세)
 
 #### 4. **communities/** (커뮤니티 - 11개)
 - CommunityPostList ✅
-- CommunityPostEditor ✅
+- CommunityPostEditor ✅ (강화판 - 마크다운, 자동저장, 미리보기, 전체화면)
 - CommunityCommentSection ✅
 - CommunityMemberList ✅
 - CommunityAnnouncements ✅
@@ -92,8 +93,8 @@
 ## 🔴 미구현 컴포넌트 (실제로 필요한 것)
 
 ### 1. **forms/** (폼 관련)
-- ✅ **TagSelector** - 태그 선택기 (완료!)
-- ❌ **CategorySelector** - 카테고리 선택기
+- ✅ **TagSelector** - 태그 선택기 (완료! - Neobrutalism 디자인, 실시간 검증, slug 생성)
+- ✅ **CategorySelector** - 카테고리 선택기 (완료! - Neobrutalism 디자인, 검색, 색상 표시, 그룹화)
 - ❌ **ImageUploader** - 이미지 업로더 (DropzoneArea와 별개)
 
 ### 2. **users/** (사용자 관련)
@@ -128,8 +129,8 @@
 3. ~~**EmptyState**~~ ✅ 완료 - 데이터 없을 때
 
 ### ⚡ 2순위 (핵심 기능)
-4. ~~**TagSelector**~~ ✅ 완료 - 글쓰기 태그 선택
-5. **CategorySelector** - 글쓰기 필수
+4. ~~**TagSelector**~~ ✅ 완료 - 글쓰기 태그 선택 (PostEditor, CommunityPostEditor 모두 적용)
+5. ~~**CategorySelector**~~ ✅ 완료 - 글쓰기 필수 (PostEditor, CommunityPostEditor 모두 적용)
 6. **CommentForm** - 댓글 작성
 
 ### 📊 3순위 (개선용)

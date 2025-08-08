@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Send, AlertCircle } from 'lucide-react'
+import { MessageSquare, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -17,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import CommentItem from './CommentItem'
-import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import { CommentForm } from '@/components/comments/CommentForm'
 import { EmptyState } from '@/components/shared/EmptyState'
 // Comment type defined locally
 type Comment = {
@@ -55,7 +54,6 @@ export default function CommentSection({
   postId,
   initialComments,
 }: CommentSectionProps) {
-  const [newComment, setNewComment] = useState('')
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null)
@@ -74,79 +72,6 @@ export default function CommentSection({
     staleTime: 30 * 1000, // 30초간 fresh
     gcTime: 5 * 60 * 1000, // 5분간 캐시
   })
-
-  // 댓글 작성 mutation
-  const createCommentMutation = useMutation({
-    mutationFn: async ({
-      content,
-      parentId,
-    }: {
-      content: string
-      parentId: string | null
-    }) => {
-      const response = await apiClient<{ comment: Comment }>(
-        `/api/main/posts/${postId}/comments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content, parentId }),
-        }
-      )
-
-      if (!response.success) {
-        throw new Error(response.error || '댓글 작성에 실패했습니다')
-      }
-
-      return response.data?.comment || response.data
-    },
-    onSuccess: (newComment) => {
-      // 댓글 목록 캐시 업데이트
-      queryClient.setQueryData(['comments', postId], (old: Comment[] = []) => [
-        newComment,
-        ...old,
-      ])
-      toast({
-        title: '댓글이 작성되었습니다',
-      })
-      setNewComment('')
-    },
-    onError: (error) => {
-      console.error('Failed to create comment:', error)
-      toast({
-        title: '댓글 작성에 실패했습니다',
-        description:
-          error instanceof Error ? error.message : '다시 시도해주세요.',
-        variant: 'destructive',
-      })
-    },
-  })
-
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // 로그인 체크
-    if (status === 'unauthenticated') {
-      toast({
-        title: '로그인이 필요합니다',
-        description: '댓글을 작성하려면 로그인해주세요.',
-        variant: 'destructive',
-      })
-      router.push('/auth/signin')
-      return
-    }
-
-    if (!newComment.trim()) {
-      toast({
-        title: '댓글 내용을 입력해주세요',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    createCommentMutation.mutate({ content: newComment.trim(), parentId: null })
-  }
 
   // 답글 작성 mutation
   const createReplyMutation = useMutation({
@@ -219,7 +144,7 @@ export default function CommentSection({
         variant: 'destructive',
       })
       router.push('/auth/signin')
-      return
+      return Promise.reject(new Error('Unauthenticated'))
     }
 
     const content = replyContents[parentId] || ''
@@ -228,10 +153,14 @@ export default function CommentSection({
         title: '답글 내용을 입력해주세요',
         variant: 'destructive',
       })
-      return
+      return Promise.reject(new Error('Empty content'))
     }
 
-    createReplyMutation.mutate({ content: content.trim(), parentId })
+    // mutateAsync를 사용하여 Promise 반환
+    return createReplyMutation.mutateAsync({
+      content: content.trim(),
+      parentId,
+    })
   }
 
   // 댓글 수정 mutation
@@ -301,18 +230,6 @@ export default function CommentSection({
       })
     },
   })
-
-  const handleEditComment = (commentId: string) => {
-    if (!editContent.trim()) {
-      toast({
-        title: '댓글 내용을 입력해주세요',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    editCommentMutation.mutate({ commentId, content: editContent.trim() })
-  }
 
   // 댓글 삭제 mutation
   const deleteCommentMutation = useMutation({
@@ -397,8 +314,20 @@ export default function CommentSection({
     setEditContent(content)
   }
 
-  const handleEditSubmit = (commentId: string) => {
-    handleEditComment(commentId)
+  const handleEditSubmit = async (commentId: string, content: string) => {
+    if (!content.trim()) {
+      toast({
+        title: '댓글 내용을 입력해주세요',
+        variant: 'destructive',
+      })
+      return Promise.reject(new Error('Empty content'))
+    }
+
+    // mutateAsync를 사용하여 Promise 반환
+    return editCommentMutation.mutateAsync({
+      commentId,
+      content: content.trim(),
+    })
   }
 
   const handleEditCancel = () => {
@@ -419,34 +348,22 @@ export default function CommentSection({
         </h2>
 
         {/* Comment Form */}
-        <form onSubmit={handleSubmitComment} className="mb-8">
-          <Textarea
+        <div className="mb-8">
+          <CommentForm
+            postId={postId}
+            onSuccess={() => {
+              // 댓글 작성 성공 시 쿼리 갱신
+              queryClient.invalidateQueries({ queryKey: ['comments', postId] })
+              toast({
+                title: '댓글이 작성되었습니다',
+              })
+            }}
             placeholder="댓글을 작성해주세요..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="mb-3 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-            rows={3}
+            buttonText="댓글 작성"
+            showToolbar={true}
+            enableDraft={true}
           />
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={createCommentMutation.isPending}
-              className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
-            >
-              {createCommentMutation.isPending ? (
-                <>
-                  <ButtonSpinner />
-                  작성 중...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  댓글 작성
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+        </div>
 
         {/* Comments List */}
         {comments.length === 0 ? (
@@ -464,7 +381,6 @@ export default function CommentSection({
                 comment={comment}
                 currentUserId={session?.user?.id}
                 isSubmitting={
-                  createCommentMutation.isPending ||
                   createReplyMutation.isPending ||
                   editCommentMutation.isPending ||
                   deleteCommentMutation.isPending
