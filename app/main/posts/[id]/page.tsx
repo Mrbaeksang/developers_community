@@ -120,6 +120,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           <UnifiedPostDetail post={post} postType="main" />
           <CommentSection
             postId={post.id}
+            postType="main"
             initialComments={post.comments || []}
           />
         </div>

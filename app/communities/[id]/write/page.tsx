@@ -3,7 +3,24 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/core/prisma'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import { CommunityPostEditor } from '@/components/communities/CommunityPostEditor'
+import dynamic from 'next/dynamic'
+
+const PostEditor = dynamic(
+  () =>
+    import('@/components/posts/PostEditor').then((mod) => ({
+      default: mod.PostEditor,
+    })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">에디터 로딩 중...</p>
+        </div>
+      </div>
+    ),
+  }
+)
 
 export default async function CommunityWritePage({
   params,
@@ -53,14 +70,14 @@ export default async function CommunityWritePage({
           </Link>
           <ChevronRight className="h-4 w-4" />
           <Link
-            href={`/communities/${community.slug}`}
+            href={`/communities/${community.id}`}
             className="hover:text-primary"
           >
             {community.name}
           </Link>
           <ChevronRight className="h-4 w-4" />
           <Link
-            href={`/communities/${community.slug}/posts`}
+            href={`/communities/${community.id}`}
             className="hover:text-primary"
           >
             게시글
@@ -70,12 +87,11 @@ export default async function CommunityWritePage({
         </nav>
 
         {/* 에디터 */}
-        <CommunityPostEditor
+        <PostEditor
+          postType="community"
           communityId={community.id}
-          communitySlug={community.slug}
-          categories={community.categories}
-          allowFileUpload={community.allowFileUpload}
-          maxFileSize={community.maxFileSize}
+          userRole={session.user.role}
+          initialCategories={community.categories}
         />
       </div>
     </div>

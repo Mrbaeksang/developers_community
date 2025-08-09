@@ -160,7 +160,7 @@ export default function CommentItem({
               />
             ) : (
               <div
-                className="prose prose-sm max-w-none text-sm whitespace-pre-wrap [&_a]:text-blue-600 [&_a]:hover:text-blue-800 [&_a]:underline [&_a]:cursor-pointer [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-bold [&_h2]:text-base [&_h3]:font-bold [&_h3]:text-sm [&_h4]:font-bold [&_h4]:text-sm [&_h5]:font-bold [&_h5]:text-sm [&_h6]:font-bold [&_h6]:text-sm [&_strong]:font-bold [&_em]:italic"
+                className="prose prose-sm max-w-none text-sm [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_br]:block [&_a]:text-blue-600 [&_a]:hover:text-blue-800 [&_a]:underline [&_a]:cursor-pointer [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:space-y-1 [&_li]:pl-1 [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-bold [&_h2]:text-base [&_h3]:font-bold [&_h3]:text-sm [&_h4]:font-bold [&_h4]:text-sm [&_h5]:font-bold [&_h5]:text-sm [&_h6]:font-bold [&_h6]:text-sm [&_strong]:font-bold [&_em]:italic"
                 dangerouslySetInnerHTML={{ __html: comment.content }}
               />
             )}

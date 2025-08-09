@@ -1,57 +1,46 @@
 'use client'
 
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { MessageSquare, Heart, Eye } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
-import { Badge } from '@/components/ui/badge'
-import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
-import { EmptyState, ErrorEmptyState } from '@/components/shared/EmptyState'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { formatCount, getTextColor } from '@/lib/common/types'
+import { PostCard } from '@/components/posts/PostCard'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
+import {
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  FileText,
+  Sparkles,
+  Filter,
+  SortAsc,
+  LayoutGrid,
+  LayoutList,
+} from 'lucide-react'
 import { Pagination } from '@/components/shared/Pagination'
-
-interface Author {
-  id: string
-  name: string | null
-  email: string
-  image: string | null
-}
+import type { MainPostFormatted } from '@/lib/post/types'
 
 interface Category {
   id: string
   name: string
+  slug: string
   color: string | null
-}
-
-interface Post {
-  id: string
-  title: string
-  content: string
-  viewCount: number
-  createdAt: string
-  author: Author
-  category: Category | null
-  likeCount: number // 평탄화된 필드
-  commentCount: number // 평탄화된 필드
-  bookmarkCount?: number // 평탄화된 필드
-  readingTime?: number // API에서 계산된 필드
-  isLiked: boolean
-  isBookmarked: boolean
-  // 폴백을 위한 _count (optional)
-  _count?: {
-    comments?: number
-    likes?: number
-    bookmarks?: number
-  }
+  postCount?: number
 }
 
 interface CommunityPostListProps {
   communityId: string
-  communitySlug: string
   page: number
+  categories?: Category[]
   category?: string | undefined
   search?: string | undefined
   sort?: string
@@ -88,32 +77,95 @@ const fetchCommunityPosts = async ({
 
   const data = await res.json()
 
-  // 새로운 응답 형식 처리: { success: true, data: { posts, pagination } }
+  // API 응답 포맷 처리 및 MainPostFormatted 형태로 변환
+  let posts: MainPostFormatted[] = []
+  let pagination = { total: 0, page: 1, limit: 10, pages: 1 }
+
   if (data.success && data.data) {
-    return data.data
-  } else {
-    // 실패 응답 처리
-    throw new Error(data.message || 'Failed to fetch posts')
+    const rawPosts = Array.isArray(data.data)
+      ? data.data
+      : data.data.posts || []
+    posts = rawPosts.map((post: MainPostFormatted) => ({
+      ...post,
+      excerpt: post.content?.substring(0, 200) || '',
+      tags: post.tags || [],
+      isPinned: post.isPinned || false,
+      status: post.status || 'PUBLISHED',
+    }))
+
+    pagination = data.pagination || data.data.pagination || pagination
+  } else if (data.posts) {
+    posts = data.posts.map((post: MainPostFormatted) => ({
+      ...post,
+      excerpt: post.content?.substring(0, 200) || '',
+      tags: post.tags || [],
+      isPinned: post.isPinned || false,
+      status: post.status || 'PUBLISHED',
+    }))
+
+    pagination = data.pagination || pagination
   }
+
+  return { posts, pagination }
 }
 
 export function CommunityPostList({
   communityId,
-  communitySlug,
   page,
-  category,
-  search,
-  sort,
+  categories: initialCategories = [],
+  category: initialCategory,
+  search: initialSearch,
+  sort: initialSort,
 }: CommunityPostListProps) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['communityPosts', communityId, page, category, search, sort],
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // URL 파라미터와 상태 동기화
+  const [sortBy, setSortBy] = useState(
+    initialSort || searchParams.get('sort') || 'latest'
+  )
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    initialCategory || searchParams.get('category') || 'all'
+  )
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  // 검색 기능은 추후 구현예정
+  // const [search, setSearch] = useState(initialSearch || '')
+
+  // URL 파라미터 변경 감지
+  useEffect(() => {
+    const categoryParam = searchParams.get('category') || 'all'
+    const sortParam = searchParams.get('sort') || 'latest'
+
+    setSelectedCategory(categoryParam)
+    setSortBy(sortParam)
+  }, [searchParams])
+
+  // React Query로 데이터 가져오기
+  const { data, isLoading } = useQuery({
+    queryKey: [
+      'communityPosts',
+      communityId,
+      page,
+      selectedCategory,
+      initialSearch,
+      sortBy,
+    ],
     queryFn: () =>
-      fetchCommunityPosts({ communityId, page, category, search, sort }),
-    staleTime: 2 * 60 * 1000, // 2분간 fresh 상태
-    gcTime: 5 * 60 * 1000, // 5분간 캐시 유지
+      fetchCommunityPosts({
+        communityId,
+        page,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        search: initialSearch,
+        sort: sortBy,
+      }),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   })
 
-  const posts = data?.posts || []
+  const posts = useMemo(() => {
+    return data?.posts || []
+  }, [data?.posts])
+
   const pagination = data?.pagination || {
     total: 0,
     page: 1,
@@ -121,132 +173,363 @@ export function CommunityPostList({
     pages: 1,
   }
 
+  const categories = useMemo(() => {
+    return initialCategories || []
+  }, [initialCategories])
+
+  // URL 업데이트 함수
+  const updateURL = (params: Record<string, string>) => {
+    const current = new URLSearchParams(searchParams.toString())
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === 'all' || value === 'latest') {
+        current.delete(key)
+      } else {
+        current.set(key, value)
+      }
+    })
+    router.push(
+      `/communities/${communityId}${current.toString() ? `?${current.toString()}` : ''}`,
+      { scroll: false }
+    )
+  }
+
+  // 카테고리 이름 가져오기
+  const getCategoryName = (slug: string | undefined) => {
+    if (!slug || slug === 'all') return '모든 카테고리'
+    const category = categories.find((c: Category) => c.slug === slug)
+    return category?.name || '모든 카테고리'
+  }
+
+  // 카테고리로 필터링된 게시물
+  const filteredPosts = useMemo(() => {
+    return selectedCategory === 'all'
+      ? posts
+      : posts.filter(
+          (post: MainPostFormatted) => post.category?.slug === selectedCategory
+        )
+  }, [posts, selectedCategory])
+
+  // 정렬된 게시물 목록 (고정 게시글 우선 정렬)
+  const sortedPosts = useMemo(() => {
+    return [...filteredPosts].sort((a, b) => {
+      // 1. 고정 게시글이 항상 먼저
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
+
+      // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
+      switch (sortBy) {
+        case 'latest':
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
+        case 'popular':
+        case 'views':
+          return b.viewCount - a.viewCount
+        case 'comments':
+        case 'discussed':
+          return (b.commentCount || 0) - (a.commentCount || 0)
+        default:
+          return 0
+      }
+    })
+  }, [filteredPosts, sortBy])
+
+  // 탭별 필터링
+  const { trendingPosts, recentPosts } = useMemo(() => {
+    const trending = sortedPosts.filter(
+      (post) => post.viewCount > 100 || (post.likeCount || 0) > 10
+    )
+
+    const dayAgo = new Date()
+    dayAgo.setDate(dayAgo.getDate() - 1)
+    const recent = sortedPosts.filter((post) => {
+      return new Date(post.createdAt) > dayAgo
+    })
+
+    return { trendingPosts: trending, recentPosts: recent }
+  }, [sortedPosts])
+
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card
-            key={i}
-            className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-          >
-            <CardContent className="p-6">
-              <SkeletonLoader lines={4} />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
-
-  // 에러 처리
-  if (error) {
-    return <ErrorEmptyState />
-  }
-
-  if (!isLoading && (!posts || posts.length === 0)) {
-    return (
-      <EmptyState
-        icon={MessageSquare}
-        title="게시글이 없습니다"
-        description={
-          search ? '검색 결과가 없습니다.' : '첫 번째 게시글을 작성해보세요!'
-        }
-        size="lg"
-      />
-    )
+    return <PageLoadingSpinner />
   }
 
   return (
-    <div className="space-y-4">
-      {posts?.map((post: Post) => (
-        <Card
-          key={post.id}
-          className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+    <div className="space-y-6">
+      {/* 브레드크럼 네비게이션 */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <button
+          onClick={() => router.push('/communities')}
+          className="hover:text-foreground transition-colors"
         >
-          <CardContent className="p-6">
-            <Link href={`/communities/${communitySlug}/posts/${post.id}`}>
-              <article className="space-y-3">
-                {/* Title and Category */}
-                <div>
-                  <div className="flex items-start gap-3 mb-2">
-                    {post.category && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs border-2 font-bold"
-                        style={{
-                          backgroundColor: post.category?.color || '#6366f1',
-                          color: getTextColor(
-                            post.category?.color || '#6366f1'
-                          ),
-                          borderColor: post.category?.color || '#6366f1',
-                          boxShadow: '2px 2px 0px 0px rgba(0,0,0,0.2)',
-                        }}
-                      >
-                        {post.category?.name || '일반'}
-                      </Badge>
-                    )}
-                    <h2 className="text-xl font-bold hover:text-primary transition-colors line-clamp-2 flex-1">
-                      {post.title}
-                    </h2>
-                  </div>
-                  <p className="text-muted-foreground line-clamp-2">
-                    {post.content}
-                  </p>
-                </div>
+          커뮤니티
+        </button>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">게시물</span>
+        {selectedCategory !== 'all' && (
+          <>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">
+              {getCategoryName(selectedCategory)}
+            </span>
+          </>
+        )}
+      </div>
 
-                {/* Author and Stats */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-3">
-                    <AuthorAvatar
-                      author={post.author}
-                      size="sm"
-                      enableDropdown
-                      dropdownAlign="start"
-                    />
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        {post.author.name || 'Unknown'}
-                      </span>
-                      <span>·</span>
-                      <time>
-                        {formatDistanceToNow(new Date(post.createdAt), {
-                          addSuffix: true,
-                          locale: ko,
-                        })}
-                      </time>
-                    </div>
-                  </div>
+      {/* 헤더 섹션 */}
+      <div className="relative border rounded-lg p-6 bg-white shadow-sm border-border">
+        <div className="flex items-start justify-between mb-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {getCategoryName(selectedCategory)} 게시물
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  총{' '}
+                  <span className="font-semibold text-foreground">
+                    {filteredPosts.length}개
+                  </span>
+                  의 게시물이 있어요
+                </p>
+              </div>
+            </div>
+          </div>
 
-                  <div className="flex items-center gap-4 text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      {formatCount(post.viewCount)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart
-                        className={`h-4 w-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`}
-                      />
-                      {formatCount(post.likeCount || post._count?.likes || 0)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" />
-                      {formatCount(
-                        post.commentCount || post._count?.comments || 0
+          {/* 뷰 모드 토글 */}
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className={`rounded-md transition-all duration-200 ${
+                viewMode === 'grid'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted-foreground/10 text-muted-foreground'
+              }`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={`rounded-md transition-all duration-200 ${
+                viewMode === 'list'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-muted-foreground/10 text-muted-foreground'
+              }`}
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* 필터 섹션 */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* 카테고리 선택 */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              카테고리
+            </div>
+            <Select
+              value={selectedCategory}
+              onValueChange={(value) => {
+                setSelectedCategory(value)
+                updateURL({ category: value })
+              }}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    모든 카테고리
+                  </div>
+                </SelectItem>
+                {categories.map((category: Category) => (
+                  <SelectItem key={category.id} value={category.slug}>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
+                      {category.name}
+                      {category.postCount && (
+                        <span className="text-xs text-muted-foreground">
+                          ({category.postCount})
+                        </span>
                       )}
-                    </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 정렬 선택 */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <SortAsc className="h-4 w-4" />
+              정렬
+            </div>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => {
+                setSortBy(value)
+                updateURL({ sort: value })
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-500" />
+                    최신순
                   </div>
-                </div>
-              </article>
-            </Link>
-          </CardContent>
-        </Card>
-      ))}
+                </SelectItem>
+                <SelectItem value="popular">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    인기순
+                  </div>
+                </SelectItem>
+                <SelectItem value="discussed">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    댓글 많은 순
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <TabsTrigger
+            value="all"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold"
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>전체</span>
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="trending"
+            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-bold"
+          >
+            <span className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>트렌딩</span>
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="recent"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-bold"
+          >
+            <span className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>최근 24시간</span>
+            </span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="mt-6">
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid gap-4 md:grid-cols-2'
+                : 'space-y-4 max-w-4xl mx-auto'
+            }
+          >
+            {sortedPosts.length > 0 ? (
+              sortedPosts.map((post: MainPostFormatted) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  href={`/communities/${communityId}/posts/${post.id}`}
+                />
+              ))
+            ) : (
+              <div className="col-span-2">
+                <EmptyState
+                  icon={FileText}
+                  title="아직 게시물이 없습니다"
+                  description="첫 번째 게시물을 작성해보세요"
+                  size="lg"
+                />
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="trending" className="mt-6">
+          <div
+            className={
+              viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'
+            }
+          >
+            {trendingPosts.length > 0 ? (
+              trendingPosts.map((post: MainPostFormatted) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  href={`/communities/${communityId}/posts/${post.id}`}
+                />
+              ))
+            ) : (
+              <div className="col-span-2">
+                <EmptyState
+                  icon={TrendingUp}
+                  title="아직 트렌딩 게시물이 없습니다"
+                  description="인기 게시물이 여기에 표시됩니다"
+                  size="lg"
+                />
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="recent" className="mt-6">
+          <div
+            className={
+              viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'
+            }
+          >
+            {recentPosts.length > 0 ? (
+              recentPosts.map((post: MainPostFormatted) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  href={`/communities/${communityId}/posts/${post.id}`}
+                />
+              ))
+            ) : (
+              <div className="col-span-2">
+                <EmptyState
+                  icon={Clock}
+                  title="최근 24시간 동안 작성된 게시물이 없습니다"
+                  description="새로운 게시물이 작성되면 여기에 표시됩니다"
+                  size="lg"
+                />
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Pagination */}
       <Pagination
         currentPage={page}
         totalPages={pagination.pages}
-        baseUrl={`/communities/${communitySlug}/posts`}
+        baseUrl={`/communities/${communityId}`}
         className="mt-8"
       />
     </div>

@@ -19,12 +19,14 @@ import type { MainPostFormatted } from '@/lib/post/types'
 interface PostCardProps {
   post: MainPostFormatted
   className?: string
+  href?: string // 커스텀 링크를 위한 prop
 }
 
 // PostCard 컴포넌트를 memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
 export const PostCard = memo(function PostCard({
   post,
   className,
+  href,
 }: PostCardProps) {
   const publishedDate = post.createdAt
   const formattedDate = formatDistanceToNow(new Date(publishedDate), {
@@ -87,7 +89,7 @@ export const PostCard = memo(function PostCard({
           </div>
         </div>
 
-        <Link href={`/main/posts/${post.id}`} className="group">
+        <Link href={href || `/main/posts/${post.id}`} className="group">
           <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {post.title}
           </h3>

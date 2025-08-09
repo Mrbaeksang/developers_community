@@ -115,7 +115,7 @@ export default async function CommunitiesPage({
                     <p className="text-2xl font-black text-gray-800">
                       {formatCount(
                         (communities || []).reduce(
-                          (acc: number, c: Community) => acc + c.memberCount,
+                          (acc: number, c: Community) => acc + c._count.members,
                           0
                         )
                       )}
@@ -129,7 +129,7 @@ export default async function CommunitiesPage({
                     <p className="text-2xl font-black text-gray-800">
                       {formatCount(
                         (communities || []).reduce(
-                          (acc: number, c: Community) => acc + c.postCount,
+                          (acc: number, c: Community) => acc + c._count.posts,
                           0
                         )
                       )}
@@ -209,7 +209,9 @@ export default async function CommunitiesPage({
                 // TOP 3 랭킹 계산
                 const sortedCommunities = [...communities].sort(
                   (a, b) =>
-                    b.memberCount + b.postCount - (a.memberCount + a.postCount)
+                    b._count.members +
+                    b._count.posts -
+                    (a._count.members + a._count.posts)
                 )
                 const rankIndex = sortedCommunities.findIndex(
                   (c) => c.id === community.id

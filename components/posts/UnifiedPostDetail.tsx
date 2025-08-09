@@ -277,7 +277,7 @@ export function UnifiedPostDetail({
       queryClient.invalidateQueries({ queryKey: [postType + 'Posts'] })
 
       if (post.community) {
-        router.push(`/communities/${post.community.slug}/posts`)
+        router.push(`/communities/${post.community.id}/posts`)
       } else {
         router.push('/main/posts')
       }
@@ -383,7 +383,7 @@ export function UnifiedPostDetail({
                         <Link
                           href={
                             post.community
-                              ? `/communities/${post.community.slug}/posts/${post.id}/edit`
+                              ? `/communities/${post.community.id}/posts/${post.id}/edit`
                               : `/main/posts/${post.id}/edit`
                           }
                         >
@@ -447,18 +447,12 @@ export function UnifiedPostDetail({
           <Separator className="my-6" />
 
           {/* Content */}
-          <div className="prose prose-sm max-w-none">
-            {isCommunityPost ? (
-              <div className="whitespace-pre-wrap">{post.content}</div>
-            ) : (
-              <div
-                className="post-content whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{
-                  __html: optimizeImagesInContent(post.content),
-                }}
-              />
-            )}
-          </div>
+          <div
+            className="prose prose-sm max-w-none [&_p]:my-4 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-6 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-5 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-4 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-4 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-4 [&_li]:my-1 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4 [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800"
+            dangerouslySetInnerHTML={{
+              __html: optimizeImagesInContent(post.content),
+            }}
+          />
 
           {/* Files (커뮤니티 게시글만) */}
           {post.files && post.files.length > 0 && (

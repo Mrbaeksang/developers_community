@@ -168,6 +168,10 @@ console.error('Error:', error)
 /api/main/posts
 /api/communities/[slug]/posts
 /api/user/profile
+
+// API 응답 형식 (중요!)
+// 댓글 목록: { success: true, data: { comments: [...] } }
+// 게시글 목록: { success: true, data: { posts: [...] } }
 ```
 
 ### 7️⃣ 컴포넌트 최적화 패턴

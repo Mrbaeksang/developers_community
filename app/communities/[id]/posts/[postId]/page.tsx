@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
-import { CommunityCommentSection } from '@/components/communities/CommunityCommentSection'
+import CommentSection from '@/components/posts/CommentSection'
 
 interface Post {
   id: string
@@ -106,14 +106,14 @@ export default async function CommunityPostDetailPage({
           </Link>
           <span>/</span>
           <Link
-            href={`/communities/${post.community.slug}`}
+            href={`/communities/${post.community.id}`}
             className="hover:text-foreground"
           >
             {post.community.name}
           </Link>
           <span>/</span>
           <Link
-            href={`/communities/${post.community.slug}/posts`}
+            href={`/communities/${post.community.id}`}
             className="hover:text-foreground"
           >
             게시글
@@ -132,10 +132,11 @@ export default async function CommunityPostDetailPage({
         />
 
         {/* Comments Section */}
-        <CommunityCommentSection
+        <CommentSection
           postId={post.id}
+          postType="community"
           communityId={post.community.id}
-          currentUserId={session?.user?.id}
+          initialComments={[]}
         />
       </div>
     </div>

@@ -35,12 +35,26 @@ export async function GET(
     const { id, postId } = await context.params
     const { searchParams } = new URL(req.url)
 
+    // 커뮤니티 찾기 (ID 또는 slug)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: { id: true },
+    })
+
+    if (!community) {
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
+    }
+
+    const actualCommunityId = community.id
+
     // 하이브리드 페이지네이션 파싱
     const pagination = parseHybridPagination(searchParams)
 
     // Redis 캐시 키 생성
     const cacheKey = generateCacheKey('community:post:comments', {
-      communityId: id,
+      communityId: actualCommunityId,
       postId,
       ...pagination,
     })
@@ -53,7 +67,7 @@ export async function GET(
         const post = await prisma.communityPost.findUnique({
           where: {
             id: postId,
-            communityId: id,
+            communityId: actualCommunityId,
           },
         })
 
@@ -218,6 +232,15 @@ async function createCommunityComment(
   try {
     const { id, postId } = await context.params
 
+    // Body를 미리 읽기 (withSecurity가 body를 읽을 수 있으므로)
+    let body: { content?: string; parentId?: string }
+    try {
+      const clonedReq = req.clone()
+      body = await clonedReq.json()
+    } catch {
+      return validationErrorResponse({ message: ['Invalid JSON body'] })
+    }
+
     // 커뮤니티 찾기 (ID 또는 slug)
     const community = await prisma.community.findFirst({
       where: {
@@ -235,6 +258,9 @@ async function createCommunityComment(
     // 멤버십 확인 (MEMBER 이상)
     const session = await requireCommunityRoleAPI(actualCommunityId, [
       CommunityRole.MEMBER,
+      CommunityRole.MODERATOR,
+      CommunityRole.ADMIN,
+      CommunityRole.OWNER,
     ])
     if (session instanceof Response) {
       return session
@@ -250,8 +276,6 @@ async function createCommunityComment(
     if (!post) {
       throwNotFoundError('게시글을 찾을 수 없습니다')
     }
-
-    const body = await req.json()
     const validation = createCommentSchema.safeParse(body)
 
     if (!validation.success) {
@@ -302,6 +326,7 @@ async function createCommunityComment(
         author: {
           select: { id: true, name: true, email: true, image: true },
         },
+        replies: true, // 빈 배열이라도 포함
       },
     })
 
@@ -311,7 +336,18 @@ async function createCommunityComment(
       data: { commentCount: { increment: 1 } },
     })
 
-    return createdResponse(comment, '댓글이 작성되었습니다')
+    // createdAt, updatedAt을 string으로 변환
+    const formattedComment = {
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      replies: [],
+    }
+
+    return createdResponse(
+      { comment: formattedComment },
+      '댓글이 작성되었습니다'
+    )
   } catch (error) {
     return handleError(error)
   }

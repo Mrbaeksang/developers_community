@@ -140,7 +140,6 @@ export default async function CommunityPostsPage({
       {/* Post List */}
       <CommunityPostList
         communityId={community.id}
-        communitySlug={community.slug}
         page={parseInt(page)}
         category={category}
         search={search}

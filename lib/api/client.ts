@@ -93,11 +93,33 @@ export async function apiClient<T = unknown>(
     const response = await fetch(fullUrl, options)
 
     if (!response.ok) {
-      const errorData = await response.json()
-      return {
-        success: false,
-        error: errorData.error || 'API 요청 중 오류가 발생했습니다.',
-        message: errorData.message || '서버에서 오류 응답을 반환했습니다',
+      // Content-Type 확인
+      const contentType = response.headers.get('content-type')
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData = await response.json()
+          return {
+            success: false,
+            error: errorData.error || 'API 요청 중 오류가 발생했습니다.',
+            message: errorData.message || '서버에서 오류 응답을 반환했습니다',
+          }
+        } catch {
+          // JSON 파싱 실패
+          return {
+            success: false,
+            error: `HTTP ${response.status}: ${response.statusText}`,
+            message: '서버 오류가 발생했습니다',
+          }
+        }
+      } else {
+        // JSON이 아닌 응답 (예: HTML, 텍스트)
+        const text = await response.text()
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${text.substring(0, 100)}`,
+          message: '서버 오류가 발생했습니다',
+        }
       }
     }
 

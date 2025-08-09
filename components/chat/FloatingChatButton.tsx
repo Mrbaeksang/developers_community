@@ -20,15 +20,11 @@ function ChatSkeleton() {
   )
 }
 
-interface FloatingChatButtonProps {
-  channelId?: string
-  channelName?: string
-}
-
-export default function FloatingChatButton({
-  channelId = 'global',
-  channelName = '전체 채팅',
-}: FloatingChatButtonProps) {
+// 글로벌 채팅 전용 플로팅 버튼
+// 커뮤니티 채팅은 별도 컴포넌트로 분리됨
+export default function FloatingChatButton() {
+  const channelId = 'cmdrfyff8000uu8fszlkfpifs' // 실제 글로벌 채널 ID
+  const channelName = '전체 채팅'
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [size, setSize] = useState({ width: 400, height: 600 })
@@ -225,7 +221,7 @@ export default function FloatingChatButton({
       <Button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-50"
-        title="채팅 열기 (Ctrl + /)"
+        title="전체 채팅 열기 (Ctrl + /)"
       >
         <MessageCircle className="h-6 w-6" />
         {unreadCount > 0 && (
@@ -255,7 +251,10 @@ export default function FloatingChatButton({
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-bold flex items-center">
               <MessageCircle className="mr-2 h-5 w-5" />
-              {channelName}
+              <span className="mr-2">{channelName}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                (전체)
+              </span>
             </CardTitle>
             <Button
               onClick={() => setIsOpen(false)}

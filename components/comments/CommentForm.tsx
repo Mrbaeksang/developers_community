@@ -18,6 +18,9 @@ import Placeholder from '@tiptap/extension-placeholder'
 
 interface CommentFormProps {
   postId: string
+  postType?: 'main' | 'community'
+  communityId?: string
+  // communitySlug?: string // Deprecated: use communityId
   parentId?: string
   initialContent?: string
   mode?: 'create' | 'edit' | 'reply'
@@ -51,6 +54,9 @@ const EMOJI_LIST = [
 
 export function CommentForm({
   postId,
+  postType = 'main',
+  communityId,
+  // communitySlug, // Deprecated: use communityId
   parentId,
   initialContent = '',
   mode = 'create',
@@ -103,7 +109,7 @@ export function CommentForm({
 
   // Update editor content when initialContent changes
   useEffect(() => {
-    if (editor && initialContent !== content) {
+    if (editor && initialContent !== editor.getHTML()) {
       editor.commands.setContent(initialContent)
       setContent(initialContent)
     }
@@ -220,13 +226,24 @@ export function CommentForm({
       if (onSubmit) {
         await onSubmit(content)
       } else {
-        // Default API call for create mode
-        const endpoint =
-          mode === 'edit' && commentId
-            ? `/api/main/comments/${commentId}`
-            : `/api/main/posts/${postId}/comments`
+        // Default API call based on postType
+        let endpoint: string
+        let method: string
 
-        const method = mode === 'edit' ? 'PUT' : 'POST'
+        if (mode === 'edit' && commentId) {
+          endpoint =
+            postType === 'main'
+              ? `/api/main/comments/${commentId}`
+              : `/api/communities/${communityId}/comments/${commentId}`
+          method = postType === 'main' ? 'PUT' : 'PATCH'
+        } else {
+          endpoint =
+            postType === 'main'
+              ? `/api/main/posts/${postId}/comments`
+              : `/api/communities/${communityId}/posts/${postId}/comments`
+          method = 'POST'
+        }
+
         const body = mode === 'edit' ? { content } : { content, parentId }
 
         const response = await apiClient(endpoint, {

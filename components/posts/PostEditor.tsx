@@ -41,6 +41,9 @@ interface Category {
 
 interface PostEditorProps {
   userRole?: string
+  postType?: 'main' | 'community'
+  communityId?: string
+  initialCategories?: Category[]
 }
 
 interface UploadedFile {
@@ -60,15 +63,28 @@ const CHARACTER_LIMITS = {
 }
 
 // 카테고리 가져오기 함수
-const fetchCategories = async (): Promise<Category[]> => {
-  const res = await fetch('/api/main/categories')
+const fetchCategories = async (
+  postType: string,
+  communityId?: string
+): Promise<Category[]> => {
+  const endpoint =
+    postType === 'community' && communityId
+      ? `/api/communities/${communityId}/categories`
+      : '/api/main/categories'
+
+  const res = await fetch(endpoint)
   if (!res.ok) throw new Error('Failed to fetch categories')
   const result = await res.json()
   // API가 { data: { items: [...], pagination: {...} } } 형식으로 반환
   return result.data?.items || []
 }
 
-export function PostEditor({ userRole }: PostEditorProps) {
+export function PostEditor({
+  userRole,
+  postType = 'main',
+  communityId,
+  initialCategories,
+}: PostEditorProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [submitState, setSubmitState] = useState<
@@ -122,9 +138,11 @@ export function PostEditor({ userRole }: PostEditorProps) {
   }, [])
 
   // 카테고리 조회
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: fetchCategories,
+  const { data: categories = initialCategories || [] } = useQuery({
+    queryKey: ['categories', postType, communityId],
+    queryFn: () => fetchCategories(postType, communityId),
+    initialData: initialCategories,
+    enabled: !initialCategories, // initialCategories가 있으면 API 호출 안 함
     staleTime: 10 * 60 * 1000, // 10분간 fresh
     gcTime: 30 * 60 * 1000, // 30분간 캐시
   })
@@ -147,7 +165,12 @@ export function PostEditor({ userRole }: PostEditorProps) {
         '-' +
         Date.now()
 
-      const res = await fetch('/api/main/posts', {
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/posts`
+          : '/api/main/posts'
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -193,6 +216,11 @@ export function PostEditor({ userRole }: PostEditorProps) {
       tags: string[]
       status: 'DRAFT' | 'PENDING'
     }) => {
+      // 필수 필드 검증
+      if (!data.title || !data.content || !data.categoryId) {
+        throw new Error('필수 정보가 누락되었습니다.')
+      }
+
       // Generate slug
       const baseSlug = data.title
         .toLowerCase()
@@ -200,13 +228,27 @@ export function PostEditor({ userRole }: PostEditorProps) {
         .replace(/\s+/g, '-')
         .substring(0, 100)
 
-      // Check for duplicate slug
-      const checkSlugRes = await fetch(
-        `/api/main/posts/check-slug?slug=${baseSlug}`
-      )
-      const { exists } = await checkSlugRes.json()
+      let slug = baseSlug
 
-      const slug = exists ? `${baseSlug}-${Date.now()}` : baseSlug
+      // 메인 게시글만 slug 중복 체크 (커뮤니티는 API 없음)
+      if (postType === 'main') {
+        try {
+          const checkSlugRes = await fetch(
+            `/api/main/posts/check-slug?slug=${baseSlug}`
+          )
+          if (checkSlugRes.ok) {
+            const { exists } = await checkSlugRes.json()
+            slug = exists ? `${baseSlug}-${Date.now()}` : baseSlug
+          }
+        } catch (error) {
+          // slug 체크 실패해도 계속 진행
+          console.warn('Slug check failed:', error)
+          slug = `${baseSlug}-${Date.now()}`
+        }
+      } else {
+        // 커뮤니티는 항상 timestamp 추가
+        slug = `${baseSlug}-${Date.now()}`
+      }
 
       // Auto-generate SEO metadata
       const metaTitle =
@@ -216,22 +258,18 @@ export function PostEditor({ userRole }: PostEditorProps) {
       const metaDescription =
         data.excerpt || data.content.substring(0, 155).replace(/\n/g, ' ')
 
-      // Get CSRF token from cookie
-      const csrfToken = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('csrf-token='))
-        ?.split('=')[1]
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/posts`
+          : '/api/main/posts'
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      }
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken
-      }
+      const { apiClient } = await import('@/lib/api/client')
 
-      const response = await fetch('/api/main/posts', {
+      const result = await apiClient(endpoint, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           ...data,
           excerpt: data.excerpt || data.content.substring(0, 200),
@@ -243,18 +281,11 @@ export function PostEditor({ userRole }: PostEditorProps) {
         }),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || '게시글 작성에 실패했습니다')
-      }
-
-      const result = await response.json()
-
       if (!result.success || !result.data) {
         throw new Error(result.error || '게시글 작성에 실패했습니다')
       }
 
-      return { post: result.data, status: data.status }
+      return { post: result.data as { id: string }, status: data.status }
     },
     onSuccess: ({ post, status }) => {
       // 캐시 무효화
@@ -272,9 +303,14 @@ export function PostEditor({ userRole }: PostEditorProps) {
       // 게시글 상세 페이지로 이동
       if (post && post.id) {
         setSubmitState('redirecting')
-        sonnerToast.loading('게시글 페이지로 이동 중...')
+        const loadingToast = sonnerToast.loading('게시글 페이지로 이동 중...')
         setTimeout(() => {
-          router.push(`/main/posts/${post.id}`)
+          sonnerToast.dismiss(loadingToast)
+          if (postType === 'community' && communityId) {
+            router.push(`/communities/${communityId}/posts/${post.id}`)
+          } else {
+            router.push(`/main/posts/${post.id}`)
+          }
         }, 500)
       }
     },

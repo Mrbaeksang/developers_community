@@ -108,11 +108,16 @@ const roleConfig = {
 
 // 활동 레벨 계산
 function calculateActivityLevel(community: {
-  postCount: number
-  memberCount: number
+  postCount?: number
+  memberCount?: number
+  _count?: {
+    posts: number
+    members: number
+  }
 }) {
-  const avgPostsPerMember =
-    community.postCount / Math.max(community.memberCount, 1)
+  const posts = community.postCount ?? community._count?.posts ?? 0
+  const members = community.memberCount ?? community._count?.members ?? 1
+  const avgPostsPerMember = posts / Math.max(members, 1)
 
   if (avgPostsPerMember > 0.5)
     return { level: '활발함', color: 'bg-green-300 text-green-900' }
@@ -209,7 +214,7 @@ export function CommunityCard({
 
   if (variant === 'compact') {
     return (
-      <Link href={`/communities/${community.slug}`}>
+      <Link href={`/communities/${community.id}`}>
         <Card
           className={cn(
             'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
@@ -256,7 +261,11 @@ export function CommunityCard({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {community.memberCount.toLocaleString()}
+                    {(
+                      community._count?.members ??
+                      community.memberCount ??
+                      0
+                    ).toLocaleString()}
                   </span>
                   <VisibilityIcon
                     className={cn('h-3 w-3', visibilityInfo.color)}
@@ -272,7 +281,7 @@ export function CommunityCard({
 
   if (variant === 'featured') {
     return (
-      <Link href={`/communities/${community.slug}`}>
+      <Link href={`/communities/${community.id}`}>
         <Card
           className={cn(
             'border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
@@ -341,14 +350,22 @@ export function CommunityCard({
               <div className="flex items-center gap-1 text-blue-600">
                 <Users className="h-4 w-4" />
                 <span className="font-semibold">
-                  {community.memberCount.toLocaleString()}
+                  {(
+                    community._count?.members ??
+                    community.memberCount ??
+                    0
+                  ).toLocaleString()}
                 </span>
                 <span className="text-muted-foreground">멤버</span>
               </div>
               <div className="flex items-center gap-1 text-green-600">
                 <FileText className="h-4 w-4" />
                 <span className="font-semibold">
-                  {community.postCount.toLocaleString()}
+                  {(
+                    community._count?.posts ??
+                    community.postCount ??
+                    0
+                  ).toLocaleString()}
                 </span>
                 <span className="text-muted-foreground">게시글</span>
               </div>
@@ -362,7 +379,7 @@ export function CommunityCard({
   // Full variant (for communities page)
   if (variant === 'full') {
     return (
-      <Link href={`/communities/${community.slug}`}>
+      <Link href={`/communities/${community.id}`}>
         <Card
           className={cn(
             'h-full',
@@ -533,7 +550,7 @@ export function CommunityCard({
               {community.name}
             </h3>
             <p className={`text-sm ${theme.text} font-medium`}>
-              @{community.slug}
+              @{community.id}
             </p>
           </CardHeader>
 
@@ -550,13 +567,17 @@ export function CommunityCard({
                 <div className="flex items-center gap-1 px-2 py-1 bg-gray-100/80 rounded-full border border-gray-200">
                   <Users className="size-3 text-gray-600" />
                   <span className="text-gray-700 text-xs font-medium">
-                    {formatCount(community.memberCount)}
+                    {formatCount(
+                      community._count?.members ?? community.memberCount ?? 0
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 px-2 py-1 bg-blue-50/80 rounded-full border border-blue-200">
                   <MessageCircle className="size-3 text-blue-500" />
                   <span className="text-blue-600 text-xs font-medium">
-                    {formatCount(community.postCount)}
+                    {formatCount(
+                      community._count?.posts ?? community.postCount ?? 0
+                    )}
                   </span>
                 </div>
               </div>
@@ -613,7 +634,7 @@ export function CommunityCard({
 
   // Default variant
   return (
-    <Link href={`/communities/${community.slug}`}>
+    <Link href={`/communities/${community.id}`}>
       <Card
         className={cn(
           'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
@@ -713,14 +734,22 @@ export function CommunityCard({
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span className="font-semibold">
-                  {community.memberCount.toLocaleString()}
+                  {(
+                    community._count?.members ??
+                    community.memberCount ??
+                    0
+                  ).toLocaleString()}
                 </span>
                 <span className="text-muted-foreground">멤버</span>
               </div>
               <div className="flex items-center gap-1">
                 <FileText className="h-4 w-4 text-green-600" />
                 <span className="font-semibold">
-                  {community.postCount.toLocaleString()}
+                  {(
+                    community._count?.posts ??
+                    community.postCount ??
+                    0
+                  ).toLocaleString()}
                 </span>
                 <span className="text-muted-foreground">게시글</span>
               </div>

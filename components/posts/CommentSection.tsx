@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -38,20 +38,44 @@ import { apiClient } from '@/lib/api/client'
 
 interface CommentSectionProps {
   postId: string
+  postType?: 'main' | 'community'
+  communityId?: string
   initialComments: Comment[]
 }
 
-// 댓글 가져오기 함수
-const fetchComments = async (postId: string): Promise<Comment[]> => {
-  const res = await fetch(`/api/main/posts/${postId}/comments`)
-  if (!res.ok) throw new Error('Failed to fetch comments')
-  const data = await res.json()
-  // 새로운 응답 형식 처리: { success: true, data: { comments } }
-  return data.success && data.data ? data.data.comments : data.comments || []
+// 댓글 가져오기 함수 생성
+const createFetchComments = (postType: string, communityId?: string) => {
+  return async (postId: string): Promise<Comment[]> => {
+    const endpoint =
+      postType === 'community' && communityId
+        ? `/api/communities/${communityId}/posts/${postId}/comments`
+        : `/api/main/posts/${postId}/comments`
+
+    try {
+      const res = await fetch(endpoint)
+      if (!res.ok) {
+        console.warn(`Failed to fetch comments from ${endpoint}`)
+        return [] // 오류 시 빈 배열 반환
+      }
+      const data = await res.json()
+      // API 응답 형식 처리
+      if (data.success && data.data) {
+        // 새 형식: { success: true, data: { comments: [...] } } 또는 { success: true, data: { items: [...] } }
+        return data.data.comments || data.data.items || []
+      }
+      // 구형 API 응답: { comments: [...] }
+      return data.comments || []
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+      return [] // 오류 시 빈 배열 반환
+    }
+  }
 }
 
 export default function CommentSection({
   postId,
+  postType = 'main',
+  communityId,
   initialComments,
 }: CommentSectionProps) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
@@ -65,10 +89,15 @@ export default function CommentSection({
   const queryClient = useQueryClient()
 
   // 댓글 목록 React Query로 관리
+  const fetchComments = useMemo(
+    () => createFetchComments(postType, communityId),
+    [postType, communityId]
+  )
+
   const { data: comments = initialComments } = useQuery({
-    queryKey: ['comments', postId],
+    queryKey: ['comments', postId, postType, communityId],
     queryFn: () => fetchComments(postId),
-    initialData: initialComments.length > 0 ? initialComments : undefined,
+    initialData: initialComments,
     staleTime: 30 * 1000, // 30초간 fresh
     gcTime: 5 * 60 * 1000, // 5분간 캐시
   })
@@ -82,16 +111,18 @@ export default function CommentSection({
       content: string
       parentId: string
     }) => {
-      const response = await apiClient<{ comment: Comment }>(
-        `/api/main/posts/${postId}/comments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content, parentId }),
-        }
-      )
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/posts/${postId}/comments`
+          : `/api/main/posts/${postId}/comments`
+
+      const response = await apiClient<{ comment: Comment }>(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, parentId }),
+      })
 
       if (!response.success) {
         throw new Error(response.error || '답글 작성에 실패했습니다')
@@ -104,16 +135,18 @@ export default function CommentSection({
     },
     onSuccess: ({ reply, parentId }) => {
       // 답글을 해당 댓글의 replies 배열에 추가
-      queryClient.setQueryData(['comments', postId], (old: Comment[] = []) =>
-        old.map((comment) => {
-          if (comment.id === parentId) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), reply],
+      queryClient.setQueryData(
+        ['comments', postId, postType, communityId],
+        (old: Comment[] = []) =>
+          old.map((comment) => {
+            if (comment.id === parentId) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), reply],
+              }
             }
-          }
-          return comment
-        })
+            return comment
+          })
       )
       toast({
         title: '답글이 작성되었습니다',
@@ -172,16 +205,19 @@ export default function CommentSection({
       commentId: string
       content: string
     }) => {
-      const response = await apiClient<{ comment: Comment }>(
-        `/api/main/comments/${commentId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content }),
-        }
-      )
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/comments/${commentId}`
+          : `/api/main/comments/${commentId}`
+      const method = postType === 'community' ? 'PATCH' : 'PUT'
+
+      const response = await apiClient<{ comment: Comment }>(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      })
 
       if (!response.success) {
         throw new Error(response.error || '댓글 수정에 실패했습니다')
@@ -211,8 +247,9 @@ export default function CommentSection({
         })
       }
 
-      queryClient.setQueryData(['comments', postId], (old: Comment[] = []) =>
-        updateCommentInTree(old)
+      queryClient.setQueryData(
+        ['comments', postId, postType, communityId],
+        (old: Comment[] = []) => updateCommentInTree(old)
       )
       toast({
         title: '댓글이 수정되었습니다',
@@ -234,7 +271,12 @@ export default function CommentSection({
   // 댓글 삭제 mutation
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const response = await apiClient(`/api/main/comments/${commentId}`, {
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/comments/${commentId}`
+          : `/api/main/comments/${commentId}`
+
+      const response = await apiClient(endpoint, {
         method: 'DELETE',
       })
 
@@ -260,8 +302,9 @@ export default function CommentSection({
           })
       }
 
-      queryClient.setQueryData(['comments', postId], (old: Comment[] = []) =>
-        deleteCommentFromTree(old)
+      queryClient.setQueryData(
+        ['comments', postId, postType, communityId],
+        (old: Comment[] = []) => deleteCommentFromTree(old)
       )
       toast({
         title: '댓글이 삭제되었습니다',
@@ -351,9 +394,13 @@ export default function CommentSection({
         <div className="mb-8">
           <CommentForm
             postId={postId}
+            postType={postType}
+            communityId={communityId}
             onSuccess={() => {
               // 댓글 작성 성공 시 쿼리 갱신
-              queryClient.invalidateQueries({ queryKey: ['comments', postId] })
+              queryClient.invalidateQueries({
+                queryKey: ['comments', postId, postType, communityId],
+              })
               toast({
                 title: '댓글이 작성되었습니다',
               })

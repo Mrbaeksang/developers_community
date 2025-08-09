@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Settings, Users, Bell, User, LogOut, ChevronRight } from 'lucide-react'
+import { Users, Bell, User, LogOut, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/core/utils'
 import { signOut } from 'next-auth/react'
 
@@ -28,8 +28,7 @@ export function DashboardQuickLinks({ userId }: DashboardQuickLinksProps) {
       category: '설정',
       links: [
         { href: '/settings/profile', label: '프로필 편집', icon: User },
-        { href: '/settings/account', label: '계정 설정', icon: Settings },
-        { href: '/settings/notifications', label: '알림 설정', icon: Bell },
+        { href: '/dashboard/notifications', label: '알림 목록', icon: Bell },
       ],
     },
   ]

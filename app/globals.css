@@ -246,6 +246,7 @@
   outline: none;
   padding: 1rem;
   min-height: 200px;
+  white-space: pre-wrap; /* ProseMirror 필수 CSS */
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -327,6 +328,7 @@
 /* Code block styles */
 .ProseMirror pre {
   background: #f3f4f6;
+  color: #1a1a1a !important; /* 진한 검정색 텍스트 */
   border-radius: 6px;
   padding: 1rem;
   font-family: 'JetBrains Mono', monospace;
@@ -334,8 +336,15 @@
   margin: 1rem 0;
 }
 
+.ProseMirror pre code {
+  color: #1a1a1a !important; /* 진한 검정색 텍스트 */
+  background: none;
+  padding: 0;
+}
+
 .ProseMirror code {
   background: #f3f4f6;
+  color: #1a1a1a !important; /* 인라인 코드도 진한 검정색 */
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;

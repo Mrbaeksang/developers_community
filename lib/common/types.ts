@@ -327,8 +327,8 @@ export type CommunityPost = CommonCommunityPost
 
 // 포맷 유틸리티 함수
 export function formatCount(count: number | undefined | null): string {
-  // null이나 undefined인 경우 0으로 처리
-  const safeCount = count ?? 0
+  // null, undefined, NaN인 경우 0으로 처리
+  const safeCount = Number.isNaN(count) || count == null ? 0 : count
 
   if (safeCount >= 1000000) {
     return `${(safeCount / 1000000).toFixed(1)}M`

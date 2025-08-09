@@ -12,7 +12,7 @@ import { CommunityActions } from '@/components/communities/CommunityActions'
 import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import CommunityMemberList from '@/components/communities/CommunityMemberList'
 import CommunityAnnouncements from '@/components/communities/CommunityAnnouncements'
-import CommunityChatSection from '@/components/communities/CommunityChatSection'
+import CommunityChatWrapper from '@/components/communities/CommunityChatWrapper'
 import {
   getBannerUrl,
   getBannerType,
@@ -343,38 +343,28 @@ export default async function CommunityDetailPage({
           </TabsList>
 
           <TabsContent value="posts" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
-                {community.categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant="outline"
-                    size="sm"
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all font-bold"
-                    style={{
-                      backgroundColor: category.color || undefined,
-                      color: category.color ? 'white' : undefined,
-                    }}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-              </div>
-              {isMember && (
+            {isMember && (
+              <div className="flex justify-end mb-4">
                 <Button
                   asChild
                   className="bg-blue-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
                 >
-                  <Link href={`/communities/${community.slug}/write`}>
+                  <Link href={`/communities/${community.id}/write`}>
                     게시글 작성
                   </Link>
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             <CommunityPostList
               communityId={community.id}
-              communitySlug={community.slug}
               page={1}
+              categories={community.categories.map((cat) => ({
+                id: cat.id,
+                name: cat.name,
+                slug: cat.slug,
+                color: cat.color,
+                postCount: 0,
+              }))}
             />
           </TabsContent>
 
@@ -408,9 +398,10 @@ export default async function CommunityDetailPage({
           </TabsContent>
         </Tabs>
 
-        {/* Floating Chat Button - 멤버이고 채팅이 활성화된 경우에만 표시 */}
-        <CommunityChatSection
+        {/* 커뮤니티 채팅 */}
+        <CommunityChatWrapper
           communityId={community.id}
+          communityName={community.name}
           isMember={isMember}
           allowChat={community.allowChat}
         />

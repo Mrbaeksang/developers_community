@@ -52,7 +52,6 @@ export function RichTextEditor({
     },
     editable: !disabled,
     immediatelyRender: false, // Fix SSR hydration mismatch
-    shouldRerenderOnTransaction: false, // Better performance
   })
 
   // Update editor content when prop changes
@@ -174,7 +173,15 @@ export function RichTextEditor({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => {
+            if (editor.isActive('codeBlock')) {
+              // 코드블록 안에 있으면 해제
+              editor.chain().focus().toggleCodeBlock().run()
+            } else {
+              // 코드블록 밖에 있으면 새 블록 삽입
+              editor.chain().focus().insertContent('\n').toggleCodeBlock().run()
+            }
+          }}
           className={`hover:bg-gray-100 ${
             editor.isActive('codeBlock') ? 'bg-gray-200' : ''
           }`}

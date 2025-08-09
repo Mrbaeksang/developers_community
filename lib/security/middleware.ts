@@ -87,7 +87,7 @@ const ACTION_TYPE_LIMITS: Record<ActionType, RateLimitRule> = {
   },
   [ActionType.WRITE]: {
     windowMs: 60 * 1000,
-    maxRequests: 10,
+    maxRequests: 30, // 댓글, 게시글 작성 - 1분당 30개로 증가
   },
   [ActionType.SENSITIVE]: {
     windowMs: 60 * 1000,

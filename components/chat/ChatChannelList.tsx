@@ -1,21 +1,13 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Globe } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import dynamic from 'next/dynamic'
-
-const FloatingChatButton = dynamic(
-  () => import('@/components/chat/FloatingChatButton'),
-  { ssr: false }
-)
 
 interface ChatChannel {
   id: string
@@ -57,8 +49,6 @@ const fetchChannels = async (): Promise<ChatChannel[]> => {
 }
 
 export default function ChatChannelList() {
-  const [openChannels, setOpenChannels] = useState<Set<string>>(new Set())
-
   // React Query로 채널 목록 관리
   const {
     data: channels = [],
@@ -112,6 +102,9 @@ export default function ChatChannelList() {
     )
   }
 
+  // GLOBAL 채널만 필터링
+  const globalChannels = channels.filter((channel) => channel.type === 'GLOBAL')
+
   return (
     <>
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -122,53 +115,33 @@ export default function ChatChannelList() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {channels.length === 0 ? (
+          {globalChannels.length === 0 ? (
             <EmptyState
               icon={MessageCircle}
-              title="참여 가능한 채팅방이 없습니다"
-              description="커뮤니티에 가입하거나 전체 채팅에 참여해보세요"
+              title="전체 채팅방이 없습니다"
+              description="잠시 후 다시 시도해주세요"
               size="sm"
             />
           ) : (
-            channels.map((channel) => (
+            globalChannels.map((channel) => (
               <div
                 key={channel.id}
                 className="p-3 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all duration-200 cursor-pointer"
                 onClick={() => {
-                  const newOpenChannels = new Set(openChannels)
-                  newOpenChannels.add(channel.id)
-                  setOpenChannels(newOpenChannels)
+                  // 전체 채팅 클릭 시 플로팅 버튼을 열도록 할 수 있음
+                  // 현재는 별도 GlobalChatSection에서 관리
                 }}
               >
                 <div className="flex items-start gap-3">
                   {/* 아이콘 */}
                   <div className="mt-1">
-                    {channel.type === 'GLOBAL' ? (
-                      <Globe className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Avatar className="h-8 w-8 border-2 border-black">
-                        <AvatarImage
-                          src={
-                            channel.community?.avatar?.startsWith('default:')
-                              ? ''
-                              : channel.community?.avatar || ''
-                          }
-                        />
-                        <AvatarFallback className="text-xs font-bold">
-                          {channel.community?.name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+                    <Globe className="h-5 w-5 text-primary" />
                   </div>
 
                   {/* 내용 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold text-sm truncate">
-                        {channel.type === 'GLOBAL'
-                          ? '전체 채팅'
-                          : channel.community?.name}
-                      </h4>
+                      <h4 className="font-bold text-sm truncate">전체 채팅</h4>
                       {channel.unreadCount > 0 && (
                         <Badge
                           variant="default"
@@ -209,23 +182,7 @@ export default function ChatChannelList() {
         </CardContent>
       </Card>
 
-      {/* 열린 채팅창들 */}
-      {Array.from(openChannels).map((channelId) => {
-        const channel = channels.find((ch) => ch.id === channelId)
-        if (!channel) return null
-
-        return (
-          <FloatingChatButton
-            key={channelId}
-            channelId={channelId}
-            channelName={
-              channel.type === 'GLOBAL'
-                ? '전체 채팅'
-                : channel.community?.name || channel.name
-            }
-          />
-        )
-      })}
+      {/* FloatingChatButton은 이제 별도로 GlobalChatSection에서 관리 */}
     </>
   )
 }
