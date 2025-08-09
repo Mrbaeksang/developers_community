@@ -4,7 +4,6 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Edit, Trash2, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import ReactMarkdown from 'react-markdown'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -160,81 +159,10 @@ export default function CommentItem({
                 autoFocus={true}
               />
             ) : (
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown
-                  components={{
-                    // 링크를 새 탭에서 열도록 설정
-                    a: ({ href, children }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {children}
-                      </a>
-                    ),
-                    // 코드 블록 스타일링
-                    code: ({ className, children, ...props }) => {
-                      const match = /language-(\w+)/.exec(className || '')
-                      const isInline = !match
-                      return isInline ? (
-                        <code
-                          className="px-1 py-0.5 bg-gray-100 text-red-600 rounded text-sm font-mono"
-                          {...props}
-                        >
-                          {children}
-                        </code>
-                      ) : (
-                        <code
-                          className="block p-3 bg-gray-100 rounded-lg text-sm font-mono overflow-x-auto"
-                          {...props}
-                        >
-                          {children}
-                        </code>
-                      )
-                    },
-                    // 인용문 스타일링
-                    blockquote: ({ children }) => (
-                      <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600">
-                        {children}
-                      </blockquote>
-                    ),
-                    // 리스트 스타일링
-                    ul: ({ children }) => (
-                      <ul className="list-disc list-inside space-y-1">
-                        {children}
-                      </ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal list-inside space-y-1">
-                        {children}
-                      </ol>
-                    ),
-                    // 제목 크기 제한 (댓글에서는 작은 제목만 허용)
-                    h1: ({ children }) => (
-                      <strong className="text-base">{children}</strong>
-                    ),
-                    h2: ({ children }) => (
-                      <strong className="text-base">{children}</strong>
-                    ),
-                    h3: ({ children }) => (
-                      <strong className="text-sm">{children}</strong>
-                    ),
-                    h4: ({ children }) => (
-                      <strong className="text-sm">{children}</strong>
-                    ),
-                    h5: ({ children }) => (
-                      <strong className="text-sm">{children}</strong>
-                    ),
-                    h6: ({ children }) => (
-                      <strong className="text-sm">{children}</strong>
-                    ),
-                  }}
-                >
-                  {comment.content}
-                </ReactMarkdown>
-              </div>
+              <div
+                className="prose prose-sm max-w-none text-sm whitespace-pre-wrap [&_a]:text-blue-600 [&_a]:hover:text-blue-800 [&_a]:underline [&_a]:cursor-pointer [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-1 [&_h1]:font-bold [&_h1]:text-base [&_h2]:font-bold [&_h2]:text-base [&_h3]:font-bold [&_h3]:text-sm [&_h4]:font-bold [&_h4]:text-sm [&_h5]:font-bold [&_h5]:text-sm [&_h6]:font-bold [&_h6]:text-sm [&_strong]:font-bold [&_em]:italic"
+                dangerouslySetInnerHTML={{ __html: comment.content }}
+              />
             )}
           </div>
 

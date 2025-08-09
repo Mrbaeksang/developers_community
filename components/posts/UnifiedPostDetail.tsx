@@ -292,6 +292,12 @@ export function UnifiedPostDetail({
   }
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [currentUrl, setCurrentUrl] = useState('')
+
+  // 클라이언트 사이드에서만 URL 설정
+  useEffect(() => {
+    setCurrentUrl(window.location.href)
+  }, [])
 
   const handleShare = () => {
     setIsShareModalOpen(true)
@@ -446,7 +452,7 @@ export function UnifiedPostDetail({
               <div className="whitespace-pre-wrap">{post.content}</div>
             ) : (
               <div
-                className="post-content"
+                className="post-content whitespace-pre-wrap"
                 dangerouslySetInnerHTML={{
                   __html: optimizeImagesInContent(post.content),
                 }}
@@ -528,7 +534,7 @@ export function UnifiedPostDetail({
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        url={window.location.href}
+        url={currentUrl}
         title={post.title}
       />
     </div>
