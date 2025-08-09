@@ -292,7 +292,14 @@ npm run type-check     # 반드시 통과
 **데이터베이스 최적화**:
 - 복합 인덱스 활용
 - Redis 캐싱 및 동기화
-- 쿼리 최적화 (select 필드 제한)
+- 쿼리 최적化 (select 필드 제한)
+
+### 1️⃣3️⃣ 커밋 메시지 규칙
+
+**AI 관련 멘션 제거**:
+- "🤖 Generated with [Claude Code]" 제거
+- "Co-Authored-By: Claude" 제거
+- 모든 AI 관련 attribution 제거
 
 ---
 
