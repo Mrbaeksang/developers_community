@@ -1,10 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { MessageSquare, Send, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import {
+  MessageSquare,
+  Send,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Bold,
+  Italic,
+  Code,
+  List,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   ButtonSpinner,
@@ -12,7 +22,6 @@ import {
 } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Textarea } from '@/components/ui/textarea'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +29,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import { cn } from '@/lib/utils'
 // Comment type defined locally
 type Comment = {
   id: string
@@ -72,6 +85,69 @@ export function CommunityCommentSection({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const queryClient = useQueryClient()
+
+  // Main comment editor
+  const commentEditor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
+      Placeholder.configure({
+        placeholder: '댓글을 입력하세요...',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setNewComment(html)
+    },
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
+  })
+
+  // Reply editor
+  const replyEditor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
+      Placeholder.configure({
+        placeholder: '답글을 입력하세요...',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setReplyContent(html)
+    },
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
+  })
+
+  // Edit editor
+  const editEditor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
+      Placeholder.configure({
+        placeholder: '댓글을 수정하세요...',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setEditContent(html)
+    },
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
+  })
 
   // 댓글 목록 React Query로 관리
   const {
@@ -129,7 +205,8 @@ export function CommunityCommentSection({
       return
     }
 
-    if (!newComment.trim()) {
+    const textContent = commentEditor?.getText().trim() || ''
+    if (!textContent) {
       toast.error('댓글 내용을 입력해주세요.')
       return
     }

@@ -2,8 +2,17 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Send, Bold, Italic, Code, Link, Smile, Save, X } from 'lucide-react'
+import {
+  Send,
+  Save,
+  X,
+  Bold,
+  Italic,
+  Code,
+  Link,
+  List,
+  Smile,
+} from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -13,7 +22,9 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { debounce } from 'lodash'
 import { apiClient } from '@/lib/api/client'
-import { ImageUploader } from '@/components/shared/ImageUploader'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 
 interface CommentFormProps {
   postId: string
@@ -71,16 +82,53 @@ export function CommentForm({
   const [content, setContent] = useState(initialContent)
   const [isFocused, setIsFocused] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [rows, setRows] = useState(minRows)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isToolbarInteracting, setIsToolbarInteracting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastSubmitTime, setLastSubmitTime] = useState<number>(0)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
+
+  // Tiptap editor for rich text editing
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        // 댓글에서는 헤딩, 코드블록, 수평선 등 제외
+        heading: false,
+        codeBlock: false,
+        horizontalRule: false,
+      }),
+      Placeholder.configure({
+        placeholder,
+      }),
+    ],
+    content: initialContent,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setContent(html)
+    },
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
+  })
+
+  // Update editor content when initialContent changes
+  useEffect(() => {
+    if (editor && initialContent !== content) {
+      editor.commands.setContent(initialContent)
+      setContent(initialContent)
+    }
+  }, [editor, initialContent])
+
+  // Auto-focus editor
+  useEffect(() => {
+    if (autoFocus && editor) {
+      editor.commands.focus()
+    }
+  }, [autoFocus, editor])
 
   // 포커스 시 확장
   useEffect(() => {
@@ -90,21 +138,6 @@ export function CommentForm({
       setIsExpanded(false)
     }
   }, [isFocused, content, isToolbarInteracting])
-
-  // 자동 높이 조절
-  useEffect(() => {
-    if (!textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const lineHeight = 24 // 대략적인 줄 높이
-    const lines = content.split('\n').length
-    const contentLines = Math.ceil(textarea.scrollHeight / lineHeight)
-    const newRows = Math.max(
-      minRows,
-      Math.min(maxRows, Math.max(lines, contentLines))
-    )
-    setRows(newRows)
-  }, [content, minRows, maxRows])
 
   // 자동 저장 (로컬스토리지)
   const saveDraft = useCallback(() => {
@@ -147,104 +180,10 @@ export function CommentForm({
     }
   }, [content, enableDraft, debouncedSave])
 
-  // 이미지 마크다운 삽입
-  const handleImageInsert = useCallback(
-    (markdown: string) => {
-      if (!textareaRef.current) return
-
-      const textarea = textareaRef.current
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-
-      const newContent =
-        content.substring(0, start) + markdown + content.substring(end)
-      setContent(newContent)
-
-      // 이미지 마크다운 뒤로 커서 이동
-      setTimeout(() => {
-        const newPosition = start + markdown.length
-        textarea.focus()
-        textarea.setSelectionRange(newPosition, newPosition)
-      }, 0)
-    },
-    [content]
-  )
-
-  // 마크다운 삽입 함수
-  const insertMarkdown = (type: string, text = '') => {
-    if (!textareaRef.current) return
-
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = content.substring(start, end)
-    let newText = ''
-    let cursorPosition = start
-
-    switch (type) {
-      case 'bold':
-        newText = `**${selectedText || text || '굵은 텍스트'}**`
-        cursorPosition = start + 2
-        break
-      case 'italic':
-        newText = `*${selectedText || text || '기울임 텍스트'}*`
-        cursorPosition = start + 1
-        break
-      case 'code':
-        newText = `\`${selectedText || text || '코드'}\``
-        cursorPosition = start + 1
-        break
-      case 'link':
-        newText = `[${selectedText || text || '링크 텍스트'}](url)`
-        cursorPosition = start + 1
-        break
-      case 'mention':
-        newText = `@${text}`
-        cursorPosition = start + newText.length
-        break
-      case 'emoji':
-        newText = text
-        cursorPosition = start + newText.length
-        break
-      default:
-        return
-    }
-
-    const newContent =
-      content.substring(0, start) + newText + content.substring(end)
-    setContent(newContent)
-
-    // 커서 위치 설정
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(cursorPosition, cursorPosition)
-    }, 0)
-  }
-
-  // 이미지 붙여넣기 처리
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items
-    if (!items) return
-
-    for (const item of Array.from(items)) {
-      if (item.type.startsWith('image/')) {
-        e.preventDefault()
-        const file = item.getAsFile()
-        if (!file) continue
-
-        // 이미지 업로드 시뮬레이션 (실제로는 API 호출)
-        toast({
-          title: '이미지 업로드 중...',
-        })
-
-        // 실제 구현 시 여기서 이미지 업로드 API 호출
-        // const url = await uploadImage(file)
-        // insertMarkdown('', `![이미지](${url})`)
-
-        // 임시로 플레이스홀더 삽입
-        insertMarkdown('', '![이미지](이미지_URL)')
-      }
-    }
+  // 이모지 삽입 함수
+  const insertEmoji = (emoji: string) => {
+    if (!editor) return
+    editor.chain().focus().insertContent(emoji).run()
   }
 
   // 폼 제출
@@ -266,7 +205,9 @@ export function CommentForm({
       return
     }
 
-    if (!content.trim()) {
+    // Check if editor has content (strip HTML tags for validation)
+    const textContent = editor?.getText().trim() || ''
+    if (!textContent) {
       toast({
         title: '댓글 내용을 입력해주세요',
         variant: 'destructive',
@@ -291,7 +232,7 @@ export function CommentForm({
     try {
       // Custom submit handler or default API call
       if (onSubmit) {
-        await onSubmit(content.trim())
+        await onSubmit(content)
       } else {
         // Default API call for create mode
         const endpoint =
@@ -300,10 +241,7 @@ export function CommentForm({
             : `/api/main/posts/${postId}/comments`
 
         const method = mode === 'edit' ? 'PUT' : 'POST'
-        const body =
-          mode === 'edit'
-            ? { content: content.trim() }
-            : { content: content.trim(), parentId }
+        const body = mode === 'edit' ? { content } : { content, parentId }
 
         const response = await apiClient(endpoint, {
           method,
@@ -332,6 +270,7 @@ export function CommentForm({
 
       if (mode === 'create') {
         setContent('')
+        editor?.commands.setContent('')
         setIsExpanded(false)
       }
       onSuccess?.()
@@ -360,13 +299,14 @@ export function CommentForm({
       localStorage.removeItem(draftKey)
     }
     setContent('')
+    editor?.commands.setContent('')
     setLastSaved(null)
   }
 
   return (
     <div className={cn('space-y-2', className)}>
-      {/* 마크다운 툴바 */}
-      {showToolbar && isExpanded && (
+      {/* Tiptap 툴바 */}
+      {showToolbar && isExpanded && editor && (
         <div
           ref={toolbarRef}
           className="flex items-center gap-1 p-2 border-2 border-black rounded-lg bg-gray-50"
@@ -377,9 +317,13 @@ export function CommentForm({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertMarkdown('bold')}
-            className="h-8 w-8 p-0 hover:bg-gray-200"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={cn(
+              'h-8 w-8 p-0 hover:bg-gray-200',
+              editor.isActive('bold') && 'bg-gray-300'
+            )}
             title="굵게 (Ctrl+B)"
+            disabled={isSubmitting}
           >
             <Bold className="h-4 w-4" />
           </Button>
@@ -387,9 +331,13 @@ export function CommentForm({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertMarkdown('italic')}
-            className="h-8 w-8 p-0 hover:bg-gray-200"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={cn(
+              'h-8 w-8 p-0 hover:bg-gray-200',
+              editor.isActive('italic') && 'bg-gray-300'
+            )}
             title="기울임 (Ctrl+I)"
+            disabled={isSubmitting}
           >
             <Italic className="h-4 w-4" />
           </Button>
@@ -397,9 +345,13 @@ export function CommentForm({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertMarkdown('code')}
-            className="h-8 w-8 p-0 hover:bg-gray-200"
-            title="코드 (Ctrl+`)"
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            className={cn(
+              'h-8 w-8 p-0 hover:bg-gray-200',
+              editor.isActive('code') && 'bg-gray-300'
+            )}
+            title="인라인 코드"
+            disabled={isSubmitting}
           >
             <Code className="h-4 w-4" />
           </Button>
@@ -407,11 +359,15 @@ export function CommentForm({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => insertMarkdown('link')}
-            className="h-8 w-8 p-0 hover:bg-gray-200"
-            title="링크 (Ctrl+K)"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={cn(
+              'h-8 w-8 p-0 hover:bg-gray-200',
+              editor.isActive('bulletList') && 'bg-gray-300'
+            )}
+            title="목록"
+            disabled={isSubmitting}
           >
-            <Link className="h-4 w-4" />
+            <List className="h-4 w-4" />
           </Button>
 
           <div className="w-px h-6 bg-gray-300 mx-1" />
@@ -425,6 +381,7 @@ export function CommentForm({
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-gray-200"
                 title="이모지"
+                disabled={isSubmitting}
                 onFocus={(e) => e.preventDefault()}
               >
                 <Smile className="h-4 w-4" />
@@ -433,11 +390,8 @@ export function CommentForm({
             <PopoverContent
               className="w-64 p-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               onInteractOutside={(e) => {
-                // 툴바나 textarea와의 상호작용인 경우 닫지 않음
-                if (
-                  toolbarRef.current?.contains(e.target as Node) ||
-                  textareaRef.current?.contains(e.target as Node)
-                ) {
+                // 툴바와의 상호작용인 경우 닫지 않음
+                if (toolbarRef.current?.contains(e.target as Node)) {
                   e.preventDefault()
                 }
               }}
@@ -450,9 +404,7 @@ export function CommentForm({
                     variant="ghost"
                     className="h-10 w-10 p-0 hover:bg-gray-100 text-xl"
                     onClick={() => {
-                      insertMarkdown('emoji', emoji)
-                      // 이모지 선택 후 textarea로 포커스 이동
-                      textareaRef.current?.focus()
+                      insertEmoji(emoji)
                     }}
                   >
                     {emoji}
@@ -461,12 +413,6 @@ export function CommentForm({
               </div>
             </PopoverContent>
           </Popover>
-
-          <ImageUploader
-            onImageInsert={handleImageInsert}
-            disabled={isSubmitting}
-            showPreview={true}
-          />
 
           {/* 자동 저장 표시 */}
           {enableDraft && lastSaved && (
@@ -484,28 +430,35 @@ export function CommentForm({
         </div>
       )}
 
-      {/* 텍스트 영역 */}
+      {/* Tiptap 에디터 영역 */}
       <div className="relative">
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onPaste={handlePaste}
-          placeholder={placeholder}
-          rows={rows}
-          autoFocus={autoFocus}
-          disabled={isSubmitting}
+        <div
           className={cn(
-            'border-2 border-black transition-all duration-200 resize-none',
+            'border-2 border-black transition-all duration-200',
             'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
             'hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
             isFocused && 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-yellow-50',
-            isExpanded && 'min-h-[100px]',
             isSubmitting && 'opacity-50 cursor-not-allowed'
           )}
-        />
+        >
+          {editor ? (
+            <EditorContent
+              editor={editor}
+              className={cn(
+                'prose prose-sm max-w-none p-3',
+                isExpanded ? 'min-h-[100px]' : 'min-h-[60px]',
+                '[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50px]',
+                '[&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]',
+                '[&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left',
+                '[&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground',
+                '[&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none',
+                '[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0'
+              )}
+            />
+          ) : (
+            <div className="p-3 min-h-[60px] animate-pulse bg-gray-100" />
+          )}
+        </div>
 
         {/* 임시저장 삭제 버튼 */}
         {enableDraft && content && (
@@ -514,7 +467,7 @@ export function CommentForm({
             variant="ghost"
             size="sm"
             onClick={clearDraft}
-            className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-gray-200"
+            className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-gray-200 z-10"
             title="임시저장 삭제"
           >
             <X className="h-3 w-3" />
@@ -533,6 +486,7 @@ export function CommentForm({
                 onCancel()
               } else {
                 setContent(initialContent)
+                editor?.commands.setContent(initialContent)
                 setIsExpanded(false)
                 setIsFocused(false)
               }
@@ -543,7 +497,7 @@ export function CommentForm({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!content.trim() || isSubmitting}
+            disabled={!editor?.getText().trim() || isSubmitting}
             className={cn(
               'border-2 border-black font-bold',
               'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
