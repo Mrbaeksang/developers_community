@@ -1,31 +1,18 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   Users,
   Plus,
-  Lock,
-  Globe,
-  MessageSquare,
-  Trophy,
-  Medal,
-  Award,
   Sparkles,
-  TrendingUp,
+  Trophy,
   Activity,
+  TrendingUp,
 } from 'lucide-react'
 import { formatCount } from '@/lib/common/types'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
-import { getDefaultAvatar } from '@/lib/community/utils'
-import {
-  getBannerUrl,
-  getBannerType,
-  getDefaultBannerById,
-} from '@/lib/ui/banner'
-import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
+import { CommunityCard } from '@/components/communities/CommunityCard'
 
 interface Community {
   id: string
@@ -49,41 +36,6 @@ interface Community {
     members: number
     posts: number
   }
-}
-
-// 커뮤니티 활동 레벨 계산
-function calculateActivityLevel(community: Community) {
-  const avgPostsPerMember =
-    community.postCount / Math.max(community.memberCount, 1)
-
-  if (avgPostsPerMember > 0.5)
-    return { level: '활발함', color: 'bg-green-300 text-green-900' }
-  if (avgPostsPerMember > 0.2)
-    return { level: '보통', color: 'bg-yellow-300 text-yellow-900' }
-  return { level: '조용함', color: 'bg-red-300 text-red-900' }
-}
-
-// TOP 랭킹 아이콘과 색상
-function getRankingBadge(rank: number) {
-  if (rank === 1) return { icon: Trophy, color: 'bg-red-500', text: 'TOP 1' }
-  if (rank === 2) return { icon: Medal, color: 'bg-blue-500', text: 'TOP 2' }
-  if (rank === 3) return { icon: Award, color: 'bg-yellow-500', text: 'TOP 3' }
-  return null
-}
-
-// 최근 활동 시간 계산
-function getRecentActivityText(updatedAt: string) {
-  const updated = new Date(updatedAt)
-  const now = new Date()
-  const diffMs = now.getTime() - updated.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 60) return `${diffMins}분 전`
-  if (diffHours < 24) return `${diffHours}시간 전`
-  if (diffDays < 7) return `${diffDays}일 전`
-  return `${Math.floor(diffDays / 7)}주 전`
 }
 
 async function getCommunities(searchParams: {
@@ -230,7 +182,7 @@ export default async function CommunitiesPage({
           {communities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {communities.map((community: Community, index: number) => {
-                // 메인 페이지와 동일한 색상 테마 적용
+                // 색상 테마
                 const colorThemes = [
                   {
                     bg: 'bg-blue-500',
@@ -253,9 +205,8 @@ export default async function CommunitiesPage({
                     text: 'text-orange-600',
                   },
                 ]
-                const theme = colorThemes[index % colorThemes.length]
 
-                // TOP 3 랭킹 계산 (memberCount + postCount 기준)
+                // TOP 3 랭킹 계산
                 const sortedCommunities = [...communities].sort(
                   (a, b) =>
                     b.memberCount + b.postCount - (a.memberCount + a.postCount)
@@ -263,257 +214,16 @@ export default async function CommunitiesPage({
                 const rankIndex = sortedCommunities.findIndex(
                   (c) => c.id === community.id
                 )
-                const ranking = getRankingBadge(rankIndex + 1)
-
-                // 활동 레벨 계산
-                const activityLevel = calculateActivityLevel(community)
 
                 return (
-                  <Link
+                  <CommunityCard
                     key={community.id}
-                    href={`/communities/${community.slug}`}
-                  >
-                    <Card
-                      className={`h-full ${theme?.card || ''} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 cursor-pointer group overflow-hidden`}
-                    >
-                      {/* Banner Preview */}
-                      <div className="relative h-20 w-full">
-                        {(() => {
-                          const bannerType = getBannerType(
-                            community.banner || ''
-                          )
-
-                          // 배너가 없는 경우 랜덤 기본 배너 적용
-                          if (bannerType === 'none') {
-                            const randomBanner = getBannerUrl('')
-                            return (
-                              <Image
-                                src={randomBanner}
-                                alt={`${community.name} banner preview`}
-                                fill
-                                className="object-cover"
-                                placeholder="blur"
-                                blurDataURL={getDefaultBlurPlaceholder('post')}
-                              />
-                            )
-                          }
-
-                          // 기본 배너인 경우 그라데이션 또는 단색 배경 적용
-                          if (bannerType === 'default') {
-                            const bannerId = community.banner?.replace(
-                              'default:',
-                              ''
-                            )
-                            const defaultBanner = getDefaultBannerById(
-                              bannerId || ''
-                            )
-
-                            if (defaultBanner) {
-                              return (
-                                <div
-                                  className={`absolute inset-0 ${defaultBanner.gradient}`}
-                                />
-                              )
-                            }
-                          }
-
-                          // Unsplash 이미지인 경우
-                          if (bannerType === 'unsplash' && community.banner) {
-                            const unsplashUrl = getBannerUrl(community.banner)
-                            return (
-                              <Image
-                                src={unsplashUrl}
-                                alt={`${community.name} banner preview`}
-                                fill
-                                className="object-cover"
-                                placeholder="blur"
-                                blurDataURL={getDefaultBlurPlaceholder('post')}
-                              />
-                            )
-                          }
-
-                          // 업로드된 이미지인 경우
-                          if (bannerType === 'upload' && community.banner) {
-                            return (
-                              <Image
-                                src={community.banner}
-                                alt={`${community.name} banner preview`}
-                                fill
-                                className="object-cover"
-                                placeholder="blur"
-                                blurDataURL={getDefaultBlurPlaceholder('post')}
-                              />
-                            )
-                          }
-
-                          // 기본 그라데이션 (fallback)
-                          return (
-                            <div
-                              className={`absolute inset-0 ${theme?.bg || ''} opacity-20`}
-                            />
-                          )
-                        })()}
-                      </div>
-
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            {/* 커뮤니티 아바타 또는 기본 아이콘 */}
-                            {(() => {
-                              // 기본 아바타 체크
-                              if (community.avatar?.startsWith('default:')) {
-                                const avatarName = community.avatar.replace(
-                                  'default:',
-                                  ''
-                                )
-                                const defaultAvatar =
-                                  getDefaultAvatar(avatarName)
-                                if (defaultAvatar) {
-                                  return (
-                                    <div
-                                      className="w-10 h-10 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-2xl"
-                                      style={{
-                                        backgroundColor: defaultAvatar.color,
-                                      }}
-                                    >
-                                      {defaultAvatar.emoji}
-                                    </div>
-                                  )
-                                }
-                              }
-                              // URL 아바타
-                              if (
-                                community.avatar &&
-                                !community.avatar.startsWith('default:')
-                              ) {
-                                return (
-                                  <Image
-                                    src={community.avatar}
-                                    alt={community.name}
-                                    width={40}
-                                    height={40}
-                                    className="w-10 h-10 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] object-cover"
-                                    placeholder="blur"
-                                    blurDataURL={getDefaultBlurPlaceholder(
-                                      'community'
-                                    )}
-                                  />
-                                )
-                              }
-                              // 아바타 없음
-                              return (
-                                <div
-                                  className={`w-10 h-10 ${theme?.bg || ''} border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-white font-bold rounded-lg`}
-                                >
-                                  <Users className="h-5 w-5" />
-                                </div>
-                              )
-                            })()}
-                            <Badge
-                              className={`px-3 py-1.5 text-xs font-semibold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 ${
-                                community.visibility === 'PUBLIC'
-                                  ? `bg-white text-black`
-                                  : 'bg-gray-300 text-gray-700'
-                              }`}
-                            >
-                              {community.visibility === 'PUBLIC' ? (
-                                <Globe className="h-3 w-3" />
-                              ) : (
-                                <Lock className="h-3 w-3" />
-                              )}
-                              {community.visibility === 'PUBLIC'
-                                ? '공개'
-                                : '비공개'}
-                            </Badge>
-                          </div>
-                          {/* TOP 랭킹 뱃지 */}
-                          {ranking && (
-                            <div
-                              className={`${ranking.color} text-white font-bold py-1 px-3 rounded-full text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1`}
-                            >
-                              <ranking.icon className="h-3 w-3" />
-                              {ranking.text}
-                            </div>
-                          )}
-                        </div>
-
-                        <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                          {community.name}
-                        </h3>
-                        <p
-                          className={`text-sm ${theme?.text || ''} font-medium`}
-                        >
-                          @{community.slug}
-                        </p>
-                      </CardHeader>
-
-                      <CardContent className="pb-3">
-                        {community.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                            {community.description}
-                          </p>
-                        )}
-
-                        {/* 통계 정보 및 활동 레벨 */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 px-2 py-1 bg-gray-100/80 rounded-full border border-gray-200">
-                              <Users className="size-3 text-gray-600" />
-                              <span className="text-gray-700 text-xs font-medium">
-                                {formatCount(community.memberCount)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50/80 rounded-full border border-blue-200">
-                              <MessageSquare className="size-3 text-blue-500" />
-                              <span className="text-blue-600 text-xs font-medium">
-                                {formatCount(community.postCount)}
-                              </span>
-                            </div>
-                          </div>
-                          {/* 활동 레벨 표시 */}
-                          <Badge
-                            className={`px-2 py-1 text-xs font-bold border-2 border-black ${activityLevel.color}`}
-                          >
-                            {activityLevel.level}
-                          </Badge>
-                        </div>
-                      </CardContent>
-
-                      <CardFooter className="pt-3 border-t">
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="size-6 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                              <AvatarImage
-                                src={community.owner.image || undefined}
-                              />
-                              <AvatarFallback className="bg-primary/10 font-bold">
-                                {community.owner.name?.[0] ||
-                                  community.owner.email?.[0]?.toUpperCase() ||
-                                  'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-bold line-clamp-1">
-                                {community.owner.name || '익명'}
-                              </span>
-                              <span className="text-xs text-muted-foreground font-medium">
-                                운영자
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-gray-500">
-                              {getRecentActivityText(community.updatedAt)}
-                            </p>
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="text-xl">→</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  </Link>
+                    community={community}
+                    variant="full"
+                    index={index}
+                    ranking={rankIndex + 1}
+                    colorTheme={colorThemes[index % colorThemes.length]}
+                  />
                 )
               })}
             </div>

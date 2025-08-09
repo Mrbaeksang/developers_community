@@ -45,19 +45,26 @@ export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const navigation = [
-    { name: '홈', href: '/', icon: Home },
-    { name: '메인 게시글', href: '/main/posts', icon: Sparkles },
+    { name: '홈', href: '/', icon: Home, prefetch: false },
+    {
+      name: '메인 게시글',
+      href: '/main/posts',
+      icon: Sparkles,
+      prefetch: true,
+    },
     {
       name: '자유게시판',
       href: '/main/posts?category=free',
       icon: MessageCircle,
+      prefetch: true,
     },
     {
       name: 'Q&A 게시판',
       href: '/main/posts?category=qna',
       icon: HelpCircle,
+      prefetch: true,
     },
-    { name: '커뮤니티', href: '/communities', icon: Users },
+    { name: '커뮤니티', href: '/communities', icon: Users, prefetch: false },
   ]
 
   // 관리자 전용 네비게이션 메뉴
@@ -92,7 +99,12 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex flex-1 items-center justify-center gap-1 xl:gap-3 text-sm font-bold">
           {navigation.map((item) => (
-            <Link key={item.name} href={item.href} className="relative group">
+            <Link
+              key={item.name}
+              href={item.href}
+              className="relative group"
+              prefetch={item.prefetch}
+            >
               <div className="relative flex items-center gap-1 xl:gap-2 px-2 xl:px-4 py-2 rounded-lg transition-all duration-200 border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] bg-white whitespace-nowrap">
                 <item.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-black text-xs xl:text-sm">

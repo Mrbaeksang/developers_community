@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PostCard } from '@/components/posts/PostCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -61,6 +61,15 @@ export function PostList({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const page = searchParams.get('page') || '1'
 
+  // URL 파라미터 변경 감지
+  useEffect(() => {
+    const categoryParam = searchParams.get('category') || 'all'
+    const sortParam = searchParams.get('sort') || 'latest'
+
+    setSelectedCategory(categoryParam)
+    setSortBy(sortParam)
+  }, [searchParams])
+
   // React Query로 데이터 가져오기
   const { data, isLoading } = useMainPosts(
     {
@@ -106,8 +115,10 @@ export function PostList({
         current.set(key, value)
       }
     })
+    // replace 대신 push 사용하되, scroll: false 옵션 추가
     router.push(
-      `/main/posts${current.toString() ? `?${current.toString()}` : ''}`
+      `/main/posts${current.toString() ? `?${current.toString()}` : ''}`,
+      { scroll: false }
     )
   }
 

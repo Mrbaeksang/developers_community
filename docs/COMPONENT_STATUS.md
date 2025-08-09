@@ -3,11 +3,25 @@
 > 최종 업데이트: 2025-01-08
 
 ## 📊 전체 현황
-- **총 컴포넌트**: 93개 파일 (+4)
-- **폴더 구조**: 12개 카테고리
-- **최근 추가**: ImageUploader, RichTextEditor, ResizableImage, ShareModal
+- **총 컴포넌트**: 100개 파일 (+7)
+- **폴더 구조**: 13개 카테고리 (profile 추가)
+- **최근 추가**: Profile 컴포넌트 4개, Dashboard 컴포넌트 3개 추가
+- **디자인 시스템**: Neobrutalism 전면 적용 (black borders, shadows)
 
 ## 📁 폴더별 컴포넌트 현황
+
+### 🎉 최근 추가 (Profile & Dashboard 리디자인)
+
+#### **profile/** (프로필 컴포넌트 - 4개) ✨ NEW
+- **ProfileHeader** ✅ (프로필 헤더 - 132x132 아바타, 활동 배지, 공유 기능)
+- **ProfileTabs** ✅ (프로필 탭 - 게시글, 댓글, 좋아요, 북마크, 커뮤니티)
+- **ProfileActivity** ✅ (활동 그래프 - 7일간 활동 시각화)
+- **ProfileSidebar** ✅ (사이드바 - 레벨, 업적, 목표, 추천 액션)
+
+#### **dashboard/** (대시보드 컴포넌트 업데이트)
+- **DashboardHeader** ✅ (대시보드 헤더 - 시간별 인사, 사용자 정보)
+- **DashboardOverview** ✅ (대시보드 개요 - 활동 레벨, 통계 카드)
+- **DashboardQuickLinks** ✅ (빠른 링크 - 카테고리별 링크, 로그아웃)
 
 ### ✅ 이미 구현된 컴포넌트
 
@@ -106,15 +120,17 @@
 - ✅ **CategorySelector** - 카테고리 선택기 (완료! - Neobrutalism 디자인, 검색, 색상 표시, 그룹화)
 
 ### 2. **users/** (사용자 관련)
-- ❌ **UserStats** - 사용자 통계 컴포넌트
+- ✅ **UserStats** - 사용자 통계 컴포넌트 (완료! - 아이콘, 온라인 상태, Neobrutalism 디자인)
 - ❌ **ProfileCard** - 프로필 카드
 
 ### 3. **dashboard/** (대시보드)
-- ❌ **ActivityFeed** - 활동 피드
-- ❌ **DashboardContent** - 대시보드 콘텐츠
+- ✅ **ActivityFeed** - 활동 피드 (완료! - 활동 타입별 아이콘, 시간 표시, 링크 연결)
+- ✅ **DashboardHeader** - 대시보드 헤더 (완료! - 시간별 인사, 사용자 정보)
+- ✅ **DashboardOverview** - 대시보드 개요 (완료! - 활동 레벨, 통계 카드)
+- ✅ **DashboardQuickLinks** - 빠른 링크 (완료! - 카테고리별 링크, 로그아웃)
 
 ### 4. **communities/** (추가 필요)
-- ❌ **CommunityCard** - 커뮤니티 카드
+- ✅ **CommunityCard** - 커뮤니티 카드 (완료! - 3가지 변형, 가입/탈퇴, 통계, 역할 표시)
 - ❌ **CommunityList** - 커뮤니티 목록
 
 ### 5. **comments/** (댓글)
@@ -144,9 +160,9 @@
 6. ~~**CommentForm**~~ ✅ 완료 - 댓글 작성 (마크다운 툴바, 자동저장, 중복제출 방지)
 
 ### 📊 3순위 (개선용)
-7. **UserStats** - 프로필 개선
-8. **ActivityFeed** - 대시보드 개선
-9. **CommunityCard** - 커뮤니티 목록 개선
+7. ~~**UserStats**~~ ✅ 완료 - 프로필 페이지에 적용됨 (아이콘, 색상, 온라인 상태 준비)
+8. ~~**ActivityFeed**~~ ✅ 완료 - 대시보드용 활동 피드 (시간 표시, 활동 타입별 구분)
+9. ~~**CommunityCard**~~ ✅ 완료 - 커뮤니티 목록용 (3가지 변형: default, compact, featured)
 10. **SearchFilters** - 검색 개선
 
 ## 💡 발견한 사실

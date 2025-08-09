@@ -1,28 +1,238 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, MessageSquare, Users, Heart } from 'lucide-react'
-import Link from 'next/link'
 import { prisma } from '@/lib/core/prisma'
+import { UserStats } from '@/components/dashboard/UserStats'
+import {
+  ActivityFeed,
+  type ActivityItem,
+} from '@/components/dashboard/ActivityFeed'
+import { DashboardQuickLinks } from '@/components/dashboard/DashboardQuickLinks'
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
+import { DashboardOverview } from '@/components/dashboard/DashboardOverview'
 
-async function getDashboardStats(userId: string) {
-  const [mainPosts, communityPosts, comments, likes, communities] =
-    await Promise.all([
-      prisma.mainPost.count({ where: { authorId: userId } }),
-      prisma.communityPost.count({ where: { authorId: userId } }),
-      prisma.mainComment.count({ where: { authorId: userId } }),
-      prisma.mainLike.count({ where: { userId } }),
-      prisma.communityMember.count({ where: { userId, status: 'ACTIVE' } }),
-    ])
-
-  return {
-    totalPosts: mainPosts + communityPosts,
+async function getDashboardData(userId: string) {
+  const [
+    user,
     mainPosts,
     communityPosts,
-    comments,
-    likes,
+    mainComments,
+    mainLikes,
+    mainBookmarks,
     communities,
+    recentActivities,
+  ] = await Promise.all([
+    // 사용자 정보
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        bio: true,
+        createdAt: true,
+      },
+    }),
+    // 통계 데이터
+    prisma.mainPost.count({ where: { authorId: userId, status: 'PUBLISHED' } }),
+    prisma.communityPost.count({
+      where: { authorId: userId, status: 'PUBLISHED' },
+    }),
+    prisma.mainComment.count({ where: { authorId: userId } }),
+    prisma.mainLike.count({ where: { userId } }),
+    prisma.mainBookmark.count({ where: { userId } }),
+    prisma.communityMember.count({ where: { userId, status: 'ACTIVE' } }),
+    // 최근 활동 데이터
+    getRecentActivities(userId),
+  ])
+
+  return {
+    user,
+    stats: {
+      totalPosts: mainPosts + communityPosts,
+      mainPosts,
+      communityPosts,
+      mainComments,
+      mainLikes,
+      mainBookmarks,
+      communities,
+    },
+    activities: recentActivities,
   }
+}
+
+async function getRecentActivities(userId: string): Promise<ActivityItem[]> {
+  const activities: ActivityItem[] = []
+
+  // 최근 작성한 메인 게시글
+  const recentMainPosts = await prisma.mainPost.findMany({
+    where: { authorId: userId, status: 'PUBLISHED' },
+    select: {
+      id: true,
+      title: true,
+      excerpt: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  recentMainPosts.forEach((post) => {
+    activities.push({
+      id: `main-post-${post.id}`,
+      type: 'post_created',
+      title: '메인 게시글 작성',
+      description: post.title,
+      timestamp: post.createdAt.toISOString(),
+      target: {
+        id: post.id,
+        title: post.title,
+        type: 'main_post',
+      },
+    })
+  })
+
+  // 최근 작성한 커뮤니티 게시글
+  const recentCommunityPosts = await prisma.communityPost.findMany({
+    where: { authorId: userId, status: 'PUBLISHED' },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      community: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  recentCommunityPosts.forEach((post) => {
+    activities.push({
+      id: `community-post-${post.id}`,
+      type: 'post_created',
+      title: '커뮤니티 게시글 작성',
+      description: post.title,
+      timestamp: post.createdAt.toISOString(),
+      target: {
+        id: post.id,
+        title: post.title,
+        type: 'community_post',
+      },
+      community: post.community,
+    })
+  })
+
+  // 최근 댓글
+  const recentComments = await prisma.mainComment.findMany({
+    where: { authorId: userId },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      post: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  recentComments.forEach((comment) => {
+    activities.push({
+      id: `comment-${comment.id}`,
+      type: 'comment_added',
+      title: '댓글 작성',
+      description: comment.content.substring(0, 100),
+      timestamp: comment.createdAt.toISOString(),
+      target: {
+        id: comment.post.id,
+        title: comment.post.title,
+        type: 'main_post',
+      },
+    })
+  })
+
+  // 최근 좋아요
+  const recentLikes = await prisma.mainLike.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      createdAt: true,
+      post: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  recentLikes.forEach((like) => {
+    activities.push({
+      id: `like-${like.id}`,
+      type: 'post_liked',
+      title: '게시글 좋아요',
+      description: like.post.title,
+      timestamp: like.createdAt.toISOString(),
+      target: {
+        id: like.post.id,
+        title: like.post.title,
+        type: 'main_post',
+      },
+    })
+  })
+
+  // 최근 가입한 커뮤니티
+  const recentMemberships = await prisma.communityMember.findMany({
+    where: { userId, status: 'ACTIVE' },
+    select: {
+      id: true,
+      joinedAt: true,
+      community: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: { joinedAt: 'desc' },
+    take: 3,
+  })
+
+  recentMemberships.forEach((membership) => {
+    activities.push({
+      id: `membership-${membership.id}`,
+      type: 'community_joined',
+      title: '커뮤니티 가입',
+      description: membership.community.name,
+      timestamp: membership.joinedAt.toISOString(),
+      target: {
+        id: membership.community.id,
+        title: membership.community.name,
+        slug: membership.community.slug,
+        type: 'community',
+      },
+    })
+  })
+
+  // 시간순 정렬
+  return activities
+    .sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+    .slice(0, 10)
 }
 
 export default async function DashboardPage() {
@@ -32,114 +242,62 @@ export default async function DashboardPage() {
     redirect('/auth/signin')
   }
 
-  const stats = await getDashboardStats(session.user.id)
+  const { user, stats, activities } = await getDashboardData(session.user.id)
+
+  if (!user) {
+    redirect('/auth/signin')
+  }
 
   return (
-    <div className="container max-w-7xl py-8">
-      <h1 className="text-3xl font-black mb-8">대시보드</h1>
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* 헤더 섹션 */}
+      <DashboardHeader user={user} />
 
-      {/* 통계 카드 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">전체 게시글</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black">{stats.totalPosts}</div>
-            <p className="text-xs text-muted-foreground">
-              메인 {stats.mainPosts} · 커뮤니티 {stats.communityPosts}
-            </p>
-          </CardContent>
-        </Card>
+      {/* 메인 그리드 레이아웃 */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* 왼쪽: 통계 및 개요 */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* 사용자 통계 */}
+          <section>
+            <h2 className="text-xl font-black mb-4">활동 통계</h2>
+            <UserStats
+              stats={{
+                mainPosts: stats.mainPosts,
+                communityPosts: stats.communityPosts,
+                mainComments: stats.mainComments,
+                mainLikes: stats.mainLikes,
+                mainBookmarks: stats.mainBookmarks,
+              }}
+            />
+          </section>
 
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">댓글</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black">{stats.comments}</div>
-            <p className="text-xs text-muted-foreground">작성한 댓글 수</p>
-          </CardContent>
-        </Card>
+          {/* 추가 개요 정보 */}
+          <DashboardOverview stats={stats} />
 
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">좋아요</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black">{stats.likes}</div>
-            <p className="text-xs text-muted-foreground">누른 좋아요 수</p>
-          </CardContent>
-        </Card>
+          {/* 최근 활동 피드 (모바일에서는 아래로) */}
+          <section className="lg:hidden">
+            <ActivityFeed
+              activities={activities}
+              showUserInfo={false}
+              maxItems={5}
+            />
+          </section>
+        </div>
 
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">커뮤니티</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black">{stats.communities}</div>
-            <p className="text-xs text-muted-foreground">가입한 커뮤니티</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* 오른쪽: 활동 피드 및 빠른 링크 */}
+        <div className="space-y-8">
+          {/* 최근 활동 피드 (데스크톱) */}
+          <section className="hidden lg:block">
+            <ActivityFeed
+              activities={activities}
+              showUserInfo={false}
+              maxItems={5}
+            />
+          </section>
 
-      {/* 빠른 링크 */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader>
-            <CardTitle>내 활동</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link
-              href={`/profile/${session.user.id}`}
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 내 프로필 보기
-            </Link>
-            <Link
-              href="/posts/write"
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 새 게시글 작성
-            </Link>
-            <Link
-              href="/communities"
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 커뮤니티 둘러보기
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader>
-            <CardTitle>계정 설정</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link
-              href="/settings/profile"
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 프로필 편집
-            </Link>
-            <Link
-              href="/settings/account"
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 계정 설정
-            </Link>
-            <Link
-              href="/settings/notifications"
-              className="block p-2 hover:bg-secondary rounded"
-            >
-              → 알림 설정
-            </Link>
-          </CardContent>
-        </Card>
+          {/* 빠른 링크 */}
+          <DashboardQuickLinks userId={session.user.id} />
+        </div>
       </div>
     </div>
   )

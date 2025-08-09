@@ -1,702 +1,582 @@
-import { notFound } from 'next/navigation'
-import {
-  Calendar,
-  FileText,
-  MessageSquare,
-  Heart,
-  Bookmark,
-} from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { auth } from '@/auth'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/core/prisma'
-import { Pagination } from '@/components/shared/Pagination'
-import { EmptyState } from '@/components/shared/EmptyState'
+import { ProfileHeader } from '@/components/profile/ProfileHeader'
+import { ProfileTabs } from '@/components/profile/ProfileTabs'
+import { ProfileActivity } from '@/components/profile/ProfileActivity'
+import { ProfileSidebar } from '@/components/profile/ProfileSidebar'
 
-interface UserProfile {
-  id: string
-  name: string | null
-  username: string | null
-  email: string
-  image: string | null
-  bio: string | null
-  createdAt: string
-  _count: {
-    mainPosts: number
-    communityPosts: number
-    mainComments: number
-    mainLikes: number
-    mainBookmarks: number
-  }
+interface PageProps {
+  params: Promise<{ id: string }>
 }
 
-async function getProfile(userId: string) {
-  try {
-    // 직접 DB에서 사용자 정보 조회
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        username: true,
-        image: true,
-        bio: true,
-        createdAt: true,
-        _count: {
-          select: {
-            mainPosts: {
-              where: {
-                status: 'PUBLISHED',
-              },
-            },
-            communityPosts: {
-              where: {
-                status: 'PUBLISHED',
-              },
-            },
-            mainComments: true,
-            mainLikes: true,
-            mainBookmarks: true,
+async function getUserProfile(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      email: true,
+      image: true,
+      bio: true,
+      createdAt: true,
+      _count: {
+        select: {
+          mainPosts: {
+            where: { status: 'PUBLISHED' },
+          },
+          communityPosts: {
+            where: { status: 'PUBLISHED' },
+          },
+          mainComments: true,
+          communityComments: true,
+          mainBookmarks: true,
+          communityMemberships: {
+            where: { status: 'ACTIVE' },
           },
         },
       },
-    })
+    },
+  })
 
-    if (!user) {
-      notFound()
-    }
-
-    return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      image: user.image,
-      bio: user.bio,
-      createdAt: user.createdAt.toISOString(),
-      _count: user._count,
-    } as UserProfile
-  } catch (error) {
-    console.error('Failed to fetch profile:', error)
-    notFound()
-  }
+  return user
 }
 
-// 사용자의 게시글 목록 가져오기
-async function getUserPosts(userId: string, page: number = 1) {
-  const pageSize = 5
-  const skip = (page - 1) * pageSize
+async function getRecentActivity(userId: string) {
+  const activities = []
 
-  const [mainPosts, communityPosts, mainCount, communityCount] =
-    await Promise.all([
-      prisma.mainPost.findMany({
-        where: {
-          authorId: userId,
-          status: 'PUBLISHED',
-        },
-        select: {
-          id: true,
-          title: true,
-          excerpt: true,
-          createdAt: true,
-          viewCount: true,
-          likeCount: true,
-          commentCount: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip,
-        take: pageSize,
-      }),
-      prisma.communityPost.findMany({
-        where: {
-          authorId: userId,
-          status: 'PUBLISHED',
-        },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          createdAt: true,
-          viewCount: true,
-          likeCount: true,
-          commentCount: true,
-          community: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip,
-        take: pageSize,
-      }),
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date()
+    date.setDate(date.getDate() - i)
+    date.setHours(0, 0, 0, 0)
+
+    const nextDate = new Date(date)
+    nextDate.setDate(nextDate.getDate() + 1)
+
+    const [posts, comments, likes] = await Promise.all([
       prisma.mainPost.count({
         where: {
           authorId: userId,
-          status: 'PUBLISHED',
+          createdAt: {
+            gte: date,
+            lt: nextDate,
+          },
         },
       }),
-      prisma.communityPost.count({
+      prisma.mainComment.count({
         where: {
           authorId: userId,
-          status: 'PUBLISHED',
+          createdAt: {
+            gte: date,
+            lt: nextDate,
+          },
+        },
+      }),
+      prisma.mainLike.count({
+        where: {
+          userId,
+          createdAt: {
+            gte: date,
+            lt: nextDate,
+          },
         },
       }),
     ])
 
-  const totalCount = mainCount + communityCount
-  const totalPages = Math.ceil(totalCount / pageSize)
+    activities.push({
+      date: date.toLocaleDateString('ko-KR', {
+        month: 'numeric',
+        day: 'numeric',
+      }),
+      count: posts + comments + likes,
+    })
+  }
 
-  return { mainPosts, communityPosts, totalPages }
+  return activities
 }
 
-// 사용자의 댓글 목록 가져오기
+async function getUserPosts(userId: string) {
+  const [mainPosts, communityPosts] = await Promise.all([
+    prisma.mainPost.findMany({
+      where: { authorId: userId, status: 'PUBLISHED' },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        content: true,
+        createdAt: true,
+        viewCount: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            icon: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            likes: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+    prisma.communityPost.findMany({
+      where: { authorId: userId, status: 'PUBLISHED' },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        createdAt: true,
+        viewCount: true,
+        communityId: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        community: {
+          select: { name: true },
+        },
+        _count: {
+          select: {
+            comments: true,
+            likes: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ])
+
+  // 데이터 변환 로직
+  const formattedPosts = [
+    ...mainPosts.map((p) => {
+      const formatted = {
+        ...p,
+        type: 'MAIN' as const,
+        summary: p.excerpt || '',
+        thumbnail: null,
+        author: p.author,
+        categoryId: p.category?.id || 'general',
+        categoryName: p.category?.name || '일반',
+        categorySlug: p.category?.slug || 'general',
+        categoryColor: p.category?.color || '#6366f1',
+        categoryIcon: p.category?.icon || null,
+        tags:
+          p.tags?.map((t) => ({
+            id: t.tag.id,
+            name: t.tag.name,
+            slug: t.tag.slug,
+            color: t.tag.color || null,
+          })) || [],
+        _count: {
+          mainComments: p._count.comments,
+          mainLikes: p._count.likes,
+        },
+      }
+      return formatted
+    }),
+    ...communityPosts.map((p) => {
+      const formatted = {
+        ...p,
+        type: 'COMMUNITY' as const,
+        slug: p.id,
+        thumbnail: null,
+        summary: p.content.substring(0, 150),
+        excerpt: null,
+        author: p.author,
+        communityName: p.community.name,
+        categoryId: 'community',
+        categoryName: p.community.name,
+        categorySlug: 'community',
+        categoryColor: '#6366f1', // 기본 색상 설정
+        categoryIcon: null,
+        tags: [], // 커뮤니티 포스트는 태그가 없음
+        _count: {
+          communityComments: p._count.comments,
+          communityLikes: p._count.likes,
+        },
+      }
+      return formatted
+    }),
+  ]
+
+  return formattedPosts.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+}
+
 async function getUserComments(userId: string) {
-  const comments = await prisma.mainComment.findMany({
+  const [mainComments, communityComments] = await Promise.all([
+    // 메인 댓글 조회
+    prisma.mainComment.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        isEdited: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            globalRole: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+                icon: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    }),
+
+    // 커뮤니티 댓글 조회
+    prisma.communityComment.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        isEdited: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            globalRole: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            communityId: true,
+            community: {
+              select: {
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    }),
+  ])
+
+  // 데이터 통합 및 정규화
+  const allComments = [
+    // 메인 댓글 변환
+    ...mainComments.map((c) => ({
+      ...c,
+      author: {
+        id: c.author.id,
+        name: c.author.name,
+        image: c.author.image,
+        badge: c.author.globalRole === 'ADMIN' ? 'ADMIN' : undefined,
+      },
+      post: {
+        ...c.post,
+        type: 'MAIN' as const,
+        categoryId: c.post.category?.id,
+        categoryName: c.post.category?.name || '일반',
+        categorySlug: c.post.category?.slug || 'general',
+        categoryColor: c.post.category?.color || '#6366f1',
+        categoryIcon: c.post.category?.icon,
+      },
+      stats: {
+        likeCount: 0,
+        replyCount: 0,
+        isLiked: false,
+      },
+    })),
+
+    // 커뮤니티 댓글 변환
+    ...communityComments.map((c) => ({
+      ...c,
+      author: {
+        id: c.author.id,
+        name: c.author.name,
+        image: c.author.image,
+        badge: c.author.globalRole === 'ADMIN' ? 'ADMIN' : undefined,
+      },
+      post: {
+        id: c.post.id,
+        title: c.post.title,
+        slug: c.post.id, // 커뮤니티 게시글은 slug 대신 id 사용
+        type: 'COMMUNITY' as const,
+        communityId: c.post.communityId,
+        communityName: c.post.community.name,
+      },
+      stats: {
+        likeCount: 0,
+        replyCount: 0,
+        isLiked: false,
+      },
+    })),
+  ]
+
+  // 날짜 기준으로 정렬
+  return allComments
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .slice(0, 30) // 최대 30개로 제한
+}
+
+async function getUserBookmarks(userId: string) {
+  const bookmarks = await prisma.mainPost.findMany({
     where: {
-      authorId: userId,
+      bookmarks: {
+        some: { userId },
+      },
+      status: 'PUBLISHED',
     },
     select: {
       id: true,
-      content: true,
+      title: true,
+      slug: true,
+      excerpt: true,
       createdAt: true,
-      post: {
+      viewCount: true,
+      author: {
         select: {
           id: true,
-          title: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
           slug: true,
+          color: true,
+          icon: true,
+        },
+      },
+      tags: {
+        include: {
+          tag: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          comments: true,
+          likes: true,
         },
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' },
     take: 20,
   })
 
-  return comments
-}
-
-// 사용자가 좋아요한 게시글 목록 가져오기
-async function getUserLikedPosts(userId: string, page: number = 1) {
-  const pageSize = 10
-  const skip = (page - 1) * pageSize
-
-  const [likes, totalCount] = await Promise.all([
-    prisma.mainLike.findMany({
-      where: {
-        userId: userId,
-      },
-      select: {
-        post: {
-          select: {
-            id: true,
-            title: true,
-            excerpt: true,
-            createdAt: true,
-            viewCount: true,
-            likeCount: true,
-            commentCount: true,
-            category: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take: pageSize,
-    }),
-    prisma.mainLike.count({
-      where: {
-        userId: userId,
-      },
-    }),
-  ])
-
-  const totalPages = Math.ceil(totalCount / pageSize)
-  const posts = likes.map((like) => ({ ...like.post, likedAt: like.createdAt }))
-
-  return { posts, totalPages }
-}
-
-// 사용자의 북마크 목록 가져오기 (본인만 볼 수 있음)
-async function getUserBookmarks(userId: string, page: number = 1) {
-  const pageSize = 10
-  const skip = (page - 1) * pageSize
-
-  const [bookmarks, totalCount] = await Promise.all([
-    prisma.mainBookmark.findMany({
-      where: {
-        userId: userId,
-      },
-      select: {
-        post: {
-          select: {
-            id: true,
-            title: true,
-            excerpt: true,
-            createdAt: true,
-            viewCount: true,
-            likeCount: true,
-            commentCount: true,
-            category: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take: pageSize,
-    }),
-    prisma.mainBookmark.count({
-      where: {
-        userId: userId,
-      },
-    }),
-  ])
-
-  const totalPages = Math.ceil(totalCount / pageSize)
-  const posts = bookmarks.map((bookmark) => ({
-    ...bookmark.post,
-    bookmarkedAt: bookmark.createdAt,
+  return bookmarks.map((p) => ({
+    ...p,
+    type: 'MAIN' as const,
+    summary: p.excerpt,
+    thumbnail: null,
+    author: p.author,
+    categoryId: p.category?.id,
+    categoryName: p.category?.name || '일반',
+    categorySlug: p.category?.slug || 'general',
+    categoryColor: p.category?.color,
+    categoryIcon: p.category?.icon,
+    tags:
+      p.tags?.map((t) => ({
+        id: t.tag.id,
+        name: t.tag.name,
+        slug: t.tag.slug,
+        color: t.tag.color,
+      })) || [],
+    _count: {
+      mainComments: p._count.comments,
+      mainLikes: p._count.likes,
+    },
   }))
-
-  return { posts, totalPages }
 }
 
-export default async function ProfilePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}) {
+async function getUserCommunities(userId: string) {
+  const memberships = await prisma.communityMember.findMany({
+    where: {
+      userId,
+      status: 'ACTIVE',
+    },
+    include: {
+      community: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              posts: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { joinedAt: 'desc' },
+  })
+
+  return memberships.map((m) => ({
+    id: m.id,
+    role: m.role,
+    joinedAt: m.joinedAt.toISOString(),
+    community: {
+      id: m.community.id,
+      name: m.community.name,
+      slug: m.community.slug,
+      description: m.community.description,
+      avatar: m.community.avatar,
+      banner: m.community.banner,
+      visibility: m.community.visibility,
+      memberCount: m.community._count.members,
+      postCount: m.community._count.posts,
+      createdAt: m.community.createdAt.toISOString(),
+      updatedAt: m.community.updatedAt.toISOString(),
+      owner: {
+        name: m.community.owner.name,
+        image: m.community.owner.image,
+      },
+      _count: m.community._count,
+    },
+  }))
+}
+
+export default async function ProfilePage({ params }: PageProps) {
   const { id } = await params
-  const search = await searchParams
   const session = await auth()
 
-  // 각 탭별 페이지 번호
-  const postsPage = parseInt((search.postsPage as string) || '1')
-  const likesPage = parseInt((search.likesPage as string) || '1')
-  const bookmarksPage = parseInt((search.bookmarksPage as string) || '1')
+  const [profile, recentActivity, posts, comments, bookmarks, communities] =
+    await Promise.all([
+      getUserProfile(id),
+      getRecentActivity(id),
+      getUserPosts(id),
+      getUserComments(id),
+      getUserBookmarks(id),
+      getUserCommunities(id),
+    ])
 
-  const isOwnProfile = session?.user?.id === id
-  const profile = await getProfile(id)
+  if (!profile) {
+    notFound()
+  }
 
-  // 프로필 데이터 가져오기
-  const [posts, comments, likedPosts, bookmarks] = await Promise.all([
-    getUserPosts(id, postsPage),
-    getUserComments(id),
-    getUserLikedPosts(id, likesPage),
-    isOwnProfile
-      ? getUserBookmarks(id, bookmarksPage)
-      : Promise.resolve({ posts: [], totalPages: 0 }), // 북마크는 본인만
-  ])
+  const isOwnProfile = session?.user?.id === profile.id
+
+  const stats = {
+    mainPosts: profile._count.mainPosts,
+    communityPosts: profile._count.communityPosts,
+    mainComments:
+      (profile._count.mainComments || 0) +
+      (profile._count.communityComments || 0),
+    mainBookmarks: profile._count.mainBookmarks,
+    communities: profile._count.communityMemberships,
+  }
 
   return (
-    <div className="container max-w-4xl py-8">
-      {/* Profile Header */}
-      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-8">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-6">
-            <Avatar className="h-24 w-24 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <AvatarImage src={profile.image || undefined} />
-              <AvatarFallback className="text-2xl font-black bg-primary/20">
-                {profile.name?.[0] || profile.email?.[0]?.toUpperCase() || '?'}
-              </AvatarFallback>
-            </Avatar>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <ProfileHeader
+          profile={{
+            ...profile,
+            createdAt: profile.createdAt.toISOString(),
+            _count: {
+              mainPosts: profile._count.mainPosts,
+              communityPosts: profile._count.communityPosts,
+              mainComments:
+                (profile._count.mainComments || 0) +
+                (profile._count.communityComments || 0),
+              mainBookmarks: profile._count.mainBookmarks,
+              communityMemberships: profile._count.communityMemberships,
+            },
+          }}
+          isOwnProfile={isOwnProfile}
+        />
 
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h1 className="text-2xl font-black">
-                    {profile.name || '이름 없음'}
-                  </h1>
-                  {profile.username && (
-                    <p className="text-muted-foreground">@{profile.username}</p>
-                  )}
-                </div>
-                {isOwnProfile && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    <Link href="/settings/profile">프로필 편집</Link>
-                  </Button>
-                )}
-              </div>
-
-              {profile.bio && (
-                <p className="text-muted-foreground mb-4">{profile.bio}</p>
-              )}
-
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(profile.createdAt).toLocaleDateString('ko-KR')} 가입
-                </div>
-              </div>
-            </div>
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-8">
+            <ProfileActivity activities={recentActivity} />
+            <ProfileTabs
+              userId={id}
+              stats={stats}
+              posts={posts}
+              comments={comments}
+              bookmarks={bookmarks}
+              communities={communities}
+            />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-black">
-              {profile._count?.mainPosts || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">게시글</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-black">
-              {profile._count?.communityPosts || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">커뮤니티 글</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-black">
-              {profile._count?.mainComments || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">댓글</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-black">
-              {profile._count?.mainLikes || 0}
-            </div>
-            <p className="text-sm text-muted-foreground">좋아요</p>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-black">
-              {profile._count.mainBookmarks}
-            </div>
-            <p className="text-sm text-muted-foreground">북마크</p>
-          </CardContent>
-        </Card>
+          <div className="space-y-8">
+            <ProfileSidebar
+              userId={id}
+              stats={stats}
+              isOwnProfile={isOwnProfile}
+            />
+          </div>
+        </div>
       </div>
-
-      {/* Activity Tabs */}
-      <Tabs defaultValue="posts" className="space-y-4">
-        <TabsList
-          className={`grid ${isOwnProfile ? 'grid-cols-4' : 'grid-cols-3'} border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
-        >
-          <TabsTrigger value="posts" className="font-bold">
-            게시글
-          </TabsTrigger>
-          <TabsTrigger value="comments" className="font-bold">
-            댓글
-          </TabsTrigger>
-          <TabsTrigger value="likes" className="font-bold">
-            좋아요
-          </TabsTrigger>
-          {isOwnProfile && (
-            <TabsTrigger value="bookmarks" className="font-bold">
-              북마크
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="posts">
-          {posts.mainPosts.length === 0 && posts.communityPosts.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title="아직 작성한 게시글이 없습니다"
-              description="첫 번째 게시글을 작성해보세요!"
-              size="lg"
-            />
-          ) : (
-            <>
-              <div className="space-y-4">
-                {posts.mainPosts.length > 0 && (
-                  <div>
-                    <h3 className="font-bold mb-2">메인 게시글</h3>
-                    <div className="space-y-2">
-                      {posts.mainPosts.map((post) => (
-                        <Card
-                          key={post.id}
-                          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <Link
-                                  href={`/main/posts/${post.id}`}
-                                  className="hover:underline"
-                                >
-                                  <h4 className="font-bold">{post.title}</h4>
-                                </Link>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {post.excerpt}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                  <span>{post.category?.name}</span>
-                                  <span>조회 {post.viewCount}</span>
-                                  <span>좋아요 {post.likeCount}</span>
-                                  <span>댓글 {post.commentCount}</span>
-                                  <span>
-                                    {new Date(
-                                      post.createdAt
-                                    ).toLocaleDateString('ko-KR')}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {posts.communityPosts.length > 0 && (
-                  <div>
-                    <h3 className="font-bold mb-2">커뮤니티 게시글</h3>
-                    <div className="space-y-2">
-                      {posts.communityPosts.map((post) => (
-                        <Card
-                          key={post.id}
-                          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <Link
-                                  href={`/communities/${post.community?.slug}/posts/${post.id}`}
-                                  className="hover:underline"
-                                >
-                                  <h4 className="font-bold">{post.title}</h4>
-                                </Link>
-                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                  {post.content}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                  <span>{post.community?.name}</span>
-                                  <span>조회 {post.viewCount}</span>
-                                  <span>좋아요 {post.likeCount}</span>
-                                  <span>댓글 {post.commentCount}</span>
-                                  <span>
-                                    {new Date(
-                                      post.createdAt
-                                    ).toLocaleDateString('ko-KR')}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {posts.totalPages > 1 && (
-                <Pagination
-                  currentPage={postsPage}
-                  totalPages={posts.totalPages}
-                  baseUrl={`/profile/${id}?postsPage`}
-                  className="mt-4"
-                />
-              )}
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="comments">
-          {comments.length === 0 ? (
-            <EmptyState
-              icon={MessageSquare}
-              title="아직 작성한 댓글이 없습니다"
-              description="게시글에 댓글을 달아 의견을 나눠보세요"
-              size="lg"
-            />
-          ) : (
-            <div className="space-y-2">
-              {comments.map((comment) => (
-                <Card
-                  key={comment.id}
-                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <CardContent className="p-4">
-                    <p className="text-sm">{comment.content}</p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <span>게시글:</span>
-                      <Link
-                        href={`/main/posts/${comment.post.slug}`}
-                        className="hover:underline font-medium"
-                      >
-                        {comment.post.title}
-                      </Link>
-                      <span>•</span>
-                      <span>
-                        {new Date(comment.createdAt).toLocaleDateString(
-                          'ko-KR'
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="likes">
-          {likedPosts.posts.length === 0 ? (
-            <EmptyState
-              icon={Heart}
-              title="아직 좋아요한 게시글이 없습니다"
-              description="마음에 드는 게시글에 좋아요를 눌러보세요"
-              size="lg"
-            />
-          ) : (
-            <>
-              <div className="space-y-2">
-                {likedPosts.posts.map((post) => (
-                  <Card
-                    key={post.id}
-                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <Link
-                            href={`/main/posts/${post.id}`}
-                            className="hover:underline"
-                          >
-                            <h4 className="font-bold">{post.title}</h4>
-                          </Link>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {post.excerpt}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                            <span>{post.category?.name}</span>
-                            <span>조회 {post.viewCount}</span>
-                            <span>좋아요 {post.likeCount}</span>
-                            <span>댓글 {post.commentCount}</span>
-                            <span>
-                              좋아요한 날짜:{' '}
-                              {new Date(post.likedAt).toLocaleDateString(
-                                'ko-KR'
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {likedPosts.totalPages > 1 && (
-                <Pagination
-                  currentPage={likesPage}
-                  totalPages={likedPosts.totalPages}
-                  baseUrl={`/profile/${id}?likesPage`}
-                  className="mt-4"
-                />
-              )}
-            </>
-          )}
-        </TabsContent>
-
-        {isOwnProfile && (
-          <TabsContent value="bookmarks">
-            {bookmarks.posts.length === 0 ? (
-              <EmptyState
-                icon={Bookmark}
-                title="아직 북마크한 게시글이 없습니다"
-                description="나중에 다시 읽고 싶은 게시글을 북마크하세요"
-                size="lg"
-              />
-            ) : (
-              <>
-                <div className="space-y-2">
-                  {bookmarks.posts.map((post) => (
-                    <Card
-                      key={post.id}
-                      className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <Link
-                              href={`/main/posts/${post.id}`}
-                              className="hover:underline"
-                            >
-                              <h4 className="font-bold">{post.title}</h4>
-                            </Link>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {post.excerpt}
-                            </p>
-                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                              <span>{post.category?.name}</span>
-                              <span>조회 {post.viewCount}</span>
-                              <span>좋아요 {post.likeCount}</span>
-                              <span>댓글 {post.commentCount}</span>
-                              <span>
-                                북마크한 날짜:{' '}
-                                {new Date(post.bookmarkedAt).toLocaleDateString(
-                                  'ko-KR'
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                {bookmarks.totalPages > 1 && (
-                  <Pagination
-                    currentPage={bookmarksPage}
-                    totalPages={bookmarks.totalPages}
-                    baseUrl={`/profile/${id}?bookmarksPage`}
-                    className="mt-4"
-                  />
-                )}
-              </>
-            )}
-          </TabsContent>
-        )}
-      </Tabs>
     </div>
   )
 }
