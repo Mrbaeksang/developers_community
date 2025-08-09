@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -191,6 +191,7 @@ export function CommunityCommentSection({
         (old: Comment[] = []) => [newCommentData, ...old]
       )
       setNewComment('')
+      commentEditor?.commands.setContent('')
       toast.success('댓글이 작성되었습니다.')
     },
     onError: (error) => {
@@ -243,6 +244,7 @@ export function CommunityCommentSection({
       })
       setReplyTo(null)
       setReplyContent('')
+      replyEditor?.commands.setContent('')
       toast.success('답글이 작성되었습니다.')
     },
     onError: (error) => {
@@ -257,7 +259,8 @@ export function CommunityCommentSection({
       return
     }
 
-    if (!replyContent.trim()) {
+    const textContent = replyEditor?.getText().trim() || ''
+    if (!textContent) {
       toast.error('답글 내용을 입력해주세요.')
       return
     }
@@ -294,6 +297,7 @@ export function CommunityCommentSection({
       })
       setEditingId(null)
       setEditContent('')
+      editEditor?.commands.setContent('')
       toast.success('댓글이 수정되었습니다.')
     },
     onError: (error) => {
@@ -303,7 +307,8 @@ export function CommunityCommentSection({
   })
 
   const handleUpdateComment = async (commentId: string) => {
-    if (!editContent.trim()) {
+    const textContent = editEditor?.getText().trim() || ''
+    if (!textContent) {
       toast.error('댓글 내용을 입력해주세요.')
       return
     }
@@ -407,11 +412,82 @@ export function CommunityCommentSection({
 
             {isEditing ? (
               <div className="mt-2 space-y-2">
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-[60px] text-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                />
+                {/* Edit Toolbar */}
+                {editEditor && (
+                  <div className="flex items-center gap-1 p-2 border-2 border-black rounded-lg bg-gray-50">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        editEditor.chain().focus().toggleBold().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        editEditor.isActive('bold') && 'bg-gray-300'
+                      )}
+                      title="굵게"
+                    >
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        editEditor.chain().focus().toggleItalic().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        editEditor.isActive('italic') && 'bg-gray-300'
+                      )}
+                      title="기울임"
+                    >
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        editEditor.chain().focus().toggleCode().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        editEditor.isActive('code') && 'bg-gray-300'
+                      )}
+                      title="인라인 코드"
+                    >
+                      <Code className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        editEditor.chain().focus().toggleBulletList().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        editEditor.isActive('bulletList') && 'bg-gray-300'
+                      )}
+                      title="목록"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Edit Editor */}
+                <div className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus-within:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  {editEditor && (
+                    <EditorContent
+                      editor={editEditor}
+                      className="prose prose-sm max-w-none p-3 min-h-[60px] text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50px]"
+                    />
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -431,6 +507,7 @@ export function CommunityCommentSection({
                     onClick={() => {
                       setEditingId(null)
                       setEditContent('')
+                      editEditor?.commands.setContent('')
                     }}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
@@ -461,12 +538,82 @@ export function CommunityCommentSection({
 
             {isReplying && (
               <div className="mt-3 space-y-2">
-                <Textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="답글을 입력하세요..."
-                  className="min-h-[60px] text-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                />
+                {/* Reply Toolbar */}
+                {replyEditor && (
+                  <div className="flex items-center gap-1 p-2 border-2 border-black rounded-lg bg-gray-50">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        replyEditor.chain().focus().toggleBold().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        replyEditor.isActive('bold') && 'bg-gray-300'
+                      )}
+                      title="굵게"
+                    >
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        replyEditor.chain().focus().toggleItalic().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        replyEditor.isActive('italic') && 'bg-gray-300'
+                      )}
+                      title="기울임"
+                    >
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        replyEditor.chain().focus().toggleCode().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        replyEditor.isActive('code') && 'bg-gray-300'
+                      )}
+                      title="인라인 코드"
+                    >
+                      <Code className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        replyEditor.chain().focus().toggleBulletList().run()
+                      }
+                      className={cn(
+                        'h-8 w-8 p-0 hover:bg-gray-200',
+                        replyEditor.isActive('bulletList') && 'bg-gray-300'
+                      )}
+                      title="목록"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Reply Editor */}
+                <div className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus-within:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  {replyEditor && (
+                    <EditorContent
+                      editor={replyEditor}
+                      className="prose prose-sm max-w-none p-3 min-h-[60px] text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50px]"
+                    />
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -486,6 +633,7 @@ export function CommunityCommentSection({
                     onClick={() => {
                       setReplyTo(null)
                       setReplyContent('')
+                      replyEditor?.commands.setContent('')
                     }}
                     className="text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                   >
@@ -536,15 +684,88 @@ export function CommunityCommentSection({
         {/* Comment Form */}
         {currentUserId ? (
           <div className="space-y-3 mb-6">
-            <Textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="댓글을 입력하세요..."
-              className="min-h-[80px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-            />
+            {/* Formatting Toolbar */}
+            {commentEditor && (
+              <div className="flex items-center gap-1 p-2 border-2 border-black rounded-lg bg-gray-50">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    commentEditor.chain().focus().toggleBold().run()
+                  }
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-gray-200',
+                    commentEditor.isActive('bold') && 'bg-gray-300'
+                  )}
+                  title="굵게"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    commentEditor.chain().focus().toggleItalic().run()
+                  }
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-gray-200',
+                    commentEditor.isActive('italic') && 'bg-gray-300'
+                  )}
+                  title="기울임"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    commentEditor.chain().focus().toggleCode().run()
+                  }
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-gray-200',
+                    commentEditor.isActive('code') && 'bg-gray-300'
+                  )}
+                  title="인라인 코드"
+                >
+                  <Code className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    commentEditor.chain().focus().toggleBulletList().run()
+                  }
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-gray-200',
+                    commentEditor.isActive('bulletList') && 'bg-gray-300'
+                  )}
+                  title="목록"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Editor */}
+            <div className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus-within:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+              {commentEditor && (
+                <EditorContent
+                  editor={commentEditor}
+                  className="prose prose-sm max-w-none p-3 min-h-[80px] [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50px]"
+                />
+              )}
+            </div>
+
             <Button
               onClick={handleSubmitComment}
-              disabled={createCommentMutation.isPending || !newComment.trim()}
+              disabled={
+                createCommentMutation.isPending ||
+                !commentEditor?.getText().trim()
+              }
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
             >
               {createCommentMutation.isPending ? (

@@ -2,17 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Send,
-  Save,
-  X,
-  Bold,
-  Italic,
-  Code,
-  Link,
-  List,
-  Smile,
-} from 'lucide-react'
+import { Send, Save, X, Bold, Italic, Code, List, Smile } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -38,8 +28,6 @@ interface CommentFormProps {
   autoFocus?: boolean
   placeholder?: string
   buttonText?: string
-  minRows?: number
-  maxRows?: number
   showToolbar?: boolean
   enableDraft?: boolean
   className?: string
@@ -73,8 +61,6 @@ export function CommentForm({
   autoFocus = false,
   placeholder = '댓글을 작성해주세요...',
   buttonText = '댓글 작성',
-  minRows = 3,
-  maxRows = 10,
   showToolbar = true,
   enableDraft = true,
   className,

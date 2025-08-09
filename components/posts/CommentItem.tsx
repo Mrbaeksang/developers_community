@@ -157,8 +157,6 @@ export default function CommentItem({
                 buttonText="수정 완료"
                 showToolbar={true}
                 enableDraft={false}
-                minRows={3}
-                maxRows={10}
                 autoFocus={true}
               />
             ) : (
@@ -271,8 +269,6 @@ export default function CommentItem({
                 buttonText="답글 작성"
                 showToolbar={true}
                 enableDraft={false}
-                minRows={2}
-                maxRows={5}
                 autoFocus={true}
               />
             </div>
