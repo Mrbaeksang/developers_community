@@ -371,7 +371,9 @@ export function PostList({
         <TabsContent value="all" className="mt-6">
           <div
             className={
-              viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2' : 'space-y-4'
+              viewMode === 'grid'
+                ? 'grid gap-4 md:grid-cols-2'
+                : 'space-y-4 max-w-4xl mx-auto'
             }
           >
             {sortedPosts.length > 0 ? (

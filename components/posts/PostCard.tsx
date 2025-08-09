@@ -13,6 +13,7 @@ import { PostStats } from '@/components/shared/PostStats'
 import { getCategoryIcon } from '@/lib/post/display'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
+import { stripTiptapHtml, truncateText } from '@/lib/ui/text'
 import type { MainPostFormatted } from '@/lib/post/types'
 
 interface PostCardProps {
@@ -48,6 +49,13 @@ export const PostCard = memo(function PostCard({
       )
     )
   }, [post.content, post.readingTime])
+
+  // Tiptap HTML에서 일반 텍스트 추출
+  const displayExcerpt = useMemo(() => {
+    if (!post.excerpt) return ''
+    const plainText = stripTiptapHtml(post.excerpt)
+    return truncateText(plainText, 150)
+  }, [post.excerpt])
 
   return (
     <Card
@@ -87,9 +95,9 @@ export const PostCard = memo(function PostCard({
       </CardHeader>
 
       <CardContent className="pb-3">
-        {post.excerpt && (
+        {displayExcerpt && (
           <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-            {post.excerpt}
+            {displayExcerpt}
           </p>
         )}
 
