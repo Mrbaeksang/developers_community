@@ -9,6 +9,7 @@ import {
   GeneralSettings,
   CategorySettings,
   MemberSettings,
+  AdvancedSettings,
 } from '@/components/communities/settings'
 
 export default async function CommunitySettingsPage({
@@ -136,17 +137,7 @@ export default async function CommunitySettingsPage({
 
           {/* 고급 설정 */}
           <TabsContent value="advanced">
-            <Card>
-              <CardHeader>
-                <CardTitle>고급 설정</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  준비 중입니다. 커뮤니티 삭제, 소유권 이전 등의 기능이 추가될
-                  예정입니다.
-                </p>
-              </CardContent>
-            </Card>
+            <AdvancedSettings community={community} />
           </TabsContent>
         </Tabs>
       </div>
