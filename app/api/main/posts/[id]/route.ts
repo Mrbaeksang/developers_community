@@ -159,6 +159,7 @@ export async function GET(
 const updatePostSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(100),
   content: z.string().min(1, '내용을 입력해주세요'),
+  excerpt: z.string().optional(), // excerpt 필드 추가
   categoryId: z.string(),
   tagIds: z.array(z.string()).max(5, '태그는 최대 5개까지 가능합니다'),
 })
@@ -228,7 +229,7 @@ async function updatePost(
       return validationErrorResponse(errors)
     }
 
-    const { title, content, categoryId, tagIds } = validation.data
+    const { title, content, excerpt, categoryId, tagIds } = validation.data
 
     // 카테고리 확인
     const category = await prisma.mainCategory.findUnique({
@@ -263,6 +264,7 @@ async function updatePost(
         data: {
           title,
           content,
+          excerpt: excerpt || content.substring(0, 200), // excerpt 필드 추가
           categoryId,
           // 수정 시 다시 PENDING 상태로 변경 (ADMIN만 상태 유지)
           status:

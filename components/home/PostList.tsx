@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PostCard } from '@/components/posts/PostCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -39,7 +39,6 @@ interface PostListProps {
   initialPosts?: MainPostFormatted[]
   categories?: Category[]
   isLoading?: boolean
-  currentCategory?: string
 }
 
 // 메인 게시글 가져오기 함수
@@ -48,33 +47,23 @@ export function PostList({
   initialPosts = [],
   categories: initialCategories = [],
   isLoading: externalLoading = false,
-  currentCategory,
 }: PostListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // URL 파라미터와 상태 동기화
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'latest')
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    currentCategory || searchParams.get('category') || 'all'
-  )
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  // URL 파라미터에서 직접 값 읽기 (상태 관리 제거)
+  const categoryFromUrl = searchParams.get('category') || 'all'
+  const sortFromUrl = searchParams.get('sort') || 'latest'
   const page = searchParams.get('page') || '1'
 
-  // URL 파라미터 변경 감지
-  useEffect(() => {
-    const categoryParam = searchParams.get('category') || 'all'
-    const sortParam = searchParams.get('sort') || 'latest'
+  // 로컬 상태는 UI 컨트롤용으로만 사용 - 기본값을 list로 변경
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
-    setSelectedCategory(categoryParam)
-    setSortBy(sortParam)
-  }, [searchParams])
-
-  // React Query로 데이터 가져오기
+  // React Query로 데이터 가져오기 - URL 파라미터 직접 사용
   const { data, isLoading } = useMainPosts(
     {
-      category: selectedCategory === 'all' ? undefined : selectedCategory,
-      sort: sortBy as 'latest' | 'popular' | 'views' | 'comments',
+      category: categoryFromUrl === 'all' ? undefined : categoryFromUrl,
+      sort: sortFromUrl as 'latest' | 'popular' | 'views' | 'comments',
       page: parseInt(page),
     },
     {
@@ -131,16 +120,16 @@ export function PostList({
     return category?.name || '모든 카테고리'
   }
 
-  // 카테고리로 필터링된 게시물 - useMemo로 최적화
+  // 카테고리로 필터링된 게시물 - useMemo로 최적화 (URL 파라미터 사용)
   const filteredPosts = useMemo(() => {
-    return selectedCategory === 'all'
+    return categoryFromUrl === 'all'
       ? posts
       : posts.filter(
-          (post: MainPostFormatted) => post.category?.slug === selectedCategory
+          (post: MainPostFormatted) => post.category?.slug === categoryFromUrl
         )
-  }, [posts, selectedCategory])
+  }, [posts, categoryFromUrl])
 
-  // 정렬된 게시물 목록 (고정 게시글 우선 정렬) - useMemo로 최적화
+  // 정렬된 게시물 목록 (고정 게시글 우선 정렬) - useMemo로 최적화 (URL 파라미터 사용)
   const sortedPosts = useMemo(() => {
     return [...filteredPosts].sort((a, b) => {
       // 1. 고정 게시글이 항상 먼저
@@ -148,7 +137,7 @@ export function PostList({
       if (!a.isPinned && b.isPinned) return 1
 
       // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
-      switch (sortBy) {
+      switch (sortFromUrl) {
         case 'latest':
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -161,7 +150,7 @@ export function PostList({
           return 0
       }
     })
-  }, [filteredPosts, sortBy])
+  }, [filteredPosts, sortFromUrl])
 
   // 탭별 필터링 - useMemo로 최적화
   const { trendingPosts, recentPosts } = useMemo(() => {
@@ -194,11 +183,11 @@ export function PostList({
         </button>
         <ChevronRight className="h-4 w-4" />
         <span className="text-foreground font-medium">게시물</span>
-        {selectedCategory !== 'all' && (
+        {categoryFromUrl !== 'all' && (
           <>
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground font-medium">
-              {getCategoryName(selectedCategory)}
+              {getCategoryName(categoryFromUrl)}
             </span>
           </>
         )}
@@ -214,7 +203,7 @@ export function PostList({
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {getCategoryName(selectedCategory)} 게시물
+                  {getCategoryName(categoryFromUrl)} 게시물
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   총{' '}
@@ -265,9 +254,8 @@ export function PostList({
               카테고리
             </div>
             <Select
-              value={selectedCategory}
+              value={categoryFromUrl}
               onValueChange={(value) => {
-                setSelectedCategory(value)
                 updateURL({ category: value })
               }}
             >
@@ -303,9 +291,8 @@ export function PostList({
               정렬
             </div>
             <Select
-              value={sortBy}
+              value={sortFromUrl}
               onValueChange={(value) => {
-                setSortBy(value)
                 updateURL({ sort: value })
               }}
             >

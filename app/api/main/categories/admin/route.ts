@@ -17,7 +17,13 @@ export async function GET() {
       select: categorySelect.list,
     })
 
-    return successResponse(categories)
+    // _count.posts를 postCount로 매핑
+    const categoriesWithPostCount = categories.map((category) => ({
+      ...category,
+      postCount: (category._count as { posts: number })?.posts || 0,
+    }))
+
+    return successResponse(categoriesWithPostCount)
   } catch (error) {
     return handleError(error)
   }

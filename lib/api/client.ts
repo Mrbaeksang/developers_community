@@ -99,11 +99,18 @@ export async function apiClient<T = unknown>(
       if (contentType && contentType.includes('application/json')) {
         try {
           const errorData = await response.json()
-          return {
+          // validation error의 경우 errors 필드도 포함
+          const result: ApiResponse<T> & {
+            errors?: Record<string, string | string[]>
+          } = {
             success: false,
             error: errorData.error || 'API 요청 중 오류가 발생했습니다.',
             message: errorData.message || '서버에서 오류 응답을 반환했습니다',
           }
+          if (errorData.errors) {
+            result.errors = errorData.errors
+          }
+          return result as ApiResponse<T>
         } catch {
           // JSON 파싱 실패
           return {

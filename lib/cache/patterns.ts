@@ -435,6 +435,7 @@ export const categorySelect = {
     icon: true,
     order: true,
     isActive: true,
+    requiresApproval: true,
     _count: {
       select: {
         posts: true,

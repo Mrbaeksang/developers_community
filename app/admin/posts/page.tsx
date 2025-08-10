@@ -123,6 +123,7 @@ export default function PostsPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedPost, setSelectedPost] = useState<
     MainPost | CommunityPost | null
@@ -163,8 +164,8 @@ export default function PostsPage() {
       }
       return response.data as MainPost[]
     },
-    staleTime: 30 * 1000, // 30초간 fresh
-    gcTime: 5 * 60 * 1000, // 5분간 캐시
+    staleTime: 5 * 1000, // 5초간 fresh (관리자는 실시간성 중요)
+    gcTime: 30 * 1000, // 30초간 캐시
   })
 
   // 메인 게시글 에러 처리
@@ -190,8 +191,30 @@ export default function PostsPage() {
       }
       return response.data as CommunityPost[]
     },
-    staleTime: 30 * 1000, // 30초간 fresh
-    gcTime: 5 * 60 * 1000, // 5분간 캐시
+    staleTime: 5 * 1000, // 5초간 fresh (관리자는 실시간성 중요)
+    gcTime: 30 * 1000, // 30초간 캐시
+  })
+
+  // React Query - 카테고리 목록 조회
+  const { data: categories = [] } = useQuery({
+    queryKey: ['adminCategories'],
+    queryFn: async () => {
+      const response = await apiClient('/api/admin/categories')
+      if (!response.success) {
+        throw new Error(response.error || '카테고리 조회 실패')
+      }
+      // API 응답이 배열 형태로 바로 오는 경우
+      return response.data as Array<{
+        id: string
+        name: string
+        slug: string
+        color: string
+        isActive: boolean
+        postCount: number
+      }>
+    },
+    staleTime: 30 * 1000, // 30초간 fresh (카테고리는 자주 안 바뀜)
+    gcTime: 60 * 1000, // 1분간 캐시
   })
 
   // 커뮤니티 게시글 에러 처리
@@ -234,14 +257,21 @@ export default function PostsPage() {
         )
       )
 
-      // 즉시 피드백 표시
+      return { previousPosts, newPinnedState }
+    },
+    onSuccess: (data) => {
+      // ✅ API 응답 후 최종 상태 확인
+      const actualPinnedState = (data as { isPinned: boolean }).isPinned
+
+      // 성공 메시지 표시
       toast({
-        title: newPinnedState
+        title: actualPinnedState
           ? '게시글이 고정되었습니다.'
           : '게시글 고정이 해제되었습니다.',
       })
 
-      return { previousPosts, newPinnedState }
+      // 쿼리 무효화하여 최신 데이터로 동기화
+      queryClient.invalidateQueries({ queryKey: ['adminMainPosts'] })
     },
     onError: (error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)
@@ -385,7 +415,9 @@ export default function PostsPage() {
       post.author.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.author.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || post.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesCategory =
+      categoryFilter === 'ALL' || post.category.id === categoryFilter
+    return matchesSearch && matchesStatus && matchesCategory
   })
 
   const filteredCommunityPosts = communityPosts.filter((post) => {
@@ -433,8 +465,8 @@ export default function PostsPage() {
       {/* 검색 및 필터 */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[250px]">
               <Label htmlFor="search">검색</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -447,7 +479,7 @@ export default function PostsPage() {
                 />
               </div>
             </div>
-            <div className="w-48">
+            <div className="w-44 sm:w-48">
               <Label htmlFor="status">상태</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -465,6 +497,48 @@ export default function PostsPage() {
                   <SelectItem value="PUBLISHED">게시됨</SelectItem>
                   <SelectItem value="REJECTED">거부됨</SelectItem>
                   <SelectItem value="ARCHIVED">보관됨</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-44 sm:w-48">
+              <Label htmlFor="category">카테고리</Label>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      {categoryFilter === 'ALL'
+                        ? '전체'
+                        : categories.find((c) => c.id === categoryFilter)
+                            ?.name || '전체'}
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">전체 ({mainPosts.length})</SelectItem>
+                  {categories
+                    .filter((category) => category.isActive)
+                    .map((category) => {
+                      const count = mainPosts.filter(
+                        (p) => p.category.id === category.id
+                      ).length
+                      return (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              {category.name}
+                            </div>
+                            <span className="text-muted-foreground text-xs">
+                              ({count})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                 </SelectContent>
               </Select>
             </div>

@@ -8,6 +8,7 @@ import {
   throwValidationError,
 } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
+import { redisCache } from '@/lib/cache/redis'
 
 // GET: 현재 고정 상태 조회
 export async function GET(
@@ -68,6 +69,10 @@ async function togglePostPin(
         isPinned: true,
       },
     })
+
+    // Redis 캐시 무효화 - 고정 상태 변경 시 목록과 상세 페이지 캐시 삭제
+    await redisCache.delPattern('api:cache:main:posts:*')
+    await redisCache.delPattern(`api:cache:main:post:detail:*${id}*`)
 
     return successResponse({
       success: true,

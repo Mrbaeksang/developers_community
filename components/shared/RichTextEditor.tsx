@@ -14,6 +14,9 @@ import {
   Code,
   Undo,
   Redo,
+  Heading1,
+  Heading2,
+  Heading3,
 } from 'lucide-react'
 import { ImageUploader } from './ImageUploader'
 import { ResizableImage } from './ResizableImage'
@@ -97,6 +100,57 @@ export function RichTextEditor({
     <div className="border-2 border-black rounded-md shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus-within:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
       {/* Toolbar */}
       <div className="border-b-2 border-black bg-gray-50 p-2 flex flex-wrap items-center gap-1">
+        {/* Heading buttons */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          className={`hover:bg-gray-100 ${
+            editor.isActive('heading', { level: 1 }) ? 'bg-gray-200' : ''
+          }`}
+          title="제목 1"
+          disabled={disabled}
+        >
+          <Heading1 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          className={`hover:bg-gray-100 ${
+            editor.isActive('heading', { level: 2 }) ? 'bg-gray-200' : ''
+          }`}
+          title="제목 2"
+          disabled={disabled}
+        >
+          <Heading2 className="h-4 w-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+          className={`hover:bg-gray-100 ${
+            editor.isActive('heading', { level: 3 }) ? 'bg-gray-200' : ''
+          }`}
+          title="제목 3"
+          disabled={disabled}
+        >
+          <Heading3 className="h-4 w-4" />
+        </Button>
+
+        <div className="mx-1 w-px bg-gray-300 h-6" />
+
         <Button
           type="button"
           variant="ghost"
@@ -225,7 +279,7 @@ export function RichTextEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="p-4 min-h-[300px] prose prose-sm max-w-none">
+      <div className="p-4 min-h-[300px] prose prose-sm max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-headings:mt-4 prose-headings:mb-2">
         <EditorContent editor={editor} className="min-h-[250px] outline-none" />
       </div>
     </div>

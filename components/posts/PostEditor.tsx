@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { toast as sonnerToast } from 'sonner'
+import type { ApiResponse } from '@/lib/api/response'
 import { TagSelector } from '@/components/forms/TagSelector'
 import { CategorySelector } from '@/components/forms/CategorySelector'
 import {
@@ -40,6 +41,15 @@ interface Category {
 }
 
 interface PostEditorProps {
+  mode?: 'create' | 'edit'
+  initialData?: {
+    id: string
+    title: string
+    content: string
+    excerpt: string
+    categoryId: string
+    tags: string[]
+  }
   userRole?: string
   postType?: 'main' | 'community'
   communityId?: string
@@ -80,6 +90,8 @@ const fetchCategories = async (
 }
 
 export function PostEditor({
+  mode = 'create',
+  initialData,
   userRole,
   postType = 'main',
   communityId,
@@ -94,12 +106,14 @@ export function PostEditor({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 폼 상태
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [excerpt, setExcerpt] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  // 폼 상태 - 초기값은 mode와 initialData에 따라 설정
+  const [title, setTitle] = useState(initialData?.title || '')
+  const [content, setContent] = useState(initialData?.content || '')
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt || '')
+  const [categoryId, setCategoryId] = useState(initialData?.categoryId || '')
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    initialData?.tags || []
+  )
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
 
   // Real-time validation states
@@ -195,6 +209,8 @@ export function PostEditor({
 
   // Auto-save function (defined before usage)
   const handleAutoSave = useCallback(() => {
+    // Edit 모드에서는 자동 저장 비활성화
+    if (mode === 'edit') return
     if (!title || !content || !categoryId) return
 
     autoSaveMutation.mutate({
@@ -204,7 +220,171 @@ export function PostEditor({
       categoryId,
       tags: selectedTags,
     })
-  }, [title, content, excerpt, categoryId, selectedTags, autoSaveMutation])
+  }, [
+    title,
+    content,
+    excerpt,
+    categoryId,
+    selectedTags,
+    autoSaveMutation,
+    mode,
+  ])
+
+  // 게시글 수정 mutation (edit mode용)
+  const updatePostMutation = useMutation({
+    mutationFn: async (data: {
+      title: string
+      content: string
+      excerpt: string
+      categoryId: string
+      tags: string[]
+    }) => {
+      if (!initialData?.id) {
+        throw new Error('게시글 ID가 없습니다.')
+      }
+
+      // 태그 slug를 ID로 변환
+      let tagIds: string[] = []
+      if (data.tags.length > 0) {
+        try {
+          // 먼저 모든 태그를 조회 또는 생성
+          const tagPromises = data.tags.map(async (slug) => {
+            const tagRes = await fetch(
+              `/api/main/tags/by-slug?slug=${encodeURIComponent(slug)}`
+            )
+            if (tagRes.ok) {
+              const tagData = await tagRes.json()
+              if (tagData.success && tagData.data) {
+                return tagData.data.id
+              }
+            }
+            // 태그가 없으면 생성
+            const createRes = await fetch('/api/main/tags', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: slug, slug }),
+            })
+            if (createRes.ok) {
+              const created = await createRes.json()
+              if (created.success && created.data) {
+                return created.data.id
+              }
+            }
+            return null
+          })
+          const results = await Promise.all(tagPromises)
+          tagIds = results.filter((id): id is string => id !== null)
+        } catch (error) {
+          console.error('Failed to process tags:', error)
+          // 태그 처리 실패해도 계속 진행
+        }
+      }
+
+      const endpoint =
+        postType === 'community' && communityId
+          ? `/api/communities/${communityId}/posts/${initialData.id}`
+          : `/api/main/posts/${initialData.id}`
+
+      const { apiClient } = await import('@/lib/api/client')
+
+      // 커뮤니티는 PATCH, 메인은 PUT 메서드 사용
+      const method = postType === 'community' ? 'PATCH' : 'PUT'
+
+      // 커뮤니티와 메인의 body 구조가 다름
+      const requestBody =
+        postType === 'community'
+          ? {
+              title: data.title,
+              content: data.content,
+              categoryId: data.categoryId,
+              // 커뮤니티는 fileIds 사용 (태그 시스템 없음)
+            }
+          : {
+              title: data.title,
+              content: data.content,
+              excerpt: data.excerpt || data.content.substring(0, 200),
+              categoryId: data.categoryId,
+              tagIds, // 메인만 태그 사용
+            }
+
+      const result = await apiClient(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      // 더 자세한 에러 로깅
+      if (!result.success) {
+        const errorResult = result as ApiResponse & {
+          errors?: Record<string, string | string[]>
+        }
+        console.error('Update failed:', {
+          endpoint,
+          method,
+          requestBody,
+          error: errorResult.error,
+          message: errorResult.message,
+          errors: errorResult.errors, // validation errors
+        })
+
+        // Validation 에러인 경우 더 구체적인 메시지
+        if (errorResult.errors) {
+          const firstError = Object.values(errorResult.errors)[0]
+          const errorMsg = Array.isArray(firstError)
+            ? firstError[0]
+            : firstError
+          throw new Error(
+            errorMsg || errorResult.error || '게시글 수정에 실패했습니다'
+          )
+        }
+
+        throw new Error(result.error || '게시글 수정에 실패했습니다')
+      }
+
+      if (!result.data) {
+        console.error('No data in response:', result)
+        throw new Error('응답 데이터가 없습니다')
+      }
+
+      return result.data as { id: string }
+    },
+    onSuccess: (post) => {
+      // 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['mainPosts'] })
+      queryClient.invalidateQueries({ queryKey: ['recentPosts'] })
+      queryClient.invalidateQueries({ queryKey: ['post', initialData?.id] })
+
+      sonnerToast.success('게시글이 성공적으로 수정되었습니다.')
+
+      // 게시글 상세 페이지로 이동
+      if (post && post.id) {
+        setSubmitState('redirecting')
+        const loadingToast = sonnerToast.loading('게시글 페이지로 이동 중...')
+        setTimeout(() => {
+          sonnerToast.dismiss(loadingToast)
+          if (postType === 'community' && communityId) {
+            router.push(`/communities/${communityId}/posts/${post.id}`)
+          } else {
+            router.push(`/main/posts/${post.id}`)
+          }
+        }, 500)
+      }
+    },
+    onError: (error) => {
+      console.error('Failed to update post:', error)
+      sonnerToast.error(
+        error instanceof Error ? error.message : '게시글 수정에 실패했습니다'
+      )
+    },
+    onSettled: () => {
+      if (submitState !== 'redirecting') {
+        setSubmitState('idle')
+      }
+      setIsSubmitting(false)
+    },
+  })
 
   // 게시글 작성 mutation
   const createPostMutation = useMutation({
@@ -348,16 +528,30 @@ export function PostEditor({
 
       setSubmitState('submitting')
       setIsSubmitting(true)
-      createPostMutation.mutate({
-        title,
-        content,
-        excerpt,
-        categoryId,
-        tags: selectedTags,
-        status: submitStatus,
-      })
+
+      if (mode === 'edit') {
+        // 수정 모드에서는 status 파라미터가 없음
+        updatePostMutation.mutate({
+          title,
+          content,
+          excerpt,
+          categoryId,
+          tags: selectedTags,
+        })
+      } else {
+        // 작성 모드
+        createPostMutation.mutate({
+          title,
+          content,
+          excerpt,
+          categoryId,
+          tags: selectedTags,
+          status: submitStatus,
+        })
+      }
     },
     [
+      mode,
       title,
       content,
       excerpt,
@@ -365,6 +559,7 @@ export function PostEditor({
       selectedTags,
       validateField,
       createPostMutation,
+      updatePostMutation,
     ]
   )
 
@@ -504,9 +699,13 @@ export function PostEditor({
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-4xl font-bold text-black">
-            게시글 작성하기
+            {mode === 'edit' ? '게시글 수정하기' : '게시글 작성하기'}
           </h1>
-          <p className="text-gray-600">당신의 이야기를 세상과 공유해보세요</p>
+          <p className="text-gray-600">
+            {mode === 'edit'
+              ? '게시글을 수정하여 더 나은 내용으로 만들어보세요'
+              : '당신의 이야기를 세상과 공유해보세요'}
+          </p>
         </div>
 
         <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 lg:p-10">
@@ -660,13 +859,13 @@ export function PostEditor({
                 >
                   태그 (선택사항)
                   <span className="ml-2 text-sm font-normal text-gray-500">
-                    (최대 10개)
+                    (최대 5개)
                   </span>
                 </Label>
                 <TagSelector
                   value={selectedTags}
                   onChange={setSelectedTags}
-                  maxTags={10}
+                  maxTags={5}
                   placeholder="태그를 입력하고 Enter를 누르세요"
                   disabled={isSubmitting}
                   showPopularTags={true}
@@ -762,25 +961,29 @@ export function PostEditor({
               </Button>
             </div>
             <div className="flex gap-2">
+              {mode === 'create' && (
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit('DRAFT')}
+                  variant="outline"
+                  className="border-2 border-black hover:bg-gray-100"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <ButtonSpinner />
+                      저장 중...
+                    </>
+                  ) : (
+                    '임시저장'
+                  )}
+                </Button>
+              )}
               <Button
                 type="button"
-                onClick={() => handleSubmit('DRAFT')}
-                variant="outline"
-                className="border-2 border-black hover:bg-gray-100"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <ButtonSpinner />
-                    저장 중...
-                  </>
-                ) : (
-                  '임시저장'
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleSubmit('PENDING')}
+                onClick={() =>
+                  handleSubmit(mode === 'edit' ? 'PENDING' : 'PENDING')
+                }
                 className="border-2 border-black bg-blue-500 font-bold text-white hover:bg-blue-600 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 disabled={isSubmitting}
               >
@@ -789,6 +992,8 @@ export function PostEditor({
                     <ButtonSpinner />
                     처리 중...
                   </>
+                ) : mode === 'edit' ? (
+                  '수정 완료'
                 ) : userRole === 'ADMIN' ? (
                   '게시글 발행'
                 ) : (

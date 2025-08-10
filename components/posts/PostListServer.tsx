@@ -191,7 +191,6 @@ export async function PostListServer({
         initialPosts={formattedPosts}
         categories={formattedCategories}
         isLoading={false}
-        currentCategory={category}
       />
       <Pagination
         currentPage={pageNumber}

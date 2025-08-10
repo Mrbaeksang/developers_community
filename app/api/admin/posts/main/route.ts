@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
         return { posts: formattedPosts, total }
       },
-      REDIS_TTL.API_SHORT * 3 // 3분 캐싱
+      REDIS_TTL.API_SHORT // 30초 캐싱 (관리자는 실시간성 중요)
     )
 
     return paginatedResponse(

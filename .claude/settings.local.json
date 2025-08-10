@@ -19,7 +19,9 @@
       "mcp__exa__deep_researcher_start",
       "mcp__exa__deep_researcher_check",
       "Bash(npx tsx:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(node:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": []
   }

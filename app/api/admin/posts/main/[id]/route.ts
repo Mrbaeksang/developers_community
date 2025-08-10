@@ -3,6 +3,7 @@ import { requireRoleAPI } from '@/lib/auth/session'
 import { deletedResponse } from '@/lib/api/response'
 import { handleError, throwNotFoundError } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
+import { redisCache } from '@/lib/cache/redis'
 
 // 메인 게시글 삭제 (관리자만)
 async function deleteMainPost(
@@ -58,6 +59,12 @@ async function deleteMainPost(
         where: { id },
       }),
     ])
+
+    // Redis 캐시 무효화 - 삭제된 게시글 관련 모든 캐시 삭제
+    await redisCache.delPattern('api:cache:main:posts:*')
+    await redisCache.delPattern(`api:cache:main:post:detail:*${id}*`)
+    await redisCache.delPattern('api:cache:main:tags:*')
+    await redisCache.delPattern('api:cache:main:categories:*')
 
     return deletedResponse('메인 게시글이 삭제되었습니다.')
   } catch (error) {
