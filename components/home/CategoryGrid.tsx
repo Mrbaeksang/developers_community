@@ -21,8 +21,8 @@ const fetchCategories = async (): Promise<Category[]> => {
   if (!res.ok) throw new Error('Failed to fetch categories')
 
   const result = await res.json()
-  // successResponse 형식으로 오는 경우 items 필드에서 실제 데이터 추출
-  return result.items || result.data || result
+  // successResponse 형식으로 오는 경우 data.items 필드에서 실제 데이터 추출
+  return result.data?.items || result.items || result.data || result
 }
 
 export function CategoryGrid() {

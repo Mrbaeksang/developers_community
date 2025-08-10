@@ -52,6 +52,10 @@ const rateLimiter = initRateLimitMiddleware({
 
     // 파일 업로드 제한 - 더 관대하게 설정
     [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 50)], // 1시간에 50개로 증가
+
+    // 채팅 타이핑 인디케이터 - 매우 관대하게 설정 (429 에러 방지)
+    [ActionCategory.CHAT_TYPING, createRateLimitRule(60000, 100)], // 1분에 100회로 설정
+    [ActionCategory.CHAT_MESSAGE_SEND, createRateLimitRule(60000, 60)], // 1분에 60개
   ]),
 })
 

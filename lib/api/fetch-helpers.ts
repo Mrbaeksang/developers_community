@@ -16,6 +16,24 @@ import type {
 } from '@/lib/post/types'
 
 /**
+ * API 기본 URL 가져오기
+ */
+function getAPIBaseUrl(): string {
+  // 클라이언트 사이드
+  if (typeof window !== 'undefined') {
+    return ''
+  }
+
+  // 서버 사이드
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000')
+  )
+}
+
+/**
  * 기본 fetch 옵션
  */
 const DEFAULT_FETCH_OPTIONS: RequestInit = {
@@ -48,10 +66,12 @@ async function fetchWithRetry(
   retries = 2
 ): Promise<Response> {
   let lastError: Error | null = null
+  const baseUrl = getAPIBaseUrl()
+  const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`
 
   for (let i = 0; i <= retries; i++) {
     try {
-      const response = await fetch(url, {
+      const response = await fetch(fullUrl, {
         ...DEFAULT_FETCH_OPTIONS,
         ...options,
       })

@@ -87,10 +87,15 @@ export default function CommunityAnnouncements({
                 size="md"
                 showName
                 showDate
-                date={formatDistanceToNow(new Date(announcement.createdAt), {
-                  addSuffix: true,
-                  locale: ko,
-                })}
+                date={
+                  announcement.createdAt &&
+                  !isNaN(Date.parse(announcement.createdAt))
+                    ? formatDistanceToNow(new Date(announcement.createdAt), {
+                        addSuffix: true,
+                        locale: ko,
+                      })
+                    : '방금 전'
+                }
                 enableDropdown
                 dropdownAlign="start"
               />

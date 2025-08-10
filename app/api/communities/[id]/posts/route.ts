@@ -50,9 +50,11 @@ export async function GET(
 
     const session = await auth()
 
-    // 커뮤니티 확인
-    const community = await prisma.community.findUnique({
-      where: { id },
+    // 커뮤니티 확인 (ID 또는 slug로 조회)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
       select: { id: true, visibility: true, ownerId: true },
     })
 
@@ -67,7 +69,7 @@ export async function GET(
           where: {
             userId_communityId: {
               userId: session.user.id,
-              communityId: id,
+              communityId: community.id,
             },
           },
           select: { status: true },
@@ -92,11 +94,32 @@ export async function GET(
         content?: { contains: string; mode: 'insensitive' }
       }>
     } = {
-      communityId: id,
+      communityId: community.id,
     }
 
     if (category) {
-      where.categoryId = category
+      // category가 UUID 형식인지 확인 (ID인 경우)
+      const isUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          category
+        )
+
+      if (isUUID) {
+        where.categoryId = category
+      } else {
+        // slug인 경우 해당 카테고리 찾기
+        const categoryData = await prisma.communityCategory.findFirst({
+          where: {
+            communityId: community.id,
+            slug: category,
+          },
+          select: { id: true },
+        })
+
+        if (categoryData) {
+          where.categoryId = categoryData.id
+        }
+      }
     }
 
     if (search) {
@@ -126,7 +149,7 @@ export async function GET(
 
     // Redis 캐시 키 생성 - 로그인 상태에 따라 다른 캐시 사용
     const cacheKey = generateCacheKey('community:posts', {
-      communityId: id,
+      communityId: community.id,
       ...pagination,
       category,
       search,

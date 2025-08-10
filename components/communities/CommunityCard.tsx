@@ -214,7 +214,7 @@ export function CommunityCard({
 
   if (variant === 'compact') {
     return (
-      <Link href={`/communities/${community.id}`}>
+      <Link href={`/communities/${community.slug}`}>
         <Card
           className={cn(
             'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
@@ -281,7 +281,7 @@ export function CommunityCard({
 
   if (variant === 'featured') {
     return (
-      <Link href={`/communities/${community.id}`}>
+      <Link href={`/communities/${community.slug}`}>
         <Card
           className={cn(
             'border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
@@ -379,7 +379,7 @@ export function CommunityCard({
   // Full variant (for communities page)
   if (variant === 'full') {
     return (
-      <Link href={`/communities/${community.id}`}>
+      <Link href={`/communities/${community.slug}`}>
         <Card
           className={cn(
             'h-full',
@@ -550,7 +550,7 @@ export function CommunityCard({
               {community.name}
             </h3>
             <p className={`text-sm ${theme.text} font-medium`}>
-              @{community.id}
+              @{community.slug}
             </p>
           </CardHeader>
 
@@ -572,12 +572,18 @@ export function CommunityCard({
                     )}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50/80 rounded-full border border-blue-200">
-                  <MessageCircle className="size-3 text-blue-500" />
-                  <span className="text-blue-600 text-xs font-medium">
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-50/80 rounded-full border border-green-200">
+                  <FileText className="size-3 text-green-500" />
+                  <span className="text-green-600 text-xs font-medium">
                     {formatCount(
                       community._count?.posts ?? community.postCount ?? 0
                     )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50/80 rounded-full border border-blue-200">
+                  <MessageCircle className="size-3 text-blue-500" />
+                  <span className="text-blue-600 text-xs font-medium">
+                    채팅
                   </span>
                 </div>
               </div>

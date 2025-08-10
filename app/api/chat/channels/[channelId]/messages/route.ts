@@ -15,6 +15,7 @@ const messageSchema = z.object({
   content: z.string().min(1).max(1000),
   fileId: z.string().optional(), // 파일 첨부용
   type: z.enum(['TEXT', 'IMAGE', 'FILE']).default('TEXT'), // 메시지 타입
+  replyToId: z.string().optional(), // 답글 기능
 })
 
 // GET: 채팅 메시지 목록 조회
@@ -83,6 +84,18 @@ export async function GET(
           },
         },
         file: true,
+        replyTo: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -147,6 +160,18 @@ export async function GET(
                 height: message.file.height,
                 expiresAt: message.file.expiresAt,
                 isTemporary: message.file.isTemporary,
+              }
+            : undefined,
+          replyTo: message.replyTo
+            ? {
+                id: message.replyTo.id,
+                content: message.replyTo.content,
+                author: {
+                  id: message.replyTo.author.id,
+                  username: message.replyTo.author.username,
+                  name: message.replyTo.author.name,
+                  image: message.replyTo.author.image || undefined,
+                },
               }
             : undefined,
         }
@@ -228,6 +253,20 @@ export async function POST(
       }
     }
 
+    // 답글 대상 메시지 확인
+    if (validatedData.replyToId) {
+      const replyTo = await prisma.chatMessage.findUnique({
+        where: {
+          id: validatedData.replyToId,
+          channelId: channelId, // 같은 채널의 메시지여야 함
+        },
+      })
+
+      if (!replyTo) {
+        throw throwValidationError('답글 대상 메시지를 찾을 수 없습니다.')
+      }
+    }
+
     // 메시지 생성
     const message = await prisma.chatMessage.create({
       data: {
@@ -236,6 +275,7 @@ export async function POST(
         authorId: userId,
         channelId,
         fileId: validatedData.fileId,
+        replyToId: validatedData.replyToId,
       },
       include: {
         author: {
@@ -247,6 +287,18 @@ export async function POST(
           },
         },
         file: true,
+        replyTo: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -293,6 +345,18 @@ export async function POST(
             height: message.file.height,
             expiresAt: message.file.expiresAt,
             isTemporary: message.file.isTemporary,
+          }
+        : undefined,
+      replyTo: message.replyTo
+        ? {
+            id: message.replyTo.id,
+            content: message.replyTo.content,
+            author: {
+              id: message.replyTo.author.id,
+              username: message.replyTo.author.username,
+              name: message.replyTo.author.name,
+              image: message.replyTo.author.image || undefined,
+            },
           }
         : undefined,
     }

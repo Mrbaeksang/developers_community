@@ -27,6 +27,9 @@ interface Category {
   description: string | null
   color: string | null
   icon: string | null
+  _count?: {
+    posts: number
+  }
 }
 
 interface Announcement {
@@ -326,20 +329,29 @@ export default async function CommunityDetailPage({
             >
               멤버
             </TabsTrigger>
-            {community.announcements.length > 0 && (
+            {community.announcements.length > 0 ? (
               <TabsTrigger
                 value="announcements"
                 className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
               >
                 공지사항
               </TabsTrigger>
+            ) : (
+              <TabsTrigger
+                value="rules"
+                className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+              >
+                규칙
+              </TabsTrigger>
             )}
-            <TabsTrigger
-              value="rules"
-              className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
-            >
-              규칙
-            </TabsTrigger>
+            {community.announcements.length > 0 && (
+              <TabsTrigger
+                value="rules"
+                className="font-bold data-[state=active]:bg-white data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] data-[state=active]:border-2 data-[state=active]:border-black transition-all"
+              >
+                규칙
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="posts" className="space-y-4">
@@ -349,7 +361,7 @@ export default async function CommunityDetailPage({
                   asChild
                   className="bg-blue-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
                 >
-                  <Link href={`/communities/${community.id}/write`}>
+                  <Link href={`/communities/${community.slug}/write`}>
                     게시글 작성
                   </Link>
                 </Button>
@@ -357,13 +369,13 @@ export default async function CommunityDetailPage({
             )}
             <CommunityPostList
               communityId={community.id}
-              page={1}
+              communitySlug={community.slug}
               categories={community.categories.map((cat) => ({
                 id: cat.id,
                 name: cat.name,
                 slug: cat.slug,
                 color: cat.color,
-                postCount: 0,
+                postCount: cat._count?.posts || 0,
               }))}
             />
           </TabsContent>

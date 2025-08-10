@@ -14,10 +14,13 @@ import { getCategoryIcon } from '@/lib/post/display'
 import { AuthorAvatar } from '@/components/shared/AuthorAvatar'
 import { Badge } from '@/components/ui/badge'
 import { stripTiptapHtml, truncateText } from '@/lib/ui/text'
-import type { MainPostFormatted } from '@/lib/post/types'
+import type {
+  MainPostFormatted,
+  CommunityPostFormatted,
+} from '@/lib/post/types'
 
 interface PostCardProps {
-  post: MainPostFormatted
+  post: MainPostFormatted | CommunityPostFormatted
   className?: string
   href?: string // 커스텀 링크를 위한 prop
 }
@@ -53,11 +56,12 @@ export const PostCard = memo(function PostCard({
   }, [post.content, post.readingTime])
 
   // Tiptap HTML에서 일반 텍스트 추출
+  const excerpt = 'excerpt' in post ? post.excerpt : null
   const displayExcerpt = useMemo(() => {
-    if (!post.excerpt) return ''
-    const plainText = stripTiptapHtml(post.excerpt)
+    if (!excerpt) return ''
+    const plainText = stripTiptapHtml(excerpt)
     return truncateText(plainText, 150)
-  }, [post.excerpt])
+  }, [excerpt])
 
   return (
     <Card
@@ -69,7 +73,7 @@ export const PostCard = memo(function PostCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            {post.isPinned && (
+            {'isPinned' in post && post.isPinned && (
               <Badge className="px-2 py-1 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-yellow-500 text-white">
                 📌 고정
               </Badge>
@@ -103,14 +107,15 @@ export const PostCard = memo(function PostCard({
           </p>
         )}
 
-        {post.tags.length > 0 && (
+        {'tags' in post && post.tags && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {post.tags.slice(0, 3).map((tag) => (
-              <TagBadge key={tag.id} tag={tag} />
-            ))}
-            {post.tags.length > 3 && (
+            {'tags' in post &&
+              post.tags
+                .slice(0, 3)
+                .map((tag) => <TagBadge key={tag.id} tag={tag} />)}
+            {'tags' in post && post.tags.length > 3 && (
               <span className="text-xs text-muted-foreground px-2 font-semibold flex items-center">
-                +{post.tags.length - 3}개 더
+                +{'tags' in post ? post.tags.length - 3 : 0}개 더
               </span>
             )}
           </div>

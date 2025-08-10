@@ -1,15 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Filter, Search } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import { auth } from '@/auth'
 
@@ -53,14 +45,11 @@ export default async function CommunityPostsPage({
 }: {
   params: Promise<{ id: string }>
   searchParams: Promise<{
-    page?: string
     category?: string
-    search?: string
-    sort?: string
   }>
 }) {
   const { id } = await params
-  const { page = '1', category, search, sort = 'latest' } = await searchParams
+  const { category } = await searchParams
   const session = await auth()
   const community = await getCommunity(id)
 
@@ -111,39 +100,12 @@ export default async function CommunityPostsPage({
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="게시글 검색..."
-              className="pl-10 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
-              defaultValue={search}
-            />
-          </div>
-        </div>
-
-        <Select defaultValue={sort}>
-          <SelectTrigger className="w-[180px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="정렬" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="latest">최신순</SelectItem>
-            <SelectItem value="popular">인기순</SelectItem>
-            <SelectItem value="commented">댓글순</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Post List */}
+      {/* Post List with integrated filters */}
       <CommunityPostList
         communityId={community.id}
-        page={parseInt(page)}
-        category={category}
-        search={search}
-        sort={sort}
+        communitySlug={community.slug}
+        currentCategory={category}
+        isLoading={false}
       />
     </div>
   )

@@ -104,9 +104,8 @@ const fetchMembers = async ({
 
   const data = await res.json()
 
-  // 새로운 응답 형식 처리: { success: true, data: { members } }
-  const membersData =
-    data.success && data.data ? data.data.members : data.members || []
+  // API 응답 형식 처리: { success: true, data: [멤버 배열], pagination: {...} }
+  const membersData = data.success && data.data ? data.data : data.members || []
   const membersList = Array.isArray(membersData) ? membersData : []
 
   return {
@@ -280,10 +279,12 @@ export default function CommunityMemberList({
                   </div>
 
                   <p className="text-xs text-muted-foreground mt-2">
-                    {formatDistanceToNow(new Date(member.joinedAt), {
-                      addSuffix: true,
-                      locale: ko,
-                    })}{' '}
+                    {member.joinedAt && !isNaN(Date.parse(member.joinedAt))
+                      ? formatDistanceToNow(new Date(member.joinedAt), {
+                          addSuffix: true,
+                          locale: ko,
+                        })
+                      : '방금'}{' '}
                     가입
                   </p>
                 </div>

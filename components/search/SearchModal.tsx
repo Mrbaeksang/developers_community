@@ -46,7 +46,7 @@ interface SearchResult {
     name: string
     slug: string
   }>
-  _count: {
+  _count?: {
     comments: number
     likes: number
   }
@@ -267,8 +267,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       {/* 통계 정보 */}
                       <PostStats
                         viewCount={result.viewCount}
-                        likeCount={result._count.likes}
-                        commentCount={result._count.comments}
+                        likeCount={result._count?.likes || 0}
+                        commentCount={result._count?.comments || 0}
                         size="sm"
                         variant="minimal"
                         className="mt-3"

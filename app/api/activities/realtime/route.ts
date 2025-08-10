@@ -6,6 +6,7 @@ import { successResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { getCursorCondition } from '@/lib/post/pagination'
+import { trackApiCall } from '@/lib/api/monitoring-base'
 
 // 내부 활동 타입 (Date 객체 사용)
 interface InternalActivity {
@@ -24,6 +25,9 @@ interface InternalActivity {
 }
 
 export async function GET(request: Request) {
+  const start = Date.now()
+  const endpoint = '/api/activities/realtime'
+
   try {
     // URL 파라미터 파싱
     const { searchParams } = new URL(request.url)
@@ -343,6 +347,10 @@ export async function GET(request: Request) {
       REDIS_TTL.API_SHORT // 1분 캐싱
     )
 
+    // API 호출 추적
+    const responseTime = Date.now() - start
+    await trackApiCall(endpoint, responseTime)
+
     return successResponse({
       items: cachedActivities.activities,
       pagination: {
@@ -356,6 +364,10 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
+    // 에러 시에도 추적
+    const responseTime = Date.now() - start
+    await trackApiCall(endpoint, responseTime)
+
     return handleError(error)
   }
 }

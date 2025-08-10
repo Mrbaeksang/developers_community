@@ -69,6 +69,12 @@ export enum ActionCategory {
   SEARCH_POSTS = 'search.posts',
   SEARCH_USERS = 'search.users',
   SEARCH_COMMUNITIES = 'search.communities',
+
+  // Chat
+  CHAT_TYPING = 'chat.typing',
+  CHAT_MESSAGE_SEND = 'chat.message.send',
+  CHAT_MESSAGE_UPDATE = 'chat.message.update',
+  CHAT_MESSAGE_DELETE = 'chat.message.delete',
 }
 
 // Action 메타데이터
@@ -353,6 +359,36 @@ export const ACTION_CONFIG: Record<ActionCategory, ActionMetadata> = {
     cost: 3,
     requiresAuth: false,
   },
+
+  // Chat
+  [ActionCategory.CHAT_TYPING]: {
+    type: ActionType.SENSITIVE,
+    category: ActionCategory.CHAT_TYPING,
+    severity: 'low',
+    cost: 1, // 매우 낮은 비용
+    requiresAuth: true,
+  },
+  [ActionCategory.CHAT_MESSAGE_SEND]: {
+    type: ActionType.WRITE,
+    category: ActionCategory.CHAT_MESSAGE_SEND,
+    severity: 'medium',
+    cost: 3,
+    requiresAuth: true,
+  },
+  [ActionCategory.CHAT_MESSAGE_UPDATE]: {
+    type: ActionType.WRITE,
+    category: ActionCategory.CHAT_MESSAGE_UPDATE,
+    severity: 'low',
+    cost: 2,
+    requiresAuth: true,
+  },
+  [ActionCategory.CHAT_MESSAGE_DELETE]: {
+    type: ActionType.WRITE,
+    category: ActionCategory.CHAT_MESSAGE_DELETE,
+    severity: 'medium',
+    cost: 2,
+    requiresAuth: true,
+  },
 }
 
 // Helper functions
@@ -484,6 +520,28 @@ export function getActionFromPath(
     // Files
     [/^\/api\/upload/, 'POST', ActionCategory.FILE_UPLOAD],
     [/^\/api\/download/, 'GET', ActionCategory.FILE_DOWNLOAD],
+
+    // Chat
+    [
+      /^\/api\/chat\/channels\/[^\/]+\/typing/,
+      'POST',
+      ActionCategory.CHAT_TYPING,
+    ],
+    [
+      /^\/api\/chat\/channels\/[^\/]+\/messages$/,
+      'POST',
+      ActionCategory.CHAT_MESSAGE_SEND,
+    ],
+    [
+      /^\/api\/chat\/channels\/[^\/]+\/messages\/[^\/]+$/,
+      'PATCH',
+      ActionCategory.CHAT_MESSAGE_UPDATE,
+    ],
+    [
+      /^\/api\/chat\/channels\/[^\/]+\/messages\/[^\/]+$/,
+      'DELETE',
+      ActionCategory.CHAT_MESSAGE_DELETE,
+    ],
   ]
 
   for (const [pattern, expectedMethod, category] of patterns) {

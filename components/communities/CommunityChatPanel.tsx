@@ -1,20 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Send,
-  Paperclip,
   LogIn,
-  Image as ImageIcon,
-  File,
   X,
   Edit2,
   Trash2,
   MessageCircle,
   Users,
   ChevronLeft,
+  Reply,
 } from 'lucide-react'
-import NextImage from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -27,7 +24,6 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { type ChatMessage } from '@/hooks/use-chat-events'
 import { useCommunityChat } from '@/hooks/use-community-chat'
-import { uploadChatFile } from '@/lib/chat/utils'
 import { cn } from '@/lib/core/utils'
 
 interface CommunityChatPanelProps {
@@ -52,13 +48,13 @@ export default function CommunityChatPanel({
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [replyingToMessage, setReplyingToMessage] =
+    useState<ChatMessage | null>(null)
+  const [lastReadAt, setLastReadAt] = useState<Date | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 커뮤니티 채널이 없으면 채널 생성 또는 가져오기
   const [activeChannelId, setActiveChannelId] = useState<string | null>(
@@ -84,9 +80,9 @@ export default function CommunityChatPanel({
   const { typingUsers, onlineCount, setOnMessage, sendTypingIndicator } =
     useCommunityChat(activeChannelId, session?.user?.id || null)
 
-  // 초기 메시지 로드
+  // 초기 메시지 로드 및 마지막 읽은 시간 가져오기
   useEffect(() => {
-    if (!activeChannelId) return
+    if (!activeChannelId || !session?.user?.id) return
 
     const loadMessages = async () => {
       try {
@@ -97,6 +93,17 @@ export default function CommunityChatPanel({
           const data = await res.json()
           setMessages(data.data?.messages || data.messages || [])
         }
+
+        // 사용자의 마지막 읽은 시간 가져오기
+        const memberRes = await fetch(
+          `/api/chat/channels/${activeChannelId}/members/${session.user.id}`
+        )
+        if (memberRes.ok) {
+          const memberData = await memberRes.json()
+          if (memberData.data?.lastReadAt) {
+            setLastReadAt(new Date(memberData.data.lastReadAt))
+          }
+        }
       } catch (error) {
         console.error('Failed to load messages:', error)
       } finally {
@@ -105,7 +112,7 @@ export default function CommunityChatPanel({
     }
 
     loadMessages()
-  }, [activeChannelId])
+  }, [activeChannelId, session?.user?.id])
 
   // 실시간 메시지 수신 처리
   useEffect(() => {
@@ -114,7 +121,26 @@ export default function CommunityChatPanel({
     // 메시지 핸들러 설정
     const messageHandler = (message: ChatMessage | null) => {
       if (message) {
-        setMessages((prev) => [...prev, message])
+        setMessages((prev) => {
+          // 중복 방지: 이미 존재하는 메시지인지 확인
+          const exists = prev.some((m) => m.id === message.id)
+          if (exists) {
+            // 메시지 업데이트 (수정된 경우)
+            return prev.map((m) => (m.id === message.id ? message : m))
+          }
+          // 새 메시지 추가
+          return [...prev, message]
+        })
+
+        // 본인이 아닌 메시지일 때 lastReadAt 업데이트
+        if (session?.user?.id && message.author?.id !== session.user.id) {
+          fetch(
+            `/api/chat/channels/${activeChannelId}/members/${session.user.id}`,
+            {
+              method: 'PATCH',
+            }
+          ).catch(console.error)
+        }
       }
     }
 
@@ -124,30 +150,15 @@ export default function CommunityChatPanel({
     return () => {
       setOnMessage(null)
     }
-  }, [activeChannelId, setOnMessage])
+  }, [activeChannelId, setOnMessage, session?.user?.id])
 
   // 메시지 전송
   const handleSendMessage = async () => {
-    if (!newMessage.trim() && !selectedFile) return
+    if (!newMessage.trim()) return
     if (!session?.user) return
     if (!activeChannelId) return
 
     setSending(true)
-    let fileData = null
-
-    // 파일 업로드
-    if (selectedFile) {
-      setUploading(true)
-      try {
-        fileData = await uploadChatFile(selectedFile)
-      } catch (error) {
-        console.error('File upload failed:', error)
-        setUploading(false)
-        setSending(false)
-        return
-      }
-      setUploading(false)
-    }
 
     try {
       const res = await fetch(
@@ -156,18 +167,30 @@ export default function CommunityChatPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content:
-              newMessage.trim() || (fileData ? '파일을 전송했습니다' : ''),
-            type: fileData ? 'FILE' : 'TEXT',
-            fileId: fileData?.fileId,
+            content: newMessage.trim(),
+            type: 'TEXT',
+            replyToId: replyingToMessage?.id,
           }),
         }
       )
 
       if (res.ok) {
+        const data = await res.json()
+        // 전송한 메시지 즉시 추가 (실시간 수신 전)
+        if (data.success && data.data?.message) {
+          const newMessage = data.data.message
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.id === newMessage.id)
+            if (!exists) {
+              return [...prev, newMessage]
+            }
+            return prev
+          })
+        }
         setNewMessage('')
-        setSelectedFile(null)
-        scrollToBottom()
+        setReplyingToMessage(null)
+        // 약간의 지연 후 스크롤 (메시지가 DOM에 렌더링될 시간 확보)
+        setTimeout(() => scrollToBottom(), 100)
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -233,10 +256,31 @@ export default function CommunityChatPanel({
     scrollToBottom()
   }, [messages])
 
-  // 타이핑 인디케이터 전송
+  // 타이핑 인디케이터 전송 (디바운싱 및 쓰로틀링 강화)
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const lastTypingCallRef = useRef<number>(0)
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value)
-    sendTypingIndicator()
+
+    const now = Date.now()
+    const timeSinceLastCall = now - lastTypingCallRef.current
+
+    // 디바운싱: 이전 타이머 취소
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current)
+    }
+
+    // 10초 이내에 다시 호출하지 않음 (rate limit 회피)
+    if (timeSinceLastCall < 10000) {
+      return // 타이핑 인디케이터 전송 건너뛰기
+    }
+
+    // 1초 후에 타이핑 인디케이터 전송 (디바운싱)
+    typingDebounceRef.current = setTimeout(() => {
+      lastTypingCallRef.current = Date.now()
+      sendTypingIndicator()
+    }, 1000)
   }
 
   // 키보드 단축키
@@ -251,10 +295,13 @@ export default function CommunityChatPanel({
     return (
       <Button
         onClick={onToggle}
-        className="fixed right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-40"
-        title="채팅 열기"
+        className="fixed right-4 top-1/2 -translate-y-1/2 h-14 w-14 rounded-lg bg-white text-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-40"
+        title="커뮤니티 채팅 열기"
       >
-        <MessageCircle className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          <Users className="h-5 w-5" />
+          <span className="text-[8px] font-black">CHAT</span>
+        </div>
       </Button>
     )
   }
@@ -262,36 +309,37 @@ export default function CommunityChatPanel({
   return (
     <Card
       className={cn(
-        'h-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col bg-white',
+        'h-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col bg-white overflow-hidden',
         className
       )}
     >
-      <CardHeader className="p-4 border-b-2 border-black">
+      <CardHeader className="p-3 sm:p-4 border-b-2 border-black">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-black flex items-center">
-            <MessageCircle className="mr-2 h-5 w-5" />
-            {communityName} 채팅
+          <CardTitle className="text-base sm:text-lg font-black flex items-center">
+            <MessageCircle className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="truncate">{communityName} 채팅</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Users className="h-4 w-4 mr-1" />
-              {onlineCount}명 온라인
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+              <span className="hidden sm:inline">{onlineCount}명 온라인</span>
+              <span className="sm:hidden">{onlineCount}</span>
             </div>
             {onToggle && (
               <Button
                 onClick={onToggle}
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8"
+                className="h-7 w-7 sm:h-8 sm:w-8"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             )}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0">
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-muted-foreground">메시지를 불러오는 중...</div>
@@ -306,156 +354,236 @@ export default function CommunityChatPanel({
             />
           </div>
         ) : (
-          <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex gap-3',
-                    message.author?.id === session?.user?.id &&
-                      'flex-row-reverse'
-                  )}
-                >
-                  <AuthorAvatar
-                    author={{
-                      id: message.author?.id || '',
-                      name: message.author?.name || null,
-                      username: message.author?.username || null,
-                      image: message.author?.image || null,
-                    }}
-                    size="sm"
-                    showName={false}
-                  />
-                  <div
-                    className={cn(
-                      'flex-1 max-w-[70%]',
-                      message.author?.id === session?.user?.id &&
-                        'flex flex-col items-end'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium">
-                        {message.author?.name ||
-                          message.author?.username ||
-                          '익명'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(message.createdAt), {
-                          addSuffix: true,
-                          locale: ko,
-                        })}
-                      </span>
-                    </div>
+          <ScrollArea className="flex-1 min-h-0 p-3 sm:p-4" ref={scrollAreaRef}>
+            <div className="space-y-1.5 sm:space-y-2">
+              {messages.map((message, index) => {
+                // 메시지 그룹화 로직
+                const prevMessage = messages[index - 1]
 
-                    {editingMessageId === message.id ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          className="flex-1 border-2 border-black"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              handleUpdateMessage(message.id)
-                            }
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateMessage(message.id)}
-                        >
-                          수정
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingMessageId(null)
-                            setEditingContent('')
-                          }}
-                        >
-                          취소
-                        </Button>
+                const isSameAuthor =
+                  prevMessage?.author?.id === message.author?.id
+                const timeDiff = prevMessage
+                  ? new Date(message.createdAt).getTime() -
+                    new Date(prevMessage.createdAt).getTime()
+                  : 0
+                const isWithin5Minutes = timeDiff < 5 * 60 * 1000 // 5분 이내
+
+                const isGroupStart = !isSameAuthor || !isWithin5Minutes
+
+                // 읽음 표시선 로직 - 이 메시지가 마지막으로 읽은 메시지 다음에 오는 첫 번째 메시지인지 확인
+                const shouldShowReadLine =
+                  lastReadAt &&
+                  session?.user?.id &&
+                  message.author?.id !== session.user.id && // 본인 메시지가 아닌 경우만
+                  new Date(message.createdAt) > lastReadAt &&
+                  (!prevMessage ||
+                    new Date(prevMessage.createdAt) <= lastReadAt)
+
+                return (
+                  <React.Fragment key={message.id}>
+                    {/* 읽음 표시선 */}
+                    {shouldShowReadLine && (
+                      <div className="flex items-center my-4">
+                        <div className="flex-1 h-px bg-red-400"></div>
+                        <div className="px-3 py-1 bg-red-400 text-white text-xs rounded-full font-medium">
+                          새로운 메시지
+                        </div>
+                        <div className="flex-1 h-px bg-red-400"></div>
                       </div>
-                    ) : (
+                    )}
+                    <div
+                      className={cn(
+                        'group flex gap-3',
+                        message.author?.id === session?.user?.id &&
+                          'flex-row-reverse',
+                        !isGroupStart && 'mt-1' // 그룹 내 메시지는 간격 줄임
+                      )}
+                    >
+                      {/* 아바타는 그룹의 첫 번째 메시지에만 표시 */}
+                      <div className="w-8 h-8 flex-shrink-0">
+                        {isGroupStart && (
+                          <AuthorAvatar
+                            author={{
+                              id: message.author?.id || '',
+                              name: message.author?.name || null,
+                              username: message.author?.username || null,
+                              image: message.author?.image || null,
+                            }}
+                            size="sm"
+                            showName={false}
+                          />
+                        )}
+                      </div>
                       <div
                         className={cn(
-                          'p-3 rounded-lg border-2 border-black',
-                          message.author?.id === session?.user?.id
-                            ? 'bg-primary text-primary-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                            : 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]'
+                          'flex-1 max-w-[85%] sm:max-w-[70%]',
+                          message.author?.id === session?.user?.id &&
+                            'flex flex-col items-end'
                         )}
                       >
-                        {message.type === 'FILE' && message.file ? (
-                          <div className="space-y-2">
-                            {message.file.type.startsWith('image/') ? (
-                              <NextImage
-                                src={message.file.url}
-                                alt={message.file.filename}
-                                width={400}
-                                height={300}
-                                className="max-w-full rounded border-2 border-black"
-                              />
-                            ) : (
-                              <a
-                                href={message.file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-sm underline"
-                              >
-                                <File className="h-4 w-4" />
-                                {message.file.filename}
-                              </a>
-                            )}
-                            {message.content && (
-                              <p className="text-sm">{message.content}</p>
-                            )}
+                        {/* 작성자 정보는 그룹의 첫 번째 메시지에만 표시 */}
+                        {isGroupStart && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-medium">
+                              {message.author?.name ||
+                                message.author?.username ||
+                                '익명'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {message.createdAt &&
+                              !isNaN(Date.parse(message.createdAt))
+                                ? formatDistanceToNow(
+                                    new Date(message.createdAt),
+                                    {
+                                      addSuffix: true,
+                                      locale: ko,
+                                    }
+                                  )
+                                : '방금'}
+                            </span>
+                          </div>
+                        )}
+
+                        {editingMessageId === message.id ? (
+                          <div className="flex gap-2">
+                            <Input
+                              value={editingContent}
+                              onChange={(e) =>
+                                setEditingContent(e.target.value)
+                              }
+                              className="flex-1 border-2 border-black"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleUpdateMessage(message.id)
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateMessage(message.id)}
+                            >
+                              수정
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingMessageId(null)
+                                setEditingContent('')
+                              }}
+                            >
+                              취소
+                            </Button>
                           </div>
                         ) : (
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {message.content}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                          <div className="relative overflow-hidden">
+                            <div
+                              className={cn(
+                                'inline-block p-2 sm:p-3 rounded-2xl relative transition-all',
+                                message.author?.id === session?.user?.id
+                                  ? 'bg-black text-white rounded-br-sm'
+                                  : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                              )}
+                            >
+                              {/* 답글 원본 표시 - 메시지 박스 안에 포함 */}
+                              {message.replyTo && (
+                                <div className="mb-1.5 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-200 border-opacity-30">
+                                  <div
+                                    className={cn(
+                                      'flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs opacity-70 overflow-hidden',
+                                      message.author?.id ===
+                                        session?.user?.id && 'justify-end'
+                                    )}
+                                  >
+                                    <Reply className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                                    <span className="truncate max-w-[60px] sm:max-w-[80px]">
+                                      {message.replyTo.author?.name ||
+                                        '알 수 없음'}
+                                    </span>
+                                    <span className="flex-shrink-0">•</span>
+                                    <span className="truncate flex-1">
+                                      {message.replyTo.content}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
 
-                    {message.author?.id === session?.user?.id && (
-                      <div className="flex gap-1 mt-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => {
-                            setEditingMessageId(message.id)
-                            setEditingContent(message.content)
-                          }}
+                              <p
+                                className={cn(
+                                  'text-xs sm:text-sm whitespace-pre-wrap break-words',
+                                  message.author?.id === session?.user?.id &&
+                                    'text-right'
+                                )}
+                              >
+                                {message.content}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 메시지 액션 버튼들 - 호버시에만 표시 */}
+                        <div
+                          className={cn(
+                            'flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity',
+                            message.author?.id === session?.user?.id &&
+                              'justify-end'
+                          )}
                         >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => handleDeleteMessage(message.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 hover:bg-gray-200"
+                            onClick={() => setReplyingToMessage(message)}
+                            title="답글"
+                          >
+                            <Reply className="h-3.5 w-3.5" />
+                          </Button>
+
+                          {/* 수정/삭제 버튼 - 본인 메시지만 */}
+                          {message.author?.id === session?.user?.id && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 hover:bg-gray-200"
+                                onClick={() => {
+                                  setEditingMessageId(message.id)
+                                  setEditingContent(message.content)
+                                }}
+                                title="수정"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 hover:bg-gray-200"
+                                onClick={() => handleDeleteMessage(message.id)}
+                                title="삭제"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                    </div>
+                  </React.Fragment>
+                )
+              })}
 
               {/* 타이핑 인디케이터 */}
               {typingUsers.length > 0 && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="flex -space-x-2">
-                    {typingUsers.slice(0, 3).map((userId: string) => (
-                      <div
-                        key={userId}
-                        className="h-6 w-6 rounded-full bg-muted border-2 border-white"
-                      />
-                    ))}
+                    {typingUsers
+                      .slice(0, 3)
+                      .map((userId: string, index: number) => (
+                        <div
+                          key={`typing-user-${userId}-${index}`}
+                          className="h-6 w-6 rounded-full bg-muted border-2 border-white"
+                        />
+                      ))}
                   </div>
                   <span>
                     {typingUsers.length === 1
@@ -471,78 +599,62 @@ export default function CommunityChatPanel({
         )}
 
         {/* 입력 영역 */}
-        <div className="p-4 border-t-2 border-black">
+        <div className="p-3 sm:p-4 border-t-2 border-black flex-shrink-0">
           {!session ? (
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                 채팅에 참여하려면 로그인이 필요합니다
               </p>
               <Link href="/login">
-                <Button className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px]">
-                  <LogIn className="mr-2 h-4 w-4" />
+                <Button
+                  size="sm"
+                  className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px]"
+                >
+                  <LogIn className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   로그인
                 </Button>
               </Link>
             </div>
           ) : (
             <div className="space-y-2">
-              {selectedFile && (
-                <div className="flex items-center gap-2 p-2 rounded border-2 border-black bg-muted">
-                  {selectedFile.type.startsWith('image/') ? (
-                    <ImageIcon className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <File className="h-4 w-4" />
-                  )}
-                  <span className="text-sm flex-1 truncate">
-                    {selectedFile.name}
-                  </span>
+              {/* 답글 미리보기 */}
+              {replyingToMessage && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Reply className="h-4 w-4 text-gray-500" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">
+                        {replyingToMessage.author?.name || '익명'}
+                      </span>
+                      에게 답글
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {replyingToMessage.content}
+                    </p>
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => setSelectedFile(null)}
+                    className="h-7 w-7 hover:bg-gray-200"
+                    onClick={() => setReplyingToMessage(null)}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               )}
 
               <div className="flex gap-2">
                 <Input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      setSelectedFile(file)
-                    }
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="border-2 border-black"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Input
                   value={newMessage}
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   placeholder="메시지를 입력하세요..."
                   className="flex-1 border-2 border-black"
-                  disabled={sending || uploading}
+                  disabled={sending}
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={
-                    (!newMessage.trim() && !selectedFile) ||
-                    sending ||
-                    uploading
-                  }
+                  disabled={!newMessage.trim() || sending}
                   className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px]"
                 >
                   <Send className="h-4 w-4" />

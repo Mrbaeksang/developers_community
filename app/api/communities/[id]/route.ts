@@ -47,6 +47,11 @@ export async function GET(
                 description: true,
                 color: true,
                 icon: true,
+                _count: {
+                  select: {
+                    posts: true,
+                  },
+                },
               },
             },
             announcements: {
@@ -106,6 +111,11 @@ export async function GET(
                   description: true,
                   color: true,
                   icon: true,
+                  _count: {
+                    select: {
+                      posts: true,
+                    },
+                  },
                 },
               },
               announcements: {

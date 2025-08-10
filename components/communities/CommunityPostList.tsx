@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { PostCard } from '@/components/posts/PostCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -26,110 +25,43 @@ import {
   LayoutGrid,
   LayoutList,
 } from 'lucide-react'
-import { Pagination } from '@/components/shared/Pagination'
-import type { MainPostFormatted } from '@/lib/post/types'
+import type { CommunityPostFormatted } from '@/lib/post/types'
+import { useCommunityPosts } from '@/lib/hooks/usePostQuery'
 
 interface Category {
   id: string
   name: string
   slug: string
-  color: string | null
-  postCount?: number
+  postCount: number
 }
 
 interface CommunityPostListProps {
-  communityId: string
-  page: number
+  initialPosts?: CommunityPostFormatted[]
   categories?: Category[]
-  category?: string | undefined
-  search?: string | undefined
-  sort?: string
-}
-
-// 커뮤니티 게시글 가져오기
-const fetchCommunityPosts = async ({
-  communityId,
-  page,
-  category,
-  search,
-  sort,
-}: {
+  isLoading?: boolean
   communityId: string
-  page: number
-  category?: string
-  search?: string
-  sort?: string
-}) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: '10',
-  })
-
-  if (category) params.append('category', category)
-  if (search) params.append('search', search)
-  if (sort) params.append('sort', sort)
-
-  const res = await fetch(`/api/communities/${communityId}/posts?${params}`)
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch posts')
-  }
-
-  const data = await res.json()
-
-  // API 응답 포맷 처리 및 MainPostFormatted 형태로 변환
-  let posts: MainPostFormatted[] = []
-  let pagination = { total: 0, page: 1, limit: 10, pages: 1 }
-
-  if (data.success && data.data) {
-    const rawPosts = Array.isArray(data.data)
-      ? data.data
-      : data.data.posts || []
-    posts = rawPosts.map((post: MainPostFormatted) => ({
-      ...post,
-      excerpt: post.content?.substring(0, 200) || '',
-      tags: post.tags || [],
-      isPinned: post.isPinned || false,
-      status: post.status || 'PUBLISHED',
-    }))
-
-    pagination = data.pagination || data.data.pagination || pagination
-  } else if (data.posts) {
-    posts = data.posts.map((post: MainPostFormatted) => ({
-      ...post,
-      excerpt: post.content?.substring(0, 200) || '',
-      tags: post.tags || [],
-      isPinned: post.isPinned || false,
-      status: post.status || 'PUBLISHED',
-    }))
-
-    pagination = data.pagination || pagination
-  }
-
-  return { posts, pagination }
+  communitySlug: string
+  currentCategory?: string
 }
 
 export function CommunityPostList({
-  communityId,
-  page,
+  initialPosts = [],
   categories: initialCategories = [],
-  category: initialCategory,
-  search: initialSearch,
-  sort: initialSort,
+  isLoading: externalLoading = false,
+  communityId,
+  communitySlug,
+  currentCategory,
 }: CommunityPostListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // URL 파라미터와 상태 동기화
-  const [sortBy, setSortBy] = useState(
-    initialSort || searchParams.get('sort') || 'latest'
-  )
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'latest')
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    initialCategory || searchParams.get('category') || 'all'
+    currentCategory || searchParams.get('category') || 'all'
   )
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  // 검색 기능은 추후 구현예정
-  // const [search, setSearch] = useState(initialSearch || '')
+  const page = searchParams.get('page') || '1'
 
   // URL 파라미터 변경 감지
   useEffect(() => {
@@ -141,37 +73,37 @@ export function CommunityPostList({
   }, [searchParams])
 
   // React Query로 데이터 가져오기
-  const { data, isLoading } = useQuery({
-    queryKey: [
-      'communityPosts',
-      communityId,
-      page,
-      selectedCategory,
-      initialSearch,
-      sortBy,
-    ],
-    queryFn: () =>
-      fetchCommunityPosts({
-        communityId,
-        page,
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
-        search: initialSearch,
-        sort: sortBy,
-      }),
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  })
+  const { data, isLoading } = useCommunityPosts(
+    communityId,
+    {
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
+      sort: sortBy as 'latest' | 'popular' | 'views' | 'comments',
+      page: parseInt(page),
+    },
+    {
+      initialData:
+        initialPosts.length > 0
+          ? {
+              success: true,
+              data: {
+                items: initialPosts,
+                totalCount: initialPosts.length,
+                pageInfo: {
+                  currentPage: parseInt(page),
+                  pageSize: 10,
+                  hasNext: false,
+                  hasPrev: parseInt(page) > 1,
+                },
+              },
+            }
+          : undefined,
+    }
+  )
 
   const posts = useMemo(() => {
-    return data?.posts || []
-  }, [data?.posts])
-
-  const pagination = data?.pagination || {
-    total: 0,
-    page: 1,
-    limit: 10,
-    pages: 1,
-  }
+    // API 응답이 data 배열을 직접 반환하는 경우 처리
+    return data?.data?.items || initialPosts || []
+  }, [data?.data?.items, initialPosts])
 
   const categories = useMemo(() => {
     return initialCategories || []
@@ -187,45 +119,53 @@ export function CommunityPostList({
         current.set(key, value)
       }
     })
+
+    // 현재 경로 확인하여 올바른 URL로 업데이트
+    const currentPath = window.location.pathname
+    let basePath = ''
+
+    if (currentPath.includes('/posts')) {
+      // 이미 posts 페이지에 있는 경우
+      basePath = `/communities/${communitySlug}/posts`
+    } else {
+      // 커뮤니티 상세 페이지에 있는 경우 - URL만 업데이트하고 페이지 이동 안함
+      basePath = `/communities/${communitySlug}`
+    }
+
     router.push(
-      `/communities/${communityId}${current.toString() ? `?${current.toString()}` : ''}`,
+      `${basePath}${current.toString() ? `?${current.toString()}` : ''}`,
       { scroll: false }
     )
   }
 
-  // 카테고리 이름 가져오기
+  // 카테고리 이름 가져기
   const getCategoryName = (slug: string | undefined) => {
     if (!slug || slug === 'all') return '모든 카테고리'
     const category = categories.find((c: Category) => c.slug === slug)
     return category?.name || '모든 카테고리'
   }
 
-  // 카테고리로 필터링된 게시물
+  // 카테고리로 필터링된 게시물 - useMemo로 최적화
   const filteredPosts = useMemo(() => {
     return selectedCategory === 'all'
       ? posts
       : posts.filter(
-          (post: MainPostFormatted) => post.category?.slug === selectedCategory
+          (post: CommunityPostFormatted) =>
+            post.category?.slug === selectedCategory
         )
   }, [posts, selectedCategory])
 
-  // 정렬된 게시물 목록 (고정 게시글 우선 정렬)
+  // 정렬된 게시물 목록 (고정 게시글 우선 정렬) - useMemo로 최적화
   const sortedPosts = useMemo(() => {
     return [...filteredPosts].sort((a, b) => {
-      // 1. 고정 게시글이 항상 먼저
-      if (a.isPinned && !b.isPinned) return -1
-      if (!a.isPinned && b.isPinned) return 1
-
-      // 2. 둘 다 고정이거나 둘 다 일반이면 선택한 정렬 방식으로
+      // 커뮤니티 게시글은 isPinned가 없으므로 정렬 방식으로만 정렬
       switch (sortBy) {
         case 'latest':
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
         case 'popular':
-        case 'views':
           return b.viewCount - a.viewCount
-        case 'comments':
         case 'discussed':
           return (b.commentCount || 0) - (a.commentCount || 0)
         default:
@@ -234,7 +174,7 @@ export function CommunityPostList({
     })
   }, [filteredPosts, sortBy])
 
-  // 탭별 필터링
+  // 탭별 필터링 - useMemo로 최적화
   const { trendingPosts, recentPosts } = useMemo(() => {
     const trending = sortedPosts.filter(
       (post) => post.viewCount > 100 || (post.likeCount || 0) > 10
@@ -249,7 +189,7 @@ export function CommunityPostList({
     return { trendingPosts: trending, recentPosts: recent }
   }, [sortedPosts])
 
-  if (isLoading) {
+  if (isLoading || externalLoading) {
     return <PageLoadingSpinner />
   }
 
@@ -450,12 +390,8 @@ export function CommunityPostList({
             }
           >
             {sortedPosts.length > 0 ? (
-              sortedPosts.map((post: MainPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  href={`/communities/${communityId}/posts/${post.id}`}
-                />
+              sortedPosts.map((post: CommunityPostFormatted) => (
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
@@ -477,12 +413,8 @@ export function CommunityPostList({
             }
           >
             {trendingPosts.length > 0 ? (
-              trendingPosts.map((post: MainPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  href={`/communities/${communityId}/posts/${post.id}`}
-                />
+              trendingPosts.map((post: CommunityPostFormatted) => (
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
@@ -504,12 +436,8 @@ export function CommunityPostList({
             }
           >
             {recentPosts.length > 0 ? (
-              recentPosts.map((post: MainPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  href={`/communities/${communityId}/posts/${post.id}`}
-                />
+              recentPosts.map((post: CommunityPostFormatted) => (
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
@@ -524,14 +452,6 @@ export function CommunityPostList({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Pagination */}
-      <Pagination
-        currentPage={page}
-        totalPages={pagination.pages}
-        baseUrl={`/communities/${communityId}`}
-        className="mt-8"
-      />
     </div>
   )
 }

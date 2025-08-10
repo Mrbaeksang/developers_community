@@ -1,17 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import {
-  Send,
-  Paperclip,
-  LogIn,
-  Image,
-  File,
-  X,
-  Edit2,
-  Trash2,
-  MessageCircle,
-} from 'lucide-react'
+import { Send, LogIn, Edit2, Trash2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -23,7 +13,6 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useChatEvents, type ChatMessage } from '@/hooks/use-chat-events'
 import { useTypingIndicator } from '@/hooks/use-typing-indicator'
-import { uploadChatFile } from '@/lib/chat/utils'
 
 // ChatMessage 타입을 use-chat-events에서 가져와서 사용
 
@@ -41,13 +30,10 @@ export default function FloatingChatWindow({
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 실시간 채팅 연결
   const {
@@ -146,37 +132,20 @@ export default function FloatingChatWindow({
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if ((!newMessage.trim() && !selectedFile) || sending) return
+    if (!newMessage.trim() || sending) return
 
     setSending(true)
     stopTyping() // 타이핑 상태 중지
 
     try {
-      let fileId: string | undefined
-
-      // 파일이 선택된 경우 먼저 업로드
-      if (selectedFile) {
-        setUploading(true)
-        const uploadResult = await uploadChatFile(selectedFile)
-        fileId = uploadResult.fileId
-        setUploading(false)
-      }
-
       // 메시지 전송
       const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          content:
-            newMessage.trim() ||
-            (selectedFile ? `파일: ${selectedFile.name}` : ''),
-          fileId,
-          type: selectedFile
-            ? selectedFile.type.startsWith('image/')
-              ? 'IMAGE'
-              : 'FILE'
-            : 'TEXT',
+          content: newMessage.trim(),
+          type: 'TEXT',
         }),
       })
 
@@ -202,34 +171,11 @@ export default function FloatingChatWindow({
 
       // 폼 초기화
       setNewMessage('')
-      setSelectedFile(null)
       scrollToBottom()
     } catch (error) {
       console.error('Failed to send message:', error)
-      setUploading(false)
     } finally {
       setSending(false)
-    }
-  }
-
-  // 파일 선택 핸들러
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // 파일 크기 제한 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('파일 크기는 10MB를 초과할 수 없습니다.')
-        return
-      }
-      setSelectedFile(file)
-    }
-  }
-
-  // 파일 선택 제거
-  const removeSelectedFile = () => {
-    setSelectedFile(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
     }
   }
 
@@ -401,44 +347,6 @@ export default function FloatingChatWindow({
                     ) : (
                       message.content
                     )}
-
-                    {/* 파일 첨부 표시 */}
-                    {message.file && (
-                      <div className="mt-2 p-2 border border-gray-200 rounded-md bg-gray-50">
-                        {message.type === 'IMAGE' ? (
-                          <div className="flex items-center gap-2">
-                            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                            <Image className="h-4 w-4" aria-hidden="true" />
-                            <a
-                              href={message.file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {message.file.filename}
-                            </a>
-                            <span className="text-xs text-gray-500">
-                              ({(message.file.size / 1024 / 1024).toFixed(2)}MB)
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <File className="h-4 w-4" />
-                            <a
-                              href={message.file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {message.file.filename}
-                            </a>
-                            <span className="text-xs text-gray-500">
-                              ({(message.file.size / 1024 / 1024).toFixed(2)}MB)
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -474,73 +382,22 @@ export default function FloatingChatWindow({
       {/* 입력 영역 */}
       {session ? (
         <div className="p-4 border-t-2 border-black">
-          {/* 선택된 파일 표시 */}
-          {selectedFile && (
-            <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {selectedFile.type.startsWith('image/') ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <File className="h-4 w-4" />
-                  )}
-                  <span className="text-sm truncate">{selectedFile.name}</span>
-                  <span className="text-xs text-gray-500">
-                    ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={removeSelectedFile}
-                  className="h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={sendMessage} className="flex gap-2">
             <Input
               value={newMessage}
               onChange={handleInputChange}
               placeholder="메시지를 입력하세요..."
-              disabled={sending || uploading}
+              disabled={sending}
               className="flex-1 border-2 border-black"
             />
-
-            {/* 파일 선택 */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
-              className="hidden"
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="border-2 border-black"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={sending || uploading}
-              title="파일 첨부"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
 
             <Button
               type="submit"
               size="icon"
-              disabled={
-                (!newMessage.trim() && !selectedFile) || sending || uploading
-              }
+              disabled={!newMessage.trim() || sending}
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
             >
-              {uploading ? '...' : <Send className="h-4 w-4" />}
+              <Send className="h-4 w-4" />
             </Button>
           </form>
         </div>

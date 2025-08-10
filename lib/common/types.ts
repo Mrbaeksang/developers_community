@@ -326,10 +326,29 @@ export type Post = CommonMainPost
 export type CommunityPost = CommonCommunityPost
 
 // 포맷 유틸리티 함수
-export function formatCount(count: number | undefined | null): string {
+export function formatCount(
+  count: number | undefined | null,
+  maxDisplay: number = 999
+): string {
   // null, undefined, NaN인 경우 0으로 처리
   const safeCount = Number.isNaN(count) || count == null ? 0 : count
 
+  // 999+ 형식 표시 옵션
+  if (maxDisplay && safeCount > maxDisplay) {
+    if (safeCount >= 1000000) {
+      return `${Math.floor(safeCount / 1000000)}M+`
+    }
+    if (safeCount >= 10000) {
+      return `${Math.floor(safeCount / 1000)}K+`
+    }
+    if (safeCount >= 1000) {
+      const k = (safeCount / 1000).toFixed(1)
+      return k.endsWith('.0') ? `${Math.floor(safeCount / 1000)}K` : `${k}K`
+    }
+    return `${maxDisplay}+`
+  }
+
+  // 일반 표시
   if (safeCount >= 1000000) {
     return `${(safeCount / 1000000).toFixed(1)}M`
   }

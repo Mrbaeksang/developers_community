@@ -24,6 +24,17 @@ export interface ChatMessage {
     expiresAt?: string
     isTemporary?: boolean
   }
+  // 답글 지원
+  replyTo?: {
+    id: string
+    content: string
+    author?: {
+      id: string
+      name: string | null
+      username: string | null
+      image: string | undefined
+    }
+  }
 }
 
 export interface TypingUser {
