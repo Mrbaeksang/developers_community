@@ -203,6 +203,24 @@ export default function PostsPage() {
 
   // 게시글 고정/고정해제
   const handleTogglePin = async (postId: string) => {
+    // 🚀 즉시 UI 업데이트 (Optimistic Update)
+    const currentPost = mainPosts.find((post) => post.id === postId)
+    if (!currentPost) return
+
+    const newPinnedState = !currentPost.isPinned
+    setMainPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, isPinned: newPinnedState } : post
+      )
+    )
+
+    // 즉시 피드백 표시
+    toast({
+      title: newPinnedState
+        ? '게시글이 고정되었습니다.'
+        : '게시글 고정이 해제되었습니다.',
+    })
+
     try {
       const response = await apiClient(`/api/admin/posts/main/${postId}/pin`, {
         method: 'PATCH',
@@ -212,20 +230,15 @@ export default function PostsPage() {
         throw new Error(response.error || '고정 상태 변경 실패')
       }
 
-      const data = response.data
-
-      // 새로운 응답 형식 처리: { success: true, message }
-      const message =
-        data && typeof data === 'object' && 'message' in data
-          ? (data as { message: string }).message
-          : '고정 상태가 변경되었습니다.'
-      toast({
-        title: message,
-      })
-
-      // 데이터 새로고침
-      fetchMainPosts()
+      // 서버 성공 시 추가 작업 없음 (이미 UI 업데이트됨)
     } catch (error) {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      setMainPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId ? { ...post, isPinned: !newPinnedState } : post
+        )
+      )
+
       toast({
         title: '고정 상태 변경에 실패했습니다.',
         description:
@@ -241,11 +254,29 @@ export default function PostsPage() {
   const handleDelete = async () => {
     if (!selectedPost) return
 
+    // 🚀 즉시 UI에서 제거 (Optimistic Update)
+    const postIdToDelete = selectedPost.id
+    if (selectedPostType === 'main') {
+      setMainPosts((prev) => prev.filter((post) => post.id !== postIdToDelete))
+    } else {
+      setCommunityPosts((prev) =>
+        prev.filter((post) => post.id !== postIdToDelete)
+      )
+    }
+
+    setIsDeleteDialogOpen(false)
+    setSelectedPost(null)
+
+    // 즉시 성공 메시지 표시
+    toast({
+      title: '게시글이 삭제되었습니다.',
+    })
+
     try {
       const endpoint =
         selectedPostType === 'main'
-          ? `/api/admin/posts/main/${selectedPost.id}`
-          : `/api/admin/posts/community/${selectedPost.id}`
+          ? `/api/admin/posts/main/${postIdToDelete}`
+          : `/api/admin/posts/community/${postIdToDelete}`
 
       const response = await apiClient(endpoint, {
         method: 'DELETE',
@@ -255,26 +286,9 @@ export default function PostsPage() {
         throw new Error(response.error || '삭제 실패')
       }
 
-      const data = response.data
-      const successMessage =
-        data && typeof data === 'object' && 'message' in data
-          ? (data as { message: string }).message
-          : '게시글이 삭제되었습니다.'
-
-      toast({
-        title: successMessage,
-      })
-
-      setIsDeleteDialogOpen(false)
-      setSelectedPost(null)
-
-      // 데이터 새로고침
-      if (selectedPostType === 'main') {
-        fetchMainPosts()
-      } else {
-        fetchCommunityPosts()
-      }
+      // 서버 삭제 성공 시 추가 메시지는 생략 (이미 표시했음)
     } catch (error) {
+      // ❌ 삭제 실패 시 되돌리기 (Rollback)
       toast({
         title: '삭제에 실패했습니다.',
         description:
@@ -283,6 +297,13 @@ export default function PostsPage() {
             : '알 수 없는 오류가 발생했습니다.',
         variant: 'destructive',
       })
+
+      // 데이터 복구를 위해 다시 가져오기
+      if (selectedPostType === 'main') {
+        fetchMainPosts()
+      } else {
+        fetchCommunityPosts()
+      }
     }
   }
 

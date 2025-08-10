@@ -246,7 +246,7 @@ export function RealtimeDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">오늘 조회수</CardTitle>
+            <CardTitle className="text-sm font-medium">오늘 페이지뷰</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -257,7 +257,9 @@ export function RealtimeDashboard() {
                 <div className="text-2xl font-bold">
                   {formatCount(traffic.pageViews.today)}
                 </div>
-                <p className="text-xs text-muted-foreground">누적 페이지뷰</p>
+                <p className="text-xs text-muted-foreground">
+                  페이지 방문 횟수 (Redis)
+                </p>
               </>
             )}
           </CardContent>

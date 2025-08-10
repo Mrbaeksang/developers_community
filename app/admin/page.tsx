@@ -23,6 +23,7 @@ import {
   Database,
   FolderOpen,
   Users2,
+  Hash,
 } from 'lucide-react'
 
 // 레이지 로딩으로 RealtimeDashboard 최적화
@@ -46,6 +47,7 @@ async function getAdminStats() {
       weeklyCommunities,
       totalViews,
       todayPosts,
+      todayViews,
     ] = await Promise.all([
       prisma.mainPost.count(),
       prisma.mainPost.count({ where: { status: 'PENDING' } }),
@@ -68,6 +70,15 @@ async function getAdminStats() {
           },
         },
       }),
+      // 오늘 생성된 게시글들의 조회수 합계
+      prisma.mainPost.aggregate({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+        _sum: { viewCount: true },
+      }),
     ])
 
     return {
@@ -80,6 +91,7 @@ async function getAdminStats() {
       weeklyCommunities,
       totalViews: totalViews._sum.viewCount || 0,
       todayPosts,
+      todayViews: todayViews._sum.viewCount || 0,
     }
   } catch (error) {
     console.error('관리자 통계 조회 실패:', error)
@@ -93,6 +105,7 @@ async function getAdminStats() {
       weeklyCommunities: 0,
       totalViews: 0,
       todayPosts: 0,
+      todayViews: 0,
     }
   }
 }
@@ -177,6 +190,14 @@ export default async function AdminPage() {
       color: 'secondary',
     },
     {
+      title: '태그 관리',
+      description: '메인 사이트 태그를 생성, 수정, 삭제하고 통계 확인',
+      href: '/admin/tags',
+      icon: Hash,
+      badge: null,
+      color: 'secondary',
+    },
+    {
       title: '데이터베이스 뷰어',
       description: '모든 테이블의 데이터를 조회하고 검색',
       href: '/admin/database',
@@ -199,7 +220,7 @@ export default async function AdminPage() {
       title: '전체 조회수',
       value: formatCount(stats.totalViews),
       icon: Eye,
-      description: `오늘 조회수는 실시간 모니터링에서 확인`,
+      description: `모든 게시글 조회수 합계 (누적) | 오늘 게시글 조회수: ${formatCount(stats.todayViews)}`,
       bgColor: '',
       color: 'text-green-600',
     },

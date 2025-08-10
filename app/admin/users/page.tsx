@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Image from 'next/image'
 import {
   Table,
@@ -77,8 +78,6 @@ interface User {
 }
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<GlobalRole | 'ALL'>('ALL')
   const [statusFilter, setStatusFilter] = useState<
@@ -95,28 +94,23 @@ export default function AdminUsersPage() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
   const [newRole, setNewRole] = useState<GlobalRole>('USER')
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
+  // React Query로 사용자 목록 가져오기
+  const {
+    data: users = [],
+    isLoading: loading,
+    refetch: fetchUsers,
+  } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
       const response = await fetch('/api/admin/users')
       if (!response.ok) throw new Error('Failed to fetch users')
       const result = await response.json()
 
       // 새로운 응답 형식 처리: { success: true, data: users }
-      const users = result.success && result.data ? result.data : result
-
-      setUsers(users)
-    } catch (error) {
-      toast.error('사용자 목록을 불러오는 중 오류가 발생했습니다.')
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
+      return result.success && result.data ? result.data : result
+    },
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+  })
 
   const handleBan = async () => {
     if (!selectedUser || !banReason) {
@@ -214,7 +208,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter((user: User) => {
     const matchesSearch =
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
@@ -307,7 +301,7 @@ export default function AdminUsersPage() {
             <SelectItem value="INACTIVE">비활성</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={fetchUsers}>
+        <Button variant="outline" onClick={() => fetchUsers()}>
           <RefreshCw className="w-4 h-4 mr-2" />
           새로고침
         </Button>
@@ -346,7 +340,7 @@ export default function AdminUsersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user) => (
+              filteredUsers.map((user: User) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
