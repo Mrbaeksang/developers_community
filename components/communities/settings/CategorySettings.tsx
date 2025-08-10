@@ -109,8 +109,19 @@ export function CategorySettings({
 
       return response.data as Category
     },
-    onSuccess: (category) => {
-      setCategories([...categories, category])
+    onMutate: async (categoryData) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      const tempCategory: Category = {
+        id: `temp-${Date.now()}`,
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: categoryData.description || null,
+        color: categoryData.color,
+        order: categories.length,
+        isActive: true,
+      }
+
+      setCategories([...categories, tempCategory])
       setIsCreateOpen(false)
       setNewCategory({
         name: '',
@@ -118,16 +129,36 @@ export function CategorySettings({
         description: '',
         color: '#6366f1',
       })
+
+      // 즉시 성공 피드백 표시
       toast({
         title: '성공',
         description: '카테고리가 생성되었습니다.',
       })
+
+      return { previousCategories: categories, tempCategory }
+    },
+    onSuccess: (category, variables, context) => {
+      // 임시 카테고리를 실제 카테고리로 교체
+      if (context?.tempCategory) {
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.id === context.tempCategory.id ? category : cat
+          )
+        )
+      }
+
       // 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['communityCategories', communityId],
       })
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousCategories) {
+        setCategories(context.previousCategories)
+      }
+      setIsCreateOpen(true) // 다이얼로그 다시 열기
       toast({
         title: '오류',
         description: error.message || '카테고리 생성에 실패했습니다.',
@@ -171,23 +202,44 @@ export function CategorySettings({
 
       return response.data as Category
     },
-    onSuccess: (updatedCategory) => {
+    onMutate: async (updatedCategory) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      const previousCategories = categories
+
       setCategories(
         categories.map((cat) =>
           cat.id === updatedCategory.id ? updatedCategory : cat
         )
       )
       setEditingCategory(null)
+
+      // 즉시 성공 피드백 표시
       toast({
         title: '성공',
         description: '카테고리가 수정되었습니다.',
       })
+
+      return {
+        previousCategories,
+        originalCategory: categories.find(
+          (cat) => cat.id === updatedCategory.id
+        ),
+      }
+    },
+    onSuccess: () => {
       // 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['communityCategories', communityId],
       })
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousCategories) {
+        setCategories(context.previousCategories)
+      }
+      if (context?.originalCategory) {
+        setEditingCategory(context.originalCategory) // 편집 다이얼로그 다시 열기
+      }
       toast({
         title: '오류',
         description: error.message || '카테고리 수정에 실패했습니다.',
@@ -217,19 +269,36 @@ export function CategorySettings({
 
       return response.data
     },
-    onSuccess: (_, categoryId) => {
+    onMutate: async (categoryId) => {
+      // 🚀 즉시 UI에서 제거 (Optimistic Update)
+      const previousCategories = categories
+      const deletedCategory = categories.find((cat) => cat.id === categoryId)
+
       setCategories(categories.filter((cat) => cat.id !== categoryId))
       setDeletingCategory(null)
+
+      // 즉시 성공 피드백 표시
       toast({
         title: '성공',
         description: '카테고리가 삭제되었습니다.',
       })
+
+      return { previousCategories, deletedCategory }
+    },
+    onSuccess: () => {
       // 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['communityCategories', communityId],
       })
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 삭제 실패 시 되돌리기 (Rollback)
+      if (context?.previousCategories) {
+        setCategories(context.previousCategories)
+      }
+      if (context?.deletedCategory) {
+        setDeletingCategory(context.deletedCategory) // 삭제 다이얼로그 다시 열기
+      }
       toast({
         title: '오류',
         description: error.message || '카테고리 삭제에 실패했습니다.',

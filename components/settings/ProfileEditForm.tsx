@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Camera, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/api/client'
 
 interface ProfileEditFormProps {
   user: {
@@ -24,7 +26,7 @@ interface ProfileEditFormProps {
 
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     name: user.name || '',
     username: user.username || '',
@@ -32,32 +34,66 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     image: user.image || '',
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const res = await fetch('/api/user/profile', {
+  // React Query - 프로필 업데이트 mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await apiClient('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.message || '프로필 업데이트 실패')
+      if (!response.success) {
+        throw new Error(response.error || '프로필 업데이트 실패')
       }
 
+      return response.data
+    },
+    onMutate: async (newData) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['user', user.id] })
+      const previousUser = queryClient.getQueryData(['user', user.id])
+
+      // 캐시된 사용자 데이터 업데이트 (존재할 경우)
+      queryClient.setQueryData(
+        ['user', user.id],
+        (old: typeof user | undefined) => {
+          if (!old) return old
+          return {
+            ...old,
+            name: newData.name,
+            username: newData.username,
+            bio: newData.bio,
+            image: newData.image,
+          }
+        }
+      )
+
+      // 즉시 성공 피드백 표시
       toast.success('프로필이 업데이트되었습니다')
+
+      return { previousUser }
+    },
+    onSuccess: () => {
+      // 성공 시 프로필 페이지로 이동
       router.push(`/profile/${user.id}`)
       router.refresh()
-    } catch (error) {
+    },
+    onError: (error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousUser) {
+        queryClient.setQueryData(['user', user.id], context.previousUser)
+      }
+
       toast.error(
         error instanceof Error ? error.message : '오류가 발생했습니다'
       )
-    } finally {
-      setIsLoading(false)
-    }
+    },
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    updateProfileMutation.mutate(formData)
   }
 
   const handleCancel = () => {
@@ -177,15 +213,19 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {/* 버튼 */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={isLoading} className={buttonClasses}>
+          <Button
+            type="submit"
+            disabled={updateProfileMutation.isPending}
+            className={buttonClasses}
+          >
             <Save className="h-4 w-4 mr-2" />
-            {isLoading ? '저장 중...' : '저장'}
+            {updateProfileMutation.isPending ? '저장 중...' : '저장'}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleCancel}
-            disabled={isLoading}
+            disabled={updateProfileMutation.isPending}
             className={buttonClasses}
           >
             <X className="h-4 w-4 mr-2" />

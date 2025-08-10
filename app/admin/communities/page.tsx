@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Table,
   TableBody,
@@ -84,12 +85,11 @@ interface Community {
 }
 
 export default function AdminCommunitiesPage() {
-  const [communities, setCommunities] = useState<Community[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [visibilityFilter, setVisibilityFilter] = useState<
     CommunityVisibility | 'ALL'
   >('ALL')
+  const queryClient = useQueryClient()
 
   // 설정 수정 다이얼로그
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
@@ -108,26 +108,30 @@ export default function AdminCommunitiesPage() {
   // 삭제 확인 다이얼로그
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchCommunities()
-  }, [])
-
-  const fetchCommunities = async () => {
-    try {
-      setLoading(true)
+  // React Query - 커뮤니티 목록 조회
+  const {
+    data: communities = [],
+    isLoading: loading,
+    error,
+    refetch: fetchCommunities,
+  } = useQuery({
+    queryKey: ['adminCommunities'],
+    queryFn: async () => {
       const response = await fetch('/api/admin/communities')
       if (!response.ok) throw new Error('Failed to fetch communities')
       const data = await response.json()
 
       // 새로운 응답 형식 처리: { success: true, data: communities }
-      const communities = data.success && data.data ? data.data : data
-      setCommunities(communities)
-    } catch (error) {
-      toast.error('커뮤니티 목록을 불러오는 중 오류가 발생했습니다.')
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
+      return data.success && data.data ? data.data : data
+    },
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
+
+  // 에러 처리
+  if (error) {
+    toast.error('커뮤니티 목록을 불러오는 중 오류가 발생했습니다.')
+    console.error(error)
   }
 
   const handleSettingsOpen = (community: Community) => {
@@ -143,37 +147,64 @@ export default function AdminCommunitiesPage() {
     setSettingsDialogOpen(true)
   }
 
-  const handleSettingsUpdate = async () => {
-    if (!selectedCommunity) return
-
-    try {
-      const response = await apiClient(
-        `/api/admin/communities/${selectedCommunity.id}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editForm),
-        }
-      )
+  // React Query - 커뮤니티 수정 mutation
+  const updateCommunityMutation = useMutation({
+    mutationFn: async (data: { id: string; updateData: typeof editForm }) => {
+      const response = await apiClient(`/api/admin/communities/${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.updateData),
+      })
 
       if (!response.success)
         throw new Error(response.error || 'Failed to update community')
 
+      return response.data
+    },
+    onMutate: async ({ id, updateData }) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['adminCommunities'] })
+      const previousCommunities = queryClient.getQueryData(['adminCommunities'])
+
+      queryClient.setQueryData(['adminCommunities'], (old: Community[] = []) =>
+        old.map((community) =>
+          community.id === id ? { ...community, ...updateData } : community
+        )
+      )
+
+      return { previousCommunities }
+    },
+    onSuccess: () => {
       toast.success('커뮤니티 설정이 수정되었습니다.')
       setSettingsDialogOpen(false)
-      fetchCommunities()
-    } catch (error) {
+    },
+    onError: (error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousCommunities) {
+        queryClient.setQueryData(
+          ['adminCommunities'],
+          context.previousCommunities
+        )
+      }
       toast.error('커뮤니티 수정 중 오류가 발생했습니다.')
       console.error(error)
-    }
-  }
+    },
+  })
 
-  const handleDelete = async () => {
+  const handleSettingsUpdate = async () => {
     if (!selectedCommunity) return
 
-    try {
+    updateCommunityMutation.mutate({
+      id: selectedCommunity.id,
+      updateData: editForm,
+    })
+  }
+
+  // React Query - 커뮤니티 삭제 mutation
+  const deleteCommunityMutation = useMutation({
+    mutationFn: async (communityId: string) => {
       const response = await apiClient(
-        `/api/admin/communities/${selectedCommunity.id}`,
+        `/api/admin/communities/${communityId}`,
         {
           method: 'DELETE',
         }
@@ -182,17 +213,43 @@ export default function AdminCommunitiesPage() {
       if (!response.success)
         throw new Error(response.error || 'Failed to delete community')
 
+      return response.data
+    },
+    onMutate: async (communityId) => {
+      // 🚀 즉시 UI에서 제거 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['adminCommunities'] })
+      const previousCommunities = queryClient.getQueryData(['adminCommunities'])
+
+      queryClient.setQueryData(['adminCommunities'], (old: Community[] = []) =>
+        old.filter((community) => community.id !== communityId)
+      )
+
+      return { previousCommunities }
+    },
+    onSuccess: () => {
       toast.success('커뮤니티가 삭제되었습니다.')
       setDeleteDialogOpen(false)
       setSelectedCommunity(null)
-      fetchCommunities()
-    } catch (error) {
+    },
+    onError: (error, variables, context) => {
+      // ❌ 삭제 실패 시 되돌리기 (Rollback)
+      if (context?.previousCommunities) {
+        queryClient.setQueryData(
+          ['adminCommunities'],
+          context.previousCommunities
+        )
+      }
       toast.error('커뮤니티 삭제 중 오류가 발생했습니다.')
       console.error(error)
-    }
+    },
+  })
+
+  const handleDelete = async () => {
+    if (!selectedCommunity) return
+    deleteCommunityMutation.mutate(selectedCommunity.id)
   }
 
-  const filteredCommunities = communities.filter((community) => {
+  const filteredCommunities = communities.filter((community: Community) => {
     const matchesSearch =
       community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       community.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -264,7 +321,7 @@ export default function AdminCommunitiesPage() {
             <SelectItem value="PRIVATE">비공개</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={fetchCommunities}>
+        <Button variant="outline" onClick={() => fetchCommunities()}>
           <RefreshCw className="w-4 h-4 mr-2" />
           새로고침
         </Button>
@@ -304,7 +361,7 @@ export default function AdminCommunitiesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredCommunities.map((community) => (
+              filteredCommunities.map((community: Community) => (
                 <TableRow key={community.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">

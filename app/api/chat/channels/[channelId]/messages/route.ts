@@ -61,16 +61,40 @@ export async function GET(
     // 쿼리 파라미터 처리
     const { searchParams } = new URL(req.url)
     const cursor = searchParams.get('cursor')
-    const after = searchParams.get('after')
+    const afterParam = searchParams.get('after')
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+
+    // after 파라미터 유효성 검증
+    let afterDate: Date | undefined
+    if (afterParam) {
+      // "Invalid Date" 문자열이나 잘못된 날짜 문자열 체크
+      if (
+        afterParam === 'Invalid Date' ||
+        afterParam === 'null' ||
+        afterParam === 'undefined'
+      ) {
+        afterDate = undefined
+      } else {
+        try {
+          const parsedDate = new Date(afterParam)
+          // 유효한 날짜인지 확인
+          if (!isNaN(parsedDate.getTime())) {
+            afterDate = parsedDate
+          }
+        } catch {
+          // 날짜 파싱 실패 시 무시
+          afterDate = undefined
+        }
+      }
+    }
 
     // 메시지 조회
     const messages = await prisma.chatMessage.findMany({
       where: {
         channelId,
-        ...(after && {
+        ...(afterDate && {
           createdAt: {
-            gt: new Date(after),
+            gt: afterDate,
           },
         }),
       },

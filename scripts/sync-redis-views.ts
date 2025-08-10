@@ -1,5 +1,5 @@
-import { prisma } from '../lib/core/prisma'
-import { redis } from '../lib/core/redis'
+import { prisma } from '@/lib/core/prisma'
+import { redis } from '@/lib/core/redis'
 
 async function syncRedisWithDB() {
   console.error('Starting Redis-DB view count synchronization...')

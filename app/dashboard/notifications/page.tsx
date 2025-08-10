@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Bell, CheckCheck, Trash2, Filter } from 'lucide-react'
@@ -41,66 +42,71 @@ interface Notification {
   } | null
 }
 
-interface PaginationInfo {
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [pagination, setPagination] = useState<PaginationInfo>({
+  const queryClient = useQueryClient()
+  const [selectedType, setSelectedType] = useState<string>('all')
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // React Query - 알림 목록 조회
+  const {
+    data: notificationData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['notifications', currentPage, selectedType, showUnreadOnly],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '20',
+      })
+
+      if (selectedType !== 'all') {
+        params.append('type', selectedType)
+      }
+
+      if (showUnreadOnly) {
+        params.append('unreadOnly', 'true')
+      }
+
+      const res = await fetch(`/api/notifications?${params}`)
+      if (!res.ok) throw new Error('알림을 불러오는데 실패했습니다.')
+
+      const data = await res.json()
+      return {
+        notifications: data.data?.notifications || data.notifications || [],
+        pagination: data.data?.pagination ||
+          data.pagination || {
+            total: 0,
+            page: 1,
+            limit: 20,
+            totalPages: 0,
+          },
+        unreadCount: data.data?.unreadCount || data.unreadCount || 0,
+      }
+    },
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
+
+  // 에러 처리
+  if (error) {
+    toast.error('알림을 불러오는데 실패했습니다.')
+    console.error(error)
+  }
+
+  const notifications = notificationData?.notifications || []
+  const pagination = notificationData?.pagination || {
     total: 0,
     page: 1,
     limit: 20,
     totalPages: 0,
-  })
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedType, setSelectedType] = useState<string>('all')
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false)
+  }
+  const unreadCount = notificationData?.unreadCount || 0
 
-  // 알림 목록 가져오기
-  const fetchNotifications = useCallback(
-    async (page: number = 1) => {
-      try {
-        setIsLoading(true)
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: '20',
-        })
-
-        if (selectedType !== 'all') {
-          params.append('type', selectedType)
-        }
-
-        if (showUnreadOnly) {
-          params.append('unreadOnly', 'true')
-        }
-
-        const res = await fetch(`/api/notifications?${params}`)
-        if (!res.ok) throw new Error('알림을 불러오는데 실패했습니다.')
-
-        const data = await res.json()
-        setNotifications(data.data?.notifications || data.notifications || [])
-        setPagination(
-          data.data?.pagination ||
-            data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 }
-        )
-        setUnreadCount(data.data?.unreadCount || data.unreadCount || 0)
-      } catch {
-        toast.error('알림을 불러오는데 실패했습니다.')
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [selectedType, showUnreadOnly]
-  )
-
-  // 알림 읽음 처리
-  const markAsRead = async (notificationId: string) => {
-    try {
+  // React Query - 알림 읽음 처리 mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
       const response = await apiClient(
         `/api/notifications/${notificationId}/read`,
         {
@@ -109,56 +115,170 @@ export default function NotificationsPage() {
       )
       if (!response.success)
         throw new Error(response.error || '알림 읽음 처리에 실패했습니다.')
+      return response.data
+    },
+    onMutate: async (notificationId) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData([
+        'notifications',
+        currentPage,
+        selectedType,
+        showUnreadOnly,
+      ])
 
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
+      queryClient.setQueryData(
+        ['notifications', currentPage, selectedType, showUnreadOnly],
+        (old: typeof notificationData) => {
+          if (!old) return old
+          return {
+            ...old,
+            notifications: old.notifications.map((n: Notification) =>
+              n.id === notificationId ? { ...n, isRead: true } : n
+            ),
+            unreadCount: Math.max(0, old.unreadCount - 1),
+          }
+        }
       )
-      setUnreadCount((prev) => Math.max(0, prev - 1))
-    } catch {
+
+      return { previousData }
+    },
+    onError: (error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['notifications', currentPage, selectedType, showUnreadOnly],
+          context.previousData
+        )
+      }
       toast.error('알림 읽음 처리에 실패했습니다.')
-    }
+    },
+  })
+
+  const markAsRead = (notificationId: string) => {
+    markAsReadMutation.mutate(notificationId)
   }
 
-  // 모든 알림 읽음 처리
-  const markAllAsRead = async () => {
-    try {
+  // React Query - 모든 알림 읽음 처리 mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
       const response = await apiClient('/api/notifications/read-all', {
         method: 'PUT',
       })
       if (!response.success)
         throw new Error(response.error || '알림 읽음 처리에 실패했습니다.')
+      return response.data
+    },
+    onMutate: async () => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData([
+        'notifications',
+        currentPage,
+        selectedType,
+        showUnreadOnly,
+      ])
 
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-      setUnreadCount(0)
+      queryClient.setQueryData(
+        ['notifications', currentPage, selectedType, showUnreadOnly],
+        (old: typeof notificationData) => {
+          if (!old) return old
+          return {
+            ...old,
+            notifications: old.notifications.map((n: Notification) => ({
+              ...n,
+              isRead: true,
+            })),
+            unreadCount: 0,
+          }
+        }
+      )
+
+      // 즉시 성공 피드백 표시
       toast.success('모든 알림을 읽음으로 표시했습니다.')
-    } catch {
+
+      return { previousData }
+    },
+    onError: (error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['notifications', currentPage, selectedType, showUnreadOnly],
+          context.previousData
+        )
+      }
       toast.error('알림 읽음 처리에 실패했습니다.')
-    }
+    },
+  })
+
+  const markAllAsRead = () => {
+    markAllAsReadMutation.mutate()
   }
 
-  // 알림 삭제
-  const deleteNotification = async (notificationId: string) => {
-    try {
+  // React Query - 알림 삭제 mutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
       const response = await apiClient(`/api/notifications/${notificationId}`, {
         method: 'DELETE',
       })
       if (!response.success)
         throw new Error(response.error || '알림 삭제에 실패했습니다.')
-
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
+      return response.data
+    },
+    onMutate: async (notificationId) => {
+      // 🚀 즉시 UI에서 제거 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData([
+        'notifications',
+        currentPage,
+        selectedType,
+        showUnreadOnly,
+      ])
 
       const deletedNotification = notifications.find(
-        (n) => n.id === notificationId
+        (n: Notification) => n.id === notificationId
       )
-      if (deletedNotification && !deletedNotification.isRead) {
-        setUnreadCount((prev) => Math.max(0, prev - 1))
-      }
+      const wasUnread = deletedNotification && !deletedNotification.isRead
 
-      setPagination((prev) => ({ ...prev, total: prev.total - 1 }))
+      queryClient.setQueryData(
+        ['notifications', currentPage, selectedType, showUnreadOnly],
+        (old: typeof notificationData) => {
+          if (!old) return old
+          return {
+            ...old,
+            notifications: old.notifications.filter(
+              (n: Notification) => n.id !== notificationId
+            ),
+            unreadCount: wasUnread
+              ? Math.max(0, old.unreadCount - 1)
+              : old.unreadCount,
+            pagination: {
+              ...old.pagination,
+              total: old.pagination.total - 1,
+            },
+          }
+        }
+      )
+
+      // 즉시 성공 피드백 표시
       toast.success('알림이 삭제되었습니다.')
-    } catch {
+
+      return { previousData }
+    },
+    onError: (error, variables, context) => {
+      // ❌ 삭제 실패 시 되돌리기 (Rollback)
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['notifications', currentPage, selectedType, showUnreadOnly],
+          context.previousData
+        )
+      }
       toast.error('알림 삭제에 실패했습니다.')
-    }
+    },
+  })
+
+  const deleteNotification = (notificationId: string) => {
+    deleteNotificationMutation.mutate(notificationId)
   }
 
   // 알림 링크 생성
@@ -253,13 +373,20 @@ export default function NotificationsPage() {
     }
   }
 
-  useEffect(() => {
-    fetchNotifications(1)
-  }, [fetchNotifications])
-
   const handlePageChange = (page: number) => {
-    fetchNotifications(page)
+    setCurrentPage(page)
     window.scrollTo(0, 0)
+  }
+
+  // 필터 변경 시 첫 페이지로 리셋
+  const handleTypeChange = (value: string) => {
+    setSelectedType(value)
+    setCurrentPage(1)
+  }
+
+  const handleUnreadToggle = () => {
+    setShowUnreadOnly(!showUnreadOnly)
+    setCurrentPage(1)
   }
 
   return (
@@ -270,7 +397,7 @@ export default function NotificationsPage() {
         {/* 필터 및 액션 버튼 */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="flex gap-2 items-center">
-            <Select value={selectedType} onValueChange={setSelectedType}>
+            <Select value={selectedType} onValueChange={handleTypeChange}>
               <SelectTrigger className="w-[180px] border-2 border-black">
                 <SelectValue placeholder="알림 타입" />
               </SelectTrigger>
@@ -288,7 +415,7 @@ export default function NotificationsPage() {
 
             <Button
               variant={showUnreadOnly ? 'default' : 'outline'}
-              onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+              onClick={handleUnreadToggle}
               className="border-2 border-black"
             >
               <Filter className="h-4 w-4 mr-2" />
@@ -326,7 +453,7 @@ export default function NotificationsPage() {
         />
       ) : (
         <div className="space-y-4">
-          {notifications.map((notification) => {
+          {notifications.map((notification: Notification) => {
             const link = getNotificationLink(notification)
             const content = (
               <Card

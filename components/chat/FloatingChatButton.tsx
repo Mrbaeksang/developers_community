@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useChatEvents } from '@/hooks/use-chat-events'
+import { useChatEventsPolling as useChatEvents } from '@/hooks/use-chat-events-polling'
 import { useSession } from 'next-auth/react'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { useQuery } from '@tanstack/react-query'
 
 // 레이지 로딩으로 FloatingChatWindow 최적화
 const FloatingChatWindow = lazy(() => import('./FloatingChatWindow'))
@@ -72,36 +73,55 @@ export default function FloatingChatButton() {
     }
   }, [isOpen, updateLastReadTime])
 
-  // SSE 연결로 전역 메시지 수신 (창이 닫혀있을 때만)
+  // Polling으로 전역 메시지 수신 (창이 닫혀있을 때만)
   const { setOnMessage } = useChatEvents(isOpen ? null : channelId)
 
-  // 초기 안 읽은 메시지 수 계산
-  useEffect(() => {
-    const calculateUnreadCount = async () => {
-      try {
-        const lastRead = getLastReadTime()
+  // 안 읽은 메시지 수 조회
+  const { data: unreadData } = useQuery({
+    queryKey: ['chat-unread', channelId, session?.user?.id],
+    queryFn: async () => {
+      const lastRead = getLastReadTime()
+      // 유효한 날짜인지 확인
+      if (!lastRead || isNaN(lastRead.getTime())) {
+        // 유효하지 않은 날짜면 after 파라미터 없이 요청
         const res = await fetch(
-          `/api/chat/channels/${channelId}/messages?after=${lastRead.toISOString()}`
+          `/api/chat/channels/${channelId}/messages?limit=50`,
+          {
+            credentials: 'include',
+          }
         )
-        if (res.ok) {
-          const data = await res.json()
-          const messages = data.data?.messages || data.messages || []
-          // 본인이 작성한 메시지는 제외하고 카운트
-          const unreadMessages = messages.filter(
-            (msg: { author?: { id: string } }) =>
-              msg.author?.id !== session?.user?.id
-          )
-          setUnreadCount(Math.min(unreadMessages.length, 99))
-        }
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error)
+        if (!res.ok) throw new Error('Failed to fetch unread messages')
+        await res.json() // 응답 소비 (에러 방지)
+        return 0 // 마지막 읽은 시간이 없으면 안 읽은 메시지 0개로 처리
       }
-    }
 
-    if (!isOpen && session) {
-      calculateUnreadCount()
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages?after=${lastRead.toISOString()}`,
+        {
+          credentials: 'include',
+        }
+      )
+      if (!res.ok) throw new Error('Failed to fetch unread messages')
+      const data = await res.json()
+      const messages = data.data?.messages || data.messages || []
+
+      // 본인이 작성한 메시지는 제외하고 카운트
+      const unreadMessages = messages.filter(
+        (msg: { author?: { id: string } }) =>
+          msg.author?.id !== session?.user?.id
+      )
+      return Math.min(unreadMessages.length, 99)
+    },
+    enabled: !isOpen && !!session,
+    staleTime: 30 * 1000, // 30초
+  })
+
+  // React Query 결과를 로컬 state에 동기화
+  useEffect(() => {
+    if (unreadData !== undefined) {
+      setUnreadCount(unreadData)
     }
-  }, [channelId, getLastReadTime, isOpen, session])
+  }, [unreadData])
 
   // 실시간 메시지 수신 처리 (창이 닫혀있을 때)
   useEffect(() => {

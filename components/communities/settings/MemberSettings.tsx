@@ -70,6 +70,14 @@ interface MemberSettingsProps {
   isOwner: boolean
 }
 
+// 멤버 목록 API 응답 타입
+interface MembersResponse {
+  members: Member[]
+  total: number
+  hasMore: boolean
+  [key: string]: unknown
+}
+
 const roleIcons = {
   OWNER: Crown,
   ADMIN: Shield,
@@ -232,17 +240,48 @@ export function MemberSettings({
 
       return response.data
     },
-    onSuccess: () => {
-      toast.success('멤버 역할이 변경되었습니다.')
-      // 멤버 목록 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: ['communityMembers', communityId],
+    onMutate: async ({ memberId, role }) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      const activeQueryKey = [
+        'communityMembers',
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        'ACTIVE',
+      ]
+      await queryClient.cancelQueries({ queryKey: activeQueryKey })
+
+      const previousData = queryClient.getQueryData(activeQueryKey)
+
+      // 활성 멤버 목록에서 역할 즉시 업데이트
+      queryClient.setQueryData(activeQueryKey, (old: unknown) => {
+        if (!old) return old
+        const membersData = old as MembersResponse
+        if (!membersData?.members) return old
+        return {
+          ...membersData,
+          members: membersData.members.map((member: Member) =>
+            member.id === memberId ? { ...member, role } : member
+          ),
+        }
       })
+
+      // 즉시 성공 피드백 표시
+      toast.success('멤버 역할이 변경되었습니다.')
+
+      return { previousData, activeQueryKey }
+    },
+    onSuccess: () => {
       setSelectedMember(null)
       setActionType(null)
       setNewRole(null)
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousData && context?.activeQueryKey) {
+        queryClient.setQueryData(context.activeQueryKey, context.previousData)
+      }
       toast.error(error.message || '역할 변경에 실패했습니다.')
     },
   })
@@ -276,20 +315,51 @@ export function MemberSettings({
 
       return response.data
     },
-    onSuccess: (_, { actionType }) => {
+    onMutate: async ({ memberId, actionType }) => {
+      // 🚀 즉시 UI에서 제거 (Optimistic Update)
+      const activeQueryKey = [
+        'communityMembers',
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        'ACTIVE',
+      ]
+      await queryClient.cancelQueries({ queryKey: activeQueryKey })
+
+      const previousData = queryClient.getQueryData(activeQueryKey)
+
+      // 활성 멤버 목록에서 멤버 즉시 제거
+      queryClient.setQueryData(activeQueryKey, (old: unknown) => {
+        if (!old) return old
+        const membersData = old as MembersResponse
+        if (!membersData?.members) return old
+        return {
+          ...membersData,
+          members: membersData.members.filter(
+            (member: Member) => member.id !== memberId
+          ),
+        }
+      })
+
+      // 즉시 성공 피드백 표시
       toast.success(
         actionType === 'kick'
           ? '멤버가 추방되었습니다.'
           : '멤버가 차단되었습니다.'
       )
-      // 멤버 목록 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: ['communityMembers', communityId],
-      })
+
+      return { previousData, activeQueryKey }
+    },
+    onSuccess: () => {
       setSelectedMember(null)
       setActionType(null)
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousData && context?.activeQueryKey) {
+        queryClient.setQueryData(context.activeQueryKey, context.previousData)
+      }
       toast.error(error.message || '작업에 실패했습니다.')
     },
   })
@@ -326,20 +396,100 @@ export function MemberSettings({
 
       return response.data
     },
-    onSuccess: (_, { action }) => {
+    onMutate: async ({ memberId, action }) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      const pendingQueryKey = [
+        'communityMembers',
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        'PENDING',
+      ]
+      const activeQueryKey = [
+        'communityMembers',
+        communityId,
+        page,
+        searchQuery,
+        roleFilter,
+        'ACTIVE',
+      ]
+
+      await queryClient.cancelQueries({ queryKey: pendingQueryKey })
+      if (action === 'approve') {
+        await queryClient.cancelQueries({ queryKey: activeQueryKey })
+      }
+
+      const previousPendingData = queryClient.getQueryData(pendingQueryKey)
+      const previousActiveData = queryClient.getQueryData(activeQueryKey)
+
+      const targetMember = pendingMembers.find(
+        (member: Member) => member.id === memberId
+      )
+
+      // 대기 목록에서 멤버 제거
+      queryClient.setQueryData(pendingQueryKey, (old: unknown) => {
+        if (!old) return old
+        const membersData = old as MembersResponse
+        if (!membersData?.members) return old
+        return {
+          ...membersData,
+          members: membersData.members.filter(
+            (member: Member) => member.id !== memberId
+          ),
+        }
+      })
+
+      // 승인인 경우 활성 멤버 목록에 추가
+      if (action === 'approve' && targetMember) {
+        queryClient.setQueryData(activeQueryKey, (old: unknown) => {
+          if (!old) return old
+          const membersData = old as MembersResponse
+          if (!membersData?.members) return old
+          const approvedMember = {
+            ...targetMember,
+            status: 'ACTIVE' as MembershipStatus,
+            role: 'MEMBER' as CommunityRole,
+          }
+          return {
+            ...membersData,
+            members: [approvedMember, ...membersData.members],
+          }
+        })
+      }
+
+      // 즉시 성공 피드백 표시
       toast.success(
         action === 'approve'
           ? '가입 신청이 승인되었습니다.'
           : '가입 신청이 거절되었습니다.'
       )
-      // 멤버 목록 쿼리 무효화 (pending과 active 모두)
-      queryClient.invalidateQueries({
-        queryKey: ['communityMembers', communityId],
-      })
+
+      return {
+        previousPendingData,
+        previousActiveData,
+        pendingQueryKey,
+        activeQueryKey,
+      }
+    },
+    onSuccess: () => {
       setSelectedMember(null)
       setActionType(null)
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousPendingData && context?.pendingQueryKey) {
+        queryClient.setQueryData(
+          context.pendingQueryKey,
+          context.previousPendingData
+        )
+      }
+      if (context?.previousActiveData && context?.activeQueryKey) {
+        queryClient.setQueryData(
+          context.activeQueryKey,
+          context.previousActiveData
+        )
+      }
       toast.error(error.message || '작업에 실패했습니다.')
     },
   })

@@ -6,6 +6,7 @@ import { KakaoProvider } from '@/components/providers/KakaoProvider'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { Header } from '@/components/layouts/Header'
+import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
 import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
@@ -48,8 +49,11 @@ export default function RootLayout({
             <SessionProvider>
               <NotificationProvider>
                 <KakaoProvider>
-                  <Header />
-                  <main>{children}</main>
+                  <div className="flex min-h-screen flex-col">
+                    <Header />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
                   <Toaster richColors position="bottom-right" />
                   <ChatProvider />
                   <VisitorTracker />

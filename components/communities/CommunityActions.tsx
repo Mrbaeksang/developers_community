@@ -1,12 +1,12 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api/client'
 
 interface CommunityActionsProps {
   community: {
@@ -20,6 +20,26 @@ interface CommunityActionsProps {
   isAuthenticated: boolean
 }
 
+// Community 데이터 타입 정의
+interface CommunityData {
+  id: string
+  slug: string
+  memberCount: number
+  isMember: boolean
+  isPending: boolean
+  [key: string]: unknown
+}
+
+// API 응답 타입
+interface ApiResponse {
+  success: boolean
+  error?: string
+  data?: {
+    message?: string
+    [key: string]: unknown
+  }
+}
+
 export function CommunityActions({
   community,
   isOwner,
@@ -28,40 +48,97 @@ export function CommunityActions({
   canJoin,
   isAuthenticated,
 }: CommunityActionsProps) {
-  const router = useRouter()
   const queryClient = useQueryClient()
 
   // 커뮤니티 가입 mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/communities/${community.id}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const response = await apiClient(
+        `/api/communities/${community.id}/join`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '가입 실패')
+      if (!response.success) {
+        throw new Error(response.error || '가입 실패')
       }
 
-      return res.json()
+      return response.data
     },
-    onSuccess: (data) => {
-      toast.success(data.data?.message || data.message || '가입되었습니다')
+    onMutate: async () => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['community', community.id] })
+      await queryClient.cancelQueries({
+        queryKey: ['community', community.slug],
+      })
 
-      // 커뮤니티 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['community', community.id] })
-      queryClient.invalidateQueries({ queryKey: ['community', community.slug] })
+      const previousCommunityById = queryClient.getQueryData([
+        'community',
+        community.id,
+      ])
+      const previousCommunityBySlug = queryClient.getQueryData([
+        'community',
+        community.slug,
+      ])
+
+      // 커뮤니티 데이터에 멤버 상태 즉시 반영
+      queryClient.setQueryData(['community', community.id], (old: unknown) => {
+        if (!old) return old
+        const communityData = old as CommunityData
+        return {
+          ...communityData,
+          memberCount: (communityData.memberCount || 0) + 1,
+          isMember: true,
+          isPending: false,
+        }
+      })
+
+      queryClient.setQueryData(
+        ['community', community.slug],
+        (old: unknown) => {
+          if (!old) return old
+          const communityData = old as CommunityData
+          return {
+            ...communityData,
+            memberCount: (communityData.memberCount || 0) + 1,
+            isMember: true,
+            isPending: false,
+          }
+        }
+      )
+
+      // 즉시 성공 피드백 표시
+      toast.success('가입되었습니다')
+
+      return { previousCommunityById, previousCommunityBySlug }
+    },
+    onSuccess: (data: unknown) => {
+      // 추가 메시지가 있다면 표시
+      const responseData = data as ApiResponse['data']
+      if (responseData?.message && responseData.message !== '가입되었습니다') {
+        toast.success(responseData.message)
+      }
+
+      // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
       queryClient.invalidateQueries({ queryKey: ['communities'] })
-
-      // 강제로 라우터 리프레시
-      router.refresh()
-      // 약간의 지연 후 다시 리프레시 (Next.js 15 캐시 문제 해결)
-      setTimeout(() => {
-        router.refresh()
-      }, 100)
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousCommunityById) {
+        queryClient.setQueryData(
+          ['community', community.id],
+          context.previousCommunityById
+        )
+      }
+      if (context?.previousCommunityBySlug) {
+        queryClient.setQueryData(
+          ['community', community.slug],
+          context.previousCommunityBySlug
+        )
+      }
+
       toast.error(error.message || '가입에 실패했습니다')
     },
   })
@@ -69,33 +146,91 @@ export function CommunityActions({
   // 커뮤니티 탈퇴 mutation
   const leaveCommunityMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/communities/${community.id}/join`, {
-        method: 'DELETE',
-      })
+      const response = await apiClient(
+        `/api/communities/${community.id}/join`,
+        {
+          method: 'DELETE',
+        }
+      )
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || '탈퇴 실패')
+      if (!response.success) {
+        throw new Error(response.error || '탈퇴 실패')
       }
 
-      return res.json()
+      return response.data
     },
-    onSuccess: (data) => {
-      toast.success(data.data?.message || data.message || '탈퇴되었습니다')
+    onMutate: async () => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['community', community.id] })
+      await queryClient.cancelQueries({
+        queryKey: ['community', community.slug],
+      })
 
-      // 커뮤니티 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['community', community.id] })
-      queryClient.invalidateQueries({ queryKey: ['community', community.slug] })
+      const previousCommunityById = queryClient.getQueryData([
+        'community',
+        community.id,
+      ])
+      const previousCommunityBySlug = queryClient.getQueryData([
+        'community',
+        community.slug,
+      ])
+
+      // 커뮤니티 데이터에 멤버 상태 즉시 반영
+      queryClient.setQueryData(['community', community.id], (old: unknown) => {
+        if (!old) return old
+        const communityData = old as CommunityData
+        return {
+          ...communityData,
+          memberCount: Math.max(0, (communityData.memberCount || 0) - 1),
+          isMember: false,
+          isPending: false,
+        }
+      })
+
+      queryClient.setQueryData(
+        ['community', community.slug],
+        (old: unknown) => {
+          if (!old) return old
+          const communityData = old as CommunityData
+          return {
+            ...communityData,
+            memberCount: Math.max(0, (communityData.memberCount || 0) - 1),
+            isMember: false,
+            isPending: false,
+          }
+        }
+      )
+
+      // 즉시 성공 피드백 표시
+      toast.success('탈퇴되었습니다')
+
+      return { previousCommunityById, previousCommunityBySlug }
+    },
+    onSuccess: (data: unknown) => {
+      // 추가 메시지가 있다면 표시
+      const responseData = data as ApiResponse['data']
+      if (responseData?.message && responseData.message !== '탈퇴되었습니다') {
+        toast.success(responseData.message)
+      }
+
+      // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
       queryClient.invalidateQueries({ queryKey: ['communities'] })
-
-      // 강제로 라우터 리프레시
-      router.refresh()
-      // 약간의 지연 후 다시 리프레시 (Next.js 15 캐시 문제 해결)
-      setTimeout(() => {
-        router.refresh()
-      }, 100)
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousCommunityById) {
+        queryClient.setQueryData(
+          ['community', community.id],
+          context.previousCommunityById
+        )
+      }
+      if (context?.previousCommunityBySlug) {
+        queryClient.setQueryData(
+          ['community', community.slug],
+          context.previousCommunityBySlug
+        )
+      }
+
       toast.error(error.message || '탈퇴에 실패했습니다')
     },
   })

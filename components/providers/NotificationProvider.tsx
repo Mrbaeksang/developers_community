@@ -6,13 +6,13 @@ import {
   useEffect,
   useState,
   useCallback,
-  useRef,
 } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { NotificationType } from '@prisma/client'
 import { apiClient } from '@/lib/api/client'
+import { useQuery } from '@tanstack/react-query'
 
 interface Notification {
   id: string
@@ -63,9 +63,9 @@ export function NotificationProvider({
   const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [isConnected, setIsConnected] = useState(false)
-  const eventSourceRef = useRef<EventSource | null>(null)
-  const [reconnectAttempts, setReconnectAttempts] = useState(0)
+  const [lastNotificationId, setLastNotificationId] = useState<string | null>(
+    null
+  )
 
   // 알림 읽음 처리
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -105,29 +105,6 @@ export function NotificationProvider({
       console.error('Failed to mark all notifications as read:', error)
     }
   }, [])
-
-  // 알림 목록 새로고침
-  const refreshNotifications = useCallback(async () => {
-    if (!session?.user?.id) return
-
-    try {
-      const result = await apiClient<{
-        notifications: Notification[]
-        unreadCount: number
-      }>('/api/notifications?limit=10')
-      if (result.success) {
-        // apiClient는 { success: true, ...data }를 반환하므로 직접 접근 가능
-        const successResult = result as typeof result & {
-          notifications: Notification[]
-          unreadCount: number
-        }
-        setNotifications(successResult.notifications || [])
-        setUnreadCount(successResult.unreadCount || 0)
-      }
-    } catch (error) {
-      console.error('Failed to refresh notifications:', error)
-    }
-  }, [session])
 
   // 알림 타입별 액션 버튼 생성
   const getNotificationAction = useCallback(
@@ -183,105 +160,82 @@ export function NotificationProvider({
     [router]
   )
 
-  // SSE 연결 설정
-  useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.id) {
-      return
-    }
+  // 알림 목록 폴링 (5초마다)
+  const { data: notificationData, refetch: refreshNotifications } = useQuery({
+    queryKey: ['notifications-polling', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null
 
-    // Development 환경에서는 SSE 에러 최소화를 위한 옵션
-    if (
-      process.env.NODE_ENV === 'development' &&
-      process.env.NEXT_PUBLIC_DISABLE_SSE === 'true'
-    ) {
-      console.warn('[SSE] Disabled in development mode')
-      return
-    }
-
-    // 기존 연결이 있다면 정리
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-    }
-
-    // 새 SSE 연결
-    const source = new EventSource('/api/notifications/sse')
-    eventSourceRef.current = source
-
-    source.onopen = () => {
-      setIsConnected(true)
-      setReconnectAttempts(0) // 연결 성공 시 재시도 횟수 초기화
-    }
-
-    source.onerror = (event) => {
-      setIsConnected(false)
-
-      // Development 환경에서는 에러 로깅 최소화
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[SSE] Connection lost, retrying...', event)
-      } else {
-        console.error('[SSE Client] Connection error:', event)
-      }
-
-      // 최대 5번까지만 재연결 시도
-      if (reconnectAttempts < 5) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000) // 지수 백오프: 1s, 2s, 4s, 8s, 16s, 30s
-        setTimeout(() => {
-          setReconnectAttempts((prev) => prev + 1)
-        }, delay)
-      }
-    }
-
-    source.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data)
+        const result = await apiClient<{
+          notifications: Notification[]
+          unreadCount: number
+        }>('/api/notifications?limit=10')
 
-        switch (data.type) {
-          case 'connected':
-            break
-
-          case 'unreadCount':
-            setUnreadCount(data.count)
-            break
-
-          case 'initial':
-            setNotifications(data.notifications)
-            break
-
-          case 'notification':
-            // 새 알림 추가
-            const newNotification = data.data
-            setNotifications((prev) => [newNotification, ...prev.slice(0, 9)])
-            setUnreadCount((prev) => prev + 1)
-
-            // 토스트 알림 표시
-            toast(newNotification.title, {
-              description: newNotification.message,
-              action: getNotificationAction(newNotification),
-            })
-            break
+        if (result.success) {
+          const successResult = result as typeof result & {
+            notifications: Notification[]
+            unreadCount: number
+          }
+          return {
+            notifications: successResult.notifications || [],
+            unreadCount: successResult.unreadCount || 0,
+          }
         }
       } catch (error) {
-        console.error('Failed to parse SSE message:', error)
+        console.error('Failed to fetch notifications:', error)
+      }
+
+      return null
+    },
+    refetchInterval: 5000, // 5초마다 폴링
+    enabled: status === 'authenticated' && !!session?.user?.id,
+  })
+
+  // 새 알림 처리
+  useEffect(() => {
+    if (notificationData) {
+      const newNotifications = notificationData.notifications
+
+      // 새로운 알림 확인
+      if (newNotifications.length > 0 && lastNotificationId) {
+        const newestNotification = newNotifications[0]
+        if (newestNotification.id !== lastNotificationId) {
+          // 새 알림이 있으면 토스트 표시
+          toast(newestNotification.title, {
+            description: newestNotification.message,
+            action: getNotificationAction(newestNotification),
+          })
+        }
+      }
+
+      // 상태 업데이트
+      setNotifications(newNotifications)
+      setUnreadCount(notificationData.unreadCount)
+
+      // 마지막 알림 ID 저장
+      if (newNotifications.length > 0) {
+        setLastNotificationId(newNotifications[0].id)
       }
     }
-
-    // 클린업
-    return () => {
-      source.close()
-      eventSourceRef.current = null
-      setIsConnected(false)
-    }
-  }, [session?.user?.id, status, reconnectAttempts, getNotificationAction])
+  }, [
+    notificationData,
+    lastNotificationId,
+    getNotificationAction,
+    notifications,
+  ])
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
-        isConnected,
+        isConnected: true, // Polling은 항상 연결된 것으로 간주
         markAsRead,
         markAllAsRead,
-        refreshNotifications,
+        refreshNotifications: () => {
+          refreshNotifications()
+        },
       }}
     >
       {children}

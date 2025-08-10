@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -119,9 +120,7 @@ interface CommunityPost {
 
 export default function PostsPage() {
   const router = useRouter()
-  const [mainPosts, setMainPosts] = useState<MainPost[]>([])
-  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -137,14 +136,19 @@ export default function PostsPage() {
   const [communityPage, setCommunityPage] = useState(1)
   const pageSize = 10
 
-  // 메인 게시글 조회
-  const fetchMainPosts = async () => {
-    try {
+  // React Query - 메인 게시글 조회
+  const {
+    data: mainPosts = [],
+    isLoading: mainPostsLoading,
+    error: mainPostsError,
+  } = useQuery({
+    queryKey: ['adminMainPosts'],
+    queryFn: async () => {
       const response = await apiClient('/api/admin/posts/main')
       if (!response.success) {
         if (response.error === 'Unauthorized') {
           router.push('/login')
-          return
+          return []
         }
         if (response.error === 'Forbidden') {
           toast({
@@ -153,75 +157,58 @@ export default function PostsPage() {
             variant: 'destructive',
           })
           router.push('/')
-          return
+          return []
         }
         throw new Error(response.error || '메인 게시글 조회 실패')
       }
-      const data = response.data
+      return response.data as MainPost[]
+    },
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
-      // 새로운 응답 형식 처리: { success: true, data: posts }
-      const posts = data as MainPost[]
-      setMainPosts(posts)
-    } catch (error) {
-      console.error('메인 게시글 조회 실패:', error)
-      toast({
-        title: '메인 게시글 조회에 실패했습니다.',
-        variant: 'destructive',
-      })
-    }
+  // 메인 게시글 에러 처리
+  if (mainPostsError) {
+    console.error('메인 게시글 조회 실패:', mainPostsError)
+    toast({
+      title: '메인 게시글 조회에 실패했습니다.',
+      variant: 'destructive',
+    })
   }
 
-  // 커뮤니티 게시글 조회
-  const fetchCommunityPosts = async () => {
-    try {
+  // React Query - 커뮤니티 게시글 조회
+  const {
+    data: communityPosts = [],
+    isLoading: communityPostsLoading,
+    error: communityPostsError,
+  } = useQuery({
+    queryKey: ['adminCommunityPosts'],
+    queryFn: async () => {
       const response = await apiClient('/api/admin/posts/community')
       if (!response.success) {
         throw new Error(response.error || '커뮤니티 게시글 조회 실패')
       }
-      const data = response.data
+      return response.data as CommunityPost[]
+    },
+    staleTime: 30 * 1000, // 30초간 fresh
+    gcTime: 5 * 60 * 1000, // 5분간 캐시
+  })
 
-      // 새로운 응답 형식 처리: { success: true, data: posts }
-      const posts = data as CommunityPost[]
-      setCommunityPosts(posts)
-    } catch (error) {
-      console.error('커뮤니티 게시글 조회 실패:', error)
-      toast({
-        title: '커뮤니티 게시글 조회에 실패했습니다.',
-        variant: 'destructive',
-      })
-    }
+  // 커뮤니티 게시글 에러 처리
+  if (communityPostsError) {
+    console.error('커뮤니티 게시글 조회 실패:', communityPostsError)
+    toast({
+      title: '커뮤니티 게시글 조회에 실패했습니다.',
+      variant: 'destructive',
+    })
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      await Promise.all([fetchMainPosts(), fetchCommunityPosts()])
-      setLoading(false)
-    }
-    fetchData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // 로딩 상태 통합
+  const loading = mainPostsLoading || communityPostsLoading
 
-  // 게시글 고정/고정해제
-  const handleTogglePin = async (postId: string) => {
-    // 🚀 즉시 UI 업데이트 (Optimistic Update)
-    const currentPost = mainPosts.find((post) => post.id === postId)
-    if (!currentPost) return
-
-    const newPinnedState = !currentPost.isPinned
-    setMainPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId ? { ...post, isPinned: newPinnedState } : post
-      )
-    )
-
-    // 즉시 피드백 표시
-    toast({
-      title: newPinnedState
-        ? '게시글이 고정되었습니다.'
-        : '게시글 고정이 해제되었습니다.',
-    })
-
-    try {
+  // React Query - 게시글 고정/고정해제 mutation
+  const togglePinMutation = useMutation({
+    mutationFn: async (postId: string) => {
       const response = await apiClient(`/api/admin/posts/main/${postId}/pin`, {
         method: 'PATCH',
       })
@@ -230,14 +217,37 @@ export default function PostsPage() {
         throw new Error(response.error || '고정 상태 변경 실패')
       }
 
-      // 서버 성공 시 추가 작업 없음 (이미 UI 업데이트됨)
-    } catch (error) {
-      // ❌ 실패 시 상태 되돌리기 (Rollback)
-      setMainPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId ? { ...post, isPinned: !newPinnedState } : post
+      return response.data
+    },
+    onMutate: async (postId) => {
+      // 🚀 즉시 UI 업데이트 (Optimistic Update)
+      await queryClient.cancelQueries({ queryKey: ['adminMainPosts'] })
+      const previousPosts = queryClient.getQueryData(['adminMainPosts'])
+
+      const currentPost = mainPosts.find((post) => post.id === postId)
+      if (!currentPost) return { previousPosts }
+
+      const newPinnedState = !currentPost.isPinned
+      queryClient.setQueryData(['adminMainPosts'], (old: MainPost[] = []) =>
+        old.map((post) =>
+          post.id === postId ? { ...post, isPinned: newPinnedState } : post
         )
       )
+
+      // 즉시 피드백 표시
+      toast({
+        title: newPinnedState
+          ? '게시글이 고정되었습니다.'
+          : '게시글 고정이 해제되었습니다.',
+      })
+
+      return { previousPosts, newPinnedState }
+    },
+    onError: (error, variables, context) => {
+      // ❌ 실패 시 상태 되돌리기 (Rollback)
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['adminMainPosts'], context.previousPosts)
+      }
 
       toast({
         title: '고정 상태 변경에 실패했습니다.',
@@ -247,36 +257,23 @@ export default function PostsPage() {
             : '알 수 없는 오류가 발생했습니다.',
         variant: 'destructive',
       })
-    }
+    },
+  })
+
+  const handleTogglePin = (postId: string) => {
+    togglePinMutation.mutate(postId)
   }
 
-  // 게시글 삭제
-  const handleDelete = async () => {
-    if (!selectedPost) return
-
-    // 🚀 즉시 UI에서 제거 (Optimistic Update)
-    const postIdToDelete = selectedPost.id
-    if (selectedPostType === 'main') {
-      setMainPosts((prev) => prev.filter((post) => post.id !== postIdToDelete))
-    } else {
-      setCommunityPosts((prev) =>
-        prev.filter((post) => post.id !== postIdToDelete)
-      )
-    }
-
-    setIsDeleteDialogOpen(false)
-    setSelectedPost(null)
-
-    // 즉시 성공 메시지 표시
-    toast({
-      title: '게시글이 삭제되었습니다.',
-    })
-
-    try {
+  // React Query - 게시글 삭제 mutation
+  const deletePostMutation = useMutation({
+    mutationFn: async (data: {
+      postId: string
+      postType: 'main' | 'community'
+    }) => {
       const endpoint =
-        selectedPostType === 'main'
-          ? `/api/admin/posts/main/${postIdToDelete}`
-          : `/api/admin/posts/community/${postIdToDelete}`
+        data.postType === 'main'
+          ? `/api/admin/posts/main/${data.postId}`
+          : `/api/admin/posts/community/${data.postId}`
 
       const response = await apiClient(endpoint, {
         method: 'DELETE',
@@ -286,9 +283,37 @@ export default function PostsPage() {
         throw new Error(response.error || '삭제 실패')
       }
 
-      // 서버 삭제 성공 시 추가 메시지는 생략 (이미 표시했음)
-    } catch (error) {
+      return response.data
+    },
+    onMutate: async ({ postId, postType }) => {
+      // 🚀 즉시 UI에서 제거 (Optimistic Update)
+      const queryKey =
+        postType === 'main' ? ['adminMainPosts'] : ['adminCommunityPosts']
+      await queryClient.cancelQueries({ queryKey })
+      const previousPosts = queryClient.getQueryData(queryKey)
+
+      queryClient.setQueryData(
+        queryKey,
+        (old: (MainPost | CommunityPost)[] = []) =>
+          old.filter((post) => post.id !== postId)
+      )
+
+      setIsDeleteDialogOpen(false)
+      setSelectedPost(null)
+
+      // 즉시 성공 메시지 표시
+      toast({
+        title: '게시글이 삭제되었습니다.',
+      })
+
+      return { previousPosts, queryKey }
+    },
+    onError: (error, variables, context) => {
       // ❌ 삭제 실패 시 되돌리기 (Rollback)
+      if (context?.previousPosts && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousPosts)
+      }
+
       toast({
         title: '삭제에 실패했습니다.',
         description:
@@ -297,14 +322,16 @@ export default function PostsPage() {
             : '알 수 없는 오류가 발생했습니다.',
         variant: 'destructive',
       })
+    },
+  })
 
-      // 데이터 복구를 위해 다시 가져오기
-      if (selectedPostType === 'main') {
-        fetchMainPosts()
-      } else {
-        fetchCommunityPosts()
-      }
-    }
+  const handleDelete = async () => {
+    if (!selectedPost) return
+
+    deletePostMutation.mutate({
+      postId: selectedPost.id,
+      postType: selectedPostType,
+    })
   }
 
   // 상태 배지 렌더링

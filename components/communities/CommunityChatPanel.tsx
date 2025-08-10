@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { type ChatMessage } from '@/hooks/use-chat-events'
+import { type ChatMessage } from '@/hooks/use-chat-events-polling'
 import { useCommunityChat } from '@/hooks/use-community-chat'
 import { cn } from '@/lib/core/utils'
 
@@ -148,7 +148,7 @@ export default function CommunityChatPanel({
 
     // cleanup: 컴포넌트 언마운트 시 핸들러 제거
     return () => {
-      setOnMessage(null)
+      setOnMessage(() => null)
     }
   }, [activeChannelId, setOnMessage, session?.user?.id])
 
@@ -576,14 +576,12 @@ export default function CommunityChatPanel({
               {typingUsers.length > 0 && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="flex -space-x-2">
-                    {typingUsers
-                      .slice(0, 3)
-                      .map((userId: string, index: number) => (
-                        <div
-                          key={`typing-user-${userId}-${index}`}
-                          className="h-6 w-6 rounded-full bg-muted border-2 border-white"
-                        />
-                      ))}
+                    {typingUsers.slice(0, 3).map((user, index) => (
+                      <div
+                        key={`typing-user-${user.userId}-${index}`}
+                        className="h-6 w-6 rounded-full bg-muted border-2 border-white"
+                      />
+                    ))}
                   </div>
                   <span>
                     {typingUsers.length === 1

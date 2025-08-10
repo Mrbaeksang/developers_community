@@ -11,8 +11,14 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { useChatEvents, type ChatMessage } from '@/hooks/use-chat-events'
+// Vercel 배포를 위해 Polling 방식으로 변경
+import {
+  useChatEventsPolling as useChatEvents,
+  type ChatMessage,
+} from '@/hooks/use-chat-events-polling'
 import { useTypingIndicator } from '@/hooks/use-typing-indicator'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { toast as sonnerToast } from 'sonner'
 
 // ChatMessage 타입을 use-chat-events에서 가져와서 사용
 
@@ -28,12 +34,135 @@ export default function FloatingChatWindow({
   const { data: session } = useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // 메시지 목록 조회
+  const { data: messagesData, isLoading } = useQuery({
+    queryKey: ['chat-messages', channelId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages?limit=20`,
+        {
+          credentials: 'include',
+        }
+      )
+      if (!res.ok) throw new Error('Failed to fetch messages')
+      const data = await res.json()
+
+      // 새로운 응답 형식 처리: { success: true, data: { messages } }
+      const messages =
+        data.success && data.data ? data.data.messages : data.messages || data
+
+      return messages.filter(
+        (msg: ChatMessage | null) => msg !== null
+      ) as ChatMessage[]
+    },
+    staleTime: 1 * 60 * 1000, // 1분
+  })
+
+  // 메시지 전송 mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          content: content.trim(),
+          type: 'TEXT',
+        }),
+      })
+
+      if (!res.ok) throw new Error('Failed to send message')
+      const data = await res.json()
+
+      if (!data.success || !data.data?.message) {
+        throw new Error('Invalid response format')
+      }
+
+      return data.data.message as ChatMessage
+    },
+    onSuccess: (newMessage) => {
+      // 낙관적 업데이트
+      setMessages((prev) => {
+        if (prev.some((msg) => msg?.id === newMessage.id)) {
+          return prev
+        }
+        return [...prev, newMessage]
+      })
+
+      if (onNewMessage) {
+        onNewMessage(newMessage)
+      }
+
+      setNewMessage('')
+      scrollToBottom()
+      sonnerToast.success('메시지가 전송되었습니다')
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error)
+      sonnerToast.error('메시지 전송에 실패했습니다')
+    },
+  })
+
+  // 메시지 수정 mutation
+  const editMessageMutation = useMutation({
+    mutationFn: async ({
+      messageId,
+      content,
+    }: {
+      messageId: string
+      content: string
+    }) => {
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages/${messageId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ content: content.trim() }),
+        }
+      )
+
+      if (!res.ok) throw new Error('Failed to update message')
+      return { messageId, content }
+    },
+    onSuccess: () => {
+      setEditingMessageId(null)
+      setEditingContent('')
+      sonnerToast.success('메시지가 수정되었습니다')
+    },
+    onError: (error) => {
+      console.error('Failed to update message:', error)
+      sonnerToast.error('메시지 수정에 실패했습니다')
+    },
+  })
+
+  // 메시지 삭제 mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      const res = await fetch(
+        `/api/chat/channels/${channelId}/messages/${messageId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      )
+
+      if (!res.ok) throw new Error('Failed to delete message')
+      return messageId
+    },
+    onSuccess: () => {
+      sonnerToast.success('메시지가 삭제되었습니다')
+    },
+    onError: (error) => {
+      console.error('Failed to delete message:', error)
+      sonnerToast.error('메시지 삭제에 실패했습니다')
+    },
+  })
 
   // 실시간 채팅 연결
   const {
@@ -49,11 +178,13 @@ export default function FloatingChatWindow({
   // 타이핑 인디케이터
   const { startTyping, stopTyping } = useTypingIndicator(sendTypingStatus)
 
-  // 메시지 로드 (초기 로드만, 실시간은 SSE로 처리)
+  // React Query 데이터를 로컬 state에 동기화 (실시간 업데이트용)
   useEffect(() => {
-    fetchMessages()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId])
+    if (messagesData) {
+      setMessages(messagesData)
+      scrollToBottom()
+    }
+  }, [messagesData])
 
   // 실시간 메시지 수신 설정
   useEffect(() => {
@@ -99,31 +230,6 @@ export default function FloatingChatWindow({
     })
   }, [setOnMessageDelete])
 
-  const fetchMessages = async () => {
-    try {
-      // 초기 로드 시 최근 20개 메시지만 가져오기 (성능 개선)
-      const res = await fetch(
-        `/api/chat/channels/${channelId}/messages?limit=20`,
-        {
-          credentials: 'include', // 쿠키를 포함하여 요청
-        }
-      )
-      if (!res.ok) throw new Error('Failed to fetch messages')
-      const data = await res.json()
-
-      // 새로운 응답 형식 처리: { success: true, data: { messages } }
-      const messages =
-        data.success && data.data ? data.data.messages : data.messages || data
-
-      setMessages(messages.filter((msg: ChatMessage | null) => msg !== null))
-      scrollToBottom()
-    } catch (error) {
-      console.error('Failed to fetch messages:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const scrollToBottom = () => {
     setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -132,51 +238,10 @@ export default function FloatingChatWindow({
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || sending) return
+    if (!newMessage.trim() || sendMessageMutation.isPending) return
 
-    setSending(true)
     stopTyping() // 타이핑 상태 중지
-
-    try {
-      // 메시지 전송
-      const res = await fetch(`/api/chat/channels/${channelId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          content: newMessage.trim(),
-          type: 'TEXT',
-        }),
-      })
-
-      if (!res.ok) throw new Error('Failed to send message')
-
-      const data = await res.json()
-
-      // 서버 응답에서 생성된 메시지를 즉시 추가 (자신의 메시지)
-      if (data.success && data.data?.message) {
-        setMessages((prev) => {
-          // 중복 방지
-          if (prev.some((msg) => msg?.id === data.data.message.id)) {
-            return prev
-          }
-          return [...prev, data.data.message]
-        })
-
-        // 부모 컴포넌트에 알림
-        if (onNewMessage) {
-          onNewMessage(data.data.message)
-        }
-      }
-
-      // 폼 초기화
-      setNewMessage('')
-      scrollToBottom()
-    } catch (error) {
-      console.error('Failed to send message:', error)
-    } finally {
-      setSending(false)
-    }
+    sendMessageMutation.mutate(newMessage)
   }
 
   // 타이핑 상태 처리
@@ -200,51 +265,16 @@ export default function FloatingChatWindow({
   // 메시지 수정 저장
   const saveEditMessage = async (messageId: string) => {
     if (!editingContent.trim()) return
-
-    try {
-      const res = await fetch(
-        `/api/chat/channels/${channelId}/messages/${messageId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ content: editingContent.trim() }),
-        }
-      )
-
-      if (!res.ok) throw new Error('Failed to update message')
-
-      // 서버에서 브로드캐스트된 실시간 업데이트가 자동으로 반영됨
-      cancelEditMessage()
-    } catch (error) {
-      console.error('Failed to update message:', error)
-      alert('메시지 수정에 실패했습니다.')
-    }
+    editMessageMutation.mutate({ messageId, content: editingContent })
   }
 
   // 메시지 삭제
   const deleteMessage = async (messageId: string) => {
     if (!confirm('이 메시지를 삭제하시겠습니까?')) return
-
-    try {
-      const res = await fetch(
-        `/api/chat/channels/${channelId}/messages/${messageId}`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-        }
-      )
-
-      if (!res.ok) throw new Error('Failed to delete message')
-
-      // 서버에서 브로드캐스트된 실시간 삭제가 자동으로 반영됨
-    } catch (error) {
-      console.error('Failed to delete message:', error)
-      alert('메시지 삭제에 실패했습니다.')
-    }
+    deleteMessageMutation.mutate(messageId)
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-muted-foreground">메시지를 불러오는 중...</div>
@@ -387,14 +417,14 @@ export default function FloatingChatWindow({
               value={newMessage}
               onChange={handleInputChange}
               placeholder="메시지를 입력하세요..."
-              disabled={sending}
+              disabled={sendMessageMutation.isPending}
               className="flex-1 border-2 border-black"
             />
 
             <Button
               type="submit"
               size="icon"
-              disabled={!newMessage.trim() || sending}
+              disabled={!newMessage.trim() || sendMessageMutation.isPending}
               className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
             >
               <Send className="h-4 w-4" />

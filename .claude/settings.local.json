@@ -8,7 +8,18 @@
       "mcp__playwright__browser_evaluate",
       "Bash(npm run type-check:*)",
       "Bash(rm:*)",
-      "mcp__exa__web_search_exa"
+      "mcp__exa__web_search_exa",
+      "mcp__exa__web_search_exa",
+      "mcp__exa__crawling_exa",
+      "mcp__context-7__get-library-docs",
+      "mcp__context-7__resolve-library-id",
+      "mcp__vercel__get_project",
+      "mcp__vercel__list_deployments",
+      "mcp__vercel__search_vercel_documentation",
+      "mcp__exa__deep_researcher_start",
+      "mcp__exa__deep_researcher_check",
+      "Bash(npx tsx:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

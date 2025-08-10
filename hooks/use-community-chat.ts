@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useChatEvents } from './use-chat-events'
+import { useChatEventsPolling as useChatEvents } from './use-chat-events-polling'
 import { useTypingIndicator } from './use-typing-indicator'
 
 // 커뮤니티 채팅 컴포넌트를 위한 통합 훅
@@ -20,7 +20,7 @@ export function useCommunityChat(
   const { startTyping } = useTypingIndicator(sendTypingStatus)
 
   // 타이핑 유저는 직접 필터링해서 반환 (현재 사용자 제외)
-  const typingUsers = typingUserIds.filter((id) => id !== userId)
+  const typingUsers = typingUserIds.filter((user) => user.userId !== userId)
 
   // 온라인 카운트는 직접 반환
   const onlineCount = onlineInfo.count
