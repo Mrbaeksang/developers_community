@@ -67,10 +67,13 @@ export function GoogleOneTapAuth({
     // 인앱 브라우저 감지
     const userAgent = navigator.userAgent.toLowerCase()
     const isKakao = userAgent.includes('kakaotalk')
-    const isFacebook = userAgent.includes('facebookexternalhit') || userAgent.includes('fban') || userAgent.includes('fbav')
+    const isFacebook =
+      userAgent.includes('facebookexternalhit') ||
+      userAgent.includes('fban') ||
+      userAgent.includes('fbav')
     const isInstagram = userAgent.includes('instagram')
     const isLine = userAgent.includes('line')
-    
+
     if (isKakao || isFacebook || isInstagram || isLine) {
       setIsInAppBrowser(true)
     }

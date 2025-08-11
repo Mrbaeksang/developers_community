@@ -14,11 +14,84 @@ const AI_CONFIG = {
   MAX_BATCH_SIZE: 10, // 한 번에 처리할 최대 게시글 수
 } as const
 
+// HTML 특수 문자를 이스케이프하는 헬퍼 함수
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 // 마크다운을 TipTap 호환 HTML로 변환
 function markdownToHTML(markdown: string): string {
+  // 플레이스홀더를 사용하여 처리 중인 콘텐츠를 보호
+  const placeholders = new Map<string, string>()
+  let placeholderId = 0
+
+  const addPlaceholder = (content: string): string => {
+    const key = `__PLACEHOLDER_${placeholderId++}__`
+    placeholders.set(key, content)
+    return key
+  }
+
   let html = markdown
 
-  // 제목 처리 (# ~ ###### 제목)
+  // 1. 코드 블록을 가장 먼저 보호 (가장 중요!)
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    const escapedCode = escapeHtml(code.trim())
+    const language = lang || 'plaintext'
+    const finalHtml = `<pre><code class="language-${language}" style="display: block; background-color: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; overflow-x: auto; margin: 16px 0;">${escapedCode}</code></pre>`
+    return addPlaceholder(finalHtml)
+  })
+
+  // 2. 인라인 코드를 보호
+  html = html.replace(/`([^`]+)`/g, (match, code) => {
+    const escapedCode = escapeHtml(code)
+    const finalHtml = `<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">${escapedCode}</code>`
+    return addPlaceholder(finalHtml)
+  })
+
+  // 3. GFM 테이블을 변환 (코드가 보호된 상태에서)
+  html = html.replace(
+    /^\|(.+)\|\s*\n\|[\s\-\|:]+\|\s*\n((?:\|.+\|\s*\n?)+)/gm,
+    (match, header, body) => {
+      const headers = header
+        .split('|')
+        .slice(1, -1)
+        .map((h: string) => h.trim())
+      const rows = body
+        .trim()
+        .split('\n')
+        .map((row: string) =>
+          row
+            .split('|')
+            .slice(1, -1)
+            .map((cell: string) => cell.trim())
+        )
+
+      let table =
+        '<table style="width: 100%; border-collapse: collapse; margin: 16px 0;"><thead><tr>'
+      headers.forEach(
+        (h: string) =>
+          (table += `<th style="border: 1px solid #e5e7eb; padding: 8px; background-color: #f9fafb; font-weight: bold; text-align: left;">${h}</th>`)
+      )
+      table += '</tr></thead><tbody>'
+      rows.forEach((row: string[]) => {
+        table += '<tr>'
+        row.forEach(
+          (cell: string) =>
+            (table += `<td style="border: 1px solid #e5e7eb; padding: 8px;">${cell}</td>`)
+        )
+        table += '</tr>'
+      })
+      table += '</tbody></table>'
+      return table
+    }
+  )
+
+  // 4. 제목 처리 (코드 블록이 보호된 상태에서)
   html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>')
   html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>')
   html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>')
@@ -26,53 +99,42 @@ function markdownToHTML(markdown: string): string {
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
 
-  // 코드 블록 처리 (```언어명...```)
-  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-    const trimmedCode = code.trim()
-    const escapedCode = trimmedCode
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
-
-    const language = lang || 'plaintext'
-    return `<pre><code class="language-${language}" style="display: block; background-color: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; overflow-x: auto; margin: 16px 0;">${escapedCode}</code></pre>`
+  // 5. 블록 인용(blockquote) 처리
+  html = html.replace(/^(> .+\n?)+/gm, (match) => {
+    const content = match
+      .split('\n')
+      .map((line) => line.replace(/^> ?/, ''))
+      .join('<br>')
+    return `<blockquote style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin: 16px 0; color: #6b7280; font-style: italic;">${content}</blockquote>`
   })
 
-  // 인라인 코드 처리 (`코드`)
-  html = html.replace(
-    /`([^`]+)`/g,
-    '<code style="background-color: #f1f5f9; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>'
-  )
-
-  // 굵은 글씨 (**텍스트**)
+  // 6. 굵은 글씨 (**텍스트**)
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
 
-  // 기울임 (*텍스트*) - 목록과 충돌하지 않도록 처리
-  html = html.replace(/(?<!^|\n)\*([^*\n]+)\*/g, '<em>$1</em>')
+  // 7. 기울임 (*텍스트*) - 목록과 충돌하지 않도록 처리
+  html = html.replace(/(?<!^|\n|\*)\*([^*\n]+)\*/g, '<em>$1</em>')
 
-  // 링크 처리 ([텍스트](URL))
+  // 8. 링크 처리 ([텍스트](URL))
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">$1</a>'
   )
 
-  // 순서 없는 목록 (- 항목) - 먼저 처리
+  // 9. 순서 없는 목록 (- 항목)
   const ulItems: string[] = []
-  html = html.replace(/^- (.+)$/gm, (match, content) => {
+  html = html.replace(/^[-*] (.+)$/gm, (match, content) => {
     ulItems.push(`<li>${content}</li>`)
     return `__UL_ITEM_${ulItems.length - 1}__`
   })
 
-  // 순서 있는 목록 (1. 2. 3.)
+  // 10. 순서 있는 목록 (1. 2. 3.)
   const olItems: string[] = []
   html = html.replace(/^\d+\. (.+)$/gm, (match, content) => {
     olItems.push(`<li>${content}</li>`)
     return `__OL_ITEM_${olItems.length - 1}__`
   })
 
-  // 연속된 ul 항목들을 <ul>로 감싸기
+  // 11. 연속된 ul 항목들을 <ul>로 감싸기
   html = html.replace(/((?:__UL_ITEM_\d+__\n?)+)/g, (match) => {
     const items = match
       .trim()
@@ -82,10 +144,10 @@ function markdownToHTML(markdown: string): string {
         return ulItems[index]
       })
       .join('\n')
-    return `<ul style="margin: 12px 0; padding-left: 24px;">${items}</ul>`
+    return `<ul style="margin: 12px 0; padding-left: 24px; list-style-type: disc;">${items}</ul>`
   })
 
-  // 연속된 ol 항목들을 <ol>로 감싸기
+  // 12. 연속된 ol 항목들을 <ol>로 감싸기
   html = html.replace(/((?:__OL_ITEM_\d+__\n?)+)/g, (match) => {
     const items = match
       .trim()
@@ -95,27 +157,42 @@ function markdownToHTML(markdown: string): string {
         return olItems[index]
       })
       .join('\n')
-    return `<ol style="margin: 12px 0; padding-left: 24px;">${items}</ol>`
+    return `<ol style="margin: 12px 0; padding-left: 24px; list-style-type: decimal;">${items}</ol>`
   })
 
-  // 문단 처리 - 빈 줄로 구분된 텍스트를 p 태그로 감싸기
+  // 13. 수평선 (---, ***)
+  html = html.replace(
+    /^[-*]{3,}$/gm,
+    '<hr style="margin: 24px 0; border: 0; border-top: 1px solid #e5e7eb;">'
+  )
+
+  // 14. 문단 처리 - 빈 줄로 구분된 텍스트를 p 태그로 감싸기
   const paragraphs = html.split(/\n\n+/)
   html = paragraphs
     .map((para) => {
       para = para.trim()
-      // 이미 HTML 태그로 시작하는 경우 p 태그로 감싸지 않음
-      if (para && !para.startsWith('<')) {
-        return `<p style="margin: 12px 0; line-height: 1.6;">${para}</p>`
+      if (!para) return ''
+
+      // 이미 HTML 태그로 시작하거나 플레이스홀더인 경우 p 태그로 감싸지 않음
+      if (
+        para.startsWith('<') ||
+        para.startsWith('__PLACEHOLDER_') ||
+        para.startsWith('__UL_ITEM_') ||
+        para.startsWith('__OL_ITEM_')
+      ) {
+        return para
       }
-      return para
+
+      // 나머지 텍스트는 p 태그로 감싸고 내부 줄바꿈은 br로 변환
+      return `<p style="margin: 12px 0; line-height: 1.6;">${para.replace(/\n/g, '<br>')}</p>`
     })
+    .filter((p) => p) // 빈 문자열 제거
     .join('\n')
 
-  // 단일 줄바꿈을 <br>로 변환 (p 태그 내부에서만)
-  html = html.replace(/<p([^>]*)>([\s\S]*?)<\/p>/g, (match, attrs, content) => {
-    const processedContent = content.replace(/\n/g, '<br>')
-    return `<p${attrs}>${processedContent}</p>`
-  })
+  // 15. 마지막으로 모든 플레이스홀더를 원래 HTML로 복원
+  for (const [key, value] of placeholders.entries()) {
+    html = html.split(key).join(value)
+  }
 
   return html
 }
