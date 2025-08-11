@@ -133,7 +133,6 @@ export const PostCard = memo(function PostCard({
             showDate
             date={formattedDate}
             enableDropdown
-            currentUserId={currentUserId}
           />
 
           <PostStats
