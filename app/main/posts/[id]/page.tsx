@@ -5,6 +5,7 @@ import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
 import CommentSection from '@/components/posts/CommentSection'
 import { markdownToHtml } from '@/lib/ui/markdown'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { prisma } from '@/lib/core/prisma'
 
 // 레이지 로딩으로 RelatedPosts 최적화
 const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
@@ -24,65 +25,115 @@ interface PageProps {
   }>
 }
 
+// ✅ Prisma 직접 사용 - API 호출 제거
 async function getPost(id: string) {
   try {
-    // Vercel 배포 환경에서는 자동으로 URL 감지
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000')
-    const res = await fetch(`${baseUrl}/api/main/posts/${id}`, {
-      next: { revalidate: 60 }, // 60초 캐시
+    const post = await prisma.mainPost.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            bio: true,
+            globalRole: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            icon: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            bookmarks: true,
+            comments: true,
+          },
+        },
+      },
     })
 
-    if (!res.ok) {
-      if (res.status === 404) {
-        return null
-      }
-      throw new Error('Failed to fetch post')
+    if (!post || post.status !== 'PUBLISHED') {
+      return null
     }
 
-    const response = await res.json()
+    // 조회수 증가 (비동기로 처리)
+    prisma.mainPost
+      .update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      })
+      .catch(console.error) // 에러 무시 (조회수는 중요하지 않음)
 
-    // API 응답이 wrapped 형태인지 확인
-    const data = response.data || response
-
-    // 마크다운이 아직 변환되지 않았다면 변환
-    if (data && data.content && !data.content.includes('<')) {
-      data.content = markdownToHtml(data.content)
-    }
-
-    // 댓글도 함께 조회
-    try {
-      const commentsRes = await fetch(
-        `${baseUrl}/api/main/posts/${id}/comments`,
-        {
-          next: { revalidate: 30 }, // 30초 캐시
-        }
-      )
-      if (commentsRes.ok) {
-        const commentsResponse = await commentsRes.json()
-        // 댓글도 wrapped response 처리
-        const commentsData = commentsResponse.data || commentsResponse
-        data.comments = commentsData.comments || commentsData || []
-      }
-    } catch (error) {
-      console.error('Failed to fetch comments:', error)
-      data.comments = []
-    }
+    // 댓글 조회
+    const comments = await prisma.mainComment.findMany({
+      where: { postId: id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            globalRole: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+          },
+        },
+      },
+    })
 
     // Q&A 카테고리 확인
-    if (data.category) {
-      const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
-      data.isQACategory = qaCategories.some(
-        (qa) =>
-          data.category.slug.toLowerCase().includes(qa) ||
-          data.category.name.toLowerCase().includes(qa)
-      )
-    }
+    const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
+    const isQACategory = qaCategories.some(
+      (qa) =>
+        post.category.slug.toLowerCase().includes(qa) ||
+        post.category.name.toLowerCase().includes(qa)
+    )
 
-    return data
+    // 날짜를 string으로 변환하고 마크다운 변환
+    const htmlContent = await markdownToHtml(post.content)
+
+    return {
+      ...post,
+      content: htmlContent,
+      createdAt: post.createdAt.toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+      approvedAt: post.approvedAt?.toISOString() || null,
+      tags: post.tags.map((t) => ({
+        ...t.tag,
+        name: t.tag.name,
+      })),
+      comments: comments.map((comment) => ({
+        ...comment,
+        createdAt: comment.createdAt.toISOString(),
+        updatedAt: comment.updatedAt.toISOString(),
+      })),
+      isQACategory,
+    }
   } catch (error) {
     console.error('Failed to fetch post:', error)
     return null
