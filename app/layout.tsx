@@ -15,6 +15,7 @@ import { VisitorTracker } from '@/components/shared/VisitorTracker'
 import { PageViewTracker } from '@/components/shared/PageViewTracker'
 import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
+import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -105,6 +106,7 @@ export default function RootLayout({
                   </div>
                   <Toaster richColors position="bottom-right" />
                   <SessionExpiryWarning />
+                  <GoogleOneTapAuth />
                   <ChatProvider />
                   <VisitorTracker />
                   <PageViewTracker />

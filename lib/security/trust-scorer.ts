@@ -70,72 +70,97 @@ export class TrustScorer {
    * 사용자 신뢰도 점수 계산
    */
   static async calculateTrustScore(userId: string): Promise<TrustScore> {
-    // 캐시 확인
-    const cached = await this.getCachedScore(userId)
-    if (cached) return cached
+    try {
+      // 캐시 확인
+      const cached = await this.getCachedScore(userId)
+      if (cached) return cached
 
-    // 사용자 정보 조회
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        mainPosts: {
-          select: {
-            likeCount: true,
-            viewCount: true,
-            status: true,
+      // 사용자 정보 조회
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          mainPosts: {
+            select: {
+              likeCount: true,
+              viewCount: true,
+              status: true,
+            },
+          },
+          communityPosts: {
+            select: {
+              likeCount: true,
+              viewCount: true,
+            },
+          },
+          mainComments: {
+            select: { id: true },
+          },
+          communityComments: {
+            select: { id: true },
+          },
+          _count: {
+            select: {
+              mainPosts: true,
+              communityPosts: true,
+              mainComments: true,
+              communityComments: true,
+              mainLikes: true,
+              communityLikes: true,
+            },
           },
         },
-        communityPosts: {
-          select: {
-            likeCount: true,
-            viewCount: true,
-          },
-        },
-        mainComments: {
-          select: { id: true },
-        },
-        communityComments: {
-          select: { id: true },
-        },
-        _count: {
-          select: {
-            mainPosts: true,
-            communityPosts: true,
-            mainComments: true,
-            communityComments: true,
-            mainLikes: true,
-            communityLikes: true,
-          },
-        },
-      },
-    })
+      })
 
-    if (!user) {
-      throw new Error(`User not found: ${userId}`)
+      if (!user) {
+        throw new Error(`User not found: ${userId}`)
+      }
+
+      // Trust Factors 수집
+      const factors = await this.collectTrustFactors(user)
+
+      // 점수 계산
+      const score = this.computeScore(factors)
+
+      // Trust Level 결정
+      const level = this.getTrustLevel(score)
+
+      const trustScore: TrustScore = {
+        userId,
+        score,
+        level,
+        factors,
+        calculatedAt: new Date(),
+        nextReview: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24시간 후
+      }
+
+      // 캐시 저장
+      await this.cacheScore(trustScore)
+
+      return trustScore
+    } catch (error) {
+      // 오류 발생시 기본값 반환
+      console.error('Trust score calculation failed:', error)
+      return {
+        userId,
+        score: 0,
+        level: TrustLevel.NEW,
+        factors: {
+          accountAge: 0,
+          emailVerified: false,
+          phoneVerified: false,
+          contentQuality: 0,
+          violationCount: 0,
+          reportCount: 0,
+          contributionCount: 0,
+          likeRatio: 0,
+          isPremium: false,
+          isAdmin: false,
+          isBanned: false,
+        },
+        calculatedAt: new Date(),
+        nextReview: new Date(Date.now() + 60 * 60 * 1000), // 1시간 후 재시도
+      }
     }
-
-    // Trust Factors 수집
-    const factors = await this.collectTrustFactors(user)
-
-    // 점수 계산
-    const score = this.computeScore(factors)
-
-    // Trust Level 결정
-    const level = this.getTrustLevel(score)
-
-    const trustScore: TrustScore = {
-      userId,
-      score,
-      level,
-      factors,
-      calculatedAt: new Date(),
-      nextReview: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24시간 후
-    }
-
-    // 캐시 저장
-    await this.cacheScore(trustScore)
-
-    return trustScore
   }
 
   /**

@@ -528,7 +528,7 @@ export class PatternDetector {
     evidences: PatternEvidence[],
     metrics: BehaviorMetrics
   ): PatternDetectionResult {
-    if (evidences.length === 0) {
+    if (!evidences || evidences.length === 0) {
       return {
         detected: false,
         patterns: [],

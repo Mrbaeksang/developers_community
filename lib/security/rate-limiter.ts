@@ -136,13 +136,31 @@ export class RateLimiter {
 
     // Pattern Detection - 패턴 감지
     const identifier = userId || ipAddress
-    const patternDetection = await PatternDetector.detect(identifier, action, {
-      ip: ipAddress,
-      userAgent: options.userAgent,
-    })
+    let patternDetection
+    try {
+      patternDetection = await PatternDetector.detect(identifier, action, {
+        ip: ipAddress,
+        userAgent: options.userAgent,
+      })
+    } catch (error) {
+      console.error('Pattern detection failed:', error)
+      // 패턴 감지 실패시 기본값
+      patternDetection = {
+        detected: false,
+        patterns: [],
+        confidence: 0,
+        severity: 'low' as const,
+        suggestedAction: 'allow' as const,
+        evidence: [],
+      }
+    }
 
     // 심각한 패턴이 감지되면 즉시 차단
-    if (patternDetection.detected && patternDetection.severity === 'critical') {
+    if (
+      patternDetection &&
+      patternDetection.detected &&
+      patternDetection.severity === 'critical'
+    ) {
       // Abuse Tracking
       if (userId) {
         await AbuseTracker.recordIncident(
