@@ -135,6 +135,7 @@ model User {
   // 프로필 설정
   showEmail     Boolean    @default(false)
   
+  
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

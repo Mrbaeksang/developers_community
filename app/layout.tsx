@@ -84,6 +84,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
+        {/* Google AdSense 자동 광고 */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8287266902600032"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <AsyncErrorBoundary>

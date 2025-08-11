@@ -27,7 +27,9 @@
       "mcp__playwright__browser_take_screenshot",
       "Bash(npm run lint)",
       "Bash(mkdir:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm test:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }

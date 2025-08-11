@@ -79,7 +79,7 @@ export function CategoryGrid() {
   const categoryList = Array.isArray(categories) ? categories : []
 
   return (
-    <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid gap-4 grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {categoryList.map((category) => {
         return (
           <Link
@@ -89,9 +89,9 @@ export function CategoryGrid() {
             <Card
               className={`border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all cursor-pointer bg-white`}
             >
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-3 text-center">
                 <div
-                  className="w-full h-24 mb-4 flex items-center justify-center font-bold text-2xl text-white"
+                  className="w-full h-16 mb-3 flex items-center justify-center font-bold text-lg text-white"
                   style={{ backgroundColor: category.color }}
                 >
                   {(() => {
@@ -102,13 +102,13 @@ export function CategoryGrid() {
                       const IconComponent = Icons[
                         category.icon as keyof typeof Icons
                       ] as React.ComponentType<{ size?: number }>
-                      return <IconComponent size={48} />
+                      return <IconComponent size={32} />
                     }
                     return getAbbreviation(category.name)
                   })()}
                 </div>
-                <h4 className="font-bold">{category.name}</h4>
-                <p className="text-sm text-gray-500">
+                <h4 className="font-bold text-sm">{category.name}</h4>
+                <p className="text-xs text-gray-500">
                   {category.postCount}개 게시글
                 </p>
               </CardContent>

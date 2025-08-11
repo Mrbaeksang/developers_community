@@ -3,8 +3,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import type { Activity } from '@/types/activity'
-import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 
 export function HeroSection() {
   const [stats, setStats] = useState({
@@ -164,129 +162,58 @@ export function HeroSection() {
             </div>
           </motion.div>
 
-          {/* 오른쪽: 실시간 활동 피드 */}
+          {/* 오른쪽: 사이트 소개 */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6"
+            className="space-y-4"
           >
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              실시간 활동
-            </h3>
-            <RealtimeActivityFeed />
+            {/* 사이트 소개 카드 */}
+            <div className="bg-blue-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-500 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-white font-bold">
+                  🏠
+                </div>
+                <h3 className="font-bold text-xl">개발자 커뮤니티</h3>
+              </div>
+              <p className="text-base text-gray-700 font-medium leading-relaxed flex-1">
+                검증된 기술 정보와 자유 토론이 가능한 개발자 플랫폼입니다.
+                <br />
+                개인 커뮤니티 생성, 실시간 채팅, 파일 공유 등 다양한 기능을
+                제공하며 개발자들의 네트워킹과 지식 공유를 위한 완벽한
+                공간입니다.
+              </p>
+            </div>
+
+            {/* GPT-5 Q&A 카드 */}
+            <div className="bg-red-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-red-500 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-white font-bold">
+                  🤖
+                </div>
+                <h3 className="font-bold text-xl">GPT-5 실시간 답변</h3>
+              </div>
+              <p className="text-base text-gray-700 font-medium leading-relaxed flex-1">
+                Q&A 게시글을 작성하면{' '}
+                <strong className="text-red-600">GPT-5</strong>가 자동으로
+                전문적인 답변을 실시간 생성해드립니다.
+                <br />
+                복잡한 기술 문제부터 간단한 코딩 질문까지, 언제든지 즉시
+                고품질의 해답을 받아보세요.
+              </p>
+              <div className="mt-4">
+                <Link
+                  href="/main/posts?category=qna"
+                  className="inline-flex items-center text-base font-bold text-red-600 hover:text-red-700 transition-colors"
+                >
+                  질문하러 가기 →
+                </Link>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
     </section>
-  )
-}
-
-// 실시간 활동 피드 컴포넌트
-function RealtimeActivityFeed() {
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const res = await fetch('/api/activities/realtime')
-        const data = await res.json()
-        setActivities(data.data?.activities || data.activities || [])
-      } catch (error) {
-        console.error('Failed to fetch activities:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchActivities()
-    // 30초마다 갱신
-    const interval = setInterval(fetchActivities, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  if (loading) {
-    return <SkeletonLoader lines={3} className="space-y-3" />
-  }
-
-  if (activities.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 text-sm">아직 활동이 없습니다</p>
-      </div>
-    )
-  }
-
-  // 활동 타입별 아이콘과 색상
-  const getActivityStyle = (type: string) => {
-    switch (type) {
-      case 'post':
-        return { icon: '📝', color: 'text-blue-600' }
-      case 'comment':
-        return { icon: '💬', color: 'text-green-600' }
-      case 'like':
-        return { icon: '❤️', color: 'text-red-600' }
-      case 'member_join':
-        return { icon: '🎉', color: 'text-purple-600' }
-      case 'view_milestone':
-        return { icon: '🔥', color: 'text-orange-600' }
-      default:
-        return { icon: '📌', color: 'text-gray-600' }
-    }
-  }
-
-  const formatTime = (timestamp: string) => {
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffMs = now.getTime() - time.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-
-    if (diffMins < 1) return '방금 전'
-    if (diffMins < 60) return `${diffMins}분 전`
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}시간 전`
-    return `${Math.floor(diffHours / 24)}일 전`
-  }
-
-  return (
-    <div className="space-y-0 max-h-[400px] overflow-y-auto">
-      {activities.map((activity, index) => {
-        const style = getActivityStyle(activity.type)
-        return (
-          <div key={activity.id} className="relative">
-            <div className="flex items-start gap-2 pb-3">
-              <div className="relative">
-                <span className="text-lg relative z-10" role="img">
-                  {style.icon}
-                </span>
-                {/* 세로 연결선 */}
-                {index < activities.length - 1 && (
-                  <div className="absolute left-1/2 top-7 -translate-x-1/2 w-0.5 h-12 bg-gradient-to-b from-gray-300 to-gray-100" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">
-                  <span className={`font-semibold ${style.color}`}>
-                    {activity.userName}
-                  </span>
-                  <span className="text-gray-600">
-                    님이 {activity.description}
-                  </span>
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {formatTime(activity.timestamp)}
-                </p>
-              </div>
-            </div>
-            {/* 가로 구분선 */}
-            {index < activities.length - 1 && (
-              <div className="ml-7 mr-2 h-px bg-gradient-to-r from-gray-200 via-gray-100 to-transparent mb-3" />
-            )}
-          </div>
-        )
-      })}
-    </div>
   )
 }
