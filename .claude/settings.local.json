@@ -30,7 +30,8 @@
       "Bash(grep:*)",
       "Bash(npm test:*)",
       "Bash(git reset:*)",
-      "Bash(npm run test:*)"
+      "Bash(npm run test:*)",
+      "mcp__playwright__browser_close"
     ],
     "deny": []
   }

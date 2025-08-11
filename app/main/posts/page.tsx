@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { auth } from '@/auth'
 import { PostListServer } from '@/components/posts/PostListServer'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
@@ -128,7 +129,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const sort = params.sort || 'latest'
   const page = params.page || '1'
 
-  const sidebarData = await getSidebarData()
+  const [sidebarData, session] = await Promise.all([getSidebarData(), auth()])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -158,7 +159,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 </div>
               }
             >
-              <PostListServer category={category} sort={sort} page={page} />
+              <PostListServer
+                category={category}
+                sort={sort}
+                page={page}
+                currentUserId={session?.user?.id}
+              />
             </Suspense>
           </div>
 

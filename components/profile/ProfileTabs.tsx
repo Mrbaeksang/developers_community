@@ -128,6 +128,7 @@ interface ProfileTabsProps {
   comments?: Comment[]
   bookmarks?: Post[]
   communities?: Community[]
+  currentUserId?: string
 }
 
 type GridLayout = '1x1' | '2x2' | '3x3'
@@ -139,6 +140,7 @@ export function ProfileTabs({
   comments = [],
   bookmarks = [],
   communities = [],
+  currentUserId,
 }: ProfileTabsProps) {
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab') || defaultTab
@@ -346,6 +348,7 @@ export function ProfileTabs({
                     className={
                       gridLayouts.posts === '1x1' ? 'min-h-[250px]' : ''
                     }
+                    currentUserId={currentUserId}
                   />
                 </div>
               )
@@ -366,6 +369,7 @@ export function ProfileTabs({
             {comments.map((comment) => (
               <CommentCard
                 key={comment.id}
+                currentUserId={currentUserId}
                 comment={{
                   id: comment.id,
                   content: comment.content,
@@ -463,6 +467,7 @@ export function ProfileTabs({
                     className={
                       gridLayouts.posts === '1x1' ? 'min-h-[250px]' : ''
                     }
+                    currentUserId={currentUserId}
                   />
                 </div>
               )

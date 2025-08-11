@@ -40,6 +40,7 @@ interface PostListProps {
   initialPosts?: MainPostFormatted[]
   categories?: Category[]
   isLoading?: boolean
+  currentUserId?: string
 }
 
 // 메인 게시글 가져오기 함수
@@ -48,6 +49,7 @@ export function PostList({
   initialPosts = [],
   categories: initialCategories = [],
   isLoading: externalLoading = false,
+  currentUserId,
 }: PostListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -382,7 +384,11 @@ export function PostList({
           >
             {sortedPosts.length > 0 ? (
               sortedPosts.map((post: MainPostFormatted) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUserId}
+                />
               ))
             ) : (
               <div className="col-span-2">
@@ -405,7 +411,11 @@ export function PostList({
           >
             {trendingPosts.length > 0 ? (
               trendingPosts.map((post: MainPostFormatted) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUserId}
+                />
               ))
             ) : (
               <div className="col-span-2">
@@ -428,7 +438,11 @@ export function PostList({
           >
             {recentPosts.length > 0 ? (
               recentPosts.map((post: MainPostFormatted) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUserId}
+                />
               ))
             ) : (
               <div className="col-span-2">

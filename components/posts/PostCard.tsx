@@ -23,6 +23,7 @@ interface PostCardProps {
   post: MainPostFormatted | CommunityPostFormatted
   className?: string
   href?: string // 커스텀 링크를 위한 prop
+  currentUserId?: string // 현재 로그인한 사용자 ID
 }
 
 // PostCard 컴포넌트를 memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
@@ -30,6 +31,7 @@ export const PostCard = memo(function PostCard({
   post,
   className,
   href,
+  currentUserId,
 }: PostCardProps) {
   const publishedDate = post.createdAt
   const formattedDate = formatDistanceToNow(new Date(publishedDate), {
@@ -131,6 +133,7 @@ export const PostCard = memo(function PostCard({
             showDate
             date={formattedDate}
             enableDropdown
+            currentUserId={currentUserId}
           />
 
           <PostStats

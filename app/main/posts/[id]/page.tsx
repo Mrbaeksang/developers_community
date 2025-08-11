@@ -6,6 +6,7 @@ import CommentSection from '@/components/posts/CommentSection'
 import { markdownToHtml } from '@/lib/ui/markdown'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
 import { prisma } from '@/lib/core/prisma'
+import { auth } from '@/auth'
 
 // 레이지 로딩으로 RelatedPosts 최적화
 const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
@@ -169,7 +170,7 @@ export async function generateMetadata({
 
 export default async function PostDetailPage({ params }: PageProps) {
   const { id } = await params
-  const post = await getPost(id)
+  const [post, session] = await Promise.all([getPost(id), auth()])
 
   if (!post) {
     notFound()
@@ -179,7 +180,11 @@ export default async function PostDetailPage({ params }: PageProps) {
     <div className="container mx-auto py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto">
         <div className="space-y-8">
-          <UnifiedPostDetail post={post} postType="main" />
+          <UnifiedPostDetail
+            post={post}
+            postType="main"
+            currentUserId={session?.user?.id}
+          />
           <CommentSection
             postId={post.id}
             postType="main"

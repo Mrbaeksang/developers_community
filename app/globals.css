@@ -361,6 +361,7 @@
   font-family: 'JetBrains Mono', monospace;
   overflow-x: auto;
   margin: 1rem 0;
+  -webkit-overflow-scrolling: touch; /* iOS 스무스 스크롤 */
 }
 
 .ProseMirror pre code {
@@ -400,4 +401,34 @@
 .ProseMirror-selectednode {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Mobile optimizations */
+/* 테이블 가로 스크롤 */
+.prose table,
+table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* 코드 블록 가로 스크롤 - markdown 렌더링용 */
+.prose pre,
+pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* iOS 입력 필드 줌 방지 */
+@media screen and (max-width: 768px) {
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

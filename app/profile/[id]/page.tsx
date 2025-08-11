@@ -565,6 +565,7 @@ export default async function ProfilePage({ params }: PageProps) {
               comments={comments}
               bookmarks={bookmarks}
               communities={communities}
+              currentUserId={session?.user?.id}
             />
           </div>
 
