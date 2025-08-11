@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/core/prisma'
-import { z } from 'zod'
 import {
   handleError,
   throwAuthenticationError,
   throwConflictError,
 } from '@/lib/api/errors'
-
-const profileSchema = z.object({
-  name: z.string().max(50).optional(),
-  username: z
-    .string()
-    .max(30)
-    .regex(/^[a-zA-Z0-9_]*$/)
-    .optional(),
-  bio: z.string().max(200).optional(),
-  image: z.string().url().optional().or(z.literal('')),
-})
+import { updateProfileSchema } from '@/lib/validations/user'
+import { handleZodError } from '@/lib/api/validation-error'
 
 export async function PATCH(req: Request) {
   try {
@@ -28,7 +18,13 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json()
-    const validatedData = profileSchema.parse(body)
+    const parseResult = updateProfileSchema.safeParse(body)
+
+    if (!parseResult.success) {
+      return handleZodError(parseResult.error)
+    }
+
+    const validatedData = parseResult.data
 
     // username 중복 체크
     if (validatedData.username) {

@@ -25,17 +25,35 @@ import {
   formatCursorResponse,
 } from '@/lib/post/pagination'
 import { mainPostSelect } from '@/lib/cache/patterns'
+import { createPostSchema, postQuerySchema } from '@/lib/validations/post'
+import { handleZodError } from '@/lib/api/validation-error'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
+    // 쿼리 파라미터 Zod 검증
+    const queryResult = postQuerySchema.safeParse({
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      category: searchParams.get('category'),
+      status: searchParams.get('status'),
+      search: searchParams.get('search'),
+      orderBy: searchParams.get('orderBy') || searchParams.get('sort'),
+    })
+
+    if (!queryResult.success) {
+      return handleZodError(queryResult.error)
+    }
+
+    const validatedQuery = queryResult.data
+
     // 하이브리드 페이지네이션 파싱
     const pagination = parseHybridPagination(searchParams)
     const type = searchParams.get('type') as string | null
     const categoryId = searchParams.get('categoryId') as string | null
-    const category = searchParams.get('category') as string | null // 카테고리 slug
-    const sort = searchParams.get('sort') || 'latest'
+    const category = validatedQuery.category // 카테고리 slug
+    const sort = validatedQuery.orderBy
 
     // 카테고리 필터 처리 (다중 카테고리 지원)
     let categoryFilter = {}
@@ -262,25 +280,25 @@ async function createPost(
     await checkBanStatus(session.user.id)
 
     const body = await request.json()
-    const {
-      title,
-      content,
-      excerpt,
-      slug,
-      categoryId,
-      status = 'DRAFT',
-      tags = [],
-    } = body
 
-    // 필수 필드 검증
-    if (!title || !content || !categoryId || !slug) {
-      return errorResponse('필수 정보가 누락되었습니다.', 400)
+    // Zod로 요청 데이터 검증
+    const parseResult = createPostSchema.safeParse(body)
+
+    if (!parseResult.success) {
+      return handleZodError(parseResult.error)
     }
 
-    // 상태 검증
-    if (!['DRAFT', 'PENDING'].includes(status)) {
-      return errorResponse('잘못된 상태값입니다.', 400)
-    }
+    const { title, content, excerpt, categoryId, status, tags } =
+      parseResult.data
+
+    // slug 생성 (title 기반)
+    const slug =
+      body.slug ||
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9가-힣]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
 
     // 카테고리 존재 여부 확인
     const category = await prisma.mainCategory.findUnique({

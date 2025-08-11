@@ -1,6 +1,8 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/core/prisma'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { updateTagSchema } from '@/lib/validations/admin'
+import { handleZodError } from '@/lib/api/validation-error'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -24,23 +26,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const { id } = await params
     const body = await request.json()
-    const { name, description, color } = body
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return errorResponse('태그명은 필수입니다', 400)
+    // Zod로 검증
+    const result = updateTagSchema.safeParse(body)
+    if (!result.success) {
+      return handleZodError(result.error)
     }
 
-    if (name.trim().length > 50) {
-      return errorResponse('태그명은 50자 이하여야 합니다', 400)
-    }
-
-    if (description && description.length > 200) {
-      return errorResponse('설명은 200자 이하여야 합니다', 400)
-    }
-
-    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
-      return errorResponse('올바른 색상 형식이 아닙니다', 400)
-    }
+    const { name, slug, description, color } = result.data
 
     // 태그가 존재하는지 확인
     const existingTag = await prisma.mainTag.findUnique({
@@ -52,9 +45,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     // 같은 이름의 다른 태그가 있는지 확인
-    if (name.trim() !== existingTag.name) {
+    if (name !== existingTag.name) {
       const duplicateTag = await prisma.mainTag.findUnique({
-        where: { name: name.trim() },
+        where: { name },
       })
 
       if (duplicateTag) {
@@ -62,12 +55,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
 
-    // slug 생성
-    const slug = name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣\s-]/g, '')
-      .replace(/\s+/g, '-')
+    // slug는 Zod에서 이미 검증되고 변환됨
 
     const updatedTag = await prisma.mainTag.update({
       where: { id },

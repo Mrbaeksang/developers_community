@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/core/prisma'
-import { z } from 'zod'
 import { requireAuthAPI } from '@/lib/auth/session'
 import {
   CommunityVisibility,
@@ -11,7 +10,6 @@ import {
   paginatedResponse,
   errorResponse,
   createdResponse,
-  validationErrorResponse,
   successResponse,
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
@@ -26,6 +24,8 @@ import {
   formatCursorResponse,
 } from '@/lib/post/pagination'
 import { communitySelect } from '@/lib/cache/patterns'
+import { createCommunitySchema } from '@/lib/validations/community'
+import { handleZodError } from '@/lib/api/validation-error'
 
 // GET: 커뮤니티 목록 조회
 export async function GET(req: NextRequest) {
@@ -152,26 +152,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST: 커뮤니티 생성
-const createCommunitySchema = z.object({
-  name: z.string().min(2, '커뮤니티 이름은 2자 이상이어야 합니다.').max(50),
-  slug: z
-    .string()
-    .min(2, 'URL 슬러그는 2자 이상이어야 합니다.')
-    .max(50)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'URL 슬러그는 소문자, 숫자, 하이픈만 사용할 수 있습니다.'
-    ),
-  description: z.string().max(500).optional(),
-  rules: z.string().max(5000).optional(),
-  avatar: z.string().optional().or(z.literal('')),
-  banner: z.string().optional().or(z.literal('')),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PUBLIC'),
-  allowFileUpload: z.boolean().default(true),
-  allowChat: z.boolean().default(true),
-  maxFileSize: z.number().min(1048576).max(104857600).default(10485760), // 1MB ~ 100MB, default 10MB
-})
-
 async function createCommunity(
   req: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -190,15 +170,7 @@ async function createCommunity(
 
     if (!validation.success) {
       console.error('유효성 검사 실패:', validation.error.issues)
-      const errors: Record<string, string[]> = {}
-      validation.error.issues.forEach((issue) => {
-        const field = issue.path.join('.')
-        if (!errors[field]) {
-          errors[field] = []
-        }
-        errors[field].push(issue.message)
-      })
-      return validationErrorResponse(errors)
+      return handleZodError(validation.error)
     }
 
     const {

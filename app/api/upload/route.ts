@@ -6,6 +6,7 @@ import { successResponse } from '@/lib/api/response'
 import { handleError, throwValidationError } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
+import { allowedFileTypes } from '@/lib/validations/upload'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -54,6 +55,14 @@ async function uploadFile(
     // 파일 크기 확인
     if (file.size > MAX_FILE_SIZE) {
       throwValidationError('파일 크기는 10MB를 초과할 수 없습니다')
+    }
+
+    // MIME 타입 검증
+    const allAllowedTypes = Object.values(
+      allowedFileTypes
+    ).flat() as readonly string[]
+    if (!allAllowedTypes.includes(file.type)) {
+      throwValidationError('지원되지 않는 파일 형식입니다')
     }
 
     // Vercel Blob Storage에 파일 업로드

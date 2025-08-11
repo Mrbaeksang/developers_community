@@ -25,8 +25,46 @@ const notoSansKr = Noto_Sans_KR({
 })
 
 export const metadata: Metadata = {
-  title: 'Dev Community - 개발자 커뮤니티',
-  description: '개발자들을 위한 지식 공유 커뮤니티 플랫폼',
+  title: '바이브 코딩 | 코딩 초보부터 AI 개발까지 - Dev Community',
+  description:
+    '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티. 코딩 입문부터 전문가까지 모든 레벨의 개발자가 함께 성장합니다.',
+  keywords:
+    '바이브 코딩, 코딩 초보, 웹개발, AI 개발, 프로그래밍 입문, 개발자 커뮤니티, 코딩 독학, Next.js, React, 개발 질문답변',
+  authors: [{ name: 'Dev Community' }],
+  creator: 'Dev Community',
+  publisher: 'Dev Community',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    url: 'https://developers-community-two.vercel.app',
+    title: '바이브 코딩 | 코딩 초보부터 AI 개발까지',
+    description:
+      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+    siteName: 'Dev Community',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '바이브 코딩 | 코딩 초보부터 AI 개발까지',
+    description:
+      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+  },
+  verification: {
+    google: 'google-site-verification-code-here',
+    other: {
+      'naver-site-verification': 'naver-site-verification-code-here',
+    },
+  },
 }
 
 export default function RootLayout({

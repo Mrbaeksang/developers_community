@@ -16,6 +16,11 @@ import {
 } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
+import {
+  fileUploadFormSchema,
+  allowedFileTypes,
+} from '@/lib/validations/upload'
+import { handleZodError } from '@/lib/api/validation-error'
 
 // 파일 타입 확인 함수
 function getFileType(mimeType: string): FileType {
@@ -65,14 +70,32 @@ async function uploadFile(
     const communityId = formData.get('communityId') as string | null
     const postId = formData.get('postId') as string | null
 
+    // Zod로 파일 검증
     if (!file) {
       throwValidationError('파일이 필요합니다')
     }
 
-    // 파일 크기 체크 (기본 10MB)
+    // 파일 크기 및 타입 기본 검증
     const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
     if (file.size > MAX_FILE_SIZE) {
       throwValidationError('파일 크기는 10MB를 초과할 수 없습니다')
+    }
+
+    // MIME 타입 검증
+    const allAllowedTypes = Object.values(
+      allowedFileTypes
+    ).flat() as readonly string[]
+    if (!allAllowedTypes.includes(file.type)) {
+      throwValidationError('지원되지 않는 파일 형식입니다')
+    }
+
+    // 폼 데이터 검증 (communityId, postId)
+    const formResult = fileUploadFormSchema.safeParse({
+      communityId: communityId || undefined,
+      postId: postId || undefined,
+    })
+    if (!formResult.success) {
+      return handleZodError(formResult.error)
     }
 
     // 커뮤니티별 파일 크기 제한 체크

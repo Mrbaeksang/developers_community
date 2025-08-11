@@ -7,6 +7,8 @@ import {
 import { successResponse, errorResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { redisCache } from '@/lib/cache/redis'
+import { approvePostSchema } from '@/lib/validations/admin'
+import { handleZodError } from '@/lib/api/validation-error'
 
 export async function POST(
   request: Request,
@@ -19,7 +21,15 @@ export async function POST(
       return session
     }
 
-    const { action, reason } = await request.json()
+    const body = await request.json()
+
+    // Zod로 검증
+    const result = approvePostSchema.safeParse(body)
+    if (!result.success) {
+      return handleZodError(result.error)
+    }
+
+    const { action, reason } = result.data
 
     // 현재 게시글 정보 조회 (태그 포함)
     const currentPost = await prisma.mainPost.findUnique({

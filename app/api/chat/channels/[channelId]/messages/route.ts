@@ -1,22 +1,16 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/core/prisma'
 import { requireAuthAPI } from '@/lib/auth/session'
-import { z } from 'zod'
 import { broadcastMessage } from '@/lib/chat/broadcast'
-import { successResponse, validationErrorResponse } from '@/lib/api/response'
+import { successResponse } from '@/lib/api/response'
 import {
   handleError,
   throwNotFoundError,
   throwAuthorizationError,
   throwValidationError,
 } from '@/lib/api/errors'
-
-const messageSchema = z.object({
-  content: z.string().min(1).max(1000),
-  fileId: z.string().optional(), // 파일 첨부용
-  type: z.enum(['TEXT', 'IMAGE', 'FILE']).default('TEXT'), // 메시지 타입
-  replyToId: z.string().optional(), // 답글 기능
-})
+import { createChatMessageSchema } from '@/lib/validations/chat'
+import { handleZodError } from '@/lib/api/validation-error'
 
 // GET: 채팅 메시지 목록 조회
 export async function GET(
@@ -250,18 +244,10 @@ export async function POST(
 
     // 요청 본문 검증
     const body = await req.json()
-    const validation = messageSchema.safeParse(body)
+    const validation = createChatMessageSchema.safeParse(body)
 
     if (!validation.success) {
-      const errors: Record<string, string[]> = {}
-      validation.error.issues.forEach((issue) => {
-        const field = issue.path.join('.')
-        if (!errors[field]) {
-          errors[field] = []
-        }
-        errors[field].push(issue.message)
-      })
-      return validationErrorResponse(errors)
+      return handleZodError(validation.error)
     }
 
     const validatedData = validation.data

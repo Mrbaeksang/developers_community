@@ -16,6 +16,8 @@ import { withRateLimiting } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
 import { withSecurity } from '@/lib/security/compatibility'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { createCommentSchema } from '@/lib/validations/comment'
+import { handleZodError } from '@/lib/api/validation-error'
 
 // GET /api/main/posts/[id]/comments - 댓글 목록 조회
 export async function GET(
@@ -121,12 +123,20 @@ async function createComment(
     await checkBanStatus(session.user.id)
 
     const { id } = await context.params
-    const { content, parentId } = await request.json()
+    const body = await request.json()
 
-    // 입력값 검증
-    if (!content || content.trim().length === 0) {
-      return errorResponse('댓글 내용을 입력해주세요.', 400)
+    // Zod 검증
+    const parseResult = createCommentSchema.safeParse({
+      content: body.content,
+      parentId: body.parentId,
+      postId: id,
+    })
+
+    if (!parseResult.success) {
+      return handleZodError(parseResult.error)
     }
+
+    const { content, parentId } = parseResult.data
 
     // 게시글 존재 확인
     const post = await prisma.mainPost.findUnique({

@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic'
+import { Metadata } from 'next'
 import { HeroSection } from '@/components/home/HeroSection'
 import { getApiUrl } from '@/lib/api/client'
 
@@ -172,11 +173,97 @@ async function getSidebarData() {
 
 export const revalidate = 300 // 5분마다 재검증
 
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: '바이브 코딩 홈 | 코딩 초보부터 AI 개발까지 함께하는 커뮤니티',
+    description:
+      '바이브 코딩과 웹개발, AI 개발을 배우고 싶다면? 코딩 초보자도 쉽게 시작할 수 있는 개발자 커뮤니티. 프로그래밍 질문답변, 개발 팁, 코딩 독학 가이드까지.',
+    keywords:
+      '바이브 코딩, 코딩 초보, 웹개발 입문, AI 개발 초보, 프로그래밍 독학, 개발자 되는법, Next.js 튜토리얼, React 기초, 코딩 질문',
+    openGraph: {
+      title: '바이브 코딩 홈 | 코딩 초보부터 AI 개발까지',
+      description:
+        '바이브 코딩과 웹개발, AI 개발을 배우고 싶다면? 코딩 초보자도 쉽게 시작할 수 있는 개발자 커뮤니티',
+      type: 'website',
+      locale: 'ko_KR',
+    },
+    alternates: {
+      canonical: 'https://developers-community-two.vercel.app',
+    },
+  }
+}
+
 export default async function Home() {
   const sidebarData = await getSidebarData()
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '바이브 코딩 | Dev Community',
+    alternateName: ['Dev Community', '개발자 커뮤니티', 'Vibe Coding'],
+    url: 'https://developers-community-two.vercel.app',
+    description:
+      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+    inLanguage: 'ko-KR',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate:
+          'https://developers-community-two.vercel.app/search?q={search_term_string}',
+      },
+      'query-input': 'required name=search_term_string',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Dev Community',
+      description: '개발자들을 위한 지식 공유 커뮤니티',
+    },
+    audience: {
+      '@type': 'Audience',
+      audienceType: [
+        '코딩 초보자',
+        '웹 개발자',
+        'AI 개발자',
+        '프로그래밍 입문자',
+      ],
+    },
+    keywords: [
+      '바이브 코딩',
+      '코딩 초보',
+      '웹개발',
+      'AI 개발',
+      '프로그래밍 입문',
+      '개발자 커뮤니티',
+      'Next.js',
+      'React',
+      '코딩 독학',
+    ],
+    about: [
+      {
+        '@type': 'Thing',
+        name: '바이브 코딩',
+        description: '즐겁고 창의적인 코딩 접근 방식',
+      },
+      {
+        '@type': 'Thing',
+        name: '웹개발',
+        description: '현대적인 웹 애플리케이션 개발',
+      },
+      {
+        '@type': 'Thing',
+        name: 'AI 개발',
+        description: '인공지능과 머신러닝 개발',
+      },
+    ],
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <HeroSection />
 

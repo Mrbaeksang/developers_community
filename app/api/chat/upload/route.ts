@@ -8,6 +8,11 @@ import { handleError, throwValidationError } from '@/lib/api/errors'
 import { withRateLimiting } from '@/lib/security/compatibility'
 // CSRF protection is now handled within withRateLimiting
 import { ActionCategory } from '@/lib/security/actions'
+import {
+  chatFileUploadFormSchema,
+  allowedFileTypes,
+} from '@/lib/validations/upload'
+import { handleZodError } from '@/lib/api/validation-error'
 
 // 허용되는 파일 타입 및 크기 정의
 const ALLOWED_TYPES = {
@@ -48,9 +53,20 @@ async function uploadFile(
     // FormData 파싱
     const formData = await req.formData()
     const file = formData.get('file') as File
+    const channelId = formData.get('channelId') as string
+    const messageType = formData.get('messageType') as string
 
     if (!file) {
       throw throwValidationError('파일이 선택되지 않았습니다.')
+    }
+
+    // Zod로 폼 데이터 검증
+    const formResult = chatFileUploadFormSchema.safeParse({
+      channelId,
+      messageType: messageType || 'FILE',
+    })
+    if (!formResult.success) {
+      return handleZodError(formResult.error)
     }
 
     // 파일 크기 검증
@@ -58,7 +74,15 @@ async function uploadFile(
       throw throwValidationError('파일 크기는 10MB를 초과할 수 없습니다.')
     }
 
-    // 파일 타입 검증
+    // MIME 타입 검증
+    const allAllowedTypes = Object.values(
+      allowedFileTypes
+    ).flat() as readonly string[]
+    if (!allAllowedTypes.includes(file.type)) {
+      throw throwValidationError('지원되지 않는 파일 형식입니다.')
+    }
+
+    // 파일 타입 검증 (기존 로직 유지)
     const fileType = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES]
     if (!fileType) {
       throw throwValidationError('지원하지 않는 파일 형식입니다.')
