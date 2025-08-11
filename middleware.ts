@@ -46,16 +46,16 @@ const rateLimiter = initRateLimitMiddleware({
     [ActionCategory.POST_LIKE, createRateLimitRule(60000, 30)], // 1분에 30회
     [ActionCategory.POST_BOOKMARK, createRateLimitRule(60000, 20)], // 1분에 20회
 
-    // 콘텐츠 생성 제한 - 더 관대하게 설정
-    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 100)], // 1시간에 100개로 증가 (테스트 중)
-    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 30)], // 1분에 30개로 증가
+    // 콘텐츠 생성 제한 - 프로덕션 기준 안전한 설정
+    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 5)], // 1시간에 5개 (스팸 방지)
+    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 30)], // 1분에 30개
 
-    // 파일 업로드 제한 - 더 관대하게 설정
-    [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 50)], // 1시간에 50개로 증가
+    // 파일 업로드 제한 - 프로덕션 기준 안전한 설정
+    [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 10)], // 1시간에 10개 (리소스 보호)
 
-    // 채팅 타이핑 인디케이터 - 매우 관대하게 설정 (429 에러 방지)
-    [ActionCategory.CHAT_TYPING, createRateLimitRule(60000, 100)], // 1분에 100회로 설정
-    [ActionCategory.CHAT_MESSAGE_SEND, createRateLimitRule(60000, 60)], // 1분에 60개
+    // 채팅 타이핑 인디케이터 - 실시간 채팅 지원
+    [ActionCategory.CHAT_TYPING, createRateLimitRule(60000, 100)], // 1분에 100회
+    [ActionCategory.CHAT_MESSAGE_SEND, createRateLimitRule(60000, 60)], // 1분에 60개 (초당 1개)
   ]),
 })
 
@@ -92,7 +92,7 @@ export async function middleware(request: NextRequest) {
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net;
-    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net;
+    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
     object-src 'none';
     base-uri 'self';

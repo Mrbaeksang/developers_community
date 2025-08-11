@@ -147,8 +147,8 @@ export const ACTION_CONFIG: Record<ActionCategory, ActionMetadata> = {
   [ActionCategory.POST_CREATE]: {
     type: ActionType.WRITE,
     category: ActionCategory.POST_CREATE,
-    severity: 'medium',
-    cost: 4, // 8 → 4로 완화
+    severity: 'high', // medium → high로 강화
+    cost: 8, // 4 → 8로 강화 (프로덕션 기준)
     requiresAuth: true,
     requiresVerification: true,
   },
@@ -283,8 +283,8 @@ export const ACTION_CONFIG: Record<ActionCategory, ActionMetadata> = {
   [ActionCategory.FILE_UPLOAD]: {
     type: ActionType.WRITE,
     category: ActionCategory.FILE_UPLOAD,
-    severity: 'medium',
-    cost: 5, // 10 → 5로 완화
+    severity: 'high', // medium → high로 강화
+    cost: 8, // 5 → 8로 강화 (프로덕션 기준)
     requiresAuth: true,
     requiresVerification: true,
   },
