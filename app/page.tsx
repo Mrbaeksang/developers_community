@@ -175,15 +175,16 @@ export const revalidate = 300 // 5분마다 재검증
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: '바이브 코딩 홈 | 코딩 초보부터 AI 개발까지 함께하는 커뮤니티',
+    title:
+      '코딩 공부 시작 가이드 | 프로그래밍 언어 추천 | 신입 개발자 취업 준비',
     description:
-      '바이브 코딩과 웹개발, AI 개발을 배우고 싶다면? 코딩 초보자도 쉽게 시작할 수 있는 개발자 커뮤니티. 프로그래밍 질문답변, 개발 팁, 코딩 독학 가이드까지.',
+      '코딩 공부 어디서 시작해야 할까? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, React 에러 해결, 신입 개발자 취업까지! ChatGPT 활용법과 포트폴리오 만들기 팁도 함께.',
     keywords:
-      '바이브 코딩, 코딩 초보, 웹개발 입문, AI 개발 초보, 프로그래밍 독학, 개발자 되는법, Next.js 튜토리얼, React 기초, 코딩 질문',
+      '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 자바스크립트 오류, React 오류 해결, 신입 개발자 취업, 포트폴리오 만들기, ChatGPT 활용법, 코딩 배우기 무료, 개발자 공부 순서, 코딩테스트 준비, 부트캠프 후기, CSS 가운데 정렬',
     openGraph: {
-      title: '바이브 코딩 홈 | 코딩 초보부터 AI 개발까지',
+      title: '코딩 공부 시작 가이드 | 프로그래밍 언어 추천',
       description:
-        '바이브 코딩과 웹개발, AI 개발을 배우고 싶다면? 코딩 초보자도 쉽게 시작할 수 있는 개발자 커뮤니티',
+        '코딩 공부 어디서 시작해야 할까? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, 신입 개발자 취업까지!',
       type: 'website',
       locale: 'ko_KR',
     },
@@ -200,10 +201,15 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: '바이브 코딩 | Dev Community',
-    alternateName: ['Dev Community', '개발자 커뮤니티', 'Vibe Coding'],
+    alternateName: [
+      '코딩 공부 가이드',
+      '프로그래밍 언어 추천 사이트',
+      '개발자 커뮤니티',
+      '신입 개발자 취업 준비',
+    ],
     url: 'https://developers-community-two.vercel.app',
     description:
-      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+      '코딩 공부 어디서 시작할지 모른다면? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, 신입 개발자 취업까지 도와드립니다!',
     inLanguage: 'ko-KR',
     potentialAction: {
       '@type': 'SearchAction',
@@ -217,43 +223,56 @@ export default async function Home() {
     publisher: {
       '@type': 'Organization',
       name: 'Dev Community',
-      description: '개발자들을 위한 지식 공유 커뮤니티',
+      description: '코딩 공부부터 개발자 취업까지 함께하는 커뮤니티',
     },
     audience: {
       '@type': 'Audience',
       audienceType: [
-        '코딩 초보자',
-        '웹 개발자',
-        'AI 개발자',
-        '프로그래밍 입문자',
+        '코딩 공부 시작하는 사람',
+        '프로그래밍 언어 고민하는 사람',
+        '자바스크립트 오류 해결 필요한 사람',
+        'React 에러로 고생하는 사람',
+        '신입 개발자 취업 준비생',
+        '포트폴리오 만들고 싶은 사람',
       ],
     },
     keywords: [
-      '바이브 코딩',
-      '코딩 초보',
-      '웹개발',
-      'AI 개발',
-      '프로그래밍 입문',
-      '개발자 커뮤니티',
-      'Next.js',
-      'React',
-      '코딩 독학',
+      '코딩 공부 어디서 시작',
+      '프로그래밍 언어 추천',
+      '자바스크립트 오류',
+      'React 오류 해결',
+      '신입 개발자 취업',
+      '포트폴리오 만들기',
+      'ChatGPT 활용법',
+      '코딩 배우기 무료',
+      '개발자 공부 순서',
+      'CSS 가운데 정렬',
+      '코딩테스트 준비',
+      '부트캠프 후기',
     ],
     about: [
       {
         '@type': 'Thing',
-        name: '바이브 코딩',
-        description: '즐겁고 창의적인 코딩 접근 방식',
+        name: '코딩 공부 시작 방법',
+        description:
+          '초보자를 위한 코딩 공부 시작 가이드와 프로그래밍 언어 추천',
       },
       {
         '@type': 'Thing',
-        name: '웹개발',
-        description: '현대적인 웹 애플리케이션 개발',
+        name: '프로그래밍 오류 해결',
+        description:
+          '자바스크립트 오류, React 에러 등 개발 중 발생하는 문제 해결',
       },
       {
         '@type': 'Thing',
-        name: 'AI 개발',
-        description: '인공지능과 머신러닝 개발',
+        name: '개발자 취업 준비',
+        description:
+          '신입 개발자 취업을 위한 포트폴리오 제작과 코딩테스트 준비',
+      },
+      {
+        '@type': 'Thing',
+        name: 'ChatGPT 코딩 활용',
+        description: 'ChatGPT와 AI 도구를 활용한 효율적인 개발 방법',
       },
     ],
   }

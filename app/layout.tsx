@@ -25,11 +25,11 @@ const notoSansKr = Noto_Sans_KR({
 })
 
 export const metadata: Metadata = {
-  title: '바이브 코딩 | 코딩 초보부터 AI 개발까지 - Dev Community',
+  title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면? - Dev Community',
   description:
-    '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티. 코딩 입문부터 전문가까지 모든 레벨의 개발자가 함께 성장합니다.',
+    '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법, React 오류 해결, 포트폴리오 만들기까지 함께 배워요.',
   keywords:
-    '바이브 코딩, 코딩 초보, 웹개발, AI 개발, 프로그래밍 입문, 개발자 커뮤니티, 코딩 독학, Next.js, React, 개발 질문답변',
+    '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 개발자 되려면, 신입 개발자 취업, 코딩 배우기 무료, 자바스크립트 오류, React 오류 해결, 포트폴리오 만들기, ChatGPT 활용법, 개발자 로드맵, 코딩테스트 준비, 부트캠프 후기',
   authors: [{ name: 'Dev Community' }],
   creator: 'Dev Community',
   publisher: 'Dev Community',
@@ -48,22 +48,25 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ko_KR',
     url: 'https://developers-community-two.vercel.app',
-    title: '바이브 코딩 | 코딩 초보부터 AI 개발까지',
+    title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면?',
     description:
-      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+      '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법, React 오류 해결까지 함께 배워요.',
     siteName: 'Dev Community',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '바이브 코딩 | 코딩 초보부터 AI 개발까지',
+    title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면?',
     description:
-      '바이브 코딩, 웹개발, AI 개발을 함께 배우는 초보자 친화적 개발자 커뮤니티',
+      '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법까지 함께 배워요.',
   },
   verification: {
     google: 'google-site-verification-code-here',
     other: {
       'naver-site-verification': 'naver-site-verification-code-here',
     },
+  },
+  other: {
+    'google-site-verification': 'google-site-verification-code-here',
   },
 }
 

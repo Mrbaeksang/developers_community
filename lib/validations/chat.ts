@@ -85,8 +85,24 @@ export const manageChatChannelMemberSchema = z.object({
   action: z.enum(['add', 'remove', 'mute', 'unmute'], '올바른 액션이 아닙니다'),
 })
 
+// 채팅 채널 생성 스키마
+export const createChatChannelSchema = z.object({
+  name: z
+    .string()
+    .min(1, '채널명은 필수입니다')
+    .max(100, '채널명은 100자 이내여야 합니다')
+    .trim(),
+  description: z
+    .string()
+    .max(500, '설명은 500자 이내여야 합니다')
+    .trim()
+    .optional()
+    .nullable(),
+})
+
 export type CreateChatMessageInput = z.infer<typeof createChatMessageSchema>
 export type UpdateChatMessageInput = z.infer<typeof updateChatMessageSchema>
+export type CreateChatChannelInput = z.infer<typeof createChatChannelSchema>
 export type CreateChannelInput = z.infer<typeof createChannelSchema>
 export type UpdateChannelInput = z.infer<typeof updateChannelSchema>
 export type ManageChatChannelMemberInput = z.infer<
