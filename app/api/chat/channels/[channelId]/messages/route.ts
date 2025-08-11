@@ -11,6 +11,10 @@ import {
 } from '@/lib/api/errors'
 import { createChatMessageSchema } from '@/lib/validations/chat'
 import { handleZodError } from '@/lib/api/validation-error'
+import {
+  moderateByChannelType,
+  detectSpamByHistory,
+} from '@/lib/chat/moderation'
 
 // GET: 채팅 메시지 목록 조회
 export async function GET(
@@ -252,6 +256,57 @@ export async function POST(
 
     const validatedData = validation.data
 
+    // 메시지 검열
+    const channelType = channel.type === 'GLOBAL' ? 'public' : 'private'
+    const moderationResult = moderateByChannelType(
+      validatedData.content,
+      channelType
+    )
+
+    // 메시지 차단 여부 확인
+    if (moderationResult.shouldBlock) {
+      throw throwValidationError(
+        `메시지가 차단되었습니다. 사유: ${moderationResult.issues.join(', ')}`
+      )
+    }
+
+    // 스팸 체크를 위한 최근 메시지 히스토리 조회
+    const recentMessages = await prisma.chatMessage.findMany({
+      where: {
+        channelId,
+        authorId: userId,
+        createdAt: {
+          gte: new Date(Date.now() - 5 * 60 * 1000), // 최근 5분
+        },
+      },
+      select: {
+        content: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    // 스팸 감지
+    const isSpam = detectSpamByHistory(
+      validatedData.content,
+      recentMessages.map((msg) => ({
+        content: msg.content,
+        timestamp: msg.createdAt,
+      }))
+    )
+
+    if (isSpam) {
+      throw throwValidationError(
+        '너무 빠르게 메시지를 전송하고 있습니다. 잠시 후 다시 시도해주세요.'
+      )
+    }
+
+    // 필터링된 메시지 내용 사용 (금지어는 * 로 대체)
+    const filteredContent =
+      moderationResult.filteredContent || validatedData.content
+
     // 파일이 첨부된 경우 파일 존재 확인
     if (validatedData.fileId) {
       const file = await prisma.file.findUnique({
@@ -277,10 +332,10 @@ export async function POST(
       }
     }
 
-    // 메시지 생성
+    // 메시지 생성 (필터링된 내용 사용)
     const message = await prisma.chatMessage.create({
       data: {
-        content: validatedData.content,
+        content: filteredContent, // 검열된 내용 사용
         type: validatedData.type,
         authorId: userId,
         channelId,

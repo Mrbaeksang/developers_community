@@ -31,7 +31,7 @@ interface CommunityPost {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://developers-community-two.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr'
 
   // 기본 정적 페이지들
   const staticPages: MetadataRoute.Sitemap = [

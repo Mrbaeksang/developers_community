@@ -189,7 +189,7 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: 'ko_KR',
     },
     alternates: {
-      canonical: 'https://developers-community-two.vercel.app',
+      canonical: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
     },
   }
 }
@@ -207,7 +207,7 @@ export default async function Home() {
       '개발자 커뮤니티',
       '신입 개발자 취업 준비',
     ],
-    url: 'https://developers-community-two.vercel.app',
+    url: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
     description:
       '코딩 공부 어디서 시작할지 모른다면? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, 신입 개발자 취업까지 도와드립니다!',
     inLanguage: 'ko-KR',
@@ -215,8 +215,7 @@ export default async function Home() {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate:
-          'https://developers-community-two.vercel.app/search?q={search_term_string}',
+        urlTemplate: `${process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr'}/search?q={search_term_string}`,
       },
       'query-input': 'required name=search_term_string',
     },

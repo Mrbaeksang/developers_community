@@ -95,7 +95,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://developers-community-two.vercel.app/sitemap.xml',
-    host: 'https://developers-community-two.vercel.app',
+    sitemap: `${process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr'}/sitemap.xml`,
+    host: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
   }
 }

@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    url: 'https://developers-community-two.vercel.app',
+    url: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
     title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면?',
     description:
       '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법, React 오류 해결까지 함께 배워요.',
