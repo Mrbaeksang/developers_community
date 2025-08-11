@@ -61,8 +61,20 @@ export function GoogleOneTapAuth({
   const pathname = usePathname()
   const [showPrompt, setShowPrompt] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false)
 
   useEffect(() => {
+    // 인앱 브라우저 감지
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isKakao = userAgent.includes('kakaotalk')
+    const isFacebook = userAgent.includes('facebookexternalhit') || userAgent.includes('fban') || userAgent.includes('fbav')
+    const isInstagram = userAgent.includes('instagram')
+    const isLine = userAgent.includes('line')
+    
+    if (isKakao || isFacebook || isInstagram || isLine) {
+      setIsInAppBrowser(true)
+    }
+
     // 로그인 페이지나 이미 로그인한 경우 표시하지 않음
     if (
       status === 'authenticated' ||
@@ -159,6 +171,51 @@ export function GoogleOneTapAuth({
     }
   }, [])
 
+  // 인앱 브라우저에서는 외부 브라우저 안내 표시
+  if (isInAppBrowser && isVisible && status === 'unauthenticated') {
+    return (
+      <div className="fixed right-4 top-20 z-50 w-80 animate-slide-in-right">
+        <div className="relative rounded-lg border-2 border-yellow-400 bg-yellow-50 p-6 shadow-lg">
+          <button
+            onClick={handleClose}
+            className="absolute right-2 top-2 rounded-full p-1 hover:bg-yellow-100"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4 text-gray-500" />
+          </button>
+
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-gray-900">
+              외부 브라우저에서 열기
+            </h3>
+            <p className="mt-2 text-sm text-gray-700">
+              카카오톡 등 앱 내 브라우저에서는 Google 로그인이 제한됩니다.
+            </p>
+            <p className="mt-2 text-sm text-gray-700">
+              아래 버튼을 눌러 Chrome, Safari 등 외부 브라우저에서 열어주세요.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              // 카카오톡 외부 브라우저로 열기
+              if (navigator.userAgent.toLowerCase().includes('kakaotalk')) {
+                window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(window.location.href)}`
+              } else {
+                // 다른 인앱 브라우저의 경우 URL 복사 안내
+                navigator.clipboard.writeText(window.location.href)
+                alert('URL이 복사되었습니다. 외부 브라우저에 붙여넣어 주세요.')
+              }
+            }}
+            className="w-full rounded-lg bg-yellow-400 px-4 py-3 text-sm font-bold text-black hover:bg-yellow-500 transition-colors"
+          >
+            외부 브라우저로 열기
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // dev.to 스타일의 커스텀 사이드바 (One Tap이 표시되지 않을 때 대체)
   if (
     isVisible &&
@@ -178,7 +235,7 @@ export function GoogleOneTapAuth({
 
           <div className="mb-4">
             <h3 className="text-lg font-bold text-gray-900">
-              바이브코딩 커뮤니티 참여하기
+              Dev Community 참여하기
             </h3>
             <p className="mt-1 text-sm text-gray-600">
               개발자들과 함께 성장하세요
