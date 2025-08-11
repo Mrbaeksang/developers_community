@@ -55,18 +55,21 @@ export const postQuerySchema = z.object({
     .number()
     .int('페이지는 정수여야 합니다')
     .positive('페이지는 1 이상이어야 합니다')
+    .optional()
     .default(1),
   limit: z.coerce
     .number()
     .int('제한 수는 정수여야 합니다')
     .min(1, '최소 1개 이상')
     .max(100, '최대 100개까지')
+    .optional()
     .default(10),
   category: z.string().optional(),
   status: z.nativeEnum(PostStatus).optional(),
   search: z.string().trim().optional(),
   orderBy: z
     .enum(['latest', 'oldest', 'popular', 'likes', 'bookmarks', 'commented'])
+    .optional()
     .default('latest'),
 })
 

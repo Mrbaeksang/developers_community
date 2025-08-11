@@ -26,7 +26,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "mcp__playwright__browser_take_screenshot",
       "Bash(npm run lint)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

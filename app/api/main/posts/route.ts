@@ -27,19 +27,28 @@ import {
 import { mainPostSelect } from '@/lib/cache/patterns'
 import { createPostSchema, postQuerySchema } from '@/lib/validations/post'
 import { handleZodError } from '@/lib/api/validation-error'
+import { createAIComment } from '@/lib/ai/qa-bot'
+import { parseSearchParams } from '@/lib/api/params'
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
-    // 쿼리 파라미터 Zod 검증
+    // 쿼리 파라미터 안전하게 파싱
+    const params = parseSearchParams(searchParams, [
+      'page',
+      'limit',
+      'category',
+      'status',
+      'search',
+      'orderBy',
+      'sort',
+    ])
+
+    // Zod 검증
     const queryResult = postQuerySchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      category: searchParams.get('category'),
-      status: searchParams.get('status'),
-      search: searchParams.get('search'),
-      orderBy: searchParams.get('orderBy') || searchParams.get('sort'),
+      ...params,
+      orderBy: params.orderBy || params.sort, // orderBy 우선, 없으면 sort 사용
     })
 
     if (!queryResult.success) {
@@ -460,7 +469,46 @@ async function createPost(
     // Redis 캐시 무효화 - 관련된 모든 메인 포스트 목록 캐시 삭제
     await redisCache.delPattern('api:cache:main:posts:*')
 
-    return createdResponse(post, '게시글이 생성되었습니다.')
+    // Q&A 카테고리이고 PUBLISHED 상태인 경우 AI 댓글 생성
+    console.error('[AI Bot Debug] 게시글 생성됨:', {
+      postId: post.id,
+      title: post.title,
+      status: finalStatus,
+      categorySlug: category?.slug,
+      categoryName: category?.name,
+    })
+
+    // Q&A 카테고리 확인
+    let isQACategory = false
+    if (finalStatus === 'PUBLISHED' && category) {
+      isQACategory = ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+        (qa) =>
+          category.slug.toLowerCase().includes(qa) ||
+          category.name.toLowerCase().includes(qa)
+      )
+
+      console.error('[AI Bot Debug] Q&A 카테고리 체크:', {
+        isQACategory,
+        categorySlug: category.slug,
+        categoryName: category.name,
+      })
+
+      if (isQACategory) {
+        console.error('[AI Bot Debug] AI 댓글 생성 시작 (비동기):', post.id)
+        // 비동기로 AI 댓글 생성 (응답 대기하지 않음)
+        createAIComment(post.id).catch((error) => {
+          console.error('[AI Bot Debug] AI 댓글 생성 실패:', error)
+        })
+      }
+    }
+
+    // Q&A 카테고리 정보를 응답에 포함
+    const response = {
+      ...post,
+      isQACategory,
+    }
+
+    return createdResponse(response, '게시글이 생성되었습니다.')
   } catch (error) {
     return handleError(error)
   }

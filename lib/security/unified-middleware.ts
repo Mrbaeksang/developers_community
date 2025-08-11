@@ -16,6 +16,7 @@ export interface SecurityOptions {
   skipTrustScore?: boolean
   maxRequests?: number
   windowMs?: number
+  bypassForAdmin?: boolean // ADMIN 역할 Rate Limiting 우회
 
   // CSRF 옵션
   requireCSRF?: boolean

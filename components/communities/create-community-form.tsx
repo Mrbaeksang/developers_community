@@ -47,6 +47,18 @@ export default function CreateCommunityForm() {
   const [isCreating, setIsCreating] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // CSRF 토큰 초기화
+  useEffect(() => {
+    const initCSRF = async () => {
+      try {
+        await fetch('/api/csrf-token')
+      } catch (error) {
+        console.error('Failed to initialize CSRF token:', error)
+      }
+    }
+    initCSRF()
+  }, [])
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -196,9 +208,18 @@ export default function CreateCommunityForm() {
     mutationFn: async (
       data: typeof formData & { avatar: string; banner: string }
     ) => {
+      // CSRF 토큰 가져오기
+      const csrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrf-token='))
+        ?.split('=')[1]
+
       const res = await fetch('/api/communities', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || '',
+        },
         body: JSON.stringify(data),
       })
 

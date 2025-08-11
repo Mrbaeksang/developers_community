@@ -6,9 +6,18 @@
     "app/api/notifications/sse/route.ts": {
       "maxDuration": 300
     },
+    "app/api/ai/qa-bot/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/**/route.ts": {
       "maxDuration": 30
     }
   },
-  "regions": ["icn1"]
+  "regions": ["icn1"],
+  "crons": [
+    {
+      "path": "/api/ai/qa-bot",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

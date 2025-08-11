@@ -465,33 +465,85 @@ export function PostEditor({
         throw new Error(result.error || '게시글 작성에 실패했습니다')
       }
 
-      return { post: result.data as { id: string }, status: data.status }
+      const postData = result.data as { id: string; isQACategory?: boolean }
+      return {
+        post: postData,
+        status: data.status,
+        categoryId: data.categoryId,
+        isQACategory: postData?.isQACategory || false,
+      }
     },
-    onSuccess: ({ post, status }) => {
+    onSuccess: ({ post, status, categoryId, isQACategory }) => {
       // 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['mainPosts'] })
       queryClient.invalidateQueries({ queryKey: ['recentPosts'] })
 
+      // API 응답에서 받은 isQACategory 사용
+      const selectedCategory = categories.find((c) => c.id === categoryId)
+
       if (status === 'DRAFT') {
         sonnerToast.success('게시글이 임시저장되었습니다.')
-      } else if (userRole === 'ADMIN') {
-        sonnerToast.success('게시글이 성공적으로 작성되었습니다.')
+        // 임시저장은 바로 이동
+        if (post && post.id) {
+          setSubmitState('redirecting')
+          setTimeout(() => {
+            if (postType === 'community' && communityId) {
+              router.push(`/communities/${communityId}/posts/${post.id}`)
+            } else {
+              router.push(`/main/posts/${post.id}`)
+            }
+          }, 500)
+        }
+      } else if (
+        userRole === 'ADMIN' ||
+        (selectedCategory && !selectedCategory.requiresApproval)
+      ) {
+        if (isQACategory) {
+          // Q&A 카테고리는 AI 응답 대기 중 표시하지 않고 바로 이동
+          // (서버에서 이미 AI 응답 생성을 기다림)
+          sonnerToast.success('게시글이 작성되었습니다.')
+          if (post && post.id) {
+            setSubmitState('redirecting')
+            // Q&A 게시글인 경우 localStorage에 플래그 설정
+            if (isQACategory) {
+              localStorage.setItem(`qa_post_${post.id}`, 'true')
+            }
+            const loadingToast =
+              sonnerToast.loading('게시글 페이지로 이동 중...')
+            setTimeout(() => {
+              sonnerToast.dismiss(loadingToast)
+              router.push(`/main/posts/${post.id}`)
+            }, 500)
+          }
+        } else {
+          sonnerToast.success('게시글이 성공적으로 작성되었습니다.')
+          if (post && post.id) {
+            setSubmitState('redirecting')
+            const loadingToast =
+              sonnerToast.loading('게시글 페이지로 이동 중...')
+            setTimeout(() => {
+              sonnerToast.dismiss(loadingToast)
+              if (postType === 'community' && communityId) {
+                router.push(`/communities/${communityId}/posts/${post.id}`)
+              } else {
+                router.push(`/main/posts/${post.id}`)
+              }
+            }, 500)
+          }
+        }
       } else {
         sonnerToast.info('게시글이 관리자 승인을 기다리고 있습니다.')
-      }
-
-      // 게시글 상세 페이지로 이동
-      if (post && post.id) {
-        setSubmitState('redirecting')
-        const loadingToast = sonnerToast.loading('게시글 페이지로 이동 중...')
-        setTimeout(() => {
-          sonnerToast.dismiss(loadingToast)
-          if (postType === 'community' && communityId) {
-            router.push(`/communities/${communityId}/posts/${post.id}`)
-          } else {
-            router.push(`/main/posts/${post.id}`)
-          }
-        }, 500)
+        // 승인 대기도 페이지로 이동
+        if (post && post.id) {
+          setSubmitState('redirecting')
+          setTimeout(() => {
+            if (postType === 'community' && communityId) {
+              router.push(`/communities/${communityId}/posts/${post.id}`)
+            } else {
+              router.push(`/main/posts/${post.id}`)
+            }
+          }, 500)
+        }
       }
     },
     onError: (error) => {
@@ -526,8 +578,28 @@ export function PostEditor({
         return
       }
 
+      // Q&A 카테고리인지 미리 확인
+      const selectedCategory = categories.find((c) => c.id === categoryId)
+      const isQACategory = selectedCategory
+        ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+            (qa) =>
+              selectedCategory.slug.toLowerCase().includes(qa) ||
+              selectedCategory.name.toLowerCase().includes(qa)
+          )
+        : false
+
       setSubmitState('submitting')
       setIsSubmitting(true)
+
+      // Q&A 카테고리일 때 AI 응답 생성 중 메시지 표시
+      if (mode === 'create' && isQACategory && submitStatus === 'PENDING') {
+        sonnerToast.loading(
+          'AI가 답변을 생성하고 있습니다... 잠시만 기다려주세요.',
+          {
+            duration: 10000, // 10초 동안 표시
+          }
+        )
+      }
 
       if (mode === 'edit') {
         // 수정 모드에서는 status 파라미터가 없음
@@ -557,6 +629,7 @@ export function PostEditor({
       excerpt,
       categoryId,
       selectedTags,
+      categories,
       validateField,
       createPostMutation,
       updatePostMutation,
@@ -683,14 +756,58 @@ export function PostEditor({
       {/* Loading Overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 flex flex-col items-center space-y-4">
+          <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 flex flex-col items-center space-y-4 max-w-md">
             <LoadingSpinner size="xl" />
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <p className="text-lg font-bold">
-                {submitState === 'submitting' &&
-                  '게시글을 작성하고 있습니다...'}
-                {submitState === 'redirecting' && '페이지로 이동 중...'}
+                {(() => {
+                  const selectedCat = categories.find(
+                    (c) => c.id === categoryId
+                  )
+                  const isQA = selectedCat
+                    ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+                        (qa) =>
+                          selectedCat.slug.toLowerCase().includes(qa) ||
+                          selectedCat.name.toLowerCase().includes(qa)
+                      )
+                    : false
+
+                  if (submitState === 'submitting') {
+                    if (isQA && mode === 'create') {
+                      return '게시글을 작성하고 AI 답변을 준비하고 있습니다...'
+                    }
+                    return '게시글을 작성하고 있습니다...'
+                  }
+                  if (submitState === 'redirecting') {
+                    if (isQA && mode === 'create') {
+                      return 'AI가 답변을 생성 중입니다. 잠시 후 게시글로 이동합니다...'
+                    }
+                    return '페이지로 이동 중...'
+                  }
+                  return '처리 중...'
+                })()}
               </p>
+              {(() => {
+                const selectedCat = categories.find((c) => c.id === categoryId)
+                const isQA = selectedCat
+                  ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+                      (qa) =>
+                        selectedCat.slug.toLowerCase().includes(qa) ||
+                        selectedCat.name.toLowerCase().includes(qa)
+                    )
+                  : false
+
+                if (isQA && mode === 'create') {
+                  return (
+                    <p className="text-sm text-gray-600">
+                      AI가 귀하의 질문을 분석하고 최적의 답변을 생성하고
+                      있습니다. 게시글 페이지로 이동하면 AI 답변을 확인하실 수
+                      있습니다.
+                    </p>
+                  )
+                }
+                return null
+              })()}
             </div>
           </div>
         </div>
@@ -990,7 +1107,28 @@ export function PostEditor({
                 {isSubmitting ? (
                   <>
                     <ButtonSpinner />
-                    처리 중...
+                    {(() => {
+                      const selectedCat = categories.find(
+                        (c) => c.id === categoryId
+                      )
+                      const isQA = selectedCat
+                        ? [
+                            'qa',
+                            'qna',
+                            'question',
+                            'help',
+                            '질문',
+                            '문의',
+                          ].some(
+                            (qa) =>
+                              selectedCat.slug.toLowerCase().includes(qa) ||
+                              selectedCat.name.toLowerCase().includes(qa)
+                          )
+                        : false
+                      return isQA && mode === 'create'
+                        ? 'AI 답변 생성 중...'
+                        : '처리 중...'
+                    })()}
                   </>
                 ) : mode === 'edit' ? (
                   '수정 완료'

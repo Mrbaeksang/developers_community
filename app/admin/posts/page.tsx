@@ -366,12 +366,18 @@ export default function PostsPage() {
       setIsDeleteDialogOpen(false)
       setSelectedPost(null)
 
-      // 즉시 성공 메시지 표시
+      return { previousPosts, queryKey }
+    },
+    onSuccess: (data, variables, context) => {
+      // ✅ 삭제 성공 시 메시지 표시
       toast({
         title: '게시글이 삭제되었습니다.',
       })
 
-      return { previousPosts, queryKey }
+      // 쿼리 무효화하여 최신 데이터로 동기화
+      if (context?.queryKey) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey })
+      }
     },
     onError: (error, variables, context) => {
       // ❌ 삭제 실패 시 되돌리기 (Rollback)

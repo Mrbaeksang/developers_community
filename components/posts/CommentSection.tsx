@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ interface CommentSectionProps {
   postType?: 'main' | 'community'
   communityId?: string
   initialComments: Comment[]
+  isQAPost?: boolean // Q&A 게시글 여부
 }
 
 // 댓글 가져오기 함수 생성
@@ -77,6 +78,7 @@ export default function CommentSection({
   postType = 'main',
   communityId,
   initialComments,
+  isQAPost = false,
 }: CommentSectionProps) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -94,13 +96,157 @@ export default function CommentSection({
     [postType, communityId]
   )
 
-  const { data: comments = initialComments } = useQuery({
+  // AI 봇 사용자 ID (환경 변수에서 가져오거나 기본값 사용)
+  const AI_BOT_USER_ID = 'cmdri2tj90000u8vgtyir9upy'
+
+  // AI 답변 체크 관련 상태
+  const [isCheckingForAI, setIsCheckingForAI] = useState(false)
+  const [aiCommentFound, setAiCommentFound] = useState(false)
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const checkCountRef = useRef(0)
+  const MAX_CHECKS = 30 // 최대 30번 체크 (60초)
+  const CHECK_INTERVAL = 2000 // 2초마다 체크
+
+  // Q&A 게시글인지 확인 (URL 파라미터 또는 localStorage에서)
+  const [isWaitingForAI, setIsWaitingForAI] = useState(false)
+
+  const { data: comments = initialComments, refetch } = useQuery({
     queryKey: ['comments', postId, postType, communityId],
     queryFn: () => fetchComments(postId),
     initialData: initialComments,
     staleTime: 30 * 1000, // 30초간 fresh
     gcTime: 5 * 60 * 1000, // 5분간 캐시
   })
+
+  // Q&A 게시글 초기화 및 AI 댓글 확인
+  useEffect(() => {
+    // 이미 AI 댓글이 있는지 먼저 확인
+    const hasAIComment = comments.some(
+      (comment) => comment.author.id === AI_BOT_USER_ID
+    )
+
+    if (hasAIComment) {
+      // 이미 AI 댓글이 있으면 대기 상태 해제
+      setAiCommentFound(true)
+      setIsCheckingForAI(false)
+      setIsWaitingForAI(false)
+      return
+    }
+
+    // URL 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search)
+    const qaParam = urlParams.get('qa')
+
+    // localStorage 확인
+    const localStorageKey = `qa_post_${postId}`
+    const qaFlag = localStorage.getItem(localStorageKey)
+
+    if (qaParam === 'true' || qaFlag === 'true') {
+      setIsWaitingForAI(true)
+      setIsCheckingForAI(true)
+
+      // URL 파라미터 제거
+      if (qaParam) {
+        urlParams.delete('qa')
+        const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
+        window.history.replaceState({}, '', newUrl)
+      }
+
+      // localStorage 정리
+      if (qaFlag) {
+        localStorage.removeItem(localStorageKey)
+      }
+    } else if (isQAPost) {
+      // props로 전달된 경우
+      setIsWaitingForAI(true)
+      setIsCheckingForAI(true)
+    }
+  }, [postId, isQAPost, comments])
+
+  // AI 댓글 체크 함수
+  const checkForAIComment = useCallback(
+    (commentsToCheck?: Comment[]) => {
+      const checkComments = commentsToCheck || comments
+      const hasAIComment = checkComments.some(
+        (comment) => comment.author.id === AI_BOT_USER_ID
+      )
+
+      if (hasAIComment) {
+        setAiCommentFound(true)
+        setIsCheckingForAI(false)
+        setIsWaitingForAI(false)
+
+        // 체크 중지
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current)
+          checkIntervalRef.current = null
+        }
+
+        // 체크 카운트 리셋
+        checkCountRef.current = 0
+
+        // 성공 토스트
+        toast({
+          title: '✨ AI 답변이 도착했습니다!',
+          description: 'AI가 귀하의 질문에 대한 답변을 생성했습니다.',
+        })
+
+        return true
+      }
+      return false
+    },
+    [comments, toast]
+  )
+
+  // AI 댓글 자동 체크 시작
+  useEffect(() => {
+    if (isWaitingForAI && !aiCommentFound) {
+      // 초기 체크
+      checkForAIComment()
+
+      // 주기적으로 refetch하여 AI 댓글 확인
+      checkIntervalRef.current = setInterval(() => {
+        checkCountRef.current += 1
+
+        if (checkCountRef.current >= MAX_CHECKS) {
+          // 최대 체크 횟수 도달
+          setIsCheckingForAI(false)
+          setIsWaitingForAI(false)
+
+          if (checkIntervalRef.current) {
+            clearInterval(checkIntervalRef.current)
+            checkIntervalRef.current = null
+          }
+
+          toast({
+            title: 'AI 답변 생성이 지연되고 있습니다',
+            description: '잠시 후 페이지를 새로고침해주세요.',
+            variant: 'destructive',
+          })
+        } else {
+          // 댓글 refetch 후 결과 직접 체크
+          refetch().then((result) => {
+            if (result.data) {
+              const foundAI = checkForAIComment(result.data)
+              if (foundAI) {
+                // AI 댓글 찾음 - interval이 이미 정리됨
+                return
+              }
+            }
+          })
+        }
+      }, CHECK_INTERVAL)
+
+      return () => {
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current)
+          checkIntervalRef.current = null
+        }
+      }
+    }
+
+    return undefined
+  }, [isWaitingForAI, aiCommentFound, checkForAIComment, refetch, toast])
 
   // 답글 작성 mutation
   const createReplyMutation = useMutation({
@@ -177,7 +323,7 @@ export default function CommentSection({
         variant: 'destructive',
       })
       router.push('/auth/signin')
-      return Promise.reject(new Error('Unauthenticated'))
+      throw new Error('Unauthenticated')
     }
 
     const content = replyContents[parentId] || ''
@@ -186,11 +332,11 @@ export default function CommentSection({
         title: '답글 내용을 입력해주세요',
         variant: 'destructive',
       })
-      return Promise.reject(new Error('Empty content'))
+      throw new Error('Empty content')
     }
 
     // mutateAsync를 사용하여 Promise 반환
-    return createReplyMutation.mutateAsync({
+    await createReplyMutation.mutateAsync({
       content: content.trim(),
       parentId,
     })
@@ -388,6 +534,11 @@ export default function CommentSection({
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
           댓글 {comments.length}개
+          {isCheckingForAI && (
+            <span className="ml-auto text-sm font-normal text-muted-foreground animate-pulse">
+              🤖 AI가 답변을 생성하고 있습니다...
+            </span>
+          )}
         </h2>
 
         {/* Comment Form */}
@@ -414,12 +565,26 @@ export default function CommentSection({
 
         {/* Comments List */}
         {comments.length === 0 ? (
-          <EmptyState
-            icon={MessageSquare}
-            title="아직 댓글이 없습니다"
-            description="첫 번째 댓글을 작성해보세요!"
-            size="sm"
-          />
+          isCheckingForAI ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+              <div className="text-center space-y-2">
+                <p className="text-lg font-semibold">
+                  AI가 답변을 생성하고 있습니다
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  잠시만 기다려주세요... 곧 AI의 상세한 답변이 도착합니다.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <EmptyState
+              icon={MessageSquare}
+              title="아직 댓글이 없습니다"
+              description="첫 번째 댓글을 작성해보세요!"
+              size="sm"
+            />
+          )
         ) : (
           <div className="space-y-4">
             {comments.map((comment) => (

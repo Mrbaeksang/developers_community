@@ -47,8 +47,8 @@ const rateLimiter = initRateLimitMiddleware({
     [ActionCategory.POST_BOOKMARK, createRateLimitRule(60000, 20)], // 1분에 20회
 
     // 콘텐츠 생성 제한 - 더 관대하게 설정
-    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 30)], // 1시간에 30개로 증가
-    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 20)], // 1분에 20개로 증가
+    [ActionCategory.POST_CREATE, createRateLimitRule(3600000, 100)], // 1시간에 100개로 증가 (테스트 중)
+    [ActionCategory.COMMENT_CREATE, createRateLimitRule(60000, 30)], // 1분에 30개로 증가
 
     // 파일 업로드 제한 - 더 관대하게 설정
     [ActionCategory.FILE_UPLOAD, createRateLimitRule(3600000, 50)], // 1시간에 50개로 증가

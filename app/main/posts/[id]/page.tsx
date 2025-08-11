@@ -72,6 +72,16 @@ async function getPost(id: string) {
       data.comments = []
     }
 
+    // Q&A 카테고리 확인
+    if (data.category) {
+      const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
+      data.isQACategory = qaCategories.some(
+        (qa) =>
+          data.category.slug.toLowerCase().includes(qa) ||
+          data.category.name.toLowerCase().includes(qa)
+      )
+    }
+
     return data
   } catch (error) {
     console.error('Failed to fetch post:', error)
@@ -122,6 +132,7 @@ export default async function PostDetailPage({ params }: PageProps) {
             postId={post.id}
             postType="main"
             initialComments={post.comments || []}
+            isQAPost={post.isQACategory || false}
           />
         </div>
         <aside className="space-y-6">

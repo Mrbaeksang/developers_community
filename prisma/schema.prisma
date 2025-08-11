@@ -680,6 +680,9 @@ model File {
   width        Int?     // 이미지 너비
   height       Int?     // 이미지 높이
   
+  // 보안 및 중복 체크
+  hash         String?  // SHA-256 파일 해시 (중복 체크용)
+  
   // 임시 파일 관련 필드 (향후 확장성)
   isTemporary  Boolean   @default(false) // 임시 파일 여부
   expiresAt    DateTime? // 만료 시간

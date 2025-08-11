@@ -7,6 +7,12 @@ import { handleError, throwValidationError } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
 import { allowedFileTypes } from '@/lib/validations/upload'
+import {
+  sanitizeFilename,
+  validateMimeType,
+  validateFileSize,
+  generateFileHash,
+} from '@/lib/utils/file-sanitizer'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -52,8 +58,8 @@ async function uploadFile(
       throwValidationError('파일이 없습니다')
     }
 
-    // 파일 크기 확인
-    if (file.size > MAX_FILE_SIZE) {
+    // 파일 크기 검증
+    if (!validateFileSize(file, MAX_FILE_SIZE)) {
       throwValidationError('파일 크기는 10MB를 초과할 수 없습니다')
     }
 
@@ -61,28 +67,69 @@ async function uploadFile(
     const allAllowedTypes = Object.values(
       allowedFileTypes
     ).flat() as readonly string[]
-    if (!allAllowedTypes.includes(file.type)) {
+    if (!validateMimeType(file, allAllowedTypes)) {
       throwValidationError('지원되지 않는 파일 형식입니다')
     }
 
-    // Vercel Blob Storage에 파일 업로드
-    const blob = await put(file.name, file, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: true,
+    // 파일명 sanitization
+    const safeName = sanitizeFilename(file.name, {
+      maxLength: 255,
+      preserveExtension: true,
+      addHash: true,
     })
 
-    // DB에 파일 정보 저장
+    // 파일 해시 생성 (중복 체크용)
+    const fileHash = await generateFileHash(file)
+
+    // 중복 파일 체크 (같은 해시를 가진 파일이 있는지)
+    const existingFile = await prisma.file.findFirst({
+      where: {
+        hash: fileHash,
+        uploaderId: userId,
+      },
+      select: {
+        id: true,
+        url: true,
+        filename: true,
+        size: true,
+        mimeType: true,
+      },
+    })
+
+    // 중복 파일이 있으면 기존 파일 정보 반환
+    if (existingFile) {
+      return successResponse(
+        {
+          id: existingFile.id,
+          name: existingFile.filename,
+          size: existingFile.size,
+          type: existingFile.mimeType,
+          url: existingFile.url,
+        },
+        '동일한 파일이 이미 업로드되어 있습니다.',
+        200
+      )
+    }
+
+    // Vercel Blob Storage에 파일 업로드 (안전한 파일명 사용)
+    const blob = await put(safeName, file, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      addRandomSuffix: false, // 이미 해시가 포함되어 있음
+    })
+
+    // DB에 파일 정보 저장 (hash 필드 추가)
     const fileRecord = await prisma.file.create({
       data: {
-        filename: file.name,
-        storedName: blob.pathname,
+        filename: file.name, // 원본 파일명 저장
+        storedName: safeName, // 안전한 파일명 저장
         mimeType: file.type,
         size: file.size,
         type: getFileType(file.type),
         url: blob.url,
         downloadUrl: blob.downloadUrl,
         uploaderId: userId,
+        hash: fileHash, // 파일 해시 저장
       },
     })
 

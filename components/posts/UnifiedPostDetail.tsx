@@ -116,7 +116,18 @@ export function UnifiedPostDetail({
   // 조회수 증가
   useEffect(() => {
     const incrementView = async () => {
-      await fetch(`${apiBasePath}/view`, { method: 'POST' })
+      // CSRF 토큰 가져오기
+      const csrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrf-token='))
+        ?.split('=')[1]
+
+      await fetch(`${apiBasePath}/view`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': csrfToken || '',
+        },
+      })
     }
     incrementView()
   }, [apiBasePath])
