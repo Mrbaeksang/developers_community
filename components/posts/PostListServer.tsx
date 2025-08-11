@@ -10,14 +10,12 @@ interface PostListServerProps {
   category?: string
   sort?: string
   page?: string
-  currentUserId?: string
 }
 
 export async function PostListServer({
   category,
   sort = 'latest',
   page = '1',
-  currentUserId,
 }: PostListServerProps) {
   // 정렬 옵션에 따른 orderBy 설정 (고정 게시글 제외)
   const getRegularOrderBy = (): Prisma.MainPostOrderByWithRelationInput[] => {
@@ -193,7 +191,6 @@ export async function PostListServer({
         initialPosts={formattedPosts}
         categories={formattedCategories}
         isLoading={false}
-        currentUserId={currentUserId}
       />
       <Pagination
         currentPage={pageNumber}

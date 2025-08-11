@@ -42,7 +42,6 @@ interface CommunityPostListProps {
   communityId: string
   communitySlug: string
   currentCategory?: string
-  currentUserId?: string
 }
 
 export function CommunityPostList({
@@ -52,7 +51,6 @@ export function CommunityPostList({
   communityId,
   communitySlug,
   currentCategory,
-  currentUserId,
 }: CommunityPostListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -393,11 +391,7 @@ export function CommunityPostList({
           >
             {sortedPosts.length > 0 ? (
               sortedPosts.map((post: CommunityPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={currentUserId}
-                />
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
@@ -420,11 +414,7 @@ export function CommunityPostList({
           >
             {trendingPosts.length > 0 ? (
               trendingPosts.map((post: CommunityPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={currentUserId}
-                />
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
@@ -447,11 +437,7 @@ export function CommunityPostList({
           >
             {recentPosts.length > 0 ? (
               recentPosts.map((post: CommunityPostFormatted) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={currentUserId}
-                />
+                <PostCard key={post.id} post={post} />
               ))
             ) : (
               <div className="col-span-2">
