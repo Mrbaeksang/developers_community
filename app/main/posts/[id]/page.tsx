@@ -98,11 +98,7 @@ async function getPost(id: string) {
             globalRole: true,
           },
         },
-        _count: {
-          select: {
-            likes: true,
-          },
-        },
+        // MainComment에는 likes 관계가 없음
       },
     })
 
@@ -128,9 +124,14 @@ async function getPost(id: string) {
         name: t.tag.name,
       })),
       comments: comments.map((comment) => ({
-        ...comment,
-        createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString(),
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        userId: comment.authorId,
+        author: comment.author,
+        isEdited: comment.isEdited,
+        parentId: comment.parentId,
       })),
       isQACategory,
     }
@@ -154,10 +155,10 @@ export async function generateMetadata({
 
   return {
     title: post.title,
-    description: post.excerpt || post.metaDescription,
+    description: post.excerpt || post.metaDescription || undefined,
     openGraph: {
       title: post.title,
-      description: post.excerpt || post.metaDescription,
+      description: post.excerpt || post.metaDescription || undefined,
       type: 'article',
       publishedTime: post.createdAt,
       authors: [post.author?.name || 'Unknown'],
