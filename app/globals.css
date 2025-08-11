@@ -139,18 +139,33 @@
   }
 }
 
-/* Neobrutalism Design System */
+/* Neobrutalism Design System - 모바일 반응형 그림자 */
 .shadow-brutal-sm {
   box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
 }
 .shadow-brutal {
-  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+@media (min-width: 640px) {
+  .shadow-brutal {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  }
 }
 .shadow-brutal-lg {
-  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+}
+@media (min-width: 640px) {
+  .shadow-brutal-lg {
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
 }
 .shadow-brutal-xl {
-  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+@media (min-width: 640px) {
+  .shadow-brutal-xl {
+    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  }
 }
 
 /* Hover States */
@@ -198,17 +213,29 @@
   box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
 }
 
-/* Card Styles */
+/* Card Styles - 모바일 반응형 */
 .neo-card {
   background-color: white;
   border-width: 2px;
   border-color: black;
   border-radius: 0.5rem;
-  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+}
+
+@media (min-width: 640px) {
+  .neo-card {
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
 }
 
 .neo-card:hover {
-  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+@media (min-width: 640px) {
+  .neo-card:hover {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  }
 }
 
 /* Button Styles */

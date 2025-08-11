@@ -23,7 +23,8 @@
       "Bash(node:*)",
       "Bash(npx tsx:*)",
       "Bash(node:*)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": []
   }

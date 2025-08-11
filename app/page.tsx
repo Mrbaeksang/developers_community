@@ -209,14 +209,12 @@ export default async function Home() {
             </section>
           </main>
 
-          {/* Sidebar */}
-          <aside className="space-y-6">
+          {/* Sidebar - 데스크톱에서만 보이기 */}
+          <aside className="hidden lg:block space-y-6">
             <SidebarContainer sidebarData={sidebarData} />
 
             {/* 활성 커뮤니티 - 데스크톱에서만 보이기 */}
-            <div className="hidden lg:block">
-              <ActiveCommunities />
-            </div>
+            <ActiveCommunities />
           </aside>
         </div>
       </div>

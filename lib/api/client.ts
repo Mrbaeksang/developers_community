@@ -10,13 +10,8 @@ export function getApiUrl() {
     return ''
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    return process.env['NEXT_PUBLIC_API_URL'] || 'http://localhost:3000'
-  }
-
-  return (
-    process.env['NEXTAUTH_URL'] || 'https://developers-community-two.vercel.app'
-  )
+  // 개발/프로덕션 모두 NEXT_PUBLIC_API_URL 환경변수 사용
+  return process.env['NEXT_PUBLIC_API_URL'] || 'http://localhost:3000'
 }
 
 /**
