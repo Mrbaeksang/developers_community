@@ -13,6 +13,7 @@ import {
   validateFileSize,
   generateFileHash,
 } from '@/lib/utils/file-sanitizer'
+import { resizeImage, IMAGE_PRESETS } from '@/lib/utils/image-resizer'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -72,7 +73,7 @@ async function uploadFile(
     }
 
     // 파일명 sanitization
-    const safeName = sanitizeFilename(file.name, {
+    let safeName = sanitizeFilename(file.name, {
       maxLength: 255,
       preserveExtension: true,
       addHash: true,
@@ -111,11 +112,68 @@ async function uploadFile(
       )
     }
 
+    // 이미지인 경우 리사이징 처리
+    let uploadBuffer: Buffer | File = file
+    let finalMimeType = file.type
+    let finalSize = file.size
+    let imageMetadata: {
+      width?: number
+      height?: number
+      originalSize?: number
+      compressionRatio?: number
+      thumbnailUrl?: string
+    } | null = null
+
+    if (file.type.startsWith('image/')) {
+      try {
+        // 이미지 리사이징 (LARGE 프리셋 사용, WebP 변환)
+        const processed = await resizeImage(file, {
+          ...IMAGE_PRESETS.LARGE,
+          format: 'webp',
+          generateThumbnail: true,
+          thumbnailSize: 200,
+        })
+
+        uploadBuffer = processed.buffer
+        finalMimeType = 'image/webp'
+        finalSize = processed.metadata.size
+
+        // 이미지 메타데이터 저장
+        imageMetadata = {
+          width: processed.metadata.width,
+          height: processed.metadata.height,
+          originalSize: file.size,
+          compressionRatio: Math.round(
+            processed.metadata.compressionRatio * 100
+          ),
+        }
+
+        // 썸네일 업로드
+        if (processed.thumbnail) {
+          const thumbName = safeName.replace(/\.[^.]+$/, '_thumb.webp')
+          const thumbBlob = await put(thumbName, processed.thumbnail, {
+            access: 'public',
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+            addRandomSuffix: false,
+            contentType: 'image/webp',
+          })
+          imageMetadata.thumbnailUrl = thumbBlob.url
+        }
+
+        // 파일명을 .webp로 변경
+        safeName = safeName.replace(/\.[^.]+$/, '.webp')
+      } catch (error) {
+        console.error('Image resize failed, using original:', error)
+        // 리사이징 실패 시 원본 사용
+      }
+    }
+
     // Vercel Blob Storage에 파일 업로드 (안전한 파일명 사용)
-    const blob = await put(safeName, file, {
+    const blob = await put(safeName, uploadBuffer, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
       addRandomSuffix: false, // 이미 해시가 포함되어 있음
+      contentType: finalMimeType,
     })
 
     // DB에 파일 정보 저장 (hash 필드 추가)
@@ -123,13 +181,14 @@ async function uploadFile(
       data: {
         filename: file.name, // 원본 파일명 저장
         storedName: safeName, // 안전한 파일명 저장
-        mimeType: file.type,
-        size: file.size,
+        mimeType: finalMimeType, // 최종 MIME 타입 (이미지는 webp)
+        size: finalSize, // 최종 파일 크기
         type: getFileType(file.type),
         url: blob.url,
         downloadUrl: blob.downloadUrl,
         uploaderId: userId,
         hash: fileHash, // 파일 해시 저장
+        metadata: imageMetadata || undefined, // 이미지 메타데이터
       },
     })
 
@@ -140,8 +199,9 @@ async function uploadFile(
         size: fileRecord.size,
         type: fileRecord.mimeType,
         url: fileRecord.url,
+        metadata: imageMetadata,
       },
-      undefined,
+      imageMetadata ? '이미지가 최적화되어 업로드되었습니다.' : undefined,
       201
     )
   } catch (error) {

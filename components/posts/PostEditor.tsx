@@ -578,28 +578,8 @@ export function PostEditor({
         return
       }
 
-      // Q&A 카테고리인지 미리 확인
-      const selectedCategory = categories.find((c) => c.id === categoryId)
-      const isQACategory = selectedCategory
-        ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
-            (qa) =>
-              selectedCategory.slug.toLowerCase().includes(qa) ||
-              selectedCategory.name.toLowerCase().includes(qa)
-          )
-        : false
-
       setSubmitState('submitting')
       setIsSubmitting(true)
-
-      // Q&A 카테고리일 때 AI 응답 생성 중 메시지 표시
-      if (mode === 'create' && isQACategory && submitStatus === 'PENDING') {
-        sonnerToast.loading(
-          'AI가 답변을 생성하고 있습니다... 잠시만 기다려주세요.',
-          {
-            duration: 10000, // 10초 동안 표시
-          }
-        )
-      }
 
       if (mode === 'edit') {
         // 수정 모드에서는 status 파라미터가 없음
@@ -629,7 +609,6 @@ export function PostEditor({
       excerpt,
       categoryId,
       selectedTags,
-      categories,
       validateField,
       createPostMutation,
       updatePostMutation,

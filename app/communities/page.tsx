@@ -24,8 +24,8 @@ interface Community {
   visibility: 'PUBLIC' | 'PRIVATE'
   memberCount: number
   postCount: number
-  createdAt: string
-  updatedAt: string
+  createdAt?: string // optional이고 string만
+  updatedAt?: string // optional이고 string만
   owner: {
     id: string
     name: string | null
@@ -46,24 +46,64 @@ async function getCommunities(searchParams: {
   const search = searchParams.search || ''
 
   try {
-    const res = await fetch(
-      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities?page=${page}&search=${search}`,
-      { cache: 'no-store' }
-    )
+    // 프로덕션 환경에서는 직접 DB 조회
+    const { prisma } = await import('@/lib/core/prisma')
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch communities')
-    }
+    // 검색 조건 설정
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}
 
-    const data = await res.json()
-    // paginatedResponse 형식: { success: true, data: [], pagination: {...} }
+    // 페이지네이션 설정
+    const limit = 12
+    const skip = (parseInt(page) - 1) * limit
+
+    // 커뮤니티 조회
+    const [rawCommunities, total] = await Promise.all([
+      prisma.community.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { memberCount: 'desc' },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              posts: true,
+            },
+          },
+        },
+      }),
+      prisma.community.count({ where }),
+    ])
+
+    // Date를 string으로 변환
+    const communities = rawCommunities.map((community) => ({
+      ...community,
+      createdAt: community.createdAt.toISOString(),
+      updatedAt: community.updatedAt.toISOString(),
+    }))
+
     return {
-      communities: data.data || [],
-      pagination: data.pagination || {
-        total: 0,
-        page: 1,
-        limit: 12,
-        totalPages: 0,
+      communities,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
     }
   } catch (error) {
@@ -114,8 +154,8 @@ export default async function CommunitiesPage({
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
                       {formatCount(
-                        (communities || []).reduce(
-                          (acc: number, c: Community) => acc + c._count.members,
+                        (communities || []).reduce<number>(
+                          (acc, c) => acc + c._count.members,
                           0
                         )
                       )}
@@ -128,8 +168,8 @@ export default async function CommunitiesPage({
                   <div className="text-center">
                     <p className="text-2xl font-black text-gray-800">
                       {formatCount(
-                        (communities || []).reduce(
-                          (acc: number, c: Community) => acc + c._count.posts,
+                        (communities || []).reduce<number>(
+                          (acc, c) => acc + c._count.posts,
                           0
                         )
                       )}

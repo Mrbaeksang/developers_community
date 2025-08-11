@@ -9,6 +9,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30일 기본 세션 만료
+    updateAge: 24 * 60 * 60, // 24시간마다 세션 업데이트
   },
   pages: {
     signIn: '/auth/signin',

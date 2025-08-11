@@ -32,7 +32,6 @@ export interface RateLimitOptions {
   ipAddress: string
   action: ActionCategory
   trustScore?: number
-  bypassForAdmin?: boolean
   userAgent?: string
 }
 
@@ -47,17 +46,17 @@ export class RateLimiter {
   private static readonly DEFAULT_CONFIGS: Record<ActionType, WindowConfig> = {
     [ActionType.READ]: {
       windowMs: 60 * 1000, // 1분
-      maxRequests: 100, // 100 requests
+      maxRequests: 100, // 100 requests (관리자는 1000-2000)
       blockDuration: 60, // 1분 차단
     },
     [ActionType.WRITE]: {
       windowMs: 60 * 1000, // 1분
-      maxRequests: 20, // 20 requests
+      maxRequests: 50, // 50 requests (관리자는 500-1000)
       blockDuration: 5 * 60, // 5분 차단
     },
     [ActionType.SENSITIVE]: {
       windowMs: 60 * 1000, // 1분
-      maxRequests: 10, // 10 requests
+      maxRequests: 30, // 30 requests (관리자는 300-600)
       blockDuration: 3 * 60, // 3분 차단
     },
     [ActionType.CRITICAL]: {
@@ -67,8 +66,8 @@ export class RateLimiter {
     },
     [ActionType.ADMIN]: {
       windowMs: 60 * 1000, // 1분
-      maxRequests: 1000, // 거의 무제한
-      blockDuration: 0, // 차단 없음
+      maxRequests: 1000, // 관리자 작업 기본 한도
+      blockDuration: 30, // 30초 차단 (최소한의 보호)
     },
   }
 
@@ -76,7 +75,7 @@ export class RateLimiter {
    * Rate Limit 체크 메인 함수
    */
   static async check(options: RateLimitOptions): Promise<RateLimitResult> {
-    const { userId, ipAddress, action, bypassForAdmin } = options
+    const { userId, ipAddress, action } = options
     const startTime = Date.now()
 
     // Action 메타데이터 가져오기
@@ -90,17 +89,13 @@ export class RateLimiter {
       }
     }
 
-    // 관리자 우회 체크
-    if (bypassForAdmin && userId) {
-      const isAdmin = await this.checkIfAdmin(userId)
-      if (isAdmin) {
-        return {
-          allowed: true,
-          remaining: 999999,
-          resetAt: new Date(Date.now() + 3600000),
-          trustLevel: TrustLevel.PREMIUM,
-        }
-      }
+    // 관리자 우대 처리 (완전 우회가 아닌 높은 한도 적용)
+    // 환경 변수로 제어 가능
+    const adminRateLimitBonus = process.env.ADMIN_RATE_LIMIT_BONUS !== 'false'
+    let isAdmin = false
+
+    if (adminRateLimitBonus && userId) {
+      isAdmin = await this.checkIfAdmin(userId)
     }
 
     // 사용자 신뢰도 점수 가져오기
@@ -113,7 +108,13 @@ export class RateLimiter {
         trustScore = trust.score
         trustLevel = trust.level
 
-        // 차단된 사용자 체크
+        // 관리자는 최고 신뢰도 부여 (완전 우회는 아님)
+        if (isAdmin) {
+          trustScore = Math.max(trustScore, 90) // 최소 90점
+          trustLevel = TrustLevel.PREMIUM
+        }
+
+        // 차단된 사용자 체크 (관리자도 차단 가능)
         if (trust.factors.isBanned) {
           return {
             allowed: false,
@@ -126,6 +127,10 @@ export class RateLimiter {
       } catch (error) {
         console.error('Failed to calculate trust score:', error)
         // 신뢰도 계산 실패시 기본값 사용
+        if (isAdmin) {
+          trustScore = 90
+          trustLevel = TrustLevel.PREMIUM
+        }
       }
     }
 
@@ -163,8 +168,12 @@ export class RateLimiter {
     // Action 비용 계산 (신뢰도 반영)
     const actionCost = calculateActionCost(action, trustScore)
 
-    // 기본 설정 가져오기
-    const baseConfig = this.getConfigWithTrust(metadata.type, trustLevel)
+    // 기본 설정 가져오기 (관리자 여부 반영)
+    const baseConfig = this.getConfigWithTrust(
+      metadata.type,
+      trustLevel,
+      isAdmin
+    )
 
     // Adaptive Rate Limiting - 동적 제한 조정
     const adaptiveResult = await AdaptiveRateLimiter.calculate(
@@ -382,10 +391,16 @@ export class RateLimiter {
    */
   private static getConfigWithTrust(
     actionType: ActionType,
-    trustLevel: TrustLevel
+    trustLevel: TrustLevel,
+    isAdmin: boolean = false
   ): WindowConfig {
     const baseConfig = { ...this.DEFAULT_CONFIGS[actionType] }
-    const multiplier = TrustScorer.getRateLimitMultiplier(trustLevel)
+    let multiplier = TrustScorer.getRateLimitMultiplier(trustLevel)
+
+    // 관리자는 큰 보너스 (최소 10배, 최대 20배)
+    if (isAdmin) {
+      multiplier = Math.max(10, multiplier * 10) // 최소 10배, 일반적으로 10-20배
+    }
 
     // 신뢰도에 따라 요청 수 증가
     baseConfig.maxRequests = Math.floor(baseConfig.maxRequests * multiplier)
@@ -393,9 +408,15 @@ export class RateLimiter {
     // 신뢰도가 높으면 차단 시간 감소
     if (
       trustLevel === TrustLevel.TRUSTED ||
-      trustLevel === TrustLevel.PREMIUM
+      trustLevel === TrustLevel.PREMIUM ||
+      isAdmin
     ) {
       baseConfig.blockDuration = Math.floor(baseConfig.blockDuration * 0.5)
+    }
+
+    // 관리자는 최소 차단 시간
+    if (isAdmin && baseConfig.blockDuration > 30) {
+      baseConfig.blockDuration = 30 // 최대 30초
     }
 
     return baseConfig

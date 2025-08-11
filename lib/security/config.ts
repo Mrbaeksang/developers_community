@@ -12,8 +12,8 @@ export const SecurityConfig = {
     // Redis 사용 여부 (false면 메모리 사용)
     useRedis: process.env.RATE_LIMIT_USE_REDIS !== 'false',
 
-    // 관리자 우회 허용
-    bypassForAdmin: true,
+    // 관리자 rate limit 보너스 (완전 우회가 아닌 높은 한도 적용)
+    adminRateLimitBonus: process.env.ADMIN_RATE_LIMIT_BONUS !== 'false',
 
     // IP 기반 Rate Limiting (비로그인 사용자)
     ipBased: {
