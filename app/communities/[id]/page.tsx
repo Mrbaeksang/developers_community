@@ -19,6 +19,7 @@ import {
   getDefaultBannerById,
 } from '@/lib/ui/banner'
 import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
+import { prisma } from '@/lib/core/prisma'
 
 interface Category {
   id: string
@@ -80,30 +81,90 @@ interface Community {
 
 async function getCommunity(idOrSlug: string) {
   try {
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
+    const session = await auth()
+    const userId = session?.user?.id
 
-    const res = await fetch(
-      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
-      {
-        cache: 'no-store',
-        next: { revalidate: 0 },
-        headers: {
-          Cookie: cookieStore.toString(),
+    // ID 또는 slug로 커뮤니티 조회
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
         },
-      }
-    )
+        _count: {
+          select: {
+            members: true,
+            posts: true,
+          },
+        },
+        categories: {
+          where: { isActive: true },
+          orderBy: { order: 'asc' },
+          include: {
+            _count: {
+              select: {
+                posts: true,
+              },
+            },
+          },
+        },
+        announcements: {
+          orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+          take: 5,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+          },
+        },
+        members: userId
+          ? {
+              where: {
+                userId,
+              },
+            }
+          : undefined,
+      },
+    })
 
-    if (!res.ok) {
-      if (res.status === 404) {
-        notFound()
-      }
-      throw new Error('Failed to fetch community')
+    if (!community) {
+      notFound()
     }
 
-    const data = await res.json()
-    // API가 중첩된 응답 구조를 반환할 수 있음
-    return (data.success && data.data ? data.data : data) as Community
+    // 현재 사용자의 멤버십 정보 처리
+    const currentMembership = community.members?.[0] || null
+
+    // 날짜를 string으로 변환하고 형식 맞추기
+    return {
+      ...community,
+      createdAt: community.createdAt.toISOString(),
+      currentMembership: currentMembership
+        ? {
+            role: currentMembership.role,
+            status: currentMembership.status,
+          }
+        : null,
+      categories: community.categories.map((cat) => ({
+        ...cat,
+        color: cat.color || '#6366f1',
+      })),
+      announcements: community.announcements.map((ann) => ({
+        ...ann,
+        createdAt: ann.createdAt.toISOString(),
+      })),
+    } as Community
   } catch (error) {
     console.error('Failed to fetch community:', error)
     notFound()

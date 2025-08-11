@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import { auth } from '@/auth'
+import { prisma } from '@/lib/core/prisma'
 
 interface Community {
   id: string
@@ -17,25 +18,56 @@ interface Community {
   } | null
 }
 
-async function getCommunity(idOrSlug: string) {
+async function getCommunity(idOrSlug: string): Promise<Community | null> {
   try {
-    const res = await fetch(
-      `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/api/communities/${idOrSlug}`,
-      { cache: 'no-store' }
-    )
+    const session = await auth()
+    const userId = session?.user?.id
 
-    if (!res.ok) {
-      if (res.status === 404) {
-        notFound()
-      }
-      throw new Error('Failed to fetch community')
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        visibility: true,
+        ownerId: true,
+        members: userId
+          ? {
+              where: { userId },
+              select: {
+                role: true,
+                status: true,
+              },
+            }
+          : undefined,
+      },
+    })
+
+    if (!community) {
+      return null
     }
 
-    const data = await res.json()
-    return data as Community
+    // currentMembership 형식으로 변환
+    const currentMembership = community.members?.[0] || null
+
+    return {
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      visibility: community.visibility,
+      ownerId: community.ownerId,
+      currentMembership: currentMembership
+        ? {
+            role: currentMembership.role,
+            status: currentMembership.status,
+          }
+        : null,
+    }
   } catch (error) {
     console.error('Failed to fetch community:', error)
-    notFound()
+    return null
   }
 }
 
@@ -52,6 +84,10 @@ export default async function CommunityPostsPage({
   const { category } = await searchParams
   const session = await auth()
   const community = await getCommunity(id)
+
+  if (!community) {
+    notFound()
+  }
 
   const isMember = community.currentMembership?.status === 'ACTIVE'
   const canWrite = isMember && community.currentMembership?.status !== 'BANNED'

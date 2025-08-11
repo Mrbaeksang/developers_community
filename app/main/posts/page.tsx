@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { PostListServer } from '@/components/posts/PostListServer'
 import { SidebarContainer } from '@/components/home/SidebarContainer'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
-import { getApiUrl } from '@/lib/api/client'
+import { prisma } from '@/lib/core/prisma'
 
 export const metadata = {
   title: '게시글 목록 | Dev Community',
@@ -14,93 +14,94 @@ interface PostsPageProps {
   searchParams: Promise<{ category?: string; sort?: string; page?: string }>
 }
 
-interface TrendingTag {
-  id: string
-  name: string
-  slug: string
-  color: string | null
-  postCount: number
-  weeklyPosts: number
-  trendingScore: number
-}
-
-interface WeeklyMVPUser {
-  id: string
-  name: string | null
-  username: string | null
-  email: string
-  image: string | null
-  bio: string | null
-  globalRole: string
-  weeklyStats: {
-    postCount: number
-    totalViews: number
-    totalLikes: number
-    totalComments: number
-    engagementScore: number
-  }
-  rank: number
-}
-
-interface WeeklyTrendingPost {
-  id: string
-  title: string
-  viewCount: number
-  weeklyViews: number
-  author: {
-    name: string | null
-  }
-}
-
 async function getSidebarData() {
   try {
-    const [tagsRes, usersRes, trendingRes] = await Promise.all([
-      fetch(`${getApiUrl()}/api/main/tags/trending?limit=8`, {
-        next: { revalidate: 3600 }, // 1 hour cache for tags
-      }),
-      fetch(`${getApiUrl()}/api/main/users/weekly-mvp?limit=5`, {
-        next: { revalidate: 300 }, // 5 minutes cache for active users
-      }),
-      fetch(`${getApiUrl()}/api/main/posts/weekly-trending?limit=3`, {
-        next: { revalidate: 300 }, // 5 minutes cache for trending
-      }),
-    ])
+    // 트렌딩 태그 조회 (Prisma 직접 사용)
+    const trendingTags = await prisma.mainTag.findMany({
+      orderBy: { postCount: 'desc' },
+      take: 8,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        color: true,
+        postCount: true,
+      },
+    })
 
-    const [tagsData, usersData, trendingData] = await Promise.all([
-      tagsRes.ok ? tagsRes.json() : { data: [] },
-      usersRes.ok ? usersRes.json() : { data: [] },
-      trendingRes.ok ? trendingRes.json() : { data: { posts: [] } },
-    ])
+    // 주간 활성 사용자 조회
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const activeUsers = await prisma.user.findMany({
+      where: {
+        mainPosts: {
+          some: {
+            createdAt: { gte: weekAgo },
+            status: 'PUBLISHED',
+          },
+        },
+      },
+      orderBy: {
+        mainPosts: {
+          _count: 'desc',
+        },
+      },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        image: true,
+        _count: {
+          select: {
+            mainPosts: true,
+          },
+        },
+      },
+    })
 
-    // Map the API response to the expected format for Sidebar
-    const mappedTags = ((tagsData.data || []) as TrendingTag[]).map((tag) => ({
+    // 주간 트렌딩 게시글 조회
+    const trendingPosts = await prisma.mainPost.findMany({
+      where: {
+        status: 'PUBLISHED',
+        createdAt: { gte: weekAgo },
+      },
+      orderBy: { viewCount: 'desc' },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        viewCount: true,
+        author: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    })
+
+    // 형식 맞추기
+    const mappedTags = trendingTags.map((tag) => ({
       id: tag.id,
       name: tag.name,
-      count: tag.postCount || tag.weeklyPosts || 0,
+      count: tag.postCount,
       color: tag.color || '#3B82F6',
     }))
 
-    const mappedUsers = ((usersData.data || []) as WeeklyMVPUser[]).map(
-      (user) => ({
-        id: user.id,
-        name: user.name || user.username || 'Unknown',
-        image: user.image || undefined,
-        postCount: user.weeklyStats?.postCount || 0,
-      })
-    )
+    const mappedUsers = activeUsers.map((user) => ({
+      id: user.id,
+      name: user.name || user.username || 'Unknown',
+      image: user.image || undefined,
+      postCount: user._count.mainPosts,
+    }))
 
-    // For trending posts, map the weekly trending response
-    const mappedPosts = (
-      (trendingData.data?.items ||
-        trendingData.data ||
-        []) as WeeklyTrendingPost[]
-    ).map((post) => ({
+    const mappedPosts = trendingPosts.map((post) => ({
       id: post.id,
       title: post.title,
-      viewCount: post.viewCount || 0,
-      weeklyViews: post.weeklyViews || post.viewCount || 0,
+      viewCount: post.viewCount,
+      weeklyViews: post.viewCount,
       author: {
-        name: post.author?.name || 'Unknown',
+        name: post.author.name || 'Unknown',
       },
     }))
 

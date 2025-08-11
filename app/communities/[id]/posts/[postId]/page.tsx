@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { auth } from '@/auth'
 import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
 import CommentSection from '@/components/posts/CommentSection'
+import { prisma } from '@/lib/core/prisma'
+import { incrementViewCount } from '@/lib/core/redis'
 
 interface Post {
   id: string
@@ -49,39 +51,123 @@ interface Post {
   }[]
 }
 
-async function getPost(communityId: string, postId: string) {
+async function getPost(
+  communityId: string,
+  postId: string
+): Promise<Post | null> {
   try {
-    const { cookies } = await import('next/headers')
-    const cookieStore = await cookies()
+    const session = await auth()
+    const userId = session?.user?.id
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000')
-    const res = await fetch(
-      `${baseUrl}/api/communities/${communityId}/posts/${postId}`,
-      {
-        cache: 'no-store',
-        headers: {
-          Cookie: cookieStore.toString(),
+    // 먼저 커뮤니티와 게시글 조회
+    const post = await prisma.communityPost.findFirst({
+      where: {
+        id: postId,
+        communityId,
+        status: 'PUBLISHED',
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
         },
-      }
-    )
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        community: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            visibility: true,
+            ownerId: true,
+            members: userId
+              ? {
+                  where: { userId },
+                  select: {
+                    role: true,
+                    status: true,
+                  },
+                }
+              : undefined,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            likes: true,
+          },
+        },
+        likes: userId
+          ? {
+              where: { userId },
+              select: { id: true },
+            }
+          : undefined,
+        bookmarks: userId
+          ? {
+              where: { userId },
+              select: { id: true },
+            }
+          : undefined,
+        files: {
+          select: {
+            id: true,
+            filename: true,
+            size: true,
+            mimeType: true,
+            url: true,
+          },
+        },
+      },
+    })
 
-    if (!res.ok) {
-      if (res.status === 404) {
-        notFound()
-      }
-      throw new Error('Failed to fetch post')
+    if (!post) {
+      return null
     }
 
-    const data = await res.json()
-    // API가 중첩된 응답 구조를 반환할 수 있음
-    return (data.success && data.data ? data.data : data) as Post
+    // 비공개 커뮤니티 접근 체크
+    const isMember = post.community.members?.[0]?.status === 'ACTIVE'
+    const isOwner = userId === post.community.ownerId
+
+    if (post.community.visibility === 'PRIVATE' && !isMember && !isOwner) {
+      return null
+    }
+
+    // Redis에서 조회수 증가
+    const redisViewCount = await incrementViewCount(postId)
+    const finalViewCount = redisViewCount || post.viewCount
+
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      viewCount: finalViewCount,
+      createdAt: post.createdAt.toISOString(),
+      author: post.author,
+      category: post.category,
+      community: {
+        ...post.community,
+        members: post.community.members || [],
+      },
+      _count: post._count,
+      likeCount: post.likeCount,
+      commentCount: post.commentCount,
+      isLiked: !!post.likes?.length,
+      isBookmarked: !!post.bookmarks?.length,
+      files: post.files,
+    }
   } catch (error) {
     console.error('Failed to fetch post:', error)
-    notFound()
+    return null
   }
 }
 
@@ -94,7 +180,9 @@ export default async function CommunityPostDetailPage({
   const session = await auth()
   const post = await getPost(id, postId)
 
-  // 비공개 커뮤니티 접근 체크는 API에서 처리됨
+  if (!post) {
+    notFound()
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
