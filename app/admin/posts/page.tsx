@@ -48,6 +48,7 @@ import {
   Archive,
   Pin,
   PinOff,
+  RefreshCw,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
@@ -55,6 +56,22 @@ import Link from 'next/link'
 import { apiClient } from '@/lib/api/client'
 import { Pagination } from '@/components/shared/Pagination'
 import { PageLoadingSpinner } from '@/components/shared/LoadingSpinner'
+
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
+interface PaginatedApiResponse<T> {
+  success: boolean
+  data?: T[]
+  error?: string
+  pagination?: PaginationInfo
+}
 
 interface MainPost {
   id: string
@@ -139,17 +156,19 @@ export default function PostsPage() {
 
   // React Query - 메인 게시글 조회
   const {
-    data: mainPosts = [],
+    data: mainPostsData,
     isLoading: mainPostsLoading,
     error: mainPostsError,
   } = useQuery({
     queryKey: ['adminMainPosts'],
     queryFn: async () => {
-      const response = await apiClient('/api/admin/posts/main')
+      const response = (await apiClient<MainPost[]>(
+        '/api/admin/posts/main'
+      )) as PaginatedApiResponse<MainPost>
       if (!response.success) {
         if (response.error === 'Unauthorized') {
           router.push('/login')
-          return []
+          return { posts: [], pagination: null }
         }
         if (response.error === 'Forbidden') {
           toast({
@@ -158,15 +177,21 @@ export default function PostsPage() {
             variant: 'destructive',
           })
           router.push('/')
-          return []
+          return { posts: [], pagination: null }
         }
         throw new Error(response.error || '메인 게시글 조회 실패')
       }
-      return response.data as MainPost[]
+      // paginatedResponse 구조 처리
+      return {
+        posts: response.data || [],
+        pagination: response.pagination || null,
+      }
     },
-    staleTime: 5 * 1000, // 5초간 fresh (관리자는 실시간성 중요)
-    gcTime: 30 * 1000, // 30초간 캐시
+    staleTime: 0, // 실시간 데이터 (캐싱 안 함)
+    gcTime: 10 * 1000, // 10초간 캐시
   })
+
+  const mainPosts = mainPostsData?.posts || []
 
   // 메인 게시글 에러 처리
   if (mainPostsError) {
@@ -179,42 +204,52 @@ export default function PostsPage() {
 
   // React Query - 커뮤니티 게시글 조회
   const {
-    data: communityPosts = [],
+    data: communityPostsData,
     isLoading: communityPostsLoading,
     error: communityPostsError,
   } = useQuery({
     queryKey: ['adminCommunityPosts'],
     queryFn: async () => {
-      const response = await apiClient('/api/admin/posts/community')
+      const response = (await apiClient<CommunityPost[]>(
+        '/api/admin/posts/community'
+      )) as PaginatedApiResponse<CommunityPost>
       if (!response.success) {
         throw new Error(response.error || '커뮤니티 게시글 조회 실패')
       }
-      return response.data as CommunityPost[]
+      // paginatedResponse 구조 처리
+      return {
+        posts: response.data || [],
+        pagination: response.pagination || null,
+      }
     },
-    staleTime: 5 * 1000, // 5초간 fresh (관리자는 실시간성 중요)
-    gcTime: 30 * 1000, // 30초간 캐시
+    staleTime: 0, // 실시간 데이터 (캐싱 안 함)
+    gcTime: 10 * 1000, // 10초간 캐시
   })
+
+  const communityPosts = communityPostsData?.posts || []
 
   // React Query - 카테고리 목록 조회
   const { data: categories = [] } = useQuery({
     queryKey: ['adminCategories'],
     queryFn: async () => {
-      const response = await apiClient('/api/admin/categories')
+      const response = await apiClient<{
+        categories: Array<{
+          id: string
+          name: string
+          slug: string
+          color: string
+          isActive: boolean
+          postCount: number
+        }>
+      }>('/api/admin/categories')
       if (!response.success) {
         throw new Error(response.error || '카테고리 조회 실패')
       }
-      // API 응답이 배열 형태로 바로 오는 경우
-      return response.data as Array<{
-        id: string
-        name: string
-        slug: string
-        color: string
-        isActive: boolean
-        postCount: number
-      }>
+      // API 응답에서 categories 배열 추출
+      return response.data?.categories || []
     },
-    staleTime: 30 * 1000, // 30초간 fresh (카테고리는 자주 안 바뀜)
-    gcTime: 60 * 1000, // 1분간 캐시
+    staleTime: 5 * 1000, // 5초간 fresh
+    gcTime: 30 * 1000, // 30초간 캐시
   })
 
   // 커뮤니티 게시글 에러 처리
@@ -430,6 +465,17 @@ export default function PostsPage() {
     return matchesSearch && matchesStatus
   })
 
+  // 새로고침 함수
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['adminMainPosts'] })
+    queryClient.invalidateQueries({ queryKey: ['adminCommunityPosts'] })
+    queryClient.invalidateQueries({ queryKey: ['adminCategories'] })
+    toast({
+      title: '새로고침 중...',
+      description: '최신 데이터를 불러오고 있습니다.',
+    })
+  }
+
   // 페이지네이션 적용
   const paginatedMainPosts = filteredMainPosts.slice(
     (mainPage - 1) * pageSize,
@@ -456,10 +502,18 @@ export default function PostsPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">게시글 관리</h1>
-        <p className="text-muted-foreground">
-          메인 사이트와 커뮤니티의 모든 게시글을 관리하세요.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">게시글 관리</h1>
+            <p className="text-muted-foreground">
+              메인 사이트와 커뮤니티의 모든 게시글을 관리하세요.
+            </p>
+          </div>
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            새로고침
+          </Button>
+        </div>
       </div>
 
       {/* 검색 및 필터 */}

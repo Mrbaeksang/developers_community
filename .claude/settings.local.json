@@ -21,7 +21,9 @@
       "Bash(npx tsx:*)",
       "Bash(git add:*)",
       "Bash(node:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(node:*)",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": []
   }

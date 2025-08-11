@@ -5,7 +5,7 @@ import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { formatMainPostForResponse } from '@/lib/post/display'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
-import { getCursorCondition, formatCursorResponse } from '@/lib/post/pagination'
+import { getCursorCondition } from '@/lib/post/pagination'
 import { mainPostSelect } from '@/lib/cache/patterns'
 import { applyViewCountsToPosts } from '@/lib/post/viewcount'
 import { withRateLimiting } from '@/lib/security/compatibility'
@@ -31,10 +31,16 @@ async function getWeeklyTrending(request: NextRequest) {
       async () => {
         const cursorCondition = getCursorCondition(cursor)
 
-        // 주간 트렌딩 게시글 조회 - 표준화된 패턴 사용 (include만 사용)
+        // 주간 트렌딩 게시글 조회 - 최근 7일간의 게시글 조회
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
         const posts = await prisma.mainPost.findMany({
           where: {
             status: 'PUBLISHED',
+            createdAt: {
+              gte: sevenDaysAgo, // 최근 7일간의 게시글만
+            },
             ...(category && {
               category: { slug: category },
             }),
@@ -42,17 +48,13 @@ async function getWeeklyTrending(request: NextRequest) {
           },
           select: mainPostSelect.list,
           orderBy: {
-            createdAt: 'desc',
+            viewCount: 'desc', // 일단 조회수 기준으로 가져오기 (DB 부하 감소)
           },
-          take: limit + 1, // 다음 페이지 확인용
+          take: 100, // 충분한 수의 게시글 가져오기
         })
 
-        // 페이지네이션 처리
-        const hasMore = posts.length > limit
-        const postList = hasMore ? posts.slice(0, -1) : posts
-
-        // 1. 먼저 Redis 조회수를 적용
-        const postsWithRedisViews = await applyViewCountsToPosts(postList, {
+        // 1. 먼저 Redis 조회수를 적용 (전체 게시글에 대해)
+        const postsWithRedisViews = await applyViewCountsToPosts(posts, {
           debug: false,
           useMaxValue: true,
         })
@@ -74,13 +76,20 @@ async function getWeeklyTrending(request: NextRequest) {
           (a, b) => b.weeklyScore - a.weeklyScore
         )
 
-        // 최소 점수 기준 필터링 및 limit 적용
+        // 최소 점수 기준 필터링 (너무 낮은 점수 제외) 및 limit 적용
         const filteredPosts = sortedPosts
-          .filter((post) => post.weeklyScore > 5)
+          .filter((post) => post.weeklyScore >= 0) // 0점 이상 모두 포함 (조회수만 있어도 OK)
           .slice(0, limit)
 
-        // 커서 응답 생성 (Date 객체 필요)
-        const cursorResponse = formatCursorResponse(filteredPosts, limit)
+        // 페이지네이션 정보 생성
+        const hasMore = false // 주간 트렌딩은 페이지네이션 불필요
+        const nextCursor = null
+
+        const cursorResponse = {
+          items: filteredPosts,
+          hasMore,
+          nextCursor,
+        }
 
         // 응답 포맷팅 - 통합 포맷터 사용
         const formattedItems = cursorResponse.items.map((post) => {
@@ -95,7 +104,7 @@ async function getWeeklyTrending(request: NextRequest) {
           items: formattedItems,
         }
       },
-      REDIS_TTL.API_MEDIUM // 2분 캐싱 (계산 비용은 높지만 자주 업데이트 필요)
+      REDIS_TTL.API_MEDIUM // 30분 캐싱 (주간 트렌딩은 자주 변하지 않음)
     )
 
     return successResponse(cachedData)
