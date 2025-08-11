@@ -142,7 +142,6 @@ export default async function CommunityPostsPage({
         communitySlug={community.slug}
         currentCategory={category}
         isLoading={false}
-        currentUserId={session?.user?.id}
       />
     </div>
   )

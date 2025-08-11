@@ -348,7 +348,6 @@ export function ProfileTabs({
                     className={
                       gridLayouts.posts === '1x1' ? 'min-h-[250px]' : ''
                     }
-                    currentUserId={currentUserId}
                   />
                 </div>
               )
@@ -467,7 +466,6 @@ export function ProfileTabs({
                     className={
                       gridLayouts.posts === '1x1' ? 'min-h-[250px]' : ''
                     }
-                    currentUserId={currentUserId}
                   />
                 </div>
               )
