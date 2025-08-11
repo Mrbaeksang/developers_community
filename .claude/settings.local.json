@@ -29,7 +29,8 @@
       "Bash(mkdir:*)",
       "Bash(grep:*)",
       "Bash(npm test:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(npm run test:*)"
     ],
     "deny": []
   }

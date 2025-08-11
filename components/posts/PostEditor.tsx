@@ -54,6 +54,7 @@ interface PostEditorProps {
   postType?: 'main' | 'community'
   communityId?: string
   initialCategories?: Category[]
+  initialCategorySlug?: string
 }
 
 interface UploadedFile {
@@ -96,6 +97,7 @@ export function PostEditor({
   postType = 'main',
   communityId,
   initialCategories,
+  initialCategorySlug,
 }: PostEditorProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -160,6 +162,16 @@ export function PostEditor({
     staleTime: 10 * 60 * 1000, // 10분간 fresh
     gcTime: 30 * 60 * 1000, // 30분간 캐시
   })
+
+  // URL 파라미터로 전달된 카테고리 slug로 categoryId 설정
+  useEffect(() => {
+    if (initialCategorySlug && categories.length > 0 && !categoryId) {
+      const category = categories.find((c) => c.slug === initialCategorySlug)
+      if (category) {
+        setCategoryId(category.id)
+      }
+    }
+  }, [initialCategorySlug, categories, categoryId])
 
   // Auto-save mutation
   const autoSaveMutation = useMutation({

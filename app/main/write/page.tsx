@@ -25,13 +25,23 @@ export const metadata: Metadata = {
   description: '새로운 게시글을 작성하세요',
 }
 
-export default async function WritePage() {
+interface WritePageProps {
+  searchParams: Promise<{ category?: string }>
+}
+
+export default async function WritePage({ searchParams }: WritePageProps) {
   const session = await auth()
+  const params = await searchParams
 
   // 로그인 체크
   if (!session) {
     redirect('/auth/signin')
   }
 
-  return <PostEditor userRole={session.user?.role} />
+  return (
+    <PostEditor
+      userRole={session.user?.role}
+      initialCategorySlug={params.category}
+    />
+  )
 }

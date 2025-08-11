@@ -24,6 +24,7 @@ import {
   SortAsc,
   LayoutGrid,
   LayoutList,
+  PenSquare,
 } from 'lucide-react'
 import type { MainPostFormatted } from '@/lib/post/types'
 import { useMainPosts } from '@/lib/hooks/usePostQuery'
@@ -246,81 +247,97 @@ export function PostList({
         </div>
 
         {/* 필터 섹션 */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* 카테고리 선택 */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              카테고리
-            </div>
-            <Select
-              value={categoryFromUrl}
-              onValueChange={(value) => {
-                updateURL({ category: value })
-              }}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary"></div>
-                    모든 카테고리
-                  </div>
-                </SelectItem>
-                {categories.map((category: Category) => (
-                  <SelectItem key={category.id} value={category.slug}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* 카테고리 선택 */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                카테고리
+              </div>
+              <Select
+                value={categoryFromUrl}
+                onValueChange={(value) => {
+                  updateURL({ category: value })
+                }}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
-                      {category.name}{' '}
-                      <span className="text-xs text-muted-foreground">
-                        ({category.postCount})
-                      </span>
+                      <div className="h-2 w-2 rounded-full bg-primary"></div>
+                      모든 카테고리
                     </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {categories.map((category: Category) => (
+                    <SelectItem key={category.id} value={category.slug}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
+                        {category.name}{' '}
+                        <span className="text-xs text-muted-foreground">
+                          ({category.postCount})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 정렬 선택 */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <SortAsc className="h-4 w-4" />
+                정렬
+              </div>
+              <Select
+                value={sortFromUrl}
+                onValueChange={(value) => {
+                  updateURL({ sort: value })
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      최신순
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="popular">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-orange-500" />
+                      인기순
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="discussed">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-500" />
+                      댓글 많은 순
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* 정렬 선택 */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <SortAsc className="h-4 w-4" />
-              정렬
-            </div>
-            <Select
-              value={sortFromUrl}
-              onValueChange={(value) => {
-                updateURL({ sort: value })
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="latest">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    최신순
-                  </div>
-                </SelectItem>
-                <SelectItem value="popular">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-orange-500" />
-                    인기순
-                  </div>
-                </SelectItem>
-                <SelectItem value="discussed">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-500" />
-                    댓글 많은 순
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* 글쓰기 버튼 */}
+          <Button
+            onClick={() => {
+              const category = categoryFromUrl !== 'all' ? categoryFromUrl : ''
+              router.push(
+                `/main/write${category ? `?category=${category}` : ''}`
+              )
+            }}
+            className="flex items-center gap-2"
+          >
+            <PenSquare className="h-4 w-4" />
+            글쓰기
+          </Button>
         </div>
       </div>
 
