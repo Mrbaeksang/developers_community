@@ -82,7 +82,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 provider - NextAuth v5 베타 버그 우회
+    // 카카오 provider - 이메일 없이 닉네임과 프로필 이미지만 사용
     ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
           Kakao({
@@ -90,8 +90,19 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             clientSecret: process.env.AUTH_KAKAO_SECRET,
             authorization: {
               params: {
-                scope: undefined, // scope 파라미터 완전 제거
+                scope: 'profile_nickname profile_image', // 실제 권한 있는 항목만
               },
+            },
+            profile(profile) {
+              return {
+                id: String(profile.id),
+                name:
+                  profile.kakao_account?.profile?.nickname ||
+                  `카카오사용자_${profile.id}`,
+                email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 (권한 없으므로)
+                image:
+                  profile.kakao_account?.profile?.profile_image_url || null,
+              }
             },
           }),
         ]
