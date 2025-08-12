@@ -7,11 +7,12 @@ import type { ChatCompletion } from 'openai/resources/chat/completions'
 // AI 봇 설정 상수
 const AI_CONFIG = {
   BOT_USER_ID: process.env.AI_BOT_USER_ID || 'cmdri2tj90000u8vgtyir9upy',
-  MAX_TOKENS: parseInt(process.env.AI_MAX_TOKENS || '2000'),
-  TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '30000'), // 30초
-  API_WAIT_TIMEOUT_MS: 10000, // API 응답 대기 최대 10초
+  MAX_TOKENS: parseInt(process.env.AI_MAX_TOKENS || '8000'), // 대폭 증가: 8000 토큰 (약 6000~16000자)
+  TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '60000'), // 60초로 증가
+  API_WAIT_TIMEOUT_MS: 20000, // API 응답 대기 최대 20초로 증가
   BATCH_DELAY_MS: 2000, // 배치 처리 시 대기 시간
   MAX_BATCH_SIZE: 10, // 한 번에 처리할 최대 게시글 수
+  MAX_COMMENT_LENGTH: 50000, // 댓글 최대 길이 50000자 (충분한 여유)
 } as const
 
 // HTML 특수 문자를 이스케이프하는 헬퍼 함수
@@ -232,20 +233,26 @@ function createPrompt(post: MainPost): string {
     cleanContent.substring(0, 100)
   )
 
-  return `You are an AI assistant for a Korean developer community. Please provide a detailed and helpful answer to the following question.
+  return `You are an AI assistant for a Korean developer community. Please provide a helpful answer to the following question.
 
 IMPORTANT RULES:
 - Answer MUST be in Korean language
-- Provide at least 3-5 paragraphs with detailed explanations
-- Include code examples if relevant to the question
+- Adjust answer length based on the question complexity:
+  * Simple questions (예: "이것이 무엇인가요?") → 1-3 paragraphs
+  * Technical questions → 5-8 paragraphs with code examples
+  * Complex problems → Detailed explanation with multiple sections
 - Use markdown formatting: **bold**, \`inline code\`, code blocks with triple backticks
-- Be thorough and comprehensive in your answer
-- Provide practical examples and real-world use cases
+- Include code examples when relevant to the question
+- Be concise for simple questions, detailed for complex ones
+- Focus on being helpful and accurate rather than lengthy
+- Structure with headers (##, ###) only when the answer is long enough to need sections
+- Provide practical examples when they add value
+- Don't force lengthy answers for simple questions
 
 Question Title: ${cleanTitle}
 Question Content: ${cleanContent}
 
-Please provide a comprehensive answer in Korean with examples:`
+Please provide an appropriately sized answer in Korean based on the question's complexity:`
 }
 
 // AI 모델 호출 헬퍼 함수
@@ -350,9 +357,11 @@ export async function generateAIResponse(
     // HTML에서 태그를 제거하여 실제 텍스트 길이 확인
     const textLength = htmlContent.replace(/<[^>]*>/g, '').trim().length
 
-    // 댓글 최소/최대 길이 검증 (TipTap 에디터와 동일한 기준)
-    if (textLength < 1 || textLength > 5000) {
-      console.error(`AI 응답 길이가 유효하지 않음: ${textLength}자`)
+    // 댓글 최소/최대 길이 검증 (AI는 더 긴 답변 허용)
+    if (textLength < 1 || textLength > AI_CONFIG.MAX_COMMENT_LENGTH) {
+      console.error(
+        `AI 응답 길이가 유효하지 않음: ${textLength}자 (최대: ${AI_CONFIG.MAX_COMMENT_LENGTH}자)`
+      )
       return null
     }
 
