@@ -4,24 +4,25 @@ import { redis } from '@/lib/core/redis'
 export { redis }
 
 /**
- * Redis cache TTL configurations (in seconds)
+ * Redis 캐시 TTL 설정 (초 단위)
+ * 프로덕션 환경 최적화 - 사용자 경험 우선
  */
 export const REDIS_TTL = {
-  // View counts buffer (very short)
-  VIEW_BUFFER: 60, // 1 minute
-  // API responses - 프로덕션 환경 최적화
-  API_SHORT: 30, // 30초 (목록 등 자주 변경되는 데이터)
-  API_MEDIUM: 120, // 2분 (검색 결과 등)
-  API_LONG: 600, // 10분 (집계 데이터, 주간 인기 등)
-  // Session data
-  SESSION: 86400, // 24 hours
+  // 조회수 버퍼 (매우 짧음)
+  VIEW_BUFFER: 60, // 1분
+  // API 응답 - 프로덕션 환경 최적화
+  API_SHORT: 60, // 1분 (자주 변경되는 목록, 사용자 편의를 위해 30초→60초로 증가)
+  API_MEDIUM: 180, // 3분 (검색 결과, 카테고리 목록)
+  API_LONG: 900, // 15분 (집계 데이터, 트렌딩, 인기 게시글)
+  // 세션 데이터
+  SESSION: 86400, // 24시간
 } as const
 
 /**
- * Redis cache key prefixes
+ * Redis 캐시 키 접두사
  */
 export const REDIS_KEYS = {
-  // View counts
+  // 조회수
   postViews: (postId: string) => `post:${postId}:views`,
   postDailyViews: (postId: string, date: string) =>
     `post:${postId}:views:${date}`,
@@ -29,29 +30,31 @@ export const REDIS_KEYS = {
   communityPostDailyViews: (postId: string, date: string) =>
     `community:post:${postId}:views:${date}`,
 
-  // API caching
+  // API 캐싱
   apiCache: (endpoint: string, params: string) =>
     `api:cache:${endpoint}:${params}`,
 
-  // User sessions
+  // 사용자 세션
   userSession: (sessionId: string) => `session:${sessionId}`,
 
-  // Rate limiting
+  // 속도 제한
   rateLimit: (key: string) => `rate:${key}`,
 } as const
 
 /**
- * Generic Redis cache wrapper
+ * Redis 캐시 래퍼 클래스
  */
 export class RedisCache {
   private client: ReturnType<typeof redis>
+  private inFlightRequests: Map<string, Promise<unknown>>
 
   constructor() {
     this.client = redis()
+    this.inFlightRequests = new Map()
   }
 
   /**
-   * Get cached value with automatic JSON parsing
+   * 캐시된 값 가져오기 (자동 JSON 파싱)
    */
   async get<T>(key: string): Promise<T | null> {
     if (!this.client) return null
@@ -68,13 +71,13 @@ export class RedisCache {
   }
 
   /**
-   * Set cached value with automatic JSON stringification and TTL
+   * 캐시 값 설정 (자동 JSON 직렬화 및 TTL)
    */
   async set<T>(key: string, value: T, ttl?: number): Promise<boolean> {
     if (!this.client) return false
 
     try {
-      // Handle BigInt serialization
+      // BigInt 직렬화 처리
       const stringValue = JSON.stringify(value, (key, val) =>
         typeof val === 'bigint' ? val.toString() : val
       )
@@ -93,7 +96,7 @@ export class RedisCache {
   }
 
   /**
-   * Delete cached value
+   * 캐시된 값 삭제
    */
   async del(key: string | string[]): Promise<boolean> {
     if (!this.client) return false
@@ -112,7 +115,7 @@ export class RedisCache {
   }
 
   /**
-   * Delete keys matching a pattern
+   * 패턴과 일치하는 키 삭제
    */
   async delPattern(pattern: string): Promise<boolean> {
     if (!this.client) return false
@@ -130,7 +133,7 @@ export class RedisCache {
   }
 
   /**
-   * Check if key exists
+   * 키 존재 여부 확인
    */
   async exists(key: string): Promise<boolean> {
     if (!this.client) return false
@@ -145,7 +148,7 @@ export class RedisCache {
   }
 
   /**
-   * Set expiration on existing key
+   * 기존 키에 만료 시간 설정
    */
   async expire(key: string, ttl: number): Promise<boolean> {
     if (!this.client) return false
@@ -160,33 +163,53 @@ export class RedisCache {
   }
 
   /**
-   * Get or set cached value (cache-aside pattern)
+   * 캐시 값 가져오거나 설정 (cache-aside 패턴)
+   * 동시 요청 중복 방지 기능 포함
    */
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
     ttl?: number
   ): Promise<T> {
-    // Try to get from cache
+    // 캐시에서 먼저 조회
     const cached = await this.get<T>(key)
     if (cached !== null) {
       return cached
     }
 
-    // Generate value
-    const value = await factory()
+    // 이미 진행 중인 동일한 요청이 있는지 확인
+    const inFlight = this.inFlightRequests.get(key)
+    if (inFlight) {
+      return (await inFlight) as T
+    }
 
-    // Set in cache (fire and forget)
-    this.set(key, value, ttl).catch(() => {
-      // Log but don't throw - cache write failures shouldn't break the app
-      console.error(`Failed to cache value for key: ${key}`)
-    })
+    // 새로운 Promise 생성
+    const promise = factory()
+      .then(async (value) => {
+        // 캐시에 저장
+        await this.set(key, value, ttl).catch(() => {
+          // 로그만 남기고 에러는 던지지 않음 - 캐시 실패가 앱을 중단시키면 안됨
+          console.error(`Failed to cache value for key: ${key}`)
+        })
 
-    return value
+        // 진행 중 요청 추적 정리
+        this.inFlightRequests.delete(key)
+        return value
+      })
+      .catch((error) => {
+        // 에러 시에도 정리
+        this.inFlightRequests.delete(key)
+        throw error
+      })
+
+    // 진행 중 요청 추적
+    this.inFlightRequests.set(key, promise)
+
+    return await promise
   }
 
   /**
-   * Invalidate multiple cache keys by pattern
+   * 여러 패턴의 캐시 키 무효화
    */
   async invalidatePattern(patterns: string[]): Promise<void> {
     if (!this.client) return
@@ -201,17 +224,18 @@ export class RedisCache {
   }
 }
 
-// Export singleton instance
+// 싱글톤 인스턴스 내보내기
 export const redisCache = new RedisCache()
 
 /**
- * Helper to generate cache key from request params
+ * 요청 파라미터로 캐시 키 생성
+ * 긴 키는 해시 처리
  */
 export function generateCacheKey(
   endpoint: string,
   params: Record<string, unknown>
 ): string {
-  // Sort params for consistent keys
+  // 일관된 키를 위해 파라미터 정렬
   const sortedParams = Object.keys(params)
     .sort()
     .reduce(
@@ -225,11 +249,21 @@ export function generateCacheKey(
     )
 
   const paramString = JSON.stringify(sortedParams)
+
+  // 키가 너무 길면 해시 사용
+  if (paramString.length > 200) {
+    // Node.js crypto 모듈로 해싱
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const crypto = require('crypto')
+    const hash = crypto.createHash('sha256').update(paramString).digest('hex')
+    return REDIS_KEYS.apiCache(endpoint, hash.substring(0, 16)) // 해시의 처음 16자만 사용
+  }
+
   return REDIS_KEYS.apiCache(endpoint, paramString)
 }
 
 /**
- * Cache decorator for API routes
+ * API 라우트용 캐시 데코레이터
  */
 export function withRedisCache<
   T extends (...args: unknown[]) => Promise<unknown>,
@@ -244,19 +278,19 @@ export function withRedisCache<
   return (async (...args: Parameters<T>) => {
     const key = options.keyGenerator(...args)
 
-    // Try to get from cache
+    // 캐시에서 조회
     const cached = await redisCache.get(key)
     if (cached !== null) {
       return cached
     }
 
-    // Execute function
+    // 함수 실행
     const result = await fn(...args)
 
-    // Cache result
+    // 결과 캐싱
     await redisCache.set(key, result, options.ttl)
 
-    // Invalidate patterns if provided
+    // 제공된 패턴 무효화
     if (options.invalidatePatterns) {
       await redisCache.invalidatePattern(options.invalidatePatterns)
     }

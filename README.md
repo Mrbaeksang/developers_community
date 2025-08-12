@@ -5,7 +5,7 @@
   
   # 🚀 개발자 커뮤니티 플랫폼
   
-  ### **차세대 개발자 커뮤니티 - 승인제 메인 사이트와 자유로운 커뮤니티의 완벽한 조화**
+  ### **개발자를 위한 커뮤니티 플랫폼 - 학습과 성장을 위한 포트폴리오 프로젝트**
   
   <p align="center">
     <strong>강화된 보안</strong> • <strong>성능 최적화</strong> • <strong>커뮤니티 기능</strong>
@@ -28,7 +28,7 @@
     <img src="https://img.shields.io/badge/라이선스-MIT-blue?style=flat-square" />
   </p>
 
-  [🔥 라이브 데모](https://devcom.kr) • [📚 문서](docs/README.md)
+  [🔥 라이브 사이트](https://devcom.kr) • [💻 GitHub](https://github.com/mrbaeksang/developer-community)
 
 </div>
 
@@ -37,6 +37,7 @@
 ## 📋 목차
 
 - [✨ 주요 기능](#-주요-기능)
+- [🎯 개발 특징](#-개발-특징)
 - [🏗️ 시스템 아키텍처](#️-시스템-아키텍처)
 - [🛠️ 기술 스택](#️-기술-스택)
 - [🔐 보안 기능](#-보안-기능)
@@ -46,9 +47,6 @@
 - [🔄 실시간 기능](#-실시간-기능)
 - [🧪 테스트](#-테스트)
 - [📈 모니터링 및 분석](#-모니터링-및-분석)
-- [🗺️ 로드맵](#️-로드맵)
-- [🤝 기여하기](#-기여하기)
-- [📄 라이선스](#-라이선스)
 
 ---
 
@@ -63,6 +61,7 @@
 - **39개 Prisma 모델**: 복잡한 관계와 최적화된 쿼리
 - **다단계 카테고리**: 계층 구조의 메인/커뮤니티 카테고리
 - **태그 시스템**: `postCount` 추적을 통한 스마트 태깅
+- **AI 자동 답변 시스템**: Q&A 게시글에 대한 인공지능 기반 실시간 답변 생성
 - **리치 텍스트 에디터**: 실시간 미리보기가 있는 마크다운 지원
 
 ### 👥 커뮤니티 기능
@@ -182,22 +181,118 @@ const posts = await prisma.mainPost.findMany()
 | Redis | Latest | 캐싱 & Rate Limiting |
 | Vercel KV | Latest | 서버리스 Redis |
 | Vercel Blob | Latest | 파일 스토리지 |
+| TanStack Query | 5.83.0 | 서버 상태 관리 & 폴링 |
+| IORedis | 5.7.0 | Redis 클라이언트 |
 
 ### **인증 & 보안**
 | 기술 | 버전 | 용도 |
 |------------|---------|----------|
 | NextAuth | v5.0.0-beta.29 | 인증 시스템 |
 | Zod | 4.0.10 | 스키마 검증 |
-| nanoid | 5.0.x | 고유 ID 생성 |
-| bcryptjs | 2.4.3 | 비밀번호 해싱 |
+| rate-limiter-flexible | 7.2.0 | Rate Limiting |
+| DOMPurify | 2.26.0 | XSS 보호 |
+| UUID | 11.1.0 | 고유 ID 생성 |
 
 ### **개발자 경험**
 | 기술 | 버전 | 용도 |
 |------------|---------|----------|
-| Vitest | 2.1.x | 테스트 프레임워크 |
-| ESLint | 9.18.x | 코드 린팅 |
-| Prettier | 3.4.2 | 코드 포매팅 |
-| Turbo | 2.3.x | 빌드 최적화 |
+| Vitest | 3.2.4 | 모던 테스트 프레임워크 |
+| Playwright | 1.54.1 | E2E 테스트 |
+| ESLint | 9.32.0 | 코드 린팅 |
+| Prettier | 3.6.2 | 코드 포매팅 |
+| Husky | 9.1.7 | Git hooks |
+| lint-staged | 16.1.2 | 품질 관리 |
+
+---
+
+## 🎯 개발 특징
+
+### 📊 **상태 관리 & 데이터 페칭**
+```typescript
+// TanStack Query를 활용한 실시간 폴링
+const { data: messages } = useQuery({
+  queryKey: ['chat-messages', channelId],
+  queryFn: () => fetchMessages(channelId),
+  refetchInterval: 2000, // 2초마다 폴링
+  enabled: !!channelId
+})
+
+// Zustand로 클라이언트 상태 관리
+const useUIStore = create((set) => ({
+  sidebarOpen: false,
+  toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen }))
+}))
+```
+
+### 🧪 **포괄적인 테스트 전략**
+```typescript
+// Vitest + Testing Library 단위 테스트
+describe('PostCard Component', () => {
+  it('should render post content correctly', () => {
+    render(<PostCard post={mockPost} />)
+    expect(screen.getByText(mockPost.title)).toBeInTheDocument()
+  })
+})
+
+// Playwright E2E 테스트
+test('should create new community post', async ({ page }) => {
+  await page.goto('/communities/test-community/create')
+  await page.fill('[data-testid=title-input]', 'Test Post')
+  await page.click('[data-testid=submit-button]')
+  await expect(page).toHaveURL(/\/posts\//)
+})
+```
+
+### ✏️ **고급 텍스트 에디터**
+```typescript
+// TipTap 리치 텍스트 에디터
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Image,
+    Placeholder.configure({ placeholder: '내용을 입력하세요...' })
+  ],
+  content: initialContent,
+  onUpdate: ({ editor }) => {
+    setValue(editor.getHTML())
+  }
+})
+```
+
+### 🔄 **실시간 기능 구현**
+```typescript
+// 폴링 기반 실시간 채팅
+const useChatPolling = (channelId: string) => {
+  return useQuery({
+    queryKey: ['chat-polling', channelId],
+    queryFn: async () => {
+      const response = await fetch(`/api/chat/${channelId}/messages`)
+      return response.json()
+    },
+    refetchInterval: (data) => {
+      // 활성 사용자가 많을 때 더 자주 폴링
+      return data?.activeUsers > 5 ? 1000 : 3000
+    }
+  })
+}
+```
+
+### 🛡️ **보안 & 검증**
+```typescript
+// Zod 스키마 검증
+const PostSchema = z.object({
+  title: z.string().min(1).max(100),
+  content: z.string().min(10),
+  categoryId: z.string().cuid(),
+  tags: z.array(z.string()).max(5)
+})
+
+// DOMPurify XSS 보호
+const sanitizedContent = DOMPurify.sanitize(userInput, {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'],
+  ALLOWED_ATTR: []
+})
+```
 
 ---
 
@@ -276,7 +371,7 @@ pnpm 9.x (recommended) or npm
 
 1. **레포지토리 클론**
 ```bash
-git clone https://github.com/yourusername/developer-community.git
+git clone https://github.com/mrbaeksang/developer-community.git
 cd developer-community
 ```
 
@@ -448,74 +543,24 @@ npm run test:coverage
 
 ---
 
-## 🗺️ 로드맵
-
-### 1단계: 기반 구축 ✅
-- [x] 핵심 플랫폼 아키텍처
-- [x] 인증 시스템
-- [x] 기본 커뮤니티 기능
-- [x] 보안 구현
-
-### 2단계: 기능 강화 (현재)
-- [ ] AI 기반 콘텐츠 모더레이션
-- [ ] Elasticsearch를 활용한 고급 검색
-- [ ] 모바일 앱 개발
-- [ ] GraphQL API 레이어
-
-### 3단계: 확장
-- [ ] 마이크로서비스 아키텍처
-- [ ] 글로벌 CDN 배포
-- [ ] 실시간 WebSocket 마이그레이션
-- [ ] 머신러닝 기능
-
-### 4단계: 엔터프라이즈
-- [ ] 화이트라벨 솔루션
-- [ ] 엔터프라이즈 SSO
-- [ ] 고급 분석 대시보드
-- [ ] API 마켓플레이스
-
----
-
-## 🤝 기여하기
-
-기여를 환영합니다! 자세한 내용은 [기여 가이드](CONTRIBUTING.md)를 참조하세요.
-
-### 개발 워크플로우
-1. 레포지토리 포크
-2. 기능 브랜치 생성 (`git checkout -b feature/AmazingFeature`)
-3. 변경사항 커밋 (`git commit -m 'Add some AmazingFeature'`)
-4. 브랜치에 푸시 (`git push origin feature/AmazingFeature`)
-5. Pull Request 생성
-
-### 코드 표준
-- ESLint 설정 준수
-- 새 기능에 대한 테스트 작성
-- 문서 업데이트
-- 모든 체크 통과 확인
-
----
-
-## 📄 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다 - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
-
----
-
 ## 👥 팀 & 감사의 말
 
-### 핵심 개발자
-- **백상현 (Mrbaeksang)** - 풀스택 개발 & 아키텍처
+### 개발자
+**백상현 (Mrbaeksang)** - 풀스택 개발자
 
-### 특별히 감사드립니다
-- 놀라운 프레임워크를 제공한 Next.js 팀
-- 호스팅과 인프라를 제공한 Vercel
-- 영감을 준 오픈소스 커뮤니티
+### 이 프로젝트를 통해 학습한 것들
+- Next.js 15와 React 19의 최신 기능들
+- Prisma를 활용한 복잡한 데이터베이스 설계
+- NextAuth v5를 이용한 OAuth 인증 시스템
+- Vercel 환경에 최적화된 서버리스 아키텍처
+- 실시간 기능 구현과 성능 최적화
 
 ---
 
 ## 📞 연락처 & 지원
 
 - **웹사이트**: [devcom.kr](https://devcom.kr)
+- **GitHub**: [github.com/mrbaeksang](https://github.com/mrbaeksang)
 - **이메일**: qortkdgus95@gmail.com
 
 ---
