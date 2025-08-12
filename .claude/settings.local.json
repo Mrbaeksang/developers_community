@@ -49,7 +49,9 @@
       "mcp__desktop-commander__search_code",
       "WebFetch(domain:github.com)",
       "Bash(cat:*)",
-      "mcp__github__get_file_contents"
+      "mcp__github__get_file_contents",
+      "mcp__github__search_code",
+      "mcp__github__search_issues"
     ],
     "deny": []
   }

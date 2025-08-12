@@ -84,13 +84,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     }),
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID!,
-      clientSecret: process.env.AUTH_KAKAO_SECRET,
-      checks: ['pkce', 'state'],
-      authorization: {
-        params: {
-          scope: '',
-        },
-      },
+      clientSecret: process.env.AUTH_KAKAO_SECRET!,
+      checks: ['state'], // PKCE 제거 - NextAuth v5 베타의 카카오 PKCE 이슈
     }),
   ],
 })
