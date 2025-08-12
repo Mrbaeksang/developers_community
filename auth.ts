@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth'
+import type { Provider } from 'next-auth/providers'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
 import Kakao from 'next-auth/providers/kakao'
@@ -74,36 +75,41 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return true
     },
   },
-  providers: [
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID || '',
-      clientSecret: process.env.AUTH_GITHUB_SECRET || '',
-    }),
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID || '',
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
-      authorization: {
-        params: {
-          prompt: 'consent',
-          access_type: 'offline',
-          response_type: 'code',
+  providers: (() => {
+    const providers: Provider[] = [
+      GitHub({
+        clientId: process.env.AUTH_GITHUB_ID || '',
+        clientSecret: process.env.AUTH_GITHUB_SECRET || '',
+      }),
+      Google({
+        clientId: process.env.AUTH_GOOGLE_ID || '',
+        clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
+        authorization: {
+          params: {
+            prompt: 'consent',
+            access_type: 'offline',
+            response_type: 'code',
+          },
         },
-      },
-    }),
-    // 카카오 provider - 공식 provider 사용
-    ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
-      ? [
-          Kakao({
-            clientId: process.env.AUTH_KAKAO_ID,
-            clientSecret: process.env.AUTH_KAKAO_SECRET,
-            // 카카오는 profile_nickname, profile_image 스코프만 지원
-            authorization: {
-              params: {
-                scope: 'profile_nickname profile_image',
-              },
+      }),
+    ]
+
+    // 카카오 provider 추가 - 환경변수가 있을 때만
+    if (process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET) {
+      providers.push(
+        Kakao({
+          clientId: process.env.AUTH_KAKAO_ID,
+          clientSecret: process.env.AUTH_KAKAO_SECRET,
+          // 카카오는 profile_nickname, profile_image 스코프만 지원
+          authorization: {
+            params: {
+              scope: 'profile_nickname profile_image',
             },
-          }),
-        ]
-      : []),
-  ],
+          },
+        })
+      )
+    }
+
+    return providers
+  })(),
 })

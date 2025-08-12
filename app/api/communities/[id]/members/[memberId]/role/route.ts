@@ -23,8 +23,22 @@ export async function PATCH(
   try {
     const { id, memberId } = await context.params
 
+    // 커뮤니티 확인 (ID 또는 slug로 찾기)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!community) {
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
+    }
+
     // 요청자의 권한 확인 (ADMIN 이상 - OWNER, ADMIN)
-    const session = await requireCommunityRoleAPI(id, [
+    const session = await requireCommunityRoleAPI(community.id, [
       CommunityRole.OWNER,
       CommunityRole.ADMIN,
     ])
@@ -64,7 +78,7 @@ export async function PATCH(
       },
     })
 
-    if (!targetMember || targetMember.communityId !== id) {
+    if (!targetMember || targetMember.communityId !== community.id) {
       throwNotFoundError('멤버를 찾을 수 없습니다')
     }
 

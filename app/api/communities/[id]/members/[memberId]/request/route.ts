@@ -23,8 +23,23 @@ export async function PATCH(
   try {
     const { id, memberId } = await context.params
 
+    // 커뮤니티 확인 (ID 또는 slug로 찾기)
+    const community = await prisma.community.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    })
+
+    if (!community) {
+      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
+    }
+
     // 요청자의 권한 확인 (MODERATOR 이상 - OWNER, ADMIN, MODERATOR)
-    const session = await requireCommunityRoleAPI(id, [
+    const session = await requireCommunityRoleAPI(community.id, [
       CommunityRole.OWNER,
       CommunityRole.ADMIN,
       CommunityRole.MODERATOR,
@@ -51,19 +66,6 @@ export async function PATCH(
 
     const { action } = validation.data
 
-    // 커뮤니티 확인
-    const community = await prisma.community.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-      },
-    })
-
-    if (!community) {
-      throwNotFoundError('커뮤니티를 찾을 수 없습니다')
-    }
-
     // 대상 멤버 확인 (PENDING 상태여야 함)
     const targetMember = await prisma.communityMember.findUnique({
       where: { id: memberId },
@@ -78,7 +80,7 @@ export async function PATCH(
       },
     })
 
-    if (!targetMember || targetMember.communityId !== id) {
+    if (!targetMember || targetMember.communityId !== community.id) {
       throwNotFoundError('가입 신청을 찾을 수 없습니다')
     }
 
@@ -109,7 +111,7 @@ export async function PATCH(
         }),
         // 멤버 카운트 증가
         prisma.community.update({
-          where: { id },
+          where: { id: community.id },
           data: { memberCount: { increment: 1 } },
         }),
       ])
