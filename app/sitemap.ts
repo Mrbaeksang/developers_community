@@ -88,8 +88,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     )
 
-    const mainCategories: MainCategory[] = mainCategoriesResponse.ok
-      ? (await mainCategoriesResponse.json()).data || []
+    const mainCategoriesData = mainCategoriesResponse.ok
+      ? await mainCategoriesResponse.json()
+      : { data: [] }
+
+    const mainCategories: MainCategory[] = Array.isArray(
+      mainCategoriesData.data
+    )
+      ? mainCategoriesData.data
       : []
 
     // 공개 커뮤니티들 가져오기
