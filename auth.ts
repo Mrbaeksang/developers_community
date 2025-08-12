@@ -88,13 +88,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           Kakao({
             clientId: process.env.AUTH_KAKAO_ID,
             clientSecret: process.env.AUTH_KAKAO_SECRET,
-            // NextAuth v5 카카오 설정 명시적 지정
-            authorization: {
-              url: 'https://kauth.kakao.com/oauth/authorize',
-              params: {
-                scope: '', // 빈 문자열로 명시적 설정 (기본 scope 요청 방지)
-              },
-            },
+            // NextAuth v5 카카오 설정 - scope 파라미터 완전 제거
+            authorization: 'https://kauth.kakao.com/oauth/authorize',
             token: 'https://kauth.kakao.com/oauth/token',
             userinfo: 'https://kapi.kakao.com/v2/user/me',
             client: {
