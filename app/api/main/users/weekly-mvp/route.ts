@@ -7,7 +7,7 @@ interface WeeklyMVPUser {
   id: string
   name: string | null
   username: string | null
-  email: string
+  email: string | null
   image: string | null
   bio: string | null
   globalRole: string

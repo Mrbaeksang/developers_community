@@ -10,7 +10,7 @@ interface DashboardHeaderProps {
   user: {
     id: string
     name: string | null
-    email: string
+    email: string | null
     image: string | null
     bio: string | null
     createdAt: Date
@@ -43,7 +43,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             alt={user.name || 'User'}
           />
           <AvatarFallback className="bg-primary/20 text-2xl font-black">
-            {user.name?.[0] || user.email[0].toUpperCase()}
+            {user.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
 
@@ -57,10 +57,12 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           {user.bio && <p className="text-muted-foreground">{user.bio}</p>}
 
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Mail className="h-4 w-4" />
-              <span>{user.email}</span>
-            </div>
+            {user.email && (
+              <div className="flex items-center gap-1">
+                <Mail className="h-4 w-4" />
+                <span>{user.email}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
               <span>{formatDate(user.createdAt)} 가입</span>

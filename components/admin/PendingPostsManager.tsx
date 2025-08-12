@@ -35,7 +35,7 @@ import { apiClient } from '@/lib/api/client'
 interface PostAuthor {
   id: string
   name: string
-  email: string
+  email: string | null
   image?: string
 }
 

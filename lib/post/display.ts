@@ -568,7 +568,7 @@ export interface UnifiedPostDetail {
   author: {
     id: string
     name: string | null
-    email?: string
+    email?: string | null
     username?: string | null
     image: string | null
   }

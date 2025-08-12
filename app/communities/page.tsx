@@ -29,7 +29,7 @@ interface Community {
   owner: {
     id: string
     name: string | null
-    email: string
+    email: string | null
     image: string | null
   }
   _count: {

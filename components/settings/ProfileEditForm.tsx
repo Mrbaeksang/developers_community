@@ -33,7 +33,7 @@ interface ProfileEditFormProps {
     id: string
     name: string | null
     username: string | null
-    email: string
+    email: string | null
     image: string | null
     bio: string | null
   }
@@ -193,7 +193,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             <Avatar className="h-32 w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <AvatarImage src={formData.image} alt={formData.name} />
               <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-3xl font-black">
-                {formData.name?.[0] || user.email[0].toUpperCase()}
+                {formData.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <Button
@@ -280,12 +280,14 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             </Label>
             <Input
               id="email"
-              value={user.email}
+              value={user.email || ''}
               disabled
               className={`${inputClasses} bg-gray-50`}
             />
             <p className="text-xs text-muted-foreground">
-              OAuth 계정은 이메일을 변경할 수 없습니다
+              {user.email
+                ? 'OAuth 계정은 이메일을 변경할 수 없습니다'
+                : '이메일 정보가 없습니다'}
             </p>
           </div>
 

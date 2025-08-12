@@ -13,7 +13,7 @@ interface ProfileHeaderProps {
     id: string
     name: string | null
     username: string | null
-    email: string
+    email: string | null
     image: string | null
     bio: string | null
     createdAt: string
@@ -81,7 +81,7 @@ export function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
                 alt={profile.name || 'User'}
               />
               <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-3xl font-black">
-                {profile.name?.[0] || profile.email[0].toUpperCase()}
+                {profile.name?.[0] || profile.email?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
           </div>
