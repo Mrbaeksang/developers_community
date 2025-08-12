@@ -107,7 +107,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             client: {
               token_endpoint_auth_method: 'client_secret_post',
             },
-            checks: ['state'], // PKCE 비활성화
+            checks: ['state' as const], // PKCE 비활성화
             profile(profile: any) {
               return {
                 id: String(profile.id),
