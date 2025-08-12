@@ -118,7 +118,7 @@ enum ChannelType {
 // 사용자 모델
 model User {
   id            String     @id @default(cuid())
-  email         String     @unique
+  email         String?    @unique // nullable로 변경 (카카오 OAuth는 이메일 제공 안 함)
   name          String?
   username      String?    @unique // 사용자명 (선택사항)
   image         String?    // DiceBear 아바타 URL 자동 생성

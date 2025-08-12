@@ -65,12 +65,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       }
       return session
     },
-    async signIn({ user, account }) {
-      // 카카오 로그인 시 이메일이 없는 경우 처리
-      if (account?.provider === 'kakao' && !user.email) {
-        // 가상 이메일 생성
-        user.email = `kakao_${user.id}@devcom.local`
-      }
+    async signIn() {
       return true
     },
   },
@@ -93,12 +88,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',
       clientSecret: process.env.AUTH_KAKAO_SECRET || '',
-      // 카카오는 profile_nickname, profile_image 스코프만 지원
-      authorization: {
-        params: {
-          scope: 'profile_nickname profile_image',
-        },
-      },
     }),
   ],
 })
