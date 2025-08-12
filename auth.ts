@@ -82,13 +82,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 provider
+    // 카카오 provider - NextAuth v5 베타 버그 우회
     ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
           Kakao({
             clientId: process.env.AUTH_KAKAO_ID,
             clientSecret: process.env.AUTH_KAKAO_SECRET,
-            allowDangerousEmailAccountLinking: true, // 이메일 연동 허용
+            authorization: {
+              params: {
+                scope: undefined, // scope 파라미터 완전 제거
+              },
+            },
           }),
         ]
       : []),
