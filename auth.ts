@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
-import Kakao from 'next-auth/providers/kakao'
+import Kakao from '@auth/core/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
@@ -85,7 +85,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID!,
       clientSecret: process.env.AUTH_KAKAO_SECRET!,
-      checks: ['state'], // PKCE 제거 - NextAuth v5 베타의 카카오 PKCE 이슈
     }),
   ],
 })
