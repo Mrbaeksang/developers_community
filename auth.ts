@@ -82,50 +82,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 provider - 완전히 재정의
+    // 카카오 provider
     ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
-          {
-            id: 'kakao',
-            name: 'Kakao',
-            type: 'oauth' as const,
+          Kakao({
             clientId: process.env.AUTH_KAKAO_ID,
             clientSecret: process.env.AUTH_KAKAO_SECRET,
-            // OAuth URLs - scope 파라미터 없음
-            authorization: {
-              url: 'https://kauth.kakao.com/oauth/authorize',
-              params: {
-                // scope 파라미터 완전 제거 - 빈 객체도 보내지 않음
-              },
-            },
-            token: {
-              url: 'https://kauth.kakao.com/oauth/token',
-            },
-            userinfo: {
-              url: 'https://kapi.kakao.com/v2/user/me',
-            },
-            client: {
-              token_endpoint_auth_method: 'client_secret_post',
-            },
-            checks: ['state' as const], // PKCE 비활성화
-            profile(profile: any) {
-              return {
-                id: String(profile.id),
-                name:
-                  profile.kakao_account?.profile?.nickname ||
-                  profile.properties?.nickname ||
-                  `카카오사용자_${profile.id}`,
-                email:
-                  profile.kakao_account?.email ||
-                  `kakao_${profile.id}@devcom.local`, // 가상 이메일 사용
-                image:
-                  profile.kakao_account?.profile?.profile_image_url ||
-                  profile.properties?.profile_image ||
-                  null,
-                role: 'USER' as const, // 기본 역할
-              }
-            },
-          },
+            allowDangerousEmailAccountLinking: true, // 이메일 연동 허용
+          }),
         ]
       : []),
   ],
