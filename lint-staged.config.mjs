@@ -10,7 +10,8 @@ const lintStagedConfig = {
       return [
         `prettier --check ${filesStr}`, // 먼저 포맷 체크
         `prettier --write ${filesStr}`, // 포맷 수정
-        `eslint --fix ${filesStr}`, // ESLint 수정
+        `eslint --fix ${filesStr}`, // ESLint 자동 수정
+        `eslint ${filesStr}`, // ESLint 오류 확인 (자동 수정 불가능한 오류 체크)
         `prettier --check ${filesStr}`, // 최종 포맷 확인
         'npm run type-check', // TypeScript 타입 체크 추가
       ]
