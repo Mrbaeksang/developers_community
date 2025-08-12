@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { generateCSRFToken } from '@/lib/auth/csrf'
 
+// Edge Runtime 설정 - Active CPU 사용량 감소
+export const runtime = 'edge'
+
 // GET /api/csrf-token - CSRF 토큰 발급
 export async function GET() {
   const token = await generateCSRFToken()

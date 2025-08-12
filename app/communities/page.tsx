@@ -14,6 +14,10 @@ import { Badge } from '@/components/ui/badge'
 import CommunitySearchForm from '@/components/communities/community-search-form'
 import { CommunityCard } from '@/components/communities/CommunityCard'
 
+// ISR (Incremental Static Regeneration) 설정
+// 120초(2분)마다 페이지를 재생성하여 Active CPU 사용량 감소
+export const revalidate = 120
+
 interface Community {
   id: string
   name: string

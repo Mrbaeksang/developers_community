@@ -171,7 +171,9 @@ async function getSidebarData() {
   }
 }
 
-export const revalidate = 300 // 5분마다 재검증
+// ISR (Incremental Static Regeneration) 설정
+// 60초마다 페이지를 재생성하여 Active CPU 사용량 대폭 감소
+export const revalidate = 60
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

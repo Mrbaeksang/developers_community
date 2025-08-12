@@ -4,7 +4,7 @@ import { successResponse } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
 import { formatMainPostForResponse } from '@/lib/post/display'
-import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
+import { redisCache, generateCacheKey } from '@/lib/cache/redis'
 import { getCursorCondition } from '@/lib/post/pagination'
 import { mainPostSelect } from '@/lib/cache/patterns'
 import { applyViewCountsToPosts } from '@/lib/post/viewcount'
@@ -25,7 +25,7 @@ async function getWeeklyTrending(request: NextRequest) {
       category: category || 'all',
     })
 
-    // Redis 캐싱 적용 - 주간 트렌딩은 30분 캐싱
+    // Redis 캐싱 적용 - 주간 트렌딩은 1시간 캐싱 (Active CPU 절감)
     const cachedData = await redisCache.getOrSet(
       cacheKey,
       async () => {
@@ -104,7 +104,7 @@ async function getWeeklyTrending(request: NextRequest) {
           items: formattedItems,
         }
       },
-      REDIS_TTL.API_MEDIUM // 30분 캐싱 (주간 트렌딩은 자주 변하지 않음)
+      3600 // 1시간 캐싱 (주간 트렌딩은 자주 변하지 않으므로 Active CPU 절감)
     )
 
     return successResponse(cachedData)
