@@ -44,7 +44,9 @@
       "mcp__vercel__list_projects",
       "Bash(npx vercel env rm:*)",
       "mcp__github__search_repositories",
-      "Bash(npx vercel env pull:*)"
+      "Bash(npx vercel env pull:*)",
+      "mcp__filesystem__read_file",
+      "mcp__desktop-commander__search_code"
     ],
     "deny": []
   }
