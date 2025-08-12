@@ -5,9 +5,22 @@ import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
+// 환경 변수 검증
+const kakaoClientId = process.env.AUTH_KAKAO_ID
+const kakaoClientSecret = process.env.AUTH_KAKAO_SECRET
+
+if (!kakaoClientId || !kakaoClientSecret) {
+  console.error('❌ KAKAO OAuth credentials missing:', {
+    hasClientId: !!kakaoClientId,
+    hasClientSecret: !!kakaoClientSecret,
+    clientIdLength: kakaoClientId?.length || 0,
+    clientSecretLength: kakaoClientSecret?.length || 0,
+  })
+}
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // 프로덕션에서도 디버그 활성화 (임시)
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30일 기본 세션 만료
@@ -82,21 +95,45 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    Kakao({
-      clientId: process.env.AUTH_KAKAO_ID || '',
-      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
-      checks: ['state'], // PKCE 비활성화
-      profile(profile) {
-        return {
-          id: String(profile.id),
-          name:
-            profile.kakao_account?.profile?.nickname ||
-            `카카오사용자_${profile.id}`,
-          email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 생성
-          image: profile.kakao_account?.profile?.profile_image_url || null,
-          role: 'USER' as const, // 기본 역할
-        }
-      },
-    }),
+    // 카카오 provider는 credentials가 있을 때만 추가
+    ...(kakaoClientId && kakaoClientSecret
+      ? [
+          Kakao({
+            clientId: kakaoClientId,
+            clientSecret: kakaoClientSecret,
+            authorization: {
+              url: 'https://kauth.kakao.com/oauth/authorize',
+              params: {
+                scope: '',
+              },
+            },
+            checks: ['state'], // PKCE 비활성화
+            profile(profile) {
+              console.error('📱 Kakao profile received:', {
+                id: profile.id,
+                hasKakaoAccount: !!profile.kakao_account,
+                hasProfile: !!profile.kakao_account?.profile,
+                hasEmail: !!profile.kakao_account?.email,
+              })
+
+              return {
+                id: String(profile.id),
+                name:
+                  profile.kakao_account?.profile?.nickname ||
+                  profile.properties?.nickname ||
+                  `카카오사용자_${profile.id}`,
+                email:
+                  profile.kakao_account?.email ||
+                  `kakao_${profile.id}@devcom.local`, // 가상 이메일 사용
+                image:
+                  profile.kakao_account?.profile?.profile_image_url ||
+                  profile.properties?.profile_image ||
+                  null,
+                role: 'USER' as const, // 기본 역할
+              }
+            },
+          }),
+        ]
+      : []),
   ],
 })
