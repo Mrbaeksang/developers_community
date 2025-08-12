@@ -407,6 +407,7 @@ export function PostEditor({
       sonnerToast.error(
         error instanceof Error ? error.message : '게시글 수정에 실패했습니다'
       )
+      setHasUnsavedChanges(true) // 에러 발생 시 unsaved changes 플래그 복원
     },
     onSettled: () => {
       if (submitState !== 'redirecting') {
@@ -581,6 +582,7 @@ export function PostEditor({
       sonnerToast.error(
         error instanceof Error ? error.message : '게시글 작성에 실패했습니다'
       )
+      setHasUnsavedChanges(true) // 에러 발생 시 unsaved changes 플래그 복원
     },
     onSettled: () => {
       if (submitState !== 'redirecting') {
@@ -610,6 +612,7 @@ export function PostEditor({
 
       setSubmitState('submitting')
       setIsSubmitting(true)
+      setHasUnsavedChanges(false) // 제출 시작 시 unsaved changes 플래그 해제
 
       if (mode === 'edit') {
         // 수정 모드에서는 status 파라미터가 없음
