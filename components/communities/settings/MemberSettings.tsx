@@ -198,12 +198,16 @@ export function MemberSettings({
     gcTime: 3 * 60 * 1000, // 3분간 캐시
   })
 
-  const members = membersData?.members || []
-  const pendingMembers = pendingData?.members || []
+  const members = membersData?.data || membersData?.members || []
+  const pendingMembers = pendingData?.data || pendingData?.members || []
   const totalPages =
     activeTab === 'members'
-      ? membersData?.totalPages || 1
-      : pendingData?.totalPages || 1
+      ? Math.ceil((membersData?.pagination?.total || 0) / 20) ||
+        membersData?.totalPages ||
+        1
+      : Math.ceil((pendingData?.pagination?.total || 0) / 20) ||
+        pendingData?.totalPages ||
+        1
   const isLoading = activeTab === 'members' ? membersLoading : pendingLoading
 
   const error = activeTab === 'members' ? membersError : pendingError
@@ -333,10 +337,12 @@ export function MemberSettings({
       queryClient.setQueryData(activeQueryKey, (old: unknown) => {
         if (!old) return old
         const membersData = old as MembersResponse
-        if (!membersData?.members) return old
+        const membersList = membersData?.data || membersData?.members
+        if (!membersList || !Array.isArray(membersList)) return old
         return {
           ...membersData,
-          members: membersData.members.filter(
+          data: membersList.filter((member: Member) => member.id !== memberId),
+          members: membersList.filter(
             (member: Member) => member.id !== memberId
           ),
         }

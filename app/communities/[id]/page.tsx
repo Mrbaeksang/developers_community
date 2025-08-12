@@ -100,7 +100,11 @@ async function getCommunity(idOrSlug: string) {
         },
         _count: {
           select: {
-            members: true,
+            members: {
+              where: {
+                status: 'ACTIVE',
+              },
+            },
             posts: true,
           },
         },

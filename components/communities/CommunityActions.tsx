@@ -30,16 +30,6 @@ interface CommunityData {
   [key: string]: unknown
 }
 
-// API 응답 타입
-interface ApiResponse {
-  success: boolean
-  error?: string
-  data?: {
-    message?: string
-    [key: string]: unknown
-  }
-}
-
 export function CommunityActions({
   community,
   isOwner,
@@ -109,17 +99,11 @@ export function CommunityActions({
         }
       )
 
-      // 즉시 성공 피드백 표시
-      toast.success('가입되었습니다')
-
       return { previousCommunityById, previousCommunityBySlug }
     },
-    onSuccess: (data: unknown) => {
-      // 추가 메시지가 있다면 표시
-      const responseData = data as ApiResponse['data']
-      if (responseData?.message && responseData.message !== '가입되었습니다') {
-        toast.success(responseData.message)
-      }
+    onSuccess: () => {
+      // 성공 메시지 표시
+      toast.success('커뮤니티에 가입되었습니다')
 
       // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
       queryClient.invalidateQueries({ queryKey: ['communities'] })
@@ -201,17 +185,11 @@ export function CommunityActions({
         }
       )
 
-      // 즉시 성공 피드백 표시
-      toast.success('탈퇴되었습니다')
-
       return { previousCommunityById, previousCommunityBySlug }
     },
-    onSuccess: (data: unknown) => {
-      // 추가 메시지가 있다면 표시
-      const responseData = data as ApiResponse['data']
-      if (responseData?.message && responseData.message !== '탈퇴되었습니다') {
-        toast.success(responseData.message)
-      }
+    onSuccess: () => {
+      // 성공 메시지 표시
+      toast.success('커뮤니티에서 탈퇴했습니다')
 
       // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
       queryClient.invalidateQueries({ queryKey: ['communities'] })

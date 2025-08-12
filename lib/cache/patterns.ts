@@ -253,7 +253,11 @@ export const communitySelect = {
     },
     _count: {
       select: {
-        members: true,
+        members: {
+          where: {
+            status: 'ACTIVE' as const,
+          },
+        },
         posts: true,
       },
     },
@@ -284,7 +288,11 @@ export const communitySelect = {
     },
     _count: {
       select: {
-        members: true,
+        members: {
+          where: {
+            status: 'ACTIVE' as const,
+          },
+        },
         posts: true,
         categories: true,
         announcements: true,

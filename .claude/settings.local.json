@@ -52,7 +52,8 @@
       "mcp__github__get_file_contents",
       "mcp__github__search_code",
       "mcp__github__search_issues",
-      "Bash(npx vercel env ls:*)"
+      "Bash(npx vercel env ls:*)",
+      "mcp__ref-tools__ref_search_documentation"
     ],
     "deny": []
   }

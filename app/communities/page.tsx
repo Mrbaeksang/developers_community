@@ -81,7 +81,11 @@ async function getCommunities(searchParams: {
           },
           _count: {
             select: {
-              members: true,
+              members: {
+                where: {
+                  status: 'ACTIVE',
+                },
+              },
               posts: true,
             },
           },

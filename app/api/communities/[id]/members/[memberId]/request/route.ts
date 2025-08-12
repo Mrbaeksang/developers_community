@@ -84,24 +84,31 @@ export async function PATCH(
 
     if (action === 'approve') {
       // 승인: PENDING -> ACTIVE
-      const updatedMember = await prisma.communityMember.update({
-        where: { id: memberId },
-        data: {
-          status: MembershipStatus.ACTIVE,
-          joinedAt: new Date(),
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              email: true,
-              image: true,
+      const [updatedMember] = await prisma.$transaction([
+        prisma.communityMember.update({
+          where: { id: memberId },
+          data: {
+            status: MembershipStatus.ACTIVE,
+            joinedAt: new Date(),
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+                image: true,
+              },
             },
           },
-        },
-      })
+        }),
+        // 멤버 카운트 증가
+        prisma.community.update({
+          where: { id },
+          data: { memberCount: { increment: 1 } },
+        }),
+      ])
 
       // TODO: 알림 생성 - 가입이 승인되었음을 알림
       // await prisma.notification.create({

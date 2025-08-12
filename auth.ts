@@ -1,9 +1,20 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
-import Kakao from 'next-auth/providers/kakao'
+import type { OAuthConfig } from 'next-auth/providers'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
+
+// 카카오 프로필 타입 정의
+interface KakaoProfile {
+  id: number
+  kakao_account?: {
+    profile?: {
+      nickname?: string
+      profile_image_url?: string
+    }
+  }
+}
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -82,30 +93,44 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 provider - 이메일 없이 닉네임과 프로필 이미지만 사용
+    // 카카오 완전 커스텀 provider - NextAuth v5 beta 버그 우회
     ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
-          Kakao({
-            clientId: process.env.AUTH_KAKAO_ID,
-            clientSecret: process.env.AUTH_KAKAO_SECRET,
+          {
+            id: 'kakao',
+            name: 'Kakao',
+            type: 'oauth',
             authorization: {
+              url: 'https://kauth.kakao.com/oauth/authorize',
               params: {
-                scope: 'profile_nickname profile_image', // 실제 권한 있는 항목만
+                scope: 'profile_nickname profile_image',
+                response_type: 'code',
               },
             },
-            profile(profile) {
+            token: {
+              url: 'https://kauth.kakao.com/oauth/token',
+            },
+            userinfo: {
+              url: 'https://kapi.kakao.com/v2/user/me',
+            },
+            client: {
+              token_endpoint_auth_method: 'client_secret_post',
+            },
+            clientId: process.env.AUTH_KAKAO_ID,
+            clientSecret: process.env.AUTH_KAKAO_SECRET,
+            profile(profile: KakaoProfile) {
               return {
                 id: String(profile.id),
                 name:
                   profile.kakao_account?.profile?.nickname ||
                   `카카오사용자_${profile.id}`,
-                email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 (권한 없으므로)
+                email: `kakao_${profile.id}@devcom.local`,
                 image:
                   profile.kakao_account?.profile?.profile_image_url || null,
                 role: 'USER' as const,
               }
             },
-          }),
+          } satisfies OAuthConfig<KakaoProfile>,
         ]
       : []),
   ],
