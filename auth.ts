@@ -83,7 +83,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     }),
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',
-      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
+      clientSecret: process.env.AUTH_KAKAO_SECRET || 'unused',
       // 카카오는 OIDC를 지원하지 않으므로 checks 설정 필요
       checks: ['state'], // 'nonce' 제거 (OIDC 전용)
     }),

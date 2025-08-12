@@ -42,7 +42,8 @@
       "Bash(curl:*)",
       "WebFetch(domain:developers.kakao.com)",
       "mcp__vercel__list_projects",
-      "Bash(npx vercel env rm:*)"
+      "Bash(npx vercel env rm:*)",
+      "mcp__github__search_repositories"
     ],
     "deny": []
   }
