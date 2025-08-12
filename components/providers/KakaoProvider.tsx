@@ -2,18 +2,6 @@
 
 import { useEffect } from 'react'
 
-declare global {
-  interface Window {
-    Kakao?: {
-      init: (appKey: string) => void
-      isInitialized: () => boolean
-      Share?: {
-        sendDefault: (settings: object) => void
-      }
-    }
-  }
-}
-
 export function KakaoProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initKakao = () => {

@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Copy, Check } from 'lucide-react'
+import { RiKakaoTalkFill } from 'react-icons/ri'
+import { FaXTwitter, FaFacebookF } from 'react-icons/fa6'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +28,31 @@ export default function ShareModal({
   title,
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false)
+  const [kakaoReady, setKakaoReady] = useState(false)
   const { toast } = useToast()
+
+  // Kakao SDK 초기화 체크
+  useEffect(() => {
+    const checkKakaoSDK = () => {
+      if (window.Kakao && window.Kakao.isInitialized()) {
+        setKakaoReady(true)
+      }
+    }
+
+    // 초기 체크
+    checkKakaoSDK()
+
+    // SDK 로드 대기 (최대 3초)
+    const timer = setTimeout(checkKakaoSDK, 1000)
+    const timer2 = setTimeout(checkKakaoSDK, 2000)
+    const timer3 = setTimeout(checkKakaoSDK, 3000)
+
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(timer2)
+      clearTimeout(timer3)
+    }
+  }, [isOpen])
 
   const handleCopy = async () => {
     try {
@@ -50,62 +76,82 @@ export default function ShareModal({
     try {
       // Kakao SDK 체크
       if (!window.Kakao) {
-        toast({
-          title: '카카오톡 공유 준비중',
-          description: '잠시 후 다시 시도해주세요',
-        })
+        // 모바일에서 카카오톡 앱으로 직접 공유
+        const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
+        window.open(kakaoShareUrl, '_blank')
         return
       }
 
       // SDK 초기화 체크
       if (!window.Kakao.isInitialized()) {
-        toast({
-          title: '카카오톡 공유 오류',
-          description: 'SDK가 초기화되지 않았습니다',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      // Share 객체 체크
-      if (!window.Kakao.Share || !window.Kakao.Share.sendDefault) {
-        toast({
-          title: '카카오톡 공유 오류',
-          description: '공유 기능을 사용할 수 없습니다',
-          variant: 'destructive',
-        })
-        return
+        // 초기화 시도
+        const kakaoKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY
+        if (kakaoKey) {
+          window.Kakao.init(kakaoKey)
+        } else {
+          // 모바일 대체 방법
+          const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
+          window.open(kakaoShareUrl, '_blank')
+          return
+        }
       }
 
       // 공유 실행
-      window.Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: title,
-          description: '개발자 커뮤니티에서 확인해보세요',
-          imageUrl: `${window.location.origin}/og-image.png`,
-          link: {
-            mobileWebUrl: url,
-            webUrl: url,
-          },
-        },
-        buttons: [
-          {
-            title: '읽어보기',
+      if (window.Kakao.Share && window.Kakao.Share.sendDefault) {
+        window.Kakao.Share.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: title,
+            description: 'Dev Community - 개발자들의 지식 공유 플랫폼',
+            imageUrl: `${window.location.origin}/icon-512x512.png`,
             link: {
               mobileWebUrl: url,
               webUrl: url,
             },
           },
-        ],
-      })
+          buttons: [
+            {
+              title: '게시글 보기',
+              link: {
+                mobileWebUrl: url,
+                webUrl: url,
+              },
+            },
+          ],
+        })
+      } else if (window.Kakao.Link && window.Kakao.Link.sendDefault) {
+        // 구버전 SDK 대응
+        window.Kakao.Link.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: title,
+            description: 'Dev Community - 개발자들의 지식 공유 플랫폼',
+            imageUrl: `${window.location.origin}/icon-512x512.png`,
+            link: {
+              mobileWebUrl: url,
+              webUrl: url,
+            },
+          },
+          buttons: [
+            {
+              title: '게시글 보기',
+              link: {
+                mobileWebUrl: url,
+                webUrl: url,
+              },
+            },
+          ],
+        })
+      } else {
+        // 최후의 대체 방법
+        const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
+        window.open(kakaoShareUrl, '_blank')
+      }
     } catch (error) {
       console.error('Kakao share error:', error)
-      toast({
-        title: '공유 실패',
-        description: '카카오톡 공유 중 오류가 발생했습니다',
-        variant: 'destructive',
-      })
+      // 에러 시 대체 URL로 시도
+      const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
+      window.open(kakaoShareUrl, '_blank')
     }
   }
 
@@ -138,33 +184,34 @@ export default function ShareModal({
           <div className="grid grid-cols-3 gap-3">
             <Button
               variant="outline"
-              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
               onClick={shareToKakao}
+              disabled={!kakaoReady && typeof window !== 'undefined'}
             >
               <div className="w-10 h-10 bg-[#FEE500] rounded-lg flex items-center justify-center">
-                <span className="text-2xl">💬</span>
+                <RiKakaoTalkFill className="text-black text-2xl" />
               </div>
               <span className="text-xs font-medium">카카오톡</span>
             </Button>
 
             <Button
               variant="outline"
-              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
               onClick={shareToTwitter}
             >
               <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">X</span>
+                <FaXTwitter className="text-white text-xl" />
               </div>
               <span className="text-xs font-medium">트위터</span>
             </Button>
 
             <Button
               variant="outline"
-              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
               onClick={shareToFacebook}
             >
               <div className="w-10 h-10 bg-[#1877F2] rounded-lg flex items-center justify-center">
-                <span className="text-white text-2xl">f</span>
+                <FaFacebookF className="text-white text-xl" />
               </div>
               <span className="text-xs font-medium">페이스북</span>
             </Button>

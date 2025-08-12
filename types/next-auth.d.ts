@@ -22,3 +22,19 @@ declare module 'next-auth/jwt' {
     role?: 'USER' | 'MANAGER' | 'ADMIN'
   }
 }
+
+// Kakao SDK 타입 정의
+declare global {
+  interface Window {
+    Kakao: {
+      init: (appKey: string) => void
+      isInitialized: () => boolean
+      Share?: {
+        sendDefault: (settings: object) => void
+      }
+      Link?: {
+        sendDefault: (settings: object) => void
+      }
+    }
+  }
+}
