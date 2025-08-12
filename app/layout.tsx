@@ -16,6 +16,7 @@ import { PageViewTracker } from '@/components/shared/PageViewTracker'
 import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
 import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
+import { headers } from 'next/headers'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -72,11 +73,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // middleware에서 설정한 nonce 가져오기
+  const headersList = await headers()
+  const nonce = headersList.get('x-nonce') || ''
+
   return (
     <html lang="ko">
       <head>
@@ -85,9 +90,14 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
-        <script src="https://developers.kakao.com/sdk/js/kakao.js" async />
-        {/* Google AdSense 자동 광고 */}
         <script
+          nonce={nonce}
+          src="https://developers.kakao.com/sdk/js/kakao.js"
+          async
+        />
+        {/* Google AdSense 자동 광고 - nonce 적용 */}
+        <script
+          nonce={nonce}
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8287266902600032"
           crossOrigin="anonymous"
