@@ -7,6 +7,7 @@ import { prisma } from '@/lib/core/prisma'
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  debug: process.env.NODE_ENV === 'development',
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30일 기본 세션 만료
@@ -83,8 +84,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     }),
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',
-      // 카카오는 Client Secret을 사용하지 않고 OIDC를 지원하지 않음
-      checks: ['state'], // 'nonce' 제거 (OIDC 전용)
+      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
+      checks: ['state'],
     }),
   ],
 })
