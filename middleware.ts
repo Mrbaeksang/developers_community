@@ -92,7 +92,7 @@ export async function middleware(request: NextRequest) {
     script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
+    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://img1.kakaocdn.net https://t1.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
     connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live ws://localhost:* wss://ws-us3.pusher.com https://sockjs-us3.pusher.com;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://vercel.live;
     base-uri 'none';

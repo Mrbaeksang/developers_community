@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
-import Kakao from '@auth/core/providers/kakao'
+import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
@@ -85,12 +85,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',
       clientSecret: process.env.AUTH_KAKAO_SECRET || '',
-      authorization: {
-        url: 'https://kauth.kakao.com/oauth/authorize',
-        params: {
-          scope: '',
-        },
-      },
       checks: ['state'], // PKCE 비활성화
       profile(profile) {
         return {
@@ -100,7 +94,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             `카카오사용자_${profile.id}`,
           email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 생성
           image: profile.kakao_account?.profile?.profile_image_url || null,
-          role: 'USER' as const,
         }
       },
     }),

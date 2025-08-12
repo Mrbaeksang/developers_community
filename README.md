@@ -8,7 +8,7 @@
   ### **차세대 개발자 커뮤니티 - 승인제 메인 사이트와 자유로운 커뮤니티의 완벽한 조화**
   
   <p align="center">
-    <strong>엔터프라이즈급 보안</strong> • <strong>1,276배 성능 최적화</strong> • <strong>실시간 기능</strong>
+    <strong>강화된 보안</strong> • <strong>성능 최적화</strong> • <strong>커뮤니티 기능</strong>
   </p>
 
   <!-- 뱃지 섹션 -->
