@@ -5,22 +5,9 @@ import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
-// 환경 변수 검증
-const kakaoClientId = process.env.AUTH_KAKAO_ID
-const kakaoClientSecret = process.env.AUTH_KAKAO_SECRET
-
-if (!kakaoClientId || !kakaoClientSecret) {
-  console.error('❌ KAKAO OAuth credentials missing:', {
-    hasClientId: !!kakaoClientId,
-    hasClientSecret: !!kakaoClientSecret,
-    clientIdLength: kakaoClientId?.length || 0,
-    clientSecretLength: kakaoClientSecret?.length || 0,
-  })
-}
-
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  debug: true, // 프로덕션에서도 디버그 활성화 (임시)
+  debug: process.env.NODE_ENV === 'development',
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30일 기본 세션 만료
@@ -95,12 +82,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 provider는 credentials가 있을 때만 추가
-    ...(kakaoClientId && kakaoClientSecret
+    // 카카오 provider
+    ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
           Kakao({
-            clientId: kakaoClientId,
-            clientSecret: kakaoClientSecret,
+            clientId: process.env.AUTH_KAKAO_ID,
+            clientSecret: process.env.AUTH_KAKAO_SECRET,
             // NextAuth v5 카카오 설정 명시적 지정
             authorization: {
               url: 'https://kauth.kakao.com/oauth/authorize',
@@ -115,13 +102,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             },
             checks: ['state'], // PKCE 비활성화
             profile(profile) {
-              console.error('📱 Kakao profile received:', {
-                id: profile.id,
-                hasKakaoAccount: !!profile.kakao_account,
-                hasProfile: !!profile.kakao_account?.profile,
-                hasEmail: !!profile.kakao_account?.email,
-              })
-
               return {
                 id: String(profile.id),
                 name:
