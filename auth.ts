@@ -83,8 +83,26 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
     Kakao({
-      clientId: process.env.AUTH_KAKAO_ID!,
-      clientSecret: process.env.AUTH_KAKAO_SECRET!,
+      clientId: process.env.AUTH_KAKAO_ID || '',
+      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
+      authorization: {
+        url: 'https://kauth.kakao.com/oauth/authorize',
+        params: {
+          scope: '',
+        },
+      },
+      checks: ['state'], // PKCE 비활성화
+      profile(profile) {
+        return {
+          id: String(profile.id),
+          name:
+            profile.kakao_account?.profile?.nickname ||
+            `카카오사용자_${profile.id}`,
+          email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 생성
+          image: profile.kakao_account?.profile?.profile_image_url || null,
+          role: 'USER' as const,
+        }
+      },
     }),
   ],
 })
