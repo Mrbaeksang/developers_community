@@ -42,6 +42,8 @@ interface CommentSectionProps {
   communityId?: string
   initialComments: Comment[]
   isQAPost?: boolean // Q&A 게시글 여부
+  isMember?: boolean // 커뮤니티 멤버 여부
+  communityName?: string // 커뮤니티 이름
 }
 
 // 댓글 가져오기 함수 생성
@@ -79,6 +81,8 @@ export default function CommentSection({
   communityId,
   initialComments,
   isQAPost = false,
+  isMember = true,
+  communityName,
 }: CommentSectionProps) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -547,6 +551,8 @@ export default function CommentSection({
             postId={postId}
             postType={postType}
             communityId={communityId}
+            isMember={isMember}
+            communityName={communityName}
             onSuccess={() => {
               // 댓글 작성 성공 시 쿼리 갱신
               queryClient.invalidateQueries({

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Send, Save, X, Bold, Italic, Code, List, Smile } from 'lucide-react'
+import { Send, Save, X, Bold, Italic, Code, List, Smile, LogIn, Users } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -15,6 +15,9 @@ import { apiClient } from '@/lib/api/client'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface CommentFormProps {
   postId: string
@@ -34,6 +37,8 @@ interface CommentFormProps {
   showToolbar?: boolean
   enableDraft?: boolean
   className?: string
+  isMember?: boolean // 커뮤니티 멤버 여부
+  communityName?: string // 커뮤니티 이름 (로그인 안내용)
 }
 
 // 이모지 팔레트
@@ -70,6 +75,8 @@ export function CommentForm({
   showToolbar = true,
   enableDraft = true,
   className,
+  isMember = true,
+  communityName,
 }: CommentFormProps) {
   const [content, setContent] = useState(initialContent)
   const [isFocused, setIsFocused] = useState(false)
@@ -82,6 +89,8 @@ export function CommentForm({
   const toolbarRef = useRef<HTMLDivElement>(null)
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
+  const { status } = useSession()
+  const router = useRouter()
 
   // Tiptap editor for rich text editing
   const editor = useEditor({
@@ -181,6 +190,42 @@ export function CommentForm({
   // 폼 제출
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
+
+    // 로그인 체크
+    if (status === 'unauthenticated') {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '댓글을 작성하려면 로그인해주세요.',
+        action: (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push('/auth/signin')}
+          >
+            로그인하기
+          </Button>
+        ),
+      })
+      return
+    }
+
+    // 커뮤니티 멤버십 체크 (커뮤니티 게시글인 경우)
+    if (postType === 'community' && !isMember) {
+      toast({
+        title: '커뮤니티 가입이 필요합니다',
+        description: communityName ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.` : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.',
+        action: communityId ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/communities/${communityId}`)}
+          >
+            커뮤니티 보기
+          </Button>
+        ) : undefined,
+      })
+      return
+    }
 
     // 이미 제출 중이면 중복 실행 방지
     if (isSubmitting) {
@@ -304,6 +349,56 @@ export function CommentForm({
     setContent('')
     editor?.commands.setContent('')
     setLastSaved(null)
+  }
+
+  // 로그인하지 않은 경우 안내 메시지
+  if (status === 'unauthenticated') {
+    return (
+      <div className={cn('space-y-2', className)}>
+        <div className="border-2 border-black rounded-lg p-6 bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <LogIn className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-semibold mb-1">로그인이 필요합니다</p>
+              <p className="text-sm text-muted-foreground">댓글을 작성하려면 로그인해주세요.</p>
+            </div>
+            <Link href="/auth/signin">
+              <Button className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <LogIn className="h-4 w-4 mr-2" />
+                로그인하기
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 커뮤니티 멤버가 아닌 경우 안내 메시지
+  if (postType === 'community' && !isMember) {
+    return (
+      <div className={cn('space-y-2', className)}>
+        <div className="border-2 border-black rounded-lg p-6 bg-gray-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Users className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="font-semibold mb-1">커뮤니티 가입이 필요합니다</p>
+              <p className="text-sm text-muted-foreground">
+                {communityName ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.` : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.'}
+              </p>
+            </div>
+            {communityId && (
+              <Link href={`/communities/${communityId}`}>
+                <Button className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  <Users className="h-4 w-4 mr-2" />
+                  커뮤니티 보기
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

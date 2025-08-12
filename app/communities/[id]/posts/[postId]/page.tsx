@@ -225,6 +225,8 @@ export default async function CommunityPostDetailPage({
           postType="community"
           communityId={post.community.id}
           initialComments={[]}
+          isMember={post.community.members?.[0]?.status === 'ACTIVE' || session?.user?.id === post.community.ownerId}
+          communityName={post.community.name}
         />
       </div>
     </div>

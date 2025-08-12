@@ -420,18 +420,31 @@ export default async function CommunityDetailPage({
           </TabsList>
 
           <TabsContent value="posts" className="space-y-4">
-            {isMember && (
-              <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4">
+              {!session?.user?.id ? (
+                <Button
+                  asChild
+                  className="bg-gray-400 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
+                >
+                  <Link href="/auth/signin">
+                    로그인 후 게시글 작성
+                  </Link>
+                </Button>
+              ) : isMember ? (
                 <Button
                   asChild
                   className="bg-blue-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
                 >
-                  <Link href={`/communities/${community.slug}/write`}>
+                  <Link href={`/communities/${community.id}/write`}>
                     게시글 작성
                   </Link>
                 </Button>
-              </div>
-            )}
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  커뮤니티에 가입해야 게시글을 작성할 수 있습니다
+                </div>
+              )}
+            </div>
             <CommunityPostList
               communityId={community.id}
               communitySlug={community.slug}
