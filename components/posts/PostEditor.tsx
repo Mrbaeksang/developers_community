@@ -27,6 +27,10 @@ import {
   LoadingSpinner,
   ButtonSpinner,
 } from '@/components/shared/LoadingSpinner'
+import {
+  TetrisLoading,
+  isMobileDevice,
+} from '@/components/shared/TetrisLoading'
 import { RichTextEditor } from '@/components/shared/RichTextEditor'
 
 interface Category {
@@ -107,6 +111,7 @@ export function PostEditor({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   // 폼 상태 - 초기값은 mode와 initialData에 따라 설정
   const [title, setTitle] = useState(initialData?.title || '')
@@ -151,6 +156,19 @@ export function PostEditor({
       default:
         return ''
     }
+  }, [])
+
+  // 모바일 체크
+  useEffect(() => {
+    setIsMobile(isMobileDevice())
+
+    // 리사이즈 이벤트에서도 체크
+    const handleResize = () => {
+      setIsMobile(isMobileDevice())
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   // 카테고리 조회
@@ -748,10 +766,13 @@ export function PostEditor({
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-8 flex flex-col items-center space-y-4 max-w-md">
-            <LoadingSpinner size="xl" />
-            <div className="text-center space-y-2">
-              <p className="text-lg font-bold">
-                {(() => {
+            {/* 모바일이면 기존 스피너, 데스크톱이면 테트리스 로딩 */}
+            {isMobile ? (
+              <LoadingSpinner size="xl" variant="brutal" />
+            ) : (
+              <TetrisLoading
+                size="md"
+                text={(() => {
                   const selectedCat = categories.find(
                     (c) => c.id === categoryId
                   )
@@ -777,29 +798,65 @@ export function PostEditor({
                   }
                   return '처리 중...'
                 })()}
-              </p>
-              {(() => {
-                const selectedCat = categories.find((c) => c.id === categoryId)
-                const isQA = selectedCat
-                  ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
-                      (qa) =>
-                        selectedCat.slug.toLowerCase().includes(qa) ||
-                        selectedCat.name.toLowerCase().includes(qa)
-                    )
-                  : false
+              />
+            )}
 
-                if (isQA && mode === 'create') {
-                  return (
-                    <p className="text-sm text-gray-600">
-                      AI가 귀하의 질문을 분석하고 최적의 답변을 생성하고
-                      있습니다. 게시글 페이지로 이동하면 AI 답변을 확인하실 수
-                      있습니다.
-                    </p>
+            {/* 모바일에서만 텍스트 표시 (테트리스 로딩은 텍스트 내장) */}
+            {isMobile && (
+              <div className="text-center space-y-2">
+                <p className="text-lg font-bold">
+                  {(() => {
+                    const selectedCat = categories.find(
+                      (c) => c.id === categoryId
+                    )
+                    const isQA = selectedCat
+                      ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+                          (qa) =>
+                            selectedCat.slug.toLowerCase().includes(qa) ||
+                            selectedCat.name.toLowerCase().includes(qa)
+                        )
+                      : false
+
+                    if (submitState === 'submitting') {
+                      if (isQA && mode === 'create') {
+                        return '게시글을 작성하고 AI 답변을 준비하고 있습니다...'
+                      }
+                      return '게시글을 작성하고 있습니다...'
+                    }
+                    if (submitState === 'redirecting') {
+                      if (isQA && mode === 'create') {
+                        return 'AI가 답변을 생성 중입니다. 잠시 후 게시글로 이동합니다...'
+                      }
+                      return '페이지로 이동 중...'
+                    }
+                    return '처리 중...'
+                  })()}
+                </p>
+                {(() => {
+                  const selectedCat = categories.find(
+                    (c) => c.id === categoryId
                   )
-                }
-                return null
-              })()}
-            </div>
+                  const isQA = selectedCat
+                    ? ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+                        (qa) =>
+                          selectedCat.slug.toLowerCase().includes(qa) ||
+                          selectedCat.name.toLowerCase().includes(qa)
+                      )
+                    : false
+
+                  if (isQA && mode === 'create') {
+                    return (
+                      <p className="text-sm text-gray-600">
+                        AI가 귀하의 질문을 분석하고 최적의 답변을 생성하고
+                        있습니다. 게시글 페이지로 이동하면 AI 답변을 확인하실 수
+                        있습니다.
+                      </p>
+                    )
+                  }
+                  return null
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}

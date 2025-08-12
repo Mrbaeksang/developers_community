@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Instagram, Mail } from 'lucide-react'
+import { RiKakaoTalkFill } from 'react-icons/ri'
 
 export function Footer() {
   return (
@@ -45,6 +46,15 @@ export function Footer() {
               aria-label="Instagram"
             >
               <Instagram className="h-5 w-5" />
+            </a>
+            <a
+              href="https://open.kakao.com/o/gUWOh3Lh"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border-2 border-black bg-[#FEE500] p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+              aria-label="카카오톡 오픈채팅"
+            >
+              <RiKakaoTalkFill className="h-5 w-5 text-black" />
             </a>
           </div>
         </div>
