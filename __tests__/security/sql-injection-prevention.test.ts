@@ -4,22 +4,19 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { prisma } from '@/lib/core/prisma'
 
-// Mock Prisma
-vi.mock('@/lib/core/prisma', () => ({
-  prisma: {
-    $queryRaw: vi.fn(),
-    $executeRaw: vi.fn(),
-    mainPost: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-    },
+// Mock Prisma - 테스트 환경에서는 실제 Prisma import 대신 mock 사용
+const prisma = {
+  $queryRaw: vi.fn(),
+  $executeRaw: vi.fn(),
+  mainPost: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
   },
-}))
+  user: {
+    findUnique: vi.fn(),
+  },
+}
 
 describe('SQL Injection 방지', () => {
   describe('Prisma 쿼리 빌더 보안', () => {
