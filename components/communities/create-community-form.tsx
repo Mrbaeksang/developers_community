@@ -12,6 +12,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 // Removed Switch import - using custom toggle
 import { Check, X, Image as ImageIcon } from 'lucide-react'
 import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
+import {
+  TetrisLoading,
+  isMobileDevice,
+} from '@/components/shared/TetrisLoading'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { DEFAULT_AVATARS, getAvatarFromName } from '@/lib/community/utils'
@@ -45,7 +49,20 @@ export default function CreateCommunityForm() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(new Set())
   const [isCreating, setIsCreating] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 모바일 체크
+  useEffect(() => {
+    setIsMobile(isMobileDevice())
+
+    const handleResize = () => {
+      setIsMobile(isMobileDevice())
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // CSRF 토큰 초기화
   useEffect(() => {
@@ -1311,30 +1328,44 @@ export default function CreateCommunityForm() {
             </div>
           </form>
 
-          {/* 로딩 오버레이 - 개선된 스피너 */}
+          {/* 로딩 오버레이 - 테트리스 로딩 (데스크톱) / 기존 스피너 (모바일) */}
           {(createCommunityMutation.isPending || isCreating) && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
               <div className="bg-white rounded-lg border-3 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
-                <div className="flex flex-col items-center">
-                  <div className="relative mb-6">
-                    <div className="animate-spin rounded-full h-24 w-24 border-4 border-gray-200"></div>
-                    <div className="animate-spin rounded-full h-24 w-24 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-2">
-                    커뮤니티 생성 중...
-                  </h3>
-                  <p className="text-gray-600 text-center max-w-sm">
-                    잠시만 기다려주세요.
-                    <br />
-                    페이지를 떠나지 마시고 기다려주세요.
-                  </p>
-                  {isCreating && (
-                    <div className="mt-4 flex items-center gap-2 text-sm text-blue-600">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                      <span>커뮤니티를 만들고 있습니다...</span>
+                {isMobile ? (
+                  // 모바일: 기존 스피너
+                  <div className="flex flex-col items-center">
+                    <div className="relative mb-6">
+                      <div className="animate-spin rounded-full h-24 w-24 border-4 border-gray-200"></div>
+                      <div className="animate-spin rounded-full h-24 w-24 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
                     </div>
-                  )}
-                </div>
+                    <h3 className="text-2xl font-black text-gray-800 mb-2">
+                      커뮤니티 생성 중...
+                    </h3>
+                    <p className="text-gray-600 text-center max-w-sm">
+                      잠시만 기다려주세요.
+                      <br />
+                      페이지를 떠나지 마시고 기다려주세요.
+                    </p>
+                    {isCreating && (
+                      <div className="mt-4 flex items-center gap-2 text-sm text-blue-600">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                        <span>커뮤니티를 만들고 있습니다...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // 데스크톱: 테트리스 로딩
+                  <div className="flex flex-col items-center">
+                    <TetrisLoading
+                      size="md"
+                      text="커뮤니티를 생성하고 있습니다..."
+                    />
+                    <p className="text-gray-600 text-center max-w-sm mt-4">
+                      페이지를 떠나지 마시고 기다려주세요.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

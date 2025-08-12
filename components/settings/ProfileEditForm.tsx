@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
@@ -12,6 +12,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Camera, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/client'
+import {
+  TetrisLoading,
+  isMobileDevice,
+} from '@/components/shared/TetrisLoading'
 
 interface ProfileEditFormProps {
   user: {
@@ -27,12 +31,22 @@ interface ProfileEditFormProps {
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const [isMobile, setIsMobile] = useState(false)
   const [formData, setFormData] = useState({
     name: user.name || '',
     username: user.username || '',
     bio: user.bio || '',
     image: user.image || '',
   })
+
+  useEffect(() => {
+    setIsMobile(isMobileDevice())
+    const handleResize = () => {
+      setIsMobile(isMobileDevice())
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // React Query - 프로필 업데이트 mutation
   const updateProfileMutation = useMutation({
@@ -109,7 +123,26 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
   return (
     <Card className={cardClasses}>
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="p-6 space-y-6 relative">
+        {/* 로딩 오버레이 */}
+        {updateProfileMutation.isPending && (
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+            {isMobile ? (
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900 mx-auto mb-4" />
+                <p className="text-sm font-bold text-gray-700">
+                  프로필을 업데이트하고 있습니다...
+                </p>
+              </div>
+            ) : (
+              <TetrisLoading
+                size="sm"
+                text="프로필을 업데이트하고 있습니다..."
+              />
+            )}
+          </div>
+        )}
+
         {/* 프로필 이미지 */}
         <div className="flex flex-col items-center space-y-4">
           <Avatar className="h-32 w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
