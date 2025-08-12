@@ -33,12 +33,12 @@ const nextConfig: NextConfig = {
                 : // Production: Stricter security
                   `
                   default-src 'self';
-                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel-scripts.com https://pagead2.googlesyndication.com https://www.googletagservices.com https://adservice.google.com https://googleads.g.doubleclick.net https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel-scripts.com;
                   style-src 'self' 'unsafe-inline';
-                  img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://*.google.com;
+                  img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
                   font-src 'self' data:;
-                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://*.adtrafficquality.google https://adservice.google.com https://adservice.google.co.kr https://tpc.googlesyndication.com https://www.google-analytics.com https://analytics.google.com;
-                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com/recaptcha/ https://recaptcha.google.com https://ep2.adtrafficquality.google https://www.google.com;
+                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com;
+                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
                   form-action 'self';
                   frame-ancestors 'none';
                   base-uri 'self';
