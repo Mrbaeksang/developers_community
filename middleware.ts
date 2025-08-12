@@ -85,16 +85,16 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next()
   const sessionId = request.cookies.get('visitor_session')?.value || nanoid()
 
-  // CSP 헤더 설정
+  // Google 권장 strict CSP with nonce 설정
+  const nonce = nanoid()
   const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://dapi.kakao.com https://developers.kakao.com https://t1.daumcdn.net https://t1.kakaocdn.net https://cdn.jsdelivr.net https://va.vercel-scripts.com;
+    object-src 'none';
+    script-src 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net;
     connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
-    object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
@@ -151,6 +151,9 @@ export async function middleware(request: NextRequest) {
   // 방문자 정보를 헤더에 추가하여 API에서 활용
   response.headers.set('x-visitor-session', sessionId)
   response.headers.set('x-visitor-path', pathname)
+
+  // CSP nonce를 헤더에 추가하여 layout에서 사용 가능하도록 함
+  response.headers.set('x-nonce', nonce)
 
   return response
 }
