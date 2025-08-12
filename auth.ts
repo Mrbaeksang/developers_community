@@ -102,6 +102,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 email: `kakao_${profile.id}@devcom.local`, // 가상 이메일 (권한 없으므로)
                 image:
                   profile.kakao_account?.profile?.profile_image_url || null,
+                role: 'USER' as const,
               }
             },
           }),
