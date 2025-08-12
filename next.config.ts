@@ -30,13 +30,13 @@ const nextConfig: NextConfig = {
                 `
                     .replace(/\s{2,}/g, ' ')
                     .trim()
-                : // Production: Google 공식 권장 strict CSP (AdSense + OAuth 호환)
+                : // Production: OAuth 지원 CSP
                   `
-                  object-src 'none';
-                  script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http: https://vercel.live https://*.vercel-scripts.com;
-                  style-src 'self' 'unsafe-inline';
+                  default-src 'self';
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com https://vercel.live https://*.vercel-scripts.com;
+                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
                   img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
-                  font-src 'self' data:;
+                  font-src 'self' https://fonts.gstatic.com data:;
                   connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com;
                   frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
                   form-action 'self';

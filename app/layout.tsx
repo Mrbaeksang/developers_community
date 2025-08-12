@@ -85,7 +85,6 @@ export default async function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <meta name="google-adsense-account" content="ca-pub-8287266902600032" />
         <link
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
@@ -94,13 +93,6 @@ export default async function RootLayout({
           nonce={nonce}
           src="https://developers.kakao.com/sdk/js/kakao.js"
           async
-        />
-        {/* Google AdSense 자동 광고 - nonce 적용 */}
-        <script
-          nonce={nonce}
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8287266902600032"
-          crossOrigin="anonymous"
         />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>

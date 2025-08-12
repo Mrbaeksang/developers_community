@@ -85,16 +85,16 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next()
   const sessionId = request.cookies.get('visitor_session')?.value || nanoid()
 
-  // Google AdSense 공식 권장 엄격한 CSP 설정
+  // CSP 설정 (OAuth 지원)
   const nonce = nanoid()
   const cspHeader = `
-    object-src 'none';
-    script-src 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+    default-src 'self';
+    script-src 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.co.kr;
-    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://www.google.com;
-    frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com;
+    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
+    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com;
+    frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
     base-uri 'none';
     form-action 'self';
     frame-ancestors 'none';
