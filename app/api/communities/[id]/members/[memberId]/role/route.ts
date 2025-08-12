@@ -23,8 +23,11 @@ export async function PATCH(
   try {
     const { id, memberId } = await context.params
 
-    // 요청자의 권한 확인 (ADMIN 이상)
-    const session = await requireCommunityRoleAPI(id, [CommunityRole.ADMIN])
+    // 요청자의 권한 확인 (ADMIN 이상 - OWNER, ADMIN)
+    const session = await requireCommunityRoleAPI(id, [
+      CommunityRole.OWNER,
+      CommunityRole.ADMIN,
+    ])
     if (session instanceof Response) {
       return session
     }

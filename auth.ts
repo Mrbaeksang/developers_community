@@ -1,20 +1,9 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
-import type { OAuthConfig } from 'next-auth/providers'
+import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
-
-// 카카오 프로필 타입 정의
-interface KakaoProfile {
-  id: number
-  kakao_account?: {
-    profile?: {
-      nickname?: string
-      profile_image_url?: string
-    }
-  }
-}
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -76,6 +65,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       }
       return session
     },
+    async signIn({ user, account }) {
+      // 카카오 로그인 시 이메일이 없는 경우 처리
+      if (account?.provider === 'kakao' && !user.email) {
+        // 가상 이메일 생성
+        user.email = `kakao_${user.id}@devcom.local`
+      }
+      return true
+    },
   },
   providers: [
     GitHub({
@@ -93,44 +90,19 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
     }),
-    // 카카오 완전 커스텀 provider - NextAuth v5 beta 버그 우회
+    // 카카오 provider - 공식 provider 사용
     ...(process.env.AUTH_KAKAO_ID && process.env.AUTH_KAKAO_SECRET
       ? [
-          {
-            id: 'kakao',
-            name: 'Kakao',
-            type: 'oauth',
-            authorization: {
-              url: 'https://kauth.kakao.com/oauth/authorize',
-              params: {
-                scope: 'profile_nickname profile_image',
-                response_type: 'code',
-              },
-            },
-            token: {
-              url: 'https://kauth.kakao.com/oauth/token',
-            },
-            userinfo: {
-              url: 'https://kapi.kakao.com/v2/user/me',
-            },
-            client: {
-              token_endpoint_auth_method: 'client_secret_post',
-            },
+          Kakao({
             clientId: process.env.AUTH_KAKAO_ID,
             clientSecret: process.env.AUTH_KAKAO_SECRET,
-            profile(profile: KakaoProfile) {
-              return {
-                id: String(profile.id),
-                name:
-                  profile.kakao_account?.profile?.nickname ||
-                  `카카오사용자_${profile.id}`,
-                email: `kakao_${profile.id}@devcom.local`,
-                image:
-                  profile.kakao_account?.profile?.profile_image_url || null,
-                role: 'USER' as const,
-              }
+            // 카카오는 profile_nickname, profile_image 스코프만 지원
+            authorization: {
+              params: {
+                scope: 'profile_nickname profile_image',
+              },
             },
-          } satisfies OAuthConfig<KakaoProfile>,
+          }),
         ]
       : []),
   ],

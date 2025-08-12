@@ -426,9 +426,7 @@ export default async function CommunityDetailPage({
                   asChild
                   className="bg-gray-400 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold"
                 >
-                  <Link href="/auth/signin">
-                    로그인 후 게시글 작성
-                  </Link>
+                  <Link href="/auth/signin">로그인 후 게시글 작성</Link>
                 </Button>
               ) : isMember ? (
                 <Button

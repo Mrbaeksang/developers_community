@@ -23,8 +23,12 @@ export async function DELETE(
   try {
     const { id, memberId } = await context.params
 
-    // 요청자의 권한 확인 (MODERATOR 이상)
-    const session = await requireCommunityRoleAPI(id, [CommunityRole.MODERATOR])
+    // 요청자의 권한 확인 (MODERATOR 이상 - OWNER, ADMIN, MODERATOR)
+    const session = await requireCommunityRoleAPI(id, [
+      CommunityRole.OWNER,
+      CommunityRole.ADMIN,
+      CommunityRole.MODERATOR,
+    ])
     if (session instanceof Response) {
       return session
     }

@@ -2,7 +2,18 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Send, Save, X, Bold, Italic, Code, List, Smile, LogIn, Users } from 'lucide-react'
+import {
+  Send,
+  Save,
+  X,
+  Bold,
+  Italic,
+  Code,
+  List,
+  Smile,
+  LogIn,
+  Users,
+} from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -213,7 +224,9 @@ export function CommentForm({
     if (postType === 'community' && !isMember) {
       toast({
         title: '커뮤니티 가입이 필요합니다',
-        description: communityName ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.` : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.',
+        description: communityName
+          ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.`
+          : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.',
         action: communityId ? (
           <Button
             size="sm"
@@ -360,7 +373,9 @@ export function CommentForm({
             <LogIn className="h-8 w-8 text-muted-foreground" />
             <div>
               <p className="font-semibold mb-1">로그인이 필요합니다</p>
-              <p className="text-sm text-muted-foreground">댓글을 작성하려면 로그인해주세요.</p>
+              <p className="text-sm text-muted-foreground">
+                댓글을 작성하려면 로그인해주세요.
+              </p>
             </div>
             <Link href="/auth/signin">
               <Button className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
@@ -384,7 +399,9 @@ export function CommentForm({
             <div>
               <p className="font-semibold mb-1">커뮤니티 가입이 필요합니다</p>
               <p className="text-sm text-muted-foreground">
-                {communityName ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.` : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.'}
+                {communityName
+                  ? `${communityName} 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.`
+                  : '이 커뮤니티에 가입해야 댓글을 작성할 수 있습니다.'}
               </p>
             </div>
             {communityId && (

@@ -280,6 +280,11 @@ export function MemberSettings({
       setSelectedMember(null)
       setActionType(null)
       setNewRole(null)
+
+      // 성공 후 쿼리 무효화로 UI 새로고침
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
     },
     onError: (error: Error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)
@@ -360,6 +365,11 @@ export function MemberSettings({
     onSuccess: () => {
       setSelectedMember(null)
       setActionType(null)
+
+      // 성공 후 쿼리 무효화로 UI 새로고침
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
     },
     onError: (error: Error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)
@@ -433,16 +443,21 @@ export function MemberSettings({
         (member: Member) => member.id === memberId
       )
 
-      // 대기 목록에서 멤버 제거
+      // 대기 목록에서 멤버 제거 (data와 members 모두 처리)
       queryClient.setQueryData(pendingQueryKey, (old: unknown) => {
         if (!old) return old
         const membersData = old as MembersResponse
-        if (!membersData?.members) return old
+        const membersList = membersData?.data || membersData?.members
+        if (!membersList || !Array.isArray(membersList)) return old
+
+        const filteredMembers = membersList.filter(
+          (member: Member) => member.id !== memberId
+        )
+
         return {
           ...membersData,
-          members: membersData.members.filter(
-            (member: Member) => member.id !== memberId
-          ),
+          data: filteredMembers,
+          members: filteredMembers,
         }
       })
 
@@ -451,15 +466,23 @@ export function MemberSettings({
         queryClient.setQueryData(activeQueryKey, (old: unknown) => {
           if (!old) return old
           const membersData = old as MembersResponse
-          if (!membersData?.members) return old
+          const membersList = membersData?.data || membersData?.members
+          if (!membersList || !Array.isArray(membersList)) return old
+
           const approvedMember = {
             ...targetMember,
             status: 'ACTIVE' as MembershipStatus,
             role: 'MEMBER' as CommunityRole,
+            joinedAt: new Date().toISOString(), // 가입 시간 업데이트
           }
+
+          const updatedMembers = [approvedMember, ...membersList]
+
           return {
             ...membersData,
-            members: [approvedMember, ...membersData.members],
+            data: updatedMembers,
+            members: updatedMembers,
+            total: (membersData?.total || 0) + 1, // 총 멤버 수 증가
           }
         })
       }
@@ -481,6 +504,11 @@ export function MemberSettings({
     onSuccess: () => {
       setSelectedMember(null)
       setActionType(null)
+
+      // 성공 후 모든 관련 쿼리 무효화로 전체 UI 새로고침
+      queryClient.invalidateQueries({
+        queryKey: ['communityMembers', communityId],
+      })
     },
     onError: (error: Error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)
@@ -499,14 +527,6 @@ export function MemberSettings({
       toast.error(error.message || '작업에 실패했습니다.')
     },
   })
-
-  const handleJoinRequest = () => {
-    if (!selectedMember || !actionType) return
-    joinRequestMutation.mutate({
-      memberId: selectedMember.id,
-      action: actionType as 'approve' | 'reject',
-    })
-  }
 
   const RoleIcon = ({ role }: { role: CommunityRole }) => {
     const Icon = roleIcons[role]
@@ -596,23 +616,39 @@ export function MemberSettings({
             <Button
               size="sm"
               onClick={() => {
-                setSelectedMember(member)
-                setActionType('approve')
+                // 다이얼로그 없이 바로 처리
+                joinRequestMutation.mutate({
+                  memberId: member.id,
+                  action: 'approve',
+                })
               }}
+              disabled={joinRequestMutation.isPending}
               className="flex-1"
             >
-              승인
+              {joinRequestMutation.isPending &&
+              joinRequestMutation.variables?.memberId === member.id &&
+              joinRequestMutation.variables?.action === 'approve'
+                ? '승인 중...'
+                : '승인'}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => {
-                setSelectedMember(member)
-                setActionType('reject')
+                // 다이얼로그 없이 바로 처리
+                joinRequestMutation.mutate({
+                  memberId: member.id,
+                  action: 'reject',
+                })
               }}
+              disabled={joinRequestMutation.isPending}
               className="flex-1"
             >
-              거절
+              {joinRequestMutation.isPending &&
+              joinRequestMutation.variables?.memberId === member.id &&
+              joinRequestMutation.variables?.action === 'reject'
+                ? '거절 중...'
+                : '거절'}
             </Button>
           </div>
         )}
@@ -806,51 +842,6 @@ export function MemberSettings({
                 : actionType === 'kick'
                   ? '추방'
                   : '차단'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 가입 승인/거절 확인 다이얼로그 */}
-      <AlertDialog
-        open={
-          (actionType === 'approve' || actionType === 'reject') &&
-          !!selectedMember
-        }
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedMember(null)
-            setActionType(null)
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              가입 신청 {actionType === 'approve' ? '승인' : '거절'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedMember?.user.name || selectedMember?.user.email}님의 가입
-              신청을
-              {actionType === 'approve' ? ' 승인' : ' 거절'}하시겠습니까?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleJoinRequest}
-              disabled={joinRequestMutation.isPending}
-              className={
-                actionType === 'reject'
-                  ? 'bg-destructive hover:bg-destructive/90'
-                  : ''
-              }
-            >
-              {joinRequestMutation.isPending
-                ? '처리 중...'
-                : actionType === 'approve'
-                  ? '승인'
-                  : '거절'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
