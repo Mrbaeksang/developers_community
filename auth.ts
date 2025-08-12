@@ -101,11 +101,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           Kakao({
             clientId: kakaoClientId,
             clientSecret: kakaoClientSecret,
-            authorization: {
-              url: 'https://kauth.kakao.com/oauth/authorize',
-              params: {
-                scope: '',
-              },
+            // NextAuth v5 카카오 설정 명시적 지정
+            authorization: 'https://kauth.kakao.com/oauth/authorize',
+            token: 'https://kauth.kakao.com/oauth/token',
+            userinfo: 'https://kapi.kakao.com/v2/user/me',
+            client: {
+              token_endpoint_auth_method: 'client_secret_post',
             },
             checks: ['state'], // PKCE 비활성화
             profile(profile) {
