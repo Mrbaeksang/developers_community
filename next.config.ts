@@ -30,18 +30,19 @@ const nextConfig: NextConfig = {
                 `
                     .replace(/\s{2,}/g, ' ')
                     .trim()
-                : // Production: Stricter security
+                : // Production: Google AdSense 호환 엄격한 CSP
                   `
                   default-src 'self';
-                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel-scripts.com;
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http: https://vercel.live https://*.vercel-scripts.com https://pagead2.googlesyndication.com https://www.googletagservices.com https://securepubads.g.doubleclick.net;
                   style-src 'self' 'unsafe-inline';
                   img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
                   font-src 'self' data:;
                   connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com;
-                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
+                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
+                  object-src 'none';
                   form-action 'self';
                   frame-ancestors 'none';
-                  base-uri 'self';
+                  base-uri 'none';
                   upgrade-insecure-requests;
                 `
                     .replace(/\s{2,}/g, ' ')
