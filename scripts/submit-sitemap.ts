@@ -2,7 +2,7 @@
 
 /**
  * 사이트맵 제출 스크립트
- * 
+ *
  * 사용법:
  * 1. Google Search Console에서 인증 완료 후 실행
  * 2. npx tsx scripts/submit-sitemap.ts
@@ -15,7 +15,7 @@ async function pingGoogle() {
   const googlePingUrl = `https://www.google.com/ping?sitemap=${encodeURIComponent(
     SITEMAP_URL
   )}`
-  
+
   try {
     const response = await fetch(googlePingUrl)
     if (response.ok) {
@@ -33,7 +33,7 @@ async function pingBing() {
   const bingPingUrl = `https://www.bing.com/ping?sitemap=${encodeURIComponent(
     SITEMAP_URL
   )}`
-  
+
   try {
     const response = await fetch(bingPingUrl)
     if (response.ok) {
@@ -54,15 +54,15 @@ async function validateSitemap() {
       console.error('❌ 사이트맵 접근 불가:', response.status)
       return false
     }
-    
+
     const text = await response.text()
     if (text.includes('<urlset') && text.includes('</urlset>')) {
       console.log('✅ 사이트맵 유효성 검사 통과')
-      
+
       // URL 개수 확인
       const urlCount = (text.match(/<url>/g) || []).length
       console.log(`📊 총 ${urlCount}개의 URL 포함`)
-      
+
       return true
     } else {
       console.error('❌ 유효하지 않은 사이트맵 형식')
@@ -79,19 +79,19 @@ async function main() {
   console.log('🚀 사이트맵 제출 시작...')
   console.log(`📍 사이트맵 URL: ${SITEMAP_URL}`)
   console.log('')
-  
+
   // 1. 사이트맵 유효성 검사
   const isValid = await validateSitemap()
   if (!isValid) {
     console.error('⛔ 사이트맵이 유효하지 않아 제출을 중단합니다.')
     process.exit(1)
   }
-  
+
   console.log('')
-  
+
   // 2. 검색 엔진에 제출
   await Promise.all([pingGoogle(), pingBing()])
-  
+
   console.log('')
   console.log('📝 추가 작업:')
   console.log('1. Google Search Console에 로그인')

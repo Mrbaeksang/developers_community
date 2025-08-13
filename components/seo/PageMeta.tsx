@@ -8,8 +8,6 @@ interface PageMetaProps {
   url?: string
   type?: 'website' | 'article'
   author?: string
-  publishedTime?: string
-  modifiedTime?: string
 }
 
 export function generatePageMetadata({
@@ -20,17 +18,17 @@ export function generatePageMetadata({
   url,
   type = 'website',
   author,
-  publishedTime,
-  modifiedTime,
 }: PageMetaProps): Metadata {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr'
   const fullUrl = url || baseUrl
   const ogImage = image || `${baseUrl}/og-image.png`
-  
+
   const metadata: Metadata = {
     title: `${title} | 바이브 코딩`,
     description,
-    keywords: keywords || '코딩 공부, 프로그래밍, 개발자, React, JavaScript, TypeScript',
+    keywords:
+      keywords ||
+      '코딩 공부, 프로그래밍, 개발자, React, JavaScript, TypeScript',
     openGraph: {
       title,
       description,
@@ -57,10 +55,10 @@ export function generatePageMetadata({
       canonical: fullUrl,
     },
   }
-  
+
   if (type === 'article' && author) {
     metadata.authors = [{ name: author }]
   }
-  
+
   return metadata
 }
