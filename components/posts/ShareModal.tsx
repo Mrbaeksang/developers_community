@@ -76,9 +76,12 @@ export default function ShareModal({
     try {
       // Kakao SDK 체크
       if (!window.Kakao) {
-        // 모바일에서 카카오톡 앱으로 직접 공유
-        const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
-        window.open(kakaoShareUrl, '_blank')
+        console.error('Kakao SDK not loaded')
+        toast({
+          title: '카카오톡 공유 실패',
+          description: '잠시 후 다시 시도해주세요',
+          variant: 'destructive',
+        })
         return
       }
 
@@ -89,9 +92,12 @@ export default function ShareModal({
         if (kakaoKey) {
           window.Kakao.init(kakaoKey)
         } else {
-          // 모바일 대체 방법
-          const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
-          window.open(kakaoShareUrl, '_blank')
+          console.error('Kakao App Key not found')
+          toast({
+            title: '카카오톡 공유 실패',
+            description: '설정 오류가 발생했습니다',
+            variant: 'destructive',
+          })
           return
         }
       }
@@ -143,15 +149,20 @@ export default function ShareModal({
           ],
         })
       } else {
-        // 최후의 대체 방법
-        const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
-        window.open(kakaoShareUrl, '_blank')
+        console.error('Kakao Share API not available')
+        toast({
+          title: '카카오톡 공유 실패',
+          description: 'SDK 버전 문제가 발생했습니다',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Kakao share error:', error)
-      // 에러 시 대체 URL로 시도
-      const kakaoShareUrl = `https://story.kakao.com/share?url=${encodeURIComponent(url)}`
-      window.open(kakaoShareUrl, '_blank')
+      toast({
+        title: '카카오톡 공유 실패',
+        description: '오류가 발생했습니다. 링크를 복사해서 공유해주세요.',
+        variant: 'destructive',
+      })
     }
   }
 

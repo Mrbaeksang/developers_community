@@ -16,7 +16,6 @@ import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
 import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
 import { StructuredData } from '@/components/seo/StructuredData'
-import { headers } from 'next/headers'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -76,10 +75,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // middleware에서 설정한 nonce 가져오기
-  const headersList = await headers()
-  const nonce = headersList.get('x-nonce') || ''
-
   return (
     <html lang="ko">
       <head>
@@ -87,11 +82,7 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
-        <script
-          nonce={nonce}
-          src="https://developers.kakao.com/sdk/js/kakao.js"
-          async
-        />
+        <script src="https://developers.kakao.com/sdk/js/kakao.js" defer />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <StructuredData type="website" />
