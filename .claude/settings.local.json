@@ -58,7 +58,8 @@
       "WebFetch(domain:searchadvisor.naver.com)",
       "mcp__vercel__list_teams",
       "mcp__vercel__get_deployment_events",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebSearch"
     ],
     "deny": []
   }

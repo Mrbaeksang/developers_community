@@ -5,6 +5,17 @@ import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
+// 카카오 API 응답 타입 (공식 문서 기준)
+interface KakaoProfile {
+  id: number
+  kakao_account?: {
+    profile?: {
+      nickname?: string
+      profile_image_url?: string
+      thumbnail_image_url?: string
+    }
+  }
+}
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -89,6 +100,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID!,
       clientSecret: process.env.AUTH_KAKAO_SECRET!,
+      // 카카오 API는 kakao_account.profile 구조로 사용자 정보 반환
+      // NextAuth가 이를 자동으로 파싱하지 못하므로 수동 매핑 필요
+      profile(profile: KakaoProfile) {
+        return {
+          id: String(profile.id),
+          name: profile.kakao_account?.profile?.nickname || null,
+          email: null, // 카카오는 이메일 미제공
+          image: profile.kakao_account?.profile?.profile_image_url || null,
+        }
+      },
     }),
   ],
 })
