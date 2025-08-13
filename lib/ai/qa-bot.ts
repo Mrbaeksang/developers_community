@@ -299,7 +299,7 @@ export async function generateAIResponse(
 
     const prompt = createPrompt(post)
 
-    // AI 응답 생성 (1순위 모델 시도, 실패시 2순위)
+    // 메인 사이트는 텍스트 전용 모델 사용 (파일 업로드 불가)
     let completion
     try {
       completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
@@ -382,7 +382,7 @@ export async function createAIComment(postId: string): Promise<void> {
       return
     }
 
-    // AI 응답 생성
+    // AI 응답 생성 (메인 사이트는 텍스트 전용)
     const aiResponse = await generateAIResponse(post)
     if (!aiResponse) {
       return

@@ -13,11 +13,13 @@ export const openrouter = new OpenAI({
 
 // AI 모델 설정
 export const AI_MODELS = {
-  // 1순위: GPT OSS 120B (더 높은 품질)
+  // 텍스트 전용 모델
   PRIMARY: 'openai/gpt-oss-120b',
-
-  // 2순위: DeepSeek R1 T2 Chimera (무료 백업)
   SECONDARY: 'tngtech/deepseek-r1t2-chimera:free',
+
+  // Vision 모델 (이미지 + 파일 포함 Q&A용 - 커뮤니티 전용)
+  // 메인 사이트는 파일 업로드 불가하므로 텍스트 전용 모델만 사용
+  VISION: 'openai/gpt-5-nano',
 
   // 기본 모델
   DEFAULT: 'openai/gpt-oss-120b',
