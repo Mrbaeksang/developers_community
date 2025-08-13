@@ -29,9 +29,9 @@ const notoSansKr = Noto_Sans_KR({
 })
 
 export const metadata: Metadata = {
-  title: '바이브 코딩 | 코딩 공부 시작 가이드',
+  title: '바이브 코딩 | 개발자 커뮤니티',
   description:
-    '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지 한번에!',
+    '코딩 공부부터 취업까지! React, JavaScript 오류 해결과 실무 팁을 공유하는 개발자 커뮤니티',
   keywords:
     '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 개발자 되려면, 신입 개발자 취업, 코딩 배우기 무료, 자바스크립트 오류, React 오류 해결, 포트폴리오 만들기, ChatGPT 활용법, 개발자 로드맵, 코딩테스트 준비, 부트캠프 후기',
   authors: [{ name: 'Dev Community' }],
@@ -52,16 +52,14 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ko_KR',
     url: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
-    title: '바이브 코딩 | 코딩 공부 시작 가이드',
-    description:
-      '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지!',
+    title: '바이브 코딩 | 개발자 커뮤니티',
+    description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
     siteName: '바이브 코딩',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '바이브 코딩 | 코딩 공부 시작 가이드',
-    description:
-      '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지!',
+    title: '바이브 코딩 | 개발자 커뮤니티',
+    description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
   },
   verification: {
     google: 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',

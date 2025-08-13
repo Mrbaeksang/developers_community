@@ -5,6 +5,7 @@ import { UnifiedPostDetail } from '@/components/posts/UnifiedPostDetail'
 import CommentSection from '@/components/posts/CommentSection'
 import { markdownToHtml } from '@/lib/ui/markdown'
 import { SkeletonLoader } from '@/components/shared/LoadingSpinner'
+import { StructuredData } from '@/components/seo/StructuredData'
 import { prisma } from '@/lib/core/prisma'
 import { auth } from '@/auth'
 
@@ -178,6 +179,21 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto py-8">
+      <StructuredData
+        type="article"
+        data={{
+          title: post.title,
+          description: post.excerpt || post.metaDescription || post.title,
+          author: {
+            name: post.author?.name || 'Unknown',
+            url: `https://devcom.kr/profile/${post.author?.id}`,
+          },
+          publishedAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          image: 'https://devcom.kr/og-image.png',
+          url: `https://devcom.kr/main/posts/${post.id}`,
+        }}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-7xl mx-auto">
         <div className="space-y-8">
           <UnifiedPostDetail

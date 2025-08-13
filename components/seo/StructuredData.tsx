@@ -21,9 +21,16 @@ interface ProfileData {
   social?: string[]
 }
 
+interface FAQData {
+  questions?: Array<{
+    question: string
+    answer: string
+  }>
+}
+
 interface StructuredDataProps {
-  type?: 'website' | 'article' | 'profile' | 'organization'
-  data?: ArticleData | ProfileData
+  type?: 'website' | 'article' | 'profile' | 'organization' | 'faq'
+  data?: ArticleData | ProfileData | FAQData
 }
 
 export function StructuredData({
@@ -106,6 +113,22 @@ export function StructuredData({
           url: profileData?.url || baseUrl,
           image: profileData?.image || '',
           sameAs: profileData?.social || [],
+        }
+
+      case 'faq':
+        const faqData = data as FAQData
+        return {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity:
+            faqData?.questions?.map((q) => ({
+              '@type': 'Question',
+              name: q.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: q.answer,
+              },
+            })) || [],
         }
 
       default:

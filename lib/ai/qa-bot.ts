@@ -227,11 +227,6 @@ function createPrompt(post: MainPost): string {
   const cleanTitle = post.title.trim()
 
   // 영어로 프롬프트 작성 (한글 인코딩 문제 회피)
-  console.error('[AI Bot] 프롬프트 생성 - 제목:', cleanTitle)
-  console.error(
-    '[AI Bot] 프롬프트 생성 - 내용 (첫 100자):',
-    cleanContent.substring(0, 100)
-  )
 
   return `You are an AI assistant for a Korean developer community. Please provide a helpful answer to the following question.
 
@@ -258,17 +253,11 @@ Please provide an appropriately sized answer in Korean based on the question's c
 // AI 모델 호출 헬퍼 함수
 async function callAIModel(
   model: string,
-  prompt: string,
-  modelName: string = 'AI 모델'
+  prompt: string
 ): Promise<ChatCompletion> {
-  console.error(`[AI Bot] ${modelName} 시도:`, model)
-
   const controller = new AbortController()
   const timeout = setTimeout(() => {
     controller.abort()
-    console.error(
-      `[AI Bot] ${modelName} 호출 타임아웃 (${AI_CONFIG.TIMEOUT_MS / 1000}초)`
-    )
   }, AI_CONFIG.TIMEOUT_MS)
 
   try {
@@ -291,7 +280,6 @@ async function callAIModel(
       signal: controller.signal,
     })
     clearTimeout(timeout)
-    console.error(`[AI Bot] ${modelName} 성공`)
     return completion
   } catch (error) {
     clearTimeout(timeout)
@@ -303,56 +291,34 @@ async function callAIModel(
 export async function generateAIResponse(
   post: MainPost & { category: MainCategory | null }
 ): Promise<string | null> {
-  console.error('[AI Bot] generateAIResponse 호출됨')
-
   try {
     // Q&A 카테고리인지 확인
     if (!isQACategory(post.category)) {
-      console.error('[AI Bot] generateAIResponse: Q&A 카테고리 아님')
       return null
     }
-
-    console.error('[AI Bot] OpenRouter API 호출 시작')
-    console.error('[AI Bot] API Key 존재:', !!process.env.OPENROUTER_API_KEY)
-    console.error(
-      '[AI Bot] API Key 앞 10자:',
-      process.env.OPENROUTER_API_KEY?.substring(0, 10)
-    )
 
     const prompt = createPrompt(post)
 
     // AI 응답 생성 (1순위 모델 시도, 실패시 2순위)
     let completion
     try {
-      completion = await callAIModel(AI_MODELS.PRIMARY, prompt, '1순위 모델')
-    } catch (error) {
+      completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
+    } catch {
       // 1순위 실패시 2순위 모델 시도
-      console.error('[AI Bot] 1순위 모델 실패, 2순위 시도:', error)
-      completion = await callAIModel(AI_MODELS.SECONDARY, prompt, '2순위 모델')
+      completion = await callAIModel(AI_MODELS.SECONDARY, prompt)
     }
 
     const response = completion.choices[0]?.message?.content
-    console.error('[AI Bot] API 응답 받음, 길이:', response?.length)
-    console.error(
-      '[AI Bot] API 응답 내용 (첫 200자):',
-      response?.substring(0, 200)
-    )
 
     if (!response) {
-      console.error('[AI Bot] AI 응답 생성 실패: 빈 응답')
       return null
     }
 
     // AI 봇 응답은 검열 건너뛰기 (AI는 안전한 응답 생성)
     // 검열 시스템이 과도하게 차단하는 문제 (class, hello 등도 차단)
-    console.error('[AI Bot] AI 응답은 검열 건너뛰기')
 
     // 마크다운 내용을 HTML로 변환
     const htmlContent = markdownToHTML(response)
-    console.error(
-      '[AI Bot] HTML 변환 후 (첫 200자):',
-      htmlContent.substring(0, 200)
-    )
 
     // HTML에서 태그를 제거하여 실제 텍스트 길이 확인
     const textLength = htmlContent.replace(/<[^>]*>/g, '').trim().length
@@ -388,8 +354,6 @@ export async function getAIBotUser(): Promise<User | null> {
 
 // Q&A 게시글에 AI 댓글 생성
 export async function createAIComment(postId: string): Promise<void> {
-  console.error('[AI Bot] createAIComment 호출됨:', postId)
-
   try {
     // 게시글 조회
     const post = await prisma.mainPost.findUnique({
@@ -397,20 +361,12 @@ export async function createAIComment(postId: string): Promise<void> {
       include: { category: true },
     })
 
-    console.error('[AI Bot] 게시글 조회 결과:', {
-      found: !!post,
-      status: post?.status,
-      categorySlug: post?.category?.slug,
-    })
-
     if (!post || post.status !== 'PUBLISHED') {
-      console.error('[AI Bot] 게시글이 없거나 PUBLISHED가 아님')
       return
     }
 
     // Q&A 카테고리 확인
     if (!isQACategory(post.category)) {
-      console.error('[AI Bot] Q&A 카테고리가 아님:', post.category?.slug)
       return
     }
 
@@ -423,30 +379,23 @@ export async function createAIComment(postId: string): Promise<void> {
     })
 
     if (existingAIComment) {
-      console.error('[AI Bot] 이미 AI 댓글이 존재함')
       return
     }
 
-    console.error('[AI Bot] AI 응답 생성 시작')
     // AI 응답 생성
     const aiResponse = await generateAIResponse(post)
     if (!aiResponse) {
-      console.error('[AI Bot] AI 응답 생성 실패')
       return
     }
-    console.error('[AI Bot] AI 응답 생성 성공, 길이:', aiResponse.length)
 
     // AI 봇 사용자 확인
     const aiBot = await getAIBotUser()
     if (!aiBot) {
-      console.error('[AI Bot] AI 봇 사용자를 찾을 수 없어 댓글 생성 실패')
       return
     }
-    console.error('[AI Bot] AI 봇 사용자 확인:', aiBot.id)
 
     // 댓글 생성
-    console.error('[AI Bot] 댓글 생성 시작')
-    const comment = await prisma.mainComment.create({
+    await prisma.mainComment.create({
       data: {
         content: aiResponse,
         postId,
@@ -454,7 +403,6 @@ export async function createAIComment(postId: string): Promise<void> {
         authorRole: aiBot.globalRole, // 작성자 역할 저장
       },
     })
-    console.error('[AI Bot] 댓글 생성 완료:', comment.id)
 
     // 게시글 댓글 수 업데이트
     await prisma.mainPost.update({
@@ -465,16 +413,12 @@ export async function createAIComment(postId: string): Promise<void> {
         },
       },
     })
-    console.error('[AI Bot] 게시글 댓글 수 업데이트 완료')
 
     // Redis 캐시 무효화 - 댓글이 추가되었으므로 캐시 삭제
     const { redisCache, generateCacheKey } = await import('@/lib/cache/redis')
     await redisCache.del(generateCacheKey('main:post:comments', { postId }))
-    console.error('[AI Bot] Redis 캐시 무효화 완료')
-
-    console.error('[AI Bot] AI 댓글 생성 성공!')
   } catch (error) {
-    console.error('[AI Bot] AI 댓글 생성 중 오류:', error)
+    console.error('[AI Bot] AI 댓글 생성 중 오류:', error) // 오류만 남기기
   }
 }
 

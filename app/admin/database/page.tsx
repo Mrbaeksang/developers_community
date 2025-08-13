@@ -567,7 +567,7 @@ export default function DatabaseViewerPage() {
         <div className="flex items-center gap-2">
           <Image
             src={value}
-            alt=""
+            alt="프로필 이미지"
             width={32}
             height={32}
             className="rounded-full object-cover border"

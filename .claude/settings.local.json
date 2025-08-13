@@ -54,7 +54,10 @@
       "mcp__github__search_issues",
       "Bash(npx vercel env ls:*)",
       "mcp__ref-tools__ref_search_documentation",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:searchadvisor.naver.com)",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__get_deployment_events"
     ],
     "deny": []
   }

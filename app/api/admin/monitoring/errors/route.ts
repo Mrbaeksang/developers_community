@@ -61,7 +61,7 @@ export async function GET() {
 
         return { errors, summary }
       },
-      30 // 30초 캐싱
+      300 // 5분 캐싱 (CPU 사용량 추가 절감)
     )
 
     return successResponse(data)

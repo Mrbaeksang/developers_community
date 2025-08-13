@@ -1,6 +1,7 @@
 import dynamic from 'next/dynamic'
 import { Metadata } from 'next'
 import { HeroSection } from '@/components/home/HeroSection'
+import { StructuredData } from '@/components/seo/StructuredData'
 import { getApiUrl } from '@/lib/api/client'
 
 // Dynamic imports for heavy components
@@ -177,16 +178,14 @@ export const revalidate = 60
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title:
-      '코딩 공부 시작 가이드 | 프로그래밍 언어 추천 | 신입 개발자 취업 준비',
+    title: '바이브 코딩 | 개발자 커뮤니티',
     description:
-      '코딩 공부 어디서 시작해야 할까? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, React 에러 해결, 신입 개발자 취업까지! ChatGPT 활용법과 포트폴리오 만들기 팁도 함께.',
+      '코딩 공부부터 취업까지! React, JavaScript 오류 해결과 실무 팁을 공유하는 개발자 커뮤니티',
     keywords:
       '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 자바스크립트 오류, React 오류 해결, 신입 개발자 취업, 포트폴리오 만들기, ChatGPT 활용법, 코딩 배우기 무료, 개발자 공부 순서, 코딩테스트 준비, 부트캠프 후기, CSS 가운데 정렬',
     openGraph: {
-      title: '코딩 공부 시작 가이드 | 프로그래밍 언어 추천',
-      description:
-        '코딩 공부 어디서 시작해야 할까? 프로그래밍 언어 추천부터 자바스크립트 오류 해결, 신입 개발자 취업까지!',
+      title: '바이브 코딩 | 개발자 커뮤니티',
+      description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
       type: 'website',
       locale: 'ko_KR',
     },
@@ -280,6 +279,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <StructuredData type="website" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

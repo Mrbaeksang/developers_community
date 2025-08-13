@@ -225,7 +225,7 @@ export function RealtimeDashboard() {
 
       // 페이지가 보이는 상태일 때만 폴링 시작
       if (isPageVisible) {
-        interval = setInterval(fetchData, 30000)
+        interval = setInterval(fetchData, 120000) // 2분으로 증가 (CPU 사용량 75% 절감)
       }
     }
 

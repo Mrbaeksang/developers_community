@@ -48,9 +48,9 @@ export async function GET() {
           }
         }
 
-        // 활성 사용자 수
-        const activeUserKeys = await client.keys('monitoring:active_users:*')
-        const activeUsers = activeUserKeys.length
+        // 활성 사용자 수 (keys 스캔은 CPU 집약적이므로 카운터 사용)
+        const activeUsers =
+          (await client.get('monitoring:active_users_count')) || 0
 
         // 현재 시간대 API 호출 통계
         const hour = new Date().getHours()
@@ -122,7 +122,7 @@ export async function GET() {
           },
         }
       },
-      30 // 30초 캐싱
+      300 // 5분 캐싱 (CPU 사용량 추가 절감)
     )
 
     return successResponse(data)
