@@ -243,9 +243,10 @@ function createPromptWithImages(post: MainPost, imageUrls: string[]): string {
 
   const cleanTitle = post.title.trim()
 
-  const imagePrompt = imageUrls.length > 0 
-    ? `\n\nThe question includes ${imageUrls.length} image(s). Please analyze the image(s) and incorporate your findings into your answer.`
-    : ''
+  const imagePrompt =
+    imageUrls.length > 0
+      ? `\n\nThe question includes ${imageUrls.length} image(s). Please analyze the image(s) and incorporate your findings into your answer.`
+      : ''
 
   return `You are an AI assistant for a Korean developer community. Please provide a helpful answer to the following question.
 
@@ -288,39 +289,42 @@ async function callAIModel(
 
   try {
     // 이미지가 있는 경우 Vision 메시지 형식 사용
-    const messages = imageUrls.length > 0 
-      ? [
-          {
-            role: 'system' as const,
-            content: 'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
-          },
-          {
-            role: 'user' as const,
-            content: [
-              {
-                type: 'text' as const,
-                text: prompt,
-              },
-              ...imageUrls.map(url => ({
-                type: 'image_url' as const,
-                image_url: {
-                  url,
-                  detail: 'high' as const,
+    const messages =
+      imageUrls.length > 0
+        ? [
+            {
+              role: 'system' as const,
+              content:
+                'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
+            },
+            {
+              role: 'user' as const,
+              content: [
+                {
+                  type: 'text' as const,
+                  text: prompt,
                 },
-              })),
-            ],
-          },
-        ]
-      : [
-          {
-            role: 'system' as const,
-            content: 'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
-          },
-          {
-            role: 'user' as const,
-            content: prompt,
-          },
-        ]
+                ...imageUrls.map((url) => ({
+                  type: 'image_url' as const,
+                  image_url: {
+                    url,
+                    detail: 'high' as const,
+                  },
+                })),
+              ],
+            },
+          ]
+        : [
+            {
+              role: 'system' as const,
+              content:
+                'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
+            },
+            {
+              role: 'user' as const,
+              content: prompt,
+            },
+          ]
 
     const completion = await openrouter.chat.completions.create({
       model,
@@ -353,7 +357,7 @@ export async function generateAIResponse(
     const hasImages = imageUrls.length > 0
 
     // 이미지가 있으면 비전 모델 사용, 없으면 텍스트 모델 사용
-    const prompt = hasImages 
+    const prompt = hasImages
       ? createPromptWithImages(post, imageUrls)
       : createPrompt(post)
 

@@ -33,7 +33,21 @@ const fetchRecentPosts = async (): Promise<PostWithCalculatedFields[]> => {
   const response = await fetch('/api/main/posts?limit=10&sort=latest')
   if (!response.ok) throw new Error('Failed to fetch recent posts')
   const result = await response.json()
-  return result.data || []
+
+  // API 응답 구조에 따라 적절히 처리
+  if (Array.isArray(result)) {
+    return result
+  }
+  if (result.data && Array.isArray(result.data)) {
+    return result.data
+  }
+  if (result.posts && Array.isArray(result.posts)) {
+    return result.posts
+  }
+
+  // 예상치 못한 구조인 경우 빈 배열 반환
+  console.warn('Unexpected API response structure:', result)
+  return []
 }
 
 export function RecentPosts() {
@@ -66,7 +80,8 @@ export function RecentPosts() {
     )
   }
 
-  if (posts.length === 0) {
+  // posts가 배열이 아닌 경우 방어
+  if (!Array.isArray(posts) || posts.length === 0) {
     return (
       <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="border-b-2 border-black bg-gradient-to-r from-blue-50 to-indigo-50 p-5">

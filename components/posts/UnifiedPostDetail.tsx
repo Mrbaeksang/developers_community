@@ -268,30 +268,72 @@ export function UnifiedPostDetail({
     }, 300)
   }, [effectiveUserId, isProcessingBookmark, bookmarkMutation])
 
-  // 게시글 삭제
+  // 게시글 삭제 (낙관적 UI)
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const response = await apiClient(apiBasePath, { method: 'DELETE' })
       if (!response.success) throw new Error('삭제 실패')
       return response.data
     },
-    onMutate: () => {
+    onMutate: async () => {
+      // 낙관적 업데이트를 위한 준비
       setIsDeleting(true)
+
+      // 게시글 목록 캐시에서 제거 (낙관적)
+      await queryClient.cancelQueries({ queryKey: [postType + 'Posts'] })
+
+      const previousPosts = queryClient.getQueryData([postType + 'Posts'])
+
+      // 목록에서 해당 게시글 즉시 제거
+      queryClient.setQueryData([postType + 'Posts'], (old: unknown) => {
+        if (!old) return old
+        if (Array.isArray(old)) {
+          return old.filter((p: { id: string }) => p.id !== post.id)
+        }
+        const oldData = old as { posts?: Array<{ id: string }>; total?: number }
+        if (oldData.posts) {
+          return {
+            ...oldData,
+            posts: oldData.posts.filter((p) => p.id !== post.id),
+            total: oldData.total ? oldData.total - 1 : 0,
+          }
+        }
+        return old
+      })
+
+      // 즉시 페이지 이동 (사용자 경험 개선)
+      const redirectUrl = post.community
+        ? `/communities/${post.community.id}/posts`
+        : '/main/posts'
+
+      // 토스트 메시지 먼저 표시
+      toast.success('게시글이 삭제되었습니다.')
+
+      // 약간의 딜레이 후 리다이렉트 (토스트가 보이도록)
+      setTimeout(() => {
+        router.push(redirectUrl)
+      }, 100)
+
+      return { previousPosts }
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('Failed to delete post:', error)
+
+      // 롤백
+      if (context?.previousPosts) {
+        queryClient.setQueryData([postType + 'Posts'], context.previousPosts)
+      }
+
       toast.error('게시글 삭제에 실패했습니다.')
       setIsDeleting(false)
     },
     onSuccess: () => {
-      toast.success('게시글이 삭제되었습니다.')
+      // 백그라운드에서 캐시 무효화
       queryClient.invalidateQueries({ queryKey: [postType + 'Posts'] })
-
-      if (post.community) {
-        router.push(`/communities/${post.community.id}/posts`)
-      } else {
-        router.push('/main/posts')
-      }
+    },
+    onSettled: () => {
+      // 최종 정리
+      setIsDeleting(false)
     },
   })
 

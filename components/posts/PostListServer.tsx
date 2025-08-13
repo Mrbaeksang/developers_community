@@ -32,7 +32,7 @@ export async function PostListServer({
 
   // 페이지네이션 설정
   const pageNumber = parseInt(page)
-  const pageSize = 5 // 테스트를 위해 5개로 줄임
+  const pageSize = 10 // 페이지 크기
   const skip = (pageNumber - 1) * pageSize
 
   // 카테고리 필터 설정
@@ -81,53 +81,35 @@ export async function PostListServer({
     },
   }
 
-  const [pinnedPosts, regularPosts, totalCount, categories] = await Promise.all(
-    [
-      // 1. 고정 게시글만 조회 (전체에서)
-      prisma.mainPost.findMany({
-        where: {
-          ...where,
-          isPinned: true,
-        },
-        orderBy: getRegularOrderBy(), // 고정 게시글도 선택한 정렬 방식으로 정렬
-        include: includeOptions,
-      }),
-      // 2. 일반 게시글만 조회 (페이지네이션 적용)
-      prisma.mainPost.findMany({
-        where: {
-          ...where,
-          isPinned: false,
-        },
-        orderBy: getRegularOrderBy(),
-        skip,
-        take: pageSize,
-        include: includeOptions,
-      }),
-      // 3. 전체 일반 게시글 개수 조회
-      prisma.mainPost.count({
-        where: {
-          ...where,
-          isPinned: false,
-        },
-      }),
-      // 4. 카테고리 조회
-      prisma.mainCategory.findMany({
-        include: {
-          posts: {
-            where: {
-              status: 'PUBLISHED',
-            },
-            select: {
-              id: true,
-            },
-          },
-        },
-        orderBy: {
-          order: 'asc',
-        },
-      }),
-    ]
-  )
+  const [pinnedPosts, regularPosts, totalCount] = await Promise.all([
+    // 1. 고정 게시글만 조회 (전체에서)
+    prisma.mainPost.findMany({
+      where: {
+        ...where,
+        isPinned: true,
+      },
+      orderBy: getRegularOrderBy(), // 고정 게시글도 선택한 정렬 방식으로 정렬
+      include: includeOptions,
+    }),
+    // 2. 일반 게시글만 조회 (페이지네이션 적용)
+    prisma.mainPost.findMany({
+      where: {
+        ...where,
+        isPinned: false,
+      },
+      orderBy: getRegularOrderBy(),
+      skip,
+      take: pageSize,
+      include: includeOptions,
+    }),
+    // 3. 전체 일반 게시글 개수 조회
+    prisma.mainPost.count({
+      where: {
+        ...where,
+        isPinned: false,
+      },
+    }),
+  ])
 
   // 고정 게시글과 일반 게시글 합치기 (고정이 항상 먼저)
   const allPosts = [...pinnedPosts, ...regularPosts]
@@ -175,12 +157,8 @@ export async function PostListServer({
     return formatMainPostForResponse(postWithRedisViews) as MainPostFormatted
   })
 
-  const formattedCategories = categories.map((cat) => ({
-    id: cat.id,
-    name: cat.name,
-    slug: cat.slug,
-    postCount: cat.posts.length,
-  }))
+  // 카테고리 목록 (빈 배열로 처리)
+  const formattedCategories: never[] = []
 
   // 총 페이지 수 계산
   const totalPages = Math.ceil(totalCount / pageSize)

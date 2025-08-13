@@ -76,26 +76,30 @@ export const CommentCard = memo(function CommentCard({
   // Minimal variant - 가장 간단한 형태
   if (variant === 'minimal') {
     return (
-      <div className={cn('py-2 border-b last:border-0', className)}>
-        <div className="flex items-start gap-3">
+      <div
+        className={cn('py-2 border-b last:border-0 overflow-hidden', className)}
+      >
+        <div className="flex items-start gap-2 sm:gap-3">
           {showAuthor && comment.author && (
             <AuthorAvatar author={comment.author} size="xs" showName={false} />
           )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
               {showAuthor && comment.author && (
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-none">
                   {comment.author.name || '익명'}
                 </span>
               )}
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {formattedDate}
               </span>
               {comment.isEdited && (
                 <span className="text-xs text-muted-foreground">(수정됨)</span>
               )}
             </div>
-            <p className="text-sm text-gray-700">{comment.content}</p>
+            <p className="text-sm text-gray-700 break-words overflow-wrap-anywhere">
+              {comment.content}
+            </p>
           </div>
         </div>
       </div>
@@ -109,18 +113,18 @@ export const CommentCard = memo(function CommentCard({
         className={cn(
           'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
           'hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all',
-          'bg-white',
+          'bg-white overflow-hidden',
           className
         )}
       >
         <Link href={postHref} className="block">
-          <CardContent className="p-4 space-y-2">
+          <CardContent className="p-3 sm:p-4 space-y-2">
             {/* 게시글 정보 */}
             {showPost && comment.post && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-start sm:items-center gap-2 flex-wrap sm:flex-nowrap">
                 <Badge
                   variant="outline"
-                  className="border-2 border-black font-bold shrink-0 flex items-center gap-1"
+                  className="border-2 border-black font-bold shrink-0 flex items-center gap-1 text-xs"
                   style={{
                     backgroundColor:
                       comment.post.type === 'COMMUNITY'
@@ -137,22 +141,26 @@ export const CommentCard = memo(function CommentCard({
                       )
                       return <CategoryIcon className="h-3 w-3" />
                     })()}
-                  {comment.post.type === 'COMMUNITY'
-                    ? comment.post.communityName || '커뮤니티'
-                    : comment.post.categoryName || '메인'}
+                  <span className="max-w-[80px] sm:max-w-none truncate">
+                    {comment.post.type === 'COMMUNITY'
+                      ? comment.post.communityName || '커뮤니티'
+                      : comment.post.categoryName || '메인'}
+                  </span>
                 </Badge>
-                <span className="text-sm text-muted-foreground truncate">
+                <span className="text-sm text-muted-foreground truncate flex-1 min-w-0">
                   {comment.post.title}
                 </span>
               </div>
             )}
 
             {/* 댓글 내용 */}
-            <p className="text-sm line-clamp-2">{comment.content}</p>
+            <p className="text-sm line-clamp-2 break-words">
+              {comment.content}
+            </p>
 
             {/* 하단 정보 */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 text-xs text-muted-foreground">
                 {showAuthor && comment.author && (
                   <>
                     <AuthorAvatar
@@ -160,24 +168,24 @@ export const CommentCard = memo(function CommentCard({
                       size="xs"
                       showName={false}
                     />
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-gray-700 truncate max-w-[100px] sm:max-w-none">
                       {comment.author.name || '익명'}
                     </span>
                   </>
                 )}
-                <span>{formattedDate}</span>
+                <span className="whitespace-nowrap">{formattedDate}</span>
               </div>
 
               {comment.stats && (
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
                   {comment.stats.likeCount > 0 && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 whitespace-nowrap">
                       <Heart className="h-3 w-3" />
                       {formatCount(comment.stats.likeCount)}
                     </span>
                   )}
                   {comment.stats.replyCount && comment.stats.replyCount > 0 && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 whitespace-nowrap">
                       <MessageCircle className="h-3 w-3" />
                       {formatCount(comment.stats.replyCount)}
                     </span>
@@ -197,13 +205,13 @@ export const CommentCard = memo(function CommentCard({
       className={cn(
         'border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
         'hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all',
-        'bg-white',
+        'bg-white overflow-hidden',
         className
       )}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+      <CardHeader className="p-3 sm:p-4 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
             {showAuthor && comment.author && (
               <AuthorAvatar
                 author={comment.author}
@@ -216,23 +224,26 @@ export const CommentCard = memo(function CommentCard({
             )}
 
             {/* 배지들 */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
               {comment.isPinned && (
-                <Badge className="h-6 px-2 py-0.5 text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-yellow-500 text-white">
-                  <Pin className="h-3 w-3 mr-1" />
+                <Badge className="h-5 sm:h-6 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-yellow-500 text-white">
+                  <Pin className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-0.5 sm:mr-1" />
                   고정
                 </Badge>
               )}
               {comment.isEdited && (
-                <Badge variant="outline" className="h-6 px-2 py-0.5 text-xs">
-                  <Edit className="h-3 w-3 mr-1" />
+                <Badge
+                  variant="outline"
+                  className="h-5 sm:h-6 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs"
+                >
+                  <Edit className="h-2.5 sm:h-3 w-2.5 sm:w-3 mr-0.5 sm:mr-1" />
                   수정됨
                 </Badge>
               )}
               {comment.author?.badge && (
                 <Badge
                   variant="secondary"
-                  className="h-6 px-2 py-0.5 text-xs font-bold"
+                  className="h-5 sm:h-6 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-bold"
                 >
                   {comment.author.badge}
                 </Badge>
@@ -271,13 +282,13 @@ export const CommentCard = memo(function CommentCard({
         {showPost && comment.post && (
           <Link
             href={postHref}
-            className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 p-1.5 sm:p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
           >
-            <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <MessageSquare className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground shrink-0" />
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
               <Badge
                 variant="outline"
-                className="border-2 border-black font-bold shrink-0 flex items-center gap-1"
+                className="border-2 border-black font-bold shrink-0 flex items-center gap-1 text-[10px] sm:text-xs"
                 style={{
                   backgroundColor:
                     comment.post.type === 'COMMUNITY'
@@ -292,13 +303,17 @@ export const CommentCard = memo(function CommentCard({
                     const CategoryIcon = getCategoryIcon(
                       comment.post.categoryIcon
                     )
-                    return <CategoryIcon className="h-3 w-3" />
+                    return (
+                      <CategoryIcon className="h-2.5 sm:h-3 w-2.5 sm:w-3" />
+                    )
                   })()}
-                {comment.post.type === 'COMMUNITY'
-                  ? comment.post.communityName || '커뮤니티'
-                  : comment.post.categoryName || '메인'}
+                <span className="max-w-[60px] sm:max-w-none truncate">
+                  {comment.post.type === 'COMMUNITY'
+                    ? comment.post.communityName || '커뮤니티'
+                    : comment.post.categoryName || '메인'}
+                </span>
               </Badge>
-              <span className="text-sm font-medium truncate">
+              <span className="text-xs sm:text-sm font-medium truncate flex-1 min-w-0">
                 {comment.post.title}
               </span>
             </div>
@@ -306,14 +321,14 @@ export const CommentCard = memo(function CommentCard({
         )}
       </CardHeader>
 
-      <CardContent className="pb-3">
+      <CardContent className="px-3 sm:px-4 pb-3">
         {/* 댓글 내용 */}
         <div
           className={cn(
-            'text-sm text-gray-700 whitespace-pre-wrap',
+            'text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere',
             comment.depth &&
               comment.depth > 0 &&
-              'pl-4 border-l-2 border-gray-200'
+              'pl-3 sm:pl-4 border-l-2 border-gray-200'
           )}
         >
           {comment.content}
@@ -322,26 +337,26 @@ export const CommentCard = memo(function CommentCard({
 
       {/* 액션 버튼들 */}
       {(onLike || onReply) && (
-        <CardFooter className="pt-3 border-t">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
+        <CardFooter className="px-3 sm:px-4 pt-2 sm:pt-3 border-t">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+            <div className="flex items-center gap-1 sm:gap-2">
               {onLike && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onLike(comment.id)}
                   className={cn(
-                    'h-8 px-3 gap-1.5',
+                    'h-7 sm:h-8 px-2 sm:px-3 gap-1 sm:gap-1.5 text-xs',
                     comment.stats?.isLiked && 'text-red-500'
                   )}
                 >
                   <Heart
                     className={cn(
-                      'h-4 w-4',
+                      'h-3 sm:h-4 w-3 sm:w-4',
                       comment.stats?.isLiked && 'fill-current'
                     )}
                   />
-                  <span className="text-xs font-medium">
+                  <span className="font-medium">
                     {comment.stats?.likeCount
                       ? formatCount(comment.stats.likeCount)
                       : '좋아요'}
@@ -354,10 +369,10 @@ export const CommentCard = memo(function CommentCard({
                   variant="ghost"
                   size="sm"
                   onClick={() => onReply(comment.id)}
-                  className="h-8 px-3 gap-1.5"
+                  className="h-7 sm:h-8 px-2 sm:px-3 gap-1 sm:gap-1.5 text-xs"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  <span className="text-xs font-medium">
+                  <MessageCircle className="h-3 sm:h-4 w-3 sm:w-4" />
+                  <span className="font-medium">
                     {comment.stats?.replyCount
                       ? `답글 ${formatCount(comment.stats.replyCount)}`
                       : '답글'}
@@ -369,12 +384,14 @@ export const CommentCard = memo(function CommentCard({
             {/* 통계 정보 */}
             {comment.stats &&
               (comment.stats.likeCount > 0 || comment.stats.replyCount) && (
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap">
                     좋아요 {formatCount(comment.stats.likeCount || 0)}
                   </span>
                   {comment.stats.replyCount && comment.stats.replyCount > 0 && (
-                    <span>답글 {formatCount(comment.stats.replyCount)}</span>
+                    <span className="whitespace-nowrap">
+                      답글 {formatCount(comment.stats.replyCount)}
+                    </span>
                   )}
                 </div>
               )}

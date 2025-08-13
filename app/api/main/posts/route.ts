@@ -291,7 +291,12 @@ async function createPost(
     // Ban 상태 체크
     await checkBanStatus(session.user.id)
 
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return errorResponse('Invalid JSON in request body', 400)
+    }
 
     // Zod로 요청 데이터 검증
     const parseResult = createPostSchema.safeParse(body)

@@ -414,10 +414,13 @@ async function deletePost(
               token: process.env.BLOB_READ_WRITE_TOKEN,
             })
           } catch (error) {
-            console.error(`Failed to delete blob file ${file.storedName}:`, error)
+            console.error(
+              `Failed to delete blob file ${file.storedName}:`,
+              error
+            )
           }
         })
-      ).catch(error => {
+      ).catch((error) => {
         console.error('Blob file deletion failed:', error)
       })
     }

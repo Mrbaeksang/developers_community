@@ -18,6 +18,10 @@ import {
 import CommentItem from './CommentItem'
 import { CommentForm } from '@/components/comments/CommentForm'
 import { EmptyState } from '@/components/shared/EmptyState'
+import {
+  TetrisLoading,
+  isMobileDevice,
+} from '@/components/shared/TetrisLoading'
 // Comment type defined locally
 type Comment = {
   id: string
@@ -113,6 +117,13 @@ export default function CommentSection({
 
   // Q&A 게시글인지 확인 (URL 파라미터 또는 localStorage에서)
   const [isWaitingForAI, setIsWaitingForAI] = useState(false)
+
+  // 모바일 여부 체크
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(isMobileDevice())
+  }, [])
 
   const { data: comments = initialComments, refetch } = useQuery({
     queryKey: ['comments', postId, postType, communityId],
@@ -252,7 +263,7 @@ export default function CommentSection({
     return undefined
   }, [isWaitingForAI, aiCommentFound, checkForAIComment, refetch, toast])
 
-  // 답글 작성 mutation
+  // 답글 작성 mutation (낙관적 UI)
   const createReplyMutation = useMutation({
     mutationFn: async ({
       content,
@@ -283,8 +294,36 @@ export default function CommentSection({
         parentId,
       }
     },
-    onSuccess: ({ reply, parentId }) => {
-      // 답글을 해당 댓글의 replies 배열에 추가
+    onMutate: async ({ content, parentId }) => {
+      // 진행 중인 쿼리 취소
+      await queryClient.cancelQueries({
+        queryKey: ['comments', postId, postType, communityId],
+      })
+
+      const previousComments = queryClient.getQueryData<Comment[]>([
+        'comments',
+        postId,
+        postType,
+        communityId,
+      ])
+
+      // 낙관적 답글 생성
+      const optimisticReply: Comment = {
+        id: `temp-${Date.now()}`,
+        content,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: session?.user?.id || '',
+        author: {
+          id: session?.user?.id || '',
+          name: session?.user?.name || 'Unknown',
+          image: session?.user?.image || null,
+        },
+        parentId,
+        isEdited: false,
+      }
+
+      // 낙관적 업데이트
       queryClient.setQueryData(
         ['comments', postId, postType, communityId],
         (old: Comment[] = []) =>
@@ -292,7 +331,59 @@ export default function CommentSection({
             if (comment.id === parentId) {
               return {
                 ...comment,
-                replies: [...(comment.replies || []), reply],
+                replies: [...(comment.replies || []), optimisticReply],
+              }
+            }
+            return comment
+          })
+      )
+
+      // UI 상태 즉시 초기화
+      setReplyingToId(null)
+      setReplyContents((prev) => {
+        const newContents = { ...prev }
+        delete newContents[parentId]
+        return newContents
+      })
+
+      return { previousComments }
+    },
+    onError: (error, variables, context) => {
+      // 롤백
+      if (context?.previousComments) {
+        queryClient.setQueryData(
+          ['comments', postId, postType, communityId],
+          context.previousComments
+        )
+      }
+
+      // UI 상태 복원
+      setReplyingToId(variables.parentId)
+      setReplyContents((prev) => ({
+        ...prev,
+        [variables.parentId]: variables.content,
+      }))
+
+      console.error('Failed to create reply:', error)
+      toast({
+        title: '답글 작성에 실패했습니다',
+        description:
+          error instanceof Error ? error.message : '다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    },
+    onSuccess: ({ reply, parentId }) => {
+      // 서버 응답으로 임시 답글 교체
+      queryClient.setQueryData(
+        ['comments', postId, postType, communityId],
+        (old: Comment[] = []) =>
+          old.map((comment) => {
+            if (comment.id === parentId) {
+              return {
+                ...comment,
+                replies: (comment.replies || []).map((r) =>
+                  r.id.startsWith('temp-') ? reply : r
+                ),
               }
             }
             return comment
@@ -300,21 +391,6 @@ export default function CommentSection({
       )
       toast({
         title: '답글이 작성되었습니다',
-      })
-      setReplyingToId(null)
-      setReplyContents((prev) => {
-        const newContents = { ...prev }
-        delete newContents[parentId]
-        return newContents
-      })
-    },
-    onError: (error) => {
-      console.error('Failed to create reply:', error)
-      toast({
-        title: '답글 작성에 실패했습니다',
-        description:
-          error instanceof Error ? error.message : '다시 시도해주세요.',
-        variant: 'destructive',
       })
     },
   })
@@ -346,7 +422,7 @@ export default function CommentSection({
     })
   }
 
-  // 댓글 수정 mutation
+  // 댓글 수정 mutation (낙관적 UI)
   const editCommentMutation = useMutation({
     mutationFn: async ({
       commentId,
@@ -376,15 +452,28 @@ export default function CommentSection({
       const updatedComment = response.data?.comment || response.data
       return { comment: updatedComment as Comment, commentId }
     },
-    onSuccess: ({ comment, commentId }) => {
-      // 재귀적으로 댓글 트리를 업데이트하는 함수
+    onMutate: async ({ commentId, content }) => {
+      // 진행 중인 쿼리 취소
+      await queryClient.cancelQueries({
+        queryKey: ['comments', postId, postType, communityId],
+      })
+
+      const previousComments = queryClient.getQueryData<Comment[]>([
+        'comments',
+        postId,
+        postType,
+        communityId,
+      ])
+
+      // 재귀적으로 댓글 트리를 낙관적으로 업데이트
       const updateCommentInTree = (comments: Comment[]): Comment[] => {
         return comments.map((c) => {
           if (c.id === commentId) {
             return {
               ...c,
-              content: comment.content,
+              content,
               isEdited: true,
+              updatedAt: new Date(),
             }
           }
           if (c.replies && c.replies.length > 0) {
@@ -397,17 +486,37 @@ export default function CommentSection({
         })
       }
 
+      // 낙관적 업데이트
       queryClient.setQueryData(
         ['comments', postId, postType, communityId],
         (old: Comment[] = []) => updateCommentInTree(old)
       )
-      toast({
-        title: '댓글이 수정되었습니다',
-      })
+
+      // UI 상태 즉시 초기화
       setEditingCommentId(null)
       setEditContent('')
+
+      return {
+        previousComments,
+        previousEditingId: commentId,
+        previousContent: editContent,
+      }
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // 롤백
+      if (context?.previousComments) {
+        queryClient.setQueryData(
+          ['comments', postId, postType, communityId],
+          context.previousComments
+        )
+      }
+
+      // UI 상태 복원
+      if (context?.previousEditingId) {
+        setEditingCommentId(context.previousEditingId)
+        setEditContent(context.previousContent)
+      }
+
       console.error('Failed to update comment:', error)
       toast({
         title: '댓글 수정에 실패했습니다',
@@ -416,9 +525,14 @@ export default function CommentSection({
         variant: 'destructive',
       })
     },
+    onSuccess: () => {
+      toast({
+        title: '댓글이 수정되었습니다',
+      })
+    },
   })
 
-  // 댓글 삭제 mutation
+  // 댓글 삭제 mutation (낙관적 UI)
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       const endpoint =
@@ -436,8 +550,20 @@ export default function CommentSection({
 
       return commentId
     },
-    onSuccess: (commentId) => {
-      // 재귀적으로 댓글을 삭제하는 함수
+    onMutate: async (commentId) => {
+      // 진행 중인 쿼리 취소
+      await queryClient.cancelQueries({
+        queryKey: ['comments', postId, postType, communityId],
+      })
+
+      const previousComments = queryClient.getQueryData<Comment[]>([
+        'comments',
+        postId,
+        postType,
+        communityId,
+      ])
+
+      // 재귀적으로 댓글을 낙관적으로 삭제
       const deleteCommentFromTree = (comments: Comment[]): Comment[] => {
         return comments
           .filter((comment) => comment.id !== commentId)
@@ -452,22 +578,43 @@ export default function CommentSection({
           })
       }
 
+      // 낙관적 업데이트
       queryClient.setQueryData(
         ['comments', postId, postType, communityId],
         (old: Comment[] = []) => deleteCommentFromTree(old)
       )
+
+      // 다이얼로그 즉시 닫기
+      setDeleteCommentId(null)
+
+      // 성공 토스트 즉시 표시
       toast({
         title: '댓글이 삭제되었습니다',
       })
-      setDeleteCommentId(null)
+
+      return { previousComments }
     },
-    onError: (error) => {
+    onError: (error, commentId, context) => {
+      // 롤백
+      if (context?.previousComments) {
+        queryClient.setQueryData(
+          ['comments', postId, postType, communityId],
+          context.previousComments
+        )
+      }
+
       console.error('Failed to delete comment:', error)
       toast({
         title: '댓글 삭제에 실패했습니다',
         description:
           error instanceof Error ? error.message : '다시 시도해주세요.',
         variant: 'destructive',
+      })
+    },
+    onSettled: () => {
+      // 백그라운드에서 쿼리 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['comments', postId, postType, communityId],
       })
     },
   })
@@ -572,17 +719,25 @@ export default function CommentSection({
         {/* Comments List */}
         {comments.length === 0 ? (
           isCheckingForAI ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
-              <div className="text-center space-y-2">
-                <p className="text-lg font-semibold">
-                  AI가 답변을 생성하고 있습니다
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  잠시만 기다려주세요... 곧 AI의 상세한 답변이 도착합니다.
-                </p>
+            !isMobile ? (
+              <TetrisLoading
+                size="sm"
+                text="AI가 답변을 생성하고 있습니다..."
+                className="py-12"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-semibold">
+                    AI가 답변을 생성하고 있습니다
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    잠시만 기다려주세요... 곧 AI의 상세한 답변이 도착합니다.
+                  </p>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <EmptyState
               icon={MessageSquare}

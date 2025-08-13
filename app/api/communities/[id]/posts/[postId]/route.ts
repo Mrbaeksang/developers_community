@@ -271,14 +271,14 @@ async function deleteCommunityPost(
     // 게시글과 연결된 파일들 조회
     const post = await prisma.communityPost.findUnique({
       where: { id: postId, communityId: community.id },
-      select: { 
+      select: {
         authorId: true,
         files: {
           select: {
             id: true,
             storedName: true,
-          }
-        }
+          },
+        },
       },
     })
 
@@ -305,9 +305,9 @@ async function deleteCommunityPost(
         await tx.file.deleteMany({
           where: {
             id: {
-              in: post.files.map(f => f.id)
-            }
-          }
+              in: post.files.map((f) => f.id),
+            },
+          },
         })
       }
 
@@ -327,10 +327,13 @@ async function deleteCommunityPost(
               token: process.env.BLOB_READ_WRITE_TOKEN,
             })
           } catch (error) {
-            console.error(`Failed to delete blob file ${file.storedName}:`, error)
+            console.error(
+              `Failed to delete blob file ${file.storedName}:`,
+              error
+            )
           }
         })
-      ).catch(error => {
+      ).catch((error) => {
         console.error('Blob file deletion failed:', error)
       })
     }
