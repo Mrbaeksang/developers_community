@@ -188,7 +188,7 @@ export function NotificationProvider({
 
       return null
     },
-    refetchInterval: 5000, // 5초마다 폴링
+    refetchInterval: 30000, // 30초마다 폴링 (CPU 사용량 83% 절감)
     enabled: status === 'authenticated' && !!session?.user?.id,
   })
 

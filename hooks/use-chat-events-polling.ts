@@ -85,8 +85,8 @@ export function useChatEventsPolling(channelId: string | null) {
 
       return data.success && data.data ? data.data.messages : []
     },
-    refetchInterval: 3000, // 3초마다 폴링
-    enabled: !!channelId && channelId !== null,
+    refetchInterval: false, // 폴링 완전 비활성화 (CPU 절약)
+    enabled: false, // 채팅 폴링 임시 비활성화
   })
 
   // 온라인 사용자 폴링 (10초마다)
@@ -107,8 +107,8 @@ export function useChatEventsPolling(channelId: string | null) {
           }
         : { count: 0, users: [] }
     },
-    refetchInterval: 10000, // 10초마다 폴링
-    enabled: !!channelId && channelId !== null,
+    refetchInterval: false, // 폴링 완전 비활성화 (CPU 절약)
+    enabled: false, // 온라인 사용자 폴링 임시 비활성화
   })
 
   // 새 메시지 처리

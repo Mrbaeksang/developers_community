@@ -208,7 +208,9 @@ class SessionManager {
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const
     events.forEach((event) => {
       if (this.activityHandler) {
-        document.addEventListener(event, this.activityHandler, { passive: true })
+        document.addEventListener(event, this.activityHandler, {
+          passive: true,
+        })
       }
     })
 
