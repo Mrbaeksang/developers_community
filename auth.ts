@@ -93,6 +93,20 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           scope: 'profile_nickname profile_image',
         },
       },
+      profile(profile) {
+        return {
+          id: String(profile.id),
+          name:
+            profile.kakao_account?.profile?.nickname ||
+            profile.properties?.nickname ||
+            null,
+          email: null, // 카카오는 이메일 제공 안 함
+          image:
+            profile.kakao_account?.profile?.profile_image_url ||
+            profile.properties?.profile_image ||
+            null,
+        }
+      },
     }),
   ],
 })
