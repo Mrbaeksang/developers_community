@@ -5,6 +5,22 @@ import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
+// 카카오 프로필 타입 정의
+interface KakaoProfile {
+  id: number
+  connected_at?: string
+  properties?: {
+    nickname?: string
+    profile_image?: string
+  }
+  kakao_account?: {
+    profile?: {
+      nickname?: string
+      profile_image_url?: string
+    }
+  }
+}
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   debug: process.env.NODE_ENV === 'development',
@@ -93,7 +109,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           scope: 'profile_nickname profile_image',
         },
       },
-      profile(profile) {
+      profile(profile: KakaoProfile) {
+        // 카카오 응답 구조
+        // profile.kakao_account.profile.nickname (닉네임)
+        // profile.kakao_account.profile.profile_image_url (프로필 이미지)
         return {
           id: String(profile.id),
           name:
