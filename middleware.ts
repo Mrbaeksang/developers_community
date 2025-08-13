@@ -86,10 +86,10 @@ export async function middleware(request: NextRequest) {
   const sessionId = request.cookies.get('visitor_session')?.value || nanoid()
 
   // CSP 설정 (OAuth + Vercel 지원)
-  const nonce = nanoid()
+  // Next.js와 호환성을 위해 nonce 제거, unsafe-inline 사용
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://img1.kakaocdn.net https://t1.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
@@ -152,8 +152,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-visitor-session', sessionId)
   response.headers.set('x-visitor-path', pathname)
 
-  // CSP nonce를 헤더에 추가하여 layout에서 사용 가능하도록 함
-  response.headers.set('x-nonce', nonce)
+  // CSP nonce 사용 중단 (Next.js와 호환성 문제)
 
   return response
 }
