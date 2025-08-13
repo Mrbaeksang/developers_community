@@ -265,8 +265,7 @@ export async function PUT(
     }
 
     const body = await req.json()
-    const { name, description, rules, visibility, allowFileUpload, allowChat } =
-      body
+    const { name, description, rules, visibility, allowFileUpload } = body
 
     // 커뮤니티 업데이트
     const updatedCommunity = await prisma.community.update({
@@ -277,7 +276,6 @@ export async function PUT(
         rules,
         visibility,
         allowFileUpload,
-        allowChat,
       },
       include: {
         owner: {

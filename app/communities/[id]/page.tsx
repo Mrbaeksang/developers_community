@@ -12,7 +12,6 @@ import { CommunityActions } from '@/components/communities/CommunityActions'
 import { CommunityPostList } from '@/components/communities/CommunityPostList'
 import CommunityMemberList from '@/components/communities/CommunityMemberList'
 import CommunityAnnouncements from '@/components/communities/CommunityAnnouncements'
-import CommunityChatWrapper from '@/components/communities/CommunityChatWrapper'
 import {
   getBannerUrl,
   getBannerType,
@@ -59,7 +58,6 @@ interface Community {
   memberCount: number
   postCount: number
   allowFileUpload: boolean
-  allowChat: boolean
   createdAt: string
   owner: {
     id: string
@@ -485,14 +483,6 @@ export default async function CommunityDetailPage({
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* 커뮤니티 채팅 */}
-        <CommunityChatWrapper
-          communityId={community.id}
-          communityName={community.name}
-          isMember={isMember}
-          allowChat={community.allowChat}
-        />
       </div>
     </div>
   )

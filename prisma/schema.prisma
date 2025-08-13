@@ -91,25 +91,8 @@ enum NotificationType {
   COMMUNITY_ROLE   // 역할 변경
   COMMUNITY_BAN    // 밴 알림
   
-  // 채팅 관련
-  CHAT_MESSAGE     // 채팅 메시지
-  CHAT_MENTION     // 채팅 멘션
-  
 }
 
-// 채팅 메시지 타입
-enum MessageType {
-  TEXT     // 텍스트 메시지
-  IMAGE    // 이미지
-  FILE     // 파일
-  SYSTEM   // 시스템 메시지 (입장, 퇴장 등)
-}
-
-// 채팅 채널 타입
-enum ChannelType {
-  COMMUNITY // 커뮤니티 채팅
-  GLOBAL    // 전체 사이트 채팅
-}
 
 // ============================================================================
 // USER MODELS - 사용자 관련 모델
@@ -157,9 +140,6 @@ model User {
   communityLikes      CommunityLike[]
   communityBookmarks  CommunityBookmark[]
 
-  // 채팅 관련
-  chatMessages ChatMessage[]
-  chatChannelMembers ChatChannelMember[]
 
   // 파일 업로드
   uploadedFiles File[]
@@ -381,7 +361,6 @@ model Community {
   
   // 기능 설정
   allowFileUpload Boolean         @default(true)  // 파일 업로드 허용
-  allowChat       Boolean         @default(true)  // 채팅 기능 허용
   maxFileSize     Int             @default(10485760) // 최대 파일 크기 (10MB)
   
   createdAt   DateTime            @default(now())
@@ -397,7 +376,6 @@ model Community {
   posts        CommunityPost[]
   tags         CommunityTag[]
   announcements CommunityAnnouncement[]
-  chatChannels ChatChannel[]
 
   @@map("communities")
 }
@@ -589,78 +567,6 @@ model CommunityAnnouncement {
   @@map("community_announcements")
 }
 
-// ============================================================================
-// CHAT MODELS - 실시간 채팅 시스템
-// ============================================================================
-
-// 채팅 채널 (커뮤니티별 또는 전체)
-model ChatChannel {
-  id          String      @id @default(cuid())
-  name        String
-  description String?
-  type        ChannelType @default(COMMUNITY) // 채널 타입
-  isDefault   Boolean     @default(false)     // 기본 채널 여부
-  order       Int         @default(0)
-  createdAt   DateTime    @default(now())
-
-  // 관계 - communityId는 GLOBAL 타입일 때 null
-  communityId String?
-  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  messages ChatMessage[]
-  members  ChatChannelMember[]
-
-  @@unique([communityId, name])
-  @@map("chat_channels")
-}
-
-// 채팅 채널 멤버
-model ChatChannelMember {
-  id          String   @id @default(cuid())
-  lastReadAt  DateTime @default(now()) // 마지막 읽은 시간
-  isMuted     Boolean  @default(false)  // 알림 음소거
-  joinedAt    DateTime @default(now())
-
-  // 관계
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channelId String
-  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, channelId])
-  @@map("chat_channel_members")
-}
-
-// 채팅 메시지
-model ChatMessage {
-  id        String      @id @default(cuid())
-  content   String      @db.Text
-  type      MessageType @default(TEXT)
-  isEdited  Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  // 관계
-  authorId  String
-  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  channelId String
-  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  // 파일 첨부 (이미지, 파일 등)
-  fileId String?
-  file   File?  @relation(fields: [fileId], references: [id])
-
-  // 답장 시스템
-  replyToId String?
-  replyTo   ChatMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
-  replies   ChatMessage[] @relation("MessageReplies")
-
-  // 성능 최적화를 위한 인덱스
-  @@index([channelId, createdAt])      // 채널 메시지
-  @@index([authorId, createdAt])       // 사용자 메시지
-
-  @@map("chat_messages")
-}
 
 // ============================================================================
 // FILE MODELS - 파일 시스템
@@ -701,8 +607,6 @@ model File {
   postId String?
   post   CommunityPost? @relation(fields: [postId], references: [id])
   
-  // 채팅 메시지 첨부
-  chatMessages ChatMessage[]
 
   @@map("files")
 }

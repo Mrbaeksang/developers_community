@@ -182,7 +182,6 @@ async function createCommunity(
       banner,
       visibility,
       allowFileUpload,
-      allowChat,
       maxFileSize,
     } = validation.data
 
@@ -216,7 +215,6 @@ async function createCommunity(
         banner,
         visibility,
         allowFileUpload,
-        allowChat,
         maxFileSize,
         ownerId: userId,
         // 생성자를 자동으로 OWNER 멤버로 추가

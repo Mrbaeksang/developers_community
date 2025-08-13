@@ -22,14 +22,11 @@ export async function POST() {
       errors: [] as string[],
     }
 
-    // 1. 고아 파일 찾기 (게시글도 채팅도 없는 파일, 24시간 이상 된 것)
+    // 1. 고아 파일 찾기 (게시글에 연결되지 않은 파일, 24시간 이상 된 것)
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const orphanedFiles = await prisma.file.findMany({
       where: {
         postId: null,
-        chatMessages: {
-          none: {},
-        },
         createdAt: {
           lt: oneDayAgo,
         },
@@ -40,14 +37,11 @@ export async function POST() {
       },
     })
 
-    // 2. 오래된 미사용 파일 (30일 이상, 게시글/채팅 연결 없음)
+    // 2. 오래된 미사용 파일 (30일 이상, 게시글 연결 없음)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     const oldUnusedFiles = await prisma.file.findMany({
       where: {
         postId: null,
-        chatMessages: {
-          none: {},
-        },
         createdAt: {
           lt: thirtyDaysAgo,
         },
@@ -171,9 +165,6 @@ export async function GET() {
     const orphanedCount = await prisma.file.count({
       where: {
         postId: null,
-        chatMessages: {
-          none: {},
-        },
       },
     })
 
@@ -181,14 +172,6 @@ export async function GET() {
       where: {
         postId: {
           not: null,
-        },
-      },
-    })
-
-    const chatFilesCount = await prisma.file.count({
-      where: {
-        chatMessages: {
-          some: {},
         },
       },
     })
@@ -214,7 +197,6 @@ export async function GET() {
       usage: {
         orphanedFiles: orphanedCount,
         postFiles: postFilesCount,
-        chatFiles: chatFilesCount,
       },
       byType: typeStats.map((stat) => ({
         type: stat.type,

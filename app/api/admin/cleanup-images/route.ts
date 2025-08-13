@@ -33,10 +33,6 @@ export async function POST(
         },
         // 게시글에 연결되지 않은 파일
         postId: null,
-        // 채팅 메시지에도 연결되지 않은 파일
-        chatMessages: {
-          none: {},
-        },
       },
       select: {
         id: true,

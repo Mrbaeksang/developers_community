@@ -42,9 +42,6 @@ export async function GET(req: NextRequest) {
           lt: cutoffDate,
         },
         postId: null,
-        chatMessages: {
-          none: {},
-        },
       },
       select: {
         id: true,

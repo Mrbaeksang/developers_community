@@ -100,10 +100,6 @@ export default function NotificationDropdown() {
       case 'COMMUNITY_BAN':
         return null
 
-      case 'CHAT_MESSAGE':
-      case 'CHAT_MENTION':
-        return null
-
       default:
         return null
     }

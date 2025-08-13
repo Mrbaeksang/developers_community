@@ -3,12 +3,12 @@ import { prisma } from '@/lib/core/prisma'
 import { requireAuthAPI, checkBanStatus } from '@/lib/auth/session'
 import {
   errorResponse,
-  paginatedResponse,
   createdResponse,
+  compressedPaginatedResponse,
 } from '@/lib/api/response'
 import { handleError } from '@/lib/api/errors'
 import { formatTimeAgo } from '@/lib/ui/date'
-import { formatMainPostForResponse } from '@/lib/post/display'
+import { formatMainPostForList } from '@/lib/post/display'
 import { withSecurity } from '@/lib/security/compatibility'
 import { ActionCategory } from '@/lib/security/actions'
 // Removed deprecated query-helpers import - using direct pagination
@@ -30,7 +30,7 @@ import { handleZodError } from '@/lib/api/validation-error'
 import { createAIComment } from '@/lib/ai/qa-bot'
 import { parseSearchParams } from '@/lib/api/params'
 
-export async function GET(request: NextRequest) {
+async function getPosts(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
@@ -172,9 +172,9 @@ export async function GET(request: NextRequest) {
             )
           }
 
-          // 포맷팅 - 통합 포맷터 사용
+          // 포맷팅 - 목록용 최적화 포맷터 사용
           const formattedPosts = postsWithUpdatedViews.map((post) => {
-            return formatMainPostForResponse({
+            return formatMainPostForList({
               ...post,
               timeAgo: formatTimeAgo(post.createdAt),
             })
@@ -235,9 +235,9 @@ export async function GET(request: NextRequest) {
             )
           }
 
-          // 포맷팅 - 통합 포맷터 사용
+          // 포맷팅 - 목록용 최적화 포맷터 사용
           const formattedPosts = postsWithUpdatedViews.map((post) => {
-            return formatMainPostForResponse({
+            return formatMainPostForList({
               ...post,
               timeAgo: formatTimeAgo(post.createdAt),
             })
@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
           return { posts: formattedPosts, total }
         }
       },
-      REDIS_TTL.API_SHORT // 30초 캐싱 (목록은 자주 변경)
+      sort === 'latest' ? REDIS_TTL.API_SHORT : REDIS_TTL.API_MEDIUM // 최신순은 30초, 나머지는 5분
     )
 
     // 응답 생성
@@ -262,11 +262,14 @@ export async function GET(request: NextRequest) {
         },
       })
     } else {
-      return paginatedResponse(
+      // 압축된 페이지네이션 응답 사용 (TTFB 개선)
+      return await compressedPaginatedResponse(
         cachedData.posts,
         pagination.page,
         pagination.limit,
-        cachedData.total
+        cachedData.total,
+        undefined,
+        { threshold: 512, level: 6 } // 빠른 압축 설정
       )
     }
   } catch (error) {
@@ -513,6 +516,9 @@ async function createPost(
     return handleError(error)
   }
 }
+
+// 보안 미들웨어만 적용 (압축은 응답 함수에서 처리)
+export const GET = getPosts
 
 // 통합 보안 미들웨어 적용 (Rate Limiting + CSRF)
 export const POST = withSecurity(createPost, {

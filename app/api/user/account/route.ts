@@ -34,12 +34,7 @@ export async function DELETE() {
         where: { userId },
       })
 
-      // 3. 채팅 메시지 삭제
-      await tx.chatMessage.deleteMany({
-        where: { authorId: userId },
-      })
-
-      // 4. 알림 삭제
+      // 3. 알림 삭제
       await tx.notification.deleteMany({
         where: { userId },
       })

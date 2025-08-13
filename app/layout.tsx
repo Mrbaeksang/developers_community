@@ -8,7 +8,6 @@ import { QueryProvider } from '@/components/providers/QueryProvider'
 import { Header } from '@/components/layouts/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
-import { ChatProvider } from '@/components/providers/ChatProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VisitorTracker } from '@/components/shared/VisitorTracker'
@@ -110,7 +109,6 @@ export default async function RootLayout({
                   <Toaster richColors position="bottom-right" />
                   <SessionExpiryWarning />
                   <GoogleOneTapAuth />
-                  <ChatProvider />
                   <VisitorTracker />
                   <PageViewTracker />
                   <Analytics />

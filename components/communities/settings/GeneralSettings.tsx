@@ -31,7 +31,6 @@ export function GeneralSettings({ community }: GeneralSettingsProps) {
     rules: community.rules || '',
     visibility: community.visibility,
     allowFileUpload: community.allowFileUpload,
-    allowChat: community.allowChat,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,26 +157,6 @@ export function GeneralSettings({ community }: GeneralSettingsProps) {
             checked={formData.allowFileUpload}
             onChange={(e) =>
               setFormData({ ...formData, allowFileUpload: e.target.checked })
-            }
-            disabled={isSubmitting}
-            className="h-5 w-5 rounded border-2 border-black cursor-pointer"
-          />
-        </div>
-
-        {/* 실시간 채팅 설정 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="allowChat">실시간 채팅</Label>
-            <p className="text-sm text-muted-foreground">
-              커뮤니티 멤버들이 실시간으로 채팅할 수 있습니다.
-            </p>
-          </div>
-          <input
-            type="checkbox"
-            id="allowChat"
-            checked={formData.allowChat}
-            onChange={(e) =>
-              setFormData({ ...formData, allowChat: e.target.checked })
             }
             disabled={isSubmitting}
             className="h-5 w-5 rounded border-2 border-black cursor-pointer"

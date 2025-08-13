@@ -406,7 +406,66 @@ export interface FormatOptions {
 }
 
 /**
- * 통합 게시글 응답 포맷터
+ * 통합 게시글 응답 포맷터 (목록용 최적화)
+ * 목록에서는 content 필드를 제거하여 응답 크기 최소화
+ */
+export function formatMainPostForList(
+  post: MainPostInput,
+  options: FormatOptions = {}
+) {
+  const { preserveDate = false } = options
+
+  // tags 처리 - 중첩 구조 평탄화 및 최대 3개로 제한
+  const tags =
+    post.tags?.slice(0, 3).map?.((postTag) => {
+      // postTag.tag가 있으면 중첩 구조, 없으면 이미 평탄화됨
+      const tag = 'tag' in postTag && postTag.tag ? postTag.tag : postTag
+      return {
+        id: tag.id,
+        name: tag.name,
+        slug: tag.slug,
+        color: tag.color,
+      }
+    }) || []
+
+  // createdAt 처리 - 옵션에 따라 Date 또는 string 반환
+  const createdAt = preserveDate
+    ? post.createdAt
+    : typeof post.createdAt === 'string'
+      ? post.createdAt
+      : post.createdAt.toISOString()
+
+  // 목록용 최적화된 응답 (content 제외)
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    createdAt,
+    isPinned: post.isPinned,
+    viewCount: post.viewCount,
+    likeCount: post.likeCount || post._count?.likes || 0,
+    commentCount: post.commentCount || post._count?.comments || 0,
+    author: {
+      id: post.author.id,
+      name: post.author.name,
+      image: post.author.image,
+      // email은 목록에서 제거 (개인정보 최소화)
+    },
+    category: {
+      id: post.category.id,
+      name: post.category.name,
+      slug: post.category.slug,
+      color: post.category.color,
+      // icon은 목록에서 제거 (크기 최적화)
+    },
+    tags: tags,
+    ...(post.timeAgo && { timeAgo: post.timeAgo }),
+  }
+}
+
+/**
+ * 통합 게시글 응답 포맷터 (상세보기용)
  * 모든 API에서 동일한 형식의 데이터 반환 보장
  */
 export function formatMainPostForResponse(

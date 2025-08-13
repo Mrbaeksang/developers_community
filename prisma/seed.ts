@@ -298,28 +298,6 @@ React 18의 새로운 동시성 기능에 대해 알아봅시다.
     },
   })
 
-  // Create default chat channel for community
-  await prisma.chatChannel.create({
-    data: {
-      name: 'general',
-      description: '일반 채팅',
-      type: 'COMMUNITY' as const,
-      isDefault: true,
-      communityId: community.id,
-    },
-  })
-
-  // Create global chat channel for entire site
-  await prisma.chatChannel.create({
-    data: {
-      name: 'global',
-      description: '전체 사이트 채팅',
-      type: 'GLOBAL' as const,
-      isDefault: true,
-      // communityId는 GLOBAL 타입에서는 필요없음
-    },
-  })
-
   // ✅ Database seeded successfully!
   // 📝 Created ${categories.length} main categories
   // 🏷️ Created ${tags.length} tags

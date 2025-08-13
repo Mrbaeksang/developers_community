@@ -41,11 +41,6 @@ export async function GET(
             communityId: true,
           },
         },
-        _count: {
-          select: {
-            chatMessages: true,
-          },
-        },
       },
     })
 
@@ -99,7 +94,7 @@ export async function GET(
             title: file.post.title,
           }
         : undefined,
-      usageCount: file._count.chatMessages + (file.post ? 1 : 0),
+      usageCount: file.post ? 1 : 0,
     })
   } catch (error) {
     return handleError(error)
@@ -129,11 +124,6 @@ export async function DELETE(
           select: {
             id: true,
             communityId: true,
-          },
-        },
-        _count: {
-          select: {
-            chatMessages: true,
           },
         },
       },
@@ -171,7 +161,7 @@ export async function DELETE(
     }
 
     // 파일이 사용 중인지 확인
-    if (file.post || file._count.chatMessages > 0) {
+    if (file.post) {
       throw throwValidationError('사용 중인 파일은 삭제할 수 없습니다.')
     }
 

@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server'
+import { deflate } from 'zlib'
+import { promisify } from 'util'
+
+const deflateAsync = promisify(deflate)
 
 // API 응답 타입 정의
 export interface ApiResponse<T = unknown> {
@@ -188,4 +192,98 @@ export function validationErrorResponse(
     },
     { status: 400 }
   )
+}
+
+// 압축 설정
+export interface CompressionOptions {
+  threshold?: number // 압축 최소 크기 (바이트)
+  level?: number // 압축 레벨 (1-9)
+}
+
+const DEFAULT_COMPRESSION: Required<CompressionOptions> = {
+  threshold: 1024, // 1KB 이상만 압축
+  level: 6, // 성능과 압축률의 균형
+}
+
+// 압축된 JSON 응답 헬퍼
+export async function compressedSuccessResponse<T>(
+  data: T,
+  message?: string,
+  status: number = 200,
+  options: CompressionOptions = {}
+): Promise<NextResponse> {
+  const config = { ...DEFAULT_COMPRESSION, ...options }
+
+  // BigInt 직렬화 처리
+  const serializedData = JSON.parse(
+    JSON.stringify(data, (key, val) =>
+      typeof val === 'bigint' ? val.toString() : val
+    )
+  )
+
+  const responseData = {
+    success: true,
+    data: serializedData,
+    ...(message && { message }),
+  } as ApiResponse<T>
+
+  const jsonString = JSON.stringify(responseData)
+  const bodySize = Buffer.byteLength(jsonString, 'utf8')
+
+  // 임계값 미만이면 압축하지 않음
+  if (bodySize < config.threshold) {
+    return NextResponse.json(responseData, { status })
+  }
+
+  try {
+    const compressedBody = await deflateAsync(jsonString, {
+      level: config.level,
+    })
+
+    // 압축 효과가 없으면 원본 반환
+    if (compressedBody.length >= bodySize) {
+      return NextResponse.json(responseData, { status })
+    }
+
+    const headers = new Headers()
+    headers.set('Content-Type', 'application/json')
+    headers.set('Content-Encoding', 'deflate')
+    headers.set('Content-Length', compressedBody.length.toString())
+    headers.set('Vary', 'Accept-Encoding')
+
+    // 압축률 정보 (성능 모니터링용)
+    const compressionRatio = (
+      (1 - compressedBody.length / bodySize) *
+      100
+    ).toFixed(1)
+    headers.set('X-Compression-Ratio', `${compressionRatio}%`)
+    headers.set('X-Original-Size', bodySize.toString())
+
+    return new NextResponse(compressedBody as BodyInit, {
+      status,
+      headers,
+    })
+  } catch (error) {
+    console.error('응답 압축 실패:', error)
+    return NextResponse.json(responseData, { status })
+  }
+}
+
+// 압축된 페이지네이션 응답
+export async function compressedPaginatedResponse<T>(
+  data: T[],
+  page: number,
+  limit: number,
+  total: number,
+  message?: string,
+  options: CompressionOptions = {}
+): Promise<NextResponse> {
+  const responseData = {
+    success: true,
+    data,
+    pagination: createPaginationMeta(page, limit, total),
+    ...(message && { message }),
+  } as PaginatedResponse<T>
+
+  return compressedSuccessResponse(responseData, undefined, 200, options)
 }

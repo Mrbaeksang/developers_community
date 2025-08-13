@@ -308,10 +308,6 @@ export default function NotificationsPage() {
       case 'COMMUNITY_BAN':
         return null
 
-      case 'CHAT_MESSAGE':
-      case 'CHAT_MENTION':
-        return null
-
       default:
         return null
     }
@@ -364,10 +360,6 @@ export default function NotificationsPage() {
         return '역할 변경'
       case 'COMMUNITY_BAN':
         return '커뮤니티 차단'
-      case 'CHAT_MESSAGE':
-        return '채팅 메시지'
-      case 'CHAT_MENTION':
-        return '채팅 멘션'
       default:
         return type
     }
@@ -408,8 +400,6 @@ export default function NotificationsPage() {
                 <SelectItem value="COMMENT_REPLY">댓글 답글</SelectItem>
                 <SelectItem value="COMMUNITY_INVITE">커뮤니티 초대</SelectItem>
                 <SelectItem value="COMMUNITY_JOIN">커뮤니티 가입</SelectItem>
-                <SelectItem value="CHAT_MESSAGE">채팅 메시지</SelectItem>
-                <SelectItem value="CHAT_MENTION">채팅 멘션</SelectItem>
               </SelectContent>
             </Select>
 

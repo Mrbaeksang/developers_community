@@ -85,7 +85,6 @@ export default function CreateCommunityForm() {
     banner: '',
     visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
     allowFileUpload: true,
-    allowChat: true,
     maxFileSize: 10485760, // 10MB default - fixed value
   })
 
@@ -1216,48 +1215,6 @@ export default function CreateCommunityForm() {
                     >
                       <div
                         className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white border-2 border-black rounded-full transition-transform ${formData.allowFileUpload ? 'translate-x-5' : ''}`}
-                      />
-                    </div>
-                  </label>
-                </div>
-
-                {/* 실시간 채팅 허용 */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="flex items-center">
-                    <div>
-                      <p className="font-bold">실시간 채팅 허용</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        커뮤니티 내에 별도의 채팅방을 만들어 멤버들이 자유롭게
-                        실시간 대화를 나눌 수 있도록 합니다.
-                      </p>
-                    </div>
-                    <div className="ml-2 group relative">
-                      <span className="material-icons text-gray-500 cursor-help text-sm">
-                        help_outline
-                      </span>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg z-10">
-                        커뮤니티 내에 별도의 채팅방을 만들어 멤버들이 자유롭게
-                        실시간 대화를 나눌 수 있도록 합니다.
-                      </div>
-                    </div>
-                  </div>
-                  <label className="relative">
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={formData.allowChat}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          allowChat: e.target.checked,
-                        })
-                      }
-                    />
-                    <div
-                      className={`w-[52px] h-8 rounded-full border-2 border-black relative cursor-pointer transition-colors ${formData.allowChat ? 'bg-green-500' : 'bg-gray-200'}`}
-                    >
-                      <div
-                        className={`absolute top-[2px] left-[2px] w-6 h-6 bg-white border-2 border-black rounded-full transition-transform ${formData.allowChat ? 'translate-x-5' : ''}`}
                       />
                     </div>
                   </label>
