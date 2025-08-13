@@ -197,7 +197,7 @@ export default function ShareModal({
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
               onClick={shareToKakao}
-              disabled={!kakaoReady && typeof window !== 'undefined'}
+              disabled={!kakaoReady}
             >
               <div className="w-10 h-10 bg-[#FEE500] rounded-lg flex items-center justify-center">
                 <RiKakaoTalkFill className="text-black text-2xl" />
