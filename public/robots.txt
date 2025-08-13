@@ -1,0 +1,75 @@
+# Robots.txt for devcom.kr
+# Generated: 2025-01-13
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /profile/edit
+Disallow: /communities/create
+Disallow: /main/posts/create
+Disallow: /main/posts/*/edit
+Disallow: /communities/*/posts/create
+Disallow: /communities/*/posts/*/edit
+Disallow: /communities/*/settings
+Disallow: /notifications
+Disallow: /chat
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Naver Bot
+User-agent: Yeti
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+User-agent: NaverBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Daum Bot
+User-agent: Daumoa
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Sitemap
+Sitemap: https://devcom.kr/sitemap.xml
+
+# Host
+Host: https://devcom.kr

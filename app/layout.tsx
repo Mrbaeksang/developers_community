@@ -29,9 +29,9 @@ const notoSansKr = Noto_Sans_KR({
 })
 
 export const metadata: Metadata = {
-  title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면? - Dev Community',
+  title: '바이브 코딩 | 코딩 공부 시작 가이드',
   description:
-    '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법, React 오류 해결, 포트폴리오 만들기까지 함께 배워요.',
+    '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지 한번에!',
   keywords:
     '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 개발자 되려면, 신입 개발자 취업, 코딩 배우기 무료, 자바스크립트 오류, React 오류 해결, 포트폴리오 만들기, ChatGPT 활용법, 개발자 로드맵, 코딩테스트 준비, 부트캠프 후기',
   authors: [{ name: 'Dev Community' }],
@@ -52,16 +52,16 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ko_KR',
     url: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
-    title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면?',
+    title: '바이브 코딩 | 코딩 공부 시작 가이드',
     description:
-      '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법, React 오류 해결까지 함께 배워요.',
-    siteName: 'Dev Community',
+      '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지!',
+    siteName: '바이브 코딩',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '바이브 코딩 | 코딩 공부 어디서 시작? 개발자 되려면?',
+    title: '바이브 코딩 | 코딩 공부 시작 가이드',
     description:
-      '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법까지 함께 배워요.',
+      '코딩 공부 어디서 시작? 프로그래밍 언어 추천, React 오류 해결, 개발자 취업 준비까지!',
   },
   verification: {
     google: 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',
