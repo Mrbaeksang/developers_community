@@ -401,14 +401,6 @@ async function createPost(
       return errorResponse('사용자를 찾을 수 없습니다.', 404)
     }
 
-    // 디버깅 로그 (필요시 활성화)
-    // console.log('게시글 생성 요청:', {
-    //   userId: session.user.id,
-    //   userRole: user.globalRole,
-    //   requestedStatus: status,
-    //   isAdmin: user.globalRole === 'ADMIN',
-    // })
-
     // 게시글 생성 (ADMIN은 자동으로 PUBLISHED, requiresApproval이 false인 카테고리도 PUBLISHED)
     const finalStatus =
       user.globalRole === 'ADMIN' || !category.requiresApproval
@@ -432,12 +424,6 @@ async function createPost(
         approvedById: session.user.id,
       }),
     }
-
-    // console.log('게시글 생성 데이터:', {
-    //   status: postData.status,
-    //   approvedAt: postData.approvedAt,
-    //   approvedById: postData.approvedById,
-    // })
 
     const post = await prisma.mainPost.create({
       data: postData,
@@ -478,14 +464,6 @@ async function createPost(
     await redisCache.delPattern('api:cache:main:posts:*')
 
     // Q&A 카테고리이고 PUBLISHED 상태인 경우 AI 댓글 생성
-    // console.error('[AI Bot Debug] 게시글 생성됨:', {
-    //   postId: post.id,
-    //   title: post.title,
-    //   status: finalStatus,
-    //   categorySlug: category?.slug,
-    //   categoryName: category?.name,
-    // })
-
     // Q&A 카테고리 확인
     let isQACategory = false
     if (finalStatus === 'PUBLISHED' && category) {
@@ -495,14 +473,7 @@ async function createPost(
           category.name.toLowerCase().includes(qa)
       )
 
-      // console.error('[AI Bot Debug] Q&A 카테고리 체크:', {
-      //   isQACategory,
-      //   categorySlug: category.slug,
-      //   categoryName: category.name,
-      // })
-
       if (isQACategory) {
-        // console.error('[AI Bot Debug] AI 댓글 생성 시작 (비동기):', post.id)
         // 비동기로 AI 댓글 생성 (응답 대기하지 않음)
         createAIComment(post.id).catch((error) => {
           console.error('[AI Bot] AI 댓글 생성 실패:', error)

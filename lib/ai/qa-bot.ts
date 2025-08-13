@@ -433,8 +433,6 @@ export async function getAIBotUser(): Promise<User | null> {
 // Q&A 게시글에 AI 댓글 생성
 export async function createAIComment(postId: string): Promise<void> {
   try {
-    console.error('[AI Bot] 댓글 생성 시작:', postId)
-
     // 게시글 조회
     const post = await prisma.mainPost.findUnique({
       where: { id: postId },
@@ -442,13 +440,11 @@ export async function createAIComment(postId: string): Promise<void> {
     })
 
     if (!post || post.status !== 'PUBLISHED') {
-      console.error('[AI Bot] 게시글 없음 또는 미게시 상태:', postId)
       return
     }
 
     // Q&A 카테고리 확인
     if (!isQACategory(post.category)) {
-      console.error('[AI Bot] Q&A 카테고리 아님:', post.category?.name)
       return
     }
 
@@ -461,28 +457,23 @@ export async function createAIComment(postId: string): Promise<void> {
     })
 
     if (existingAIComment) {
-      console.error('[AI Bot] 이미 AI 댓글 존재:', postId)
       return
     }
 
-    console.error('[AI Bot] AI 응답 생성 중...')
     // AI 응답 생성 (메인 사이트는 텍스트 전용)
     const aiResponse = await generateAIResponse(post)
     if (!aiResponse) {
-      console.error('[AI Bot] AI 응답 생성 실패')
       return
     }
-    console.error('[AI Bot] AI 응답 생성 완료, 길이:', aiResponse.length)
 
     // AI 봇 사용자 확인
     const aiBot = await getAIBotUser()
     if (!aiBot) {
-      console.error('[AI Bot] AI 봇 사용자 없음')
+      console.error('[AI Bot] AI 봇 사용자를 찾을 수 없습니다')
       return
     }
 
     // 댓글 생성
-    console.error('[AI Bot] DB에 댓글 저장 중...')
     await prisma.mainComment.create({
       data: {
         content: aiResponse,
@@ -491,7 +482,6 @@ export async function createAIComment(postId: string): Promise<void> {
         authorRole: aiBot.globalRole, // 작성자 역할 저장
       },
     })
-    console.error('[AI Bot] 댓글 저장 완료')
 
     // 게시글 댓글 수 업데이트
     await prisma.mainPost.update({
@@ -506,9 +496,8 @@ export async function createAIComment(postId: string): Promise<void> {
     // Redis 캐시 무효화 - 댓글이 추가되었으므로 캐시 삭제
     const { redisCache, generateCacheKey } = await import('@/lib/cache/redis')
     await redisCache.del(generateCacheKey('main:post:comments', { postId }))
-    console.error('[AI Bot] AI 댓글 생성 완료:', postId)
   } catch (error) {
-    console.error('[AI Bot] AI 댓글 생성 중 오류:', error) // 오류만 남기기
+    console.error('[AI Bot] AI 댓글 생성 중 오류:', error)
   }
 }
 
