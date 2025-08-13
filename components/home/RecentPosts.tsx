@@ -38,9 +38,19 @@ const fetchRecentPosts = async (): Promise<PostWithCalculatedFields[]> => {
   if (Array.isArray(result)) {
     return result
   }
-  if (result.data && Array.isArray(result.data)) {
-    return result.data
+
+  // compressedPaginatedResponse의 중첩 구조 처리
+  if (result.data) {
+    // data가 직접 배열인 경우
+    if (Array.isArray(result.data)) {
+      return result.data
+    }
+    // data.data가 배열인 경우 (압축된 응답의 중첩 구조)
+    if (result.data.data && Array.isArray(result.data.data)) {
+      return result.data.data
+    }
   }
+
   if (result.posts && Array.isArray(result.posts)) {
     return result.posts
   }
