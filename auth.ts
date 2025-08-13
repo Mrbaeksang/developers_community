@@ -88,6 +88,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID || '',
       clientSecret: process.env.AUTH_KAKAO_SECRET || '',
+      authorization: {
+        params: {
+          scope: 'profile_nickname profile_image',
+        },
+      },
     }),
   ],
 })
