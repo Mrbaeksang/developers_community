@@ -16,6 +16,7 @@ import { PageViewTracker } from '@/components/shared/PageViewTracker'
 import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
 import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
+import { StructuredData } from '@/components/seo/StructuredData'
 import { headers } from 'next/headers'
 
 const notoSansKr = Noto_Sans_KR({
@@ -63,13 +64,13 @@ export const metadata: Metadata = {
       '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지! ChatGPT 활용법까지 함께 배워요.',
   },
   verification: {
-    google: 'google-site-verification-code-here',
+    google: 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',
     other: {
       'naver-site-verification': 'naver-site-verification-code-here',
     },
   },
   other: {
-    'google-site-verification': 'google-site-verification-code-here',
+    'google-site-verification': 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',
   },
 }
 
@@ -96,6 +97,8 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
+        <StructuredData type="website" />
+        <StructuredData type="organization" />
         <AsyncErrorBoundary>
           <QueryProvider>
             <SessionProvider>
