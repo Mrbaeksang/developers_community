@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/core/prisma'
 import { redis } from '@/lib/core/redis'
 import { successResponse, errorResponse } from '@/lib/api/response'
+import { redisCache, generateCacheKey } from '@/lib/cache/redis'
 
 export async function GET() {
   try {
@@ -19,40 +20,51 @@ export async function GET() {
       return errorResponse('권한이 없습니다', 403)
     }
 
-    const client = redis()
-    if (!client) {
-      return successResponse({
-        errors: [],
-        summary: {
-          total: 0,
-          byStatus: {},
-          byEndpoint: {},
-        },
-      })
-    }
+    // Redis 캐싱 적용 - 30초
+    const cacheKey = generateCacheKey('admin:monitoring:errors', {})
 
-    // 최근 에러 조회
-    const errorsList = await client.lrange('monitoring:errors', 0, 49)
-    const errors = errorsList.map((e) => JSON.parse(e))
+    const data = await redisCache.getOrSet(
+      cacheKey,
+      async () => {
+        const client = redis()
+        if (!client) {
+          return {
+            errors: [],
+            summary: {
+              total: 0,
+              byStatus: {},
+              byEndpoint: {},
+            },
+          }
+        }
 
-    // 에러 요약 통계
-    const summary = {
-      total: errors.length,
-      byStatus: {} as Record<string, number>,
-      byEndpoint: {} as Record<string, number>,
-    }
+        // 최근 에러 조회
+        const errorsList = await client.lrange('monitoring:errors', 0, 49)
+        const errors = errorsList.map((e) => JSON.parse(e))
 
-    errors.forEach((error) => {
-      // 상태 코드별 집계
-      const status = error.statusCode.toString()
-      summary.byStatus[status] = (summary.byStatus[status] || 0) + 1
+        // 에러 요약 통계
+        const summary = {
+          total: errors.length,
+          byStatus: {} as Record<string, number>,
+          byEndpoint: {} as Record<string, number>,
+        }
 
-      // 엔드포인트별 집계
-      const endpoint = `${error.method} ${error.endpoint}`
-      summary.byEndpoint[endpoint] = (summary.byEndpoint[endpoint] || 0) + 1
-    })
+        errors.forEach((error) => {
+          // 상태 코드별 집계
+          const status = error.statusCode.toString()
+          summary.byStatus[status] = (summary.byStatus[status] || 0) + 1
 
-    return successResponse({ errors, summary })
+          // 엔드포인트별 집계
+          const endpoint = `${error.method} ${error.endpoint}`
+          summary.byEndpoint[endpoint] = (summary.byEndpoint[endpoint] || 0) + 1
+        })
+
+        return { errors, summary }
+      },
+      30 // 30초 캐싱
+    )
+
+    return successResponse(data)
   } catch (error) {
     console.error('Error fetching monitoring errors:', error)
     return errorResponse('모니터링 데이터 조회 실패', 500)

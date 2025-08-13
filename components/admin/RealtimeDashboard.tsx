@@ -143,6 +143,7 @@ export function RealtimeDashboard() {
     pageViews: { today: 0, topPages: [] },
   })
   const [loading, setLoading] = useState(true)
+  const [isPageVisible, setIsPageVisible] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -215,11 +216,52 @@ export function RealtimeDashboard() {
     // 초기 로드
     fetchData()
 
-    // 5초마다 업데이트
-    const interval = setInterval(fetchData, 5000)
+    // 30초마다 업데이트 (페이지가 활성화되어 있을 때만)
+    let interval: NodeJS.Timeout | null = null
 
-    return () => clearInterval(interval)
-  }, [])
+    const startPolling = () => {
+      // 기존 인터벌 정리
+      if (interval) clearInterval(interval)
+
+      // 페이지가 보이는 상태일 때만 폴링 시작
+      if (isPageVisible) {
+        interval = setInterval(fetchData, 30000)
+      }
+    }
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
+    }
+
+    // 페이지 가시성 변경 감지
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // 페이지가 숨겨짐 (다른 탭으로 이동, 최소화 등)
+        setIsPageVisible(false)
+        stopPolling()
+      } else {
+        // 페이지가 다시 보임
+        setIsPageVisible(true)
+        fetchData() // 즉시 새 데이터 가져오기
+        startPolling() // 폴링 재시작
+      }
+    }
+
+    // 이벤트 리스너 등록
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // 초기 폴링 시작
+    startPolling()
+
+    // 클린업
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      stopPolling()
+    }
+  }, [isPageVisible])
 
   return (
     <div className="space-y-6">
