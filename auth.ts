@@ -5,21 +5,6 @@ import Kakao from 'next-auth/providers/kakao'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/core/prisma'
 
-// 카카오 프로필 타입 정의
-interface KakaoProfile {
-  id: number
-  connected_at?: string
-  properties?: {
-    nickname?: string
-    profile_image?: string
-  }
-  kakao_account?: {
-    profile?: {
-      nickname?: string
-      profile_image_url?: string
-    }
-  }
-}
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -87,12 +72,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   },
   providers: [
     GitHub({
-      clientId: process.env.AUTH_GITHUB_ID || '',
-      clientSecret: process.env.AUTH_GITHUB_SECRET || '',
+      clientId: process.env.AUTH_GITHUB_ID!,
+      clientSecret: process.env.AUTH_GITHUB_SECRET!,
     }),
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID || '',
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
       authorization: {
         params: {
           prompt: 'consent',
@@ -102,30 +87,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
     Kakao({
-      clientId: process.env.AUTH_KAKAO_ID || '',
-      clientSecret: process.env.AUTH_KAKAO_SECRET || '',
-      authorization: {
-        params: {
-          scope: 'profile_nickname profile_image',
-        },
-      },
-      profile(profile: KakaoProfile) {
-        // 카카오 응답 구조
-        // profile.kakao_account.profile.nickname (닉네임)
-        // profile.kakao_account.profile.profile_image_url (프로필 이미지)
-        return {
-          id: String(profile.id),
-          name:
-            profile.kakao_account?.profile?.nickname ||
-            profile.properties?.nickname ||
-            null,
-          email: null, // 카카오는 이메일 제공 안 함
-          image:
-            profile.kakao_account?.profile?.profile_image_url ||
-            profile.properties?.profile_image ||
-            null,
-        }
-      },
+      clientId: process.env.AUTH_KAKAO_ID!,
+      clientSecret: process.env.AUTH_KAKAO_SECRET!,
     }),
   ],
 })
