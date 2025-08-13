@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
     connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live ws://localhost:* wss://ws-us3.pusher.com https://sockjs-us3.pusher.com;
     frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://vercel.live;
     base-uri 'none';
-    form-action 'self';
+    form-action 'self' https://sharer.kakao.com;
     frame-ancestors 'none';
     block-all-mixed-content;
     upgrade-insecure-requests;
