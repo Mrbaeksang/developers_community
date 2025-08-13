@@ -22,6 +22,8 @@ class SessionManager {
   private sessionCheckInterval: NodeJS.Timeout | null = null
   private warningShown = false
   private lastActivity: number = Date.now()
+  private activityHandler: (() => void) | null = null
+  private originalFetch: typeof window.fetch | null = null
 
   constructor(config: Partial<SessionConfig> = {}) {
     this.config = { ...defaultConfig, ...config }
@@ -196,22 +198,29 @@ class SessionManager {
    * 사용자 활동 추적 설정
    */
   private setupActivityTracking(): void {
-    const updateActivity = () => {
+    // 활동 시간 업데이트 함수 (참조 저장)
+    this.activityHandler = () => {
       this.lastActivity = Date.now()
       this.warningShown = false
     }
 
     // 사용자 인터랙션 이벤트
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const
     events.forEach((event) => {
-      document.addEventListener(event, updateActivity, { passive: true })
+      if (this.activityHandler) {
+        document.addEventListener(event, this.activityHandler, { passive: true })
+      }
     })
 
-    // API 호출 시에도 활동으로 간주
-    const originalFetch = window.fetch
-    window.fetch = (...args) => {
-      updateActivity()
-      return originalFetch(...args)
+    // API 호출 시에도 활동으로 간주 (원본 fetch 저장)
+    if (!this.originalFetch && this.activityHandler) {
+      this.originalFetch = window.fetch
+      const handler = this.activityHandler
+      const originalFetch = this.originalFetch
+      window.fetch = (...args) => {
+        handler()
+        return originalFetch(...args)
+      }
     }
   }
 
@@ -219,10 +228,20 @@ class SessionManager {
    * 활동 추적 제거
    */
   private removeActivityTracking(): void {
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
-    events.forEach((event) => {
-      document.removeEventListener(event, () => {})
-    })
+    if (this.activityHandler) {
+      const events = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const
+      const handler = this.activityHandler
+      events.forEach((event) => {
+        document.removeEventListener(event, handler)
+      })
+      this.activityHandler = null
+    }
+
+    // 원본 fetch 복원
+    if (this.originalFetch) {
+      window.fetch = this.originalFetch
+      this.originalFetch = null
+    }
   }
 
   /**
