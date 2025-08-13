@@ -211,8 +211,25 @@ function isQACategory(category: MainCategory | null): boolean {
   )
 }
 
-// 프롬프트 템플릿
-function createPrompt(post: MainPost): string {
+// 이미지 URL 추출 함수
+function extractImageUrls(htmlContent: string): string[] {
+  const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/g
+  const urls: string[] = []
+  let match
+
+  while ((match = imgRegex.exec(htmlContent)) !== null) {
+    const url = match[1]
+    // Vercel Blob URL만 추출 (외부 이미지는 제외)
+    if (url.includes('blob.vercel-storage.com') || url.includes('vercel.app')) {
+      urls.push(url)
+    }
+  }
+
+  return urls
+}
+
+// 프롬프트 템플릿 (이미지 포함)
+function createPromptWithImages(post: MainPost, imageUrls: string[]): string {
   // HTML 태그 제거 (TipTap 에디터에서 오는 HTML 컨텐츠 처리)
   const cleanContent = post.content
     .replace(/<[^>]*>/g, '') // HTML 태그 제거
@@ -226,7 +243,9 @@ function createPrompt(post: MainPost): string {
 
   const cleanTitle = post.title.trim()
 
-  // 영어로 프롬프트 작성 (한글 인코딩 문제 회피)
+  const imagePrompt = imageUrls.length > 0 
+    ? `\n\nThe question includes ${imageUrls.length} image(s). Please analyze the image(s) and incorporate your findings into your answer.`
+    : ''
 
   return `You are an AI assistant for a Korean developer community. Please provide a helpful answer to the following question.
 
@@ -243,17 +262,24 @@ IMPORTANT RULES:
 - Structure with headers (##, ###) only when the answer is long enough to need sections
 - Provide practical examples when they add value
 - Don't force lengthy answers for simple questions
+- If images are provided, analyze them and include relevant information in your answer
 
 Question Title: ${cleanTitle}
-Question Content: ${cleanContent}
+Question Content: ${cleanContent}${imagePrompt}
 
 Please provide an appropriately sized answer in Korean based on the question's complexity:`
 }
 
-// AI 모델 호출 헬퍼 함수
+// 기존 텍스트 전용 프롬프트 (하위 호환성)
+function createPrompt(post: MainPost): string {
+  return createPromptWithImages(post, [])
+}
+
+// AI 모델 호출 헬퍼 함수 (이미지 지원)
 async function callAIModel(
   model: string,
-  prompt: string
+  prompt: string,
+  imageUrls: string[] = []
 ): Promise<ChatCompletion> {
   const controller = new AbortController()
   const timeout = setTimeout(() => {
@@ -261,19 +287,44 @@ async function callAIModel(
   }, AI_CONFIG.TIMEOUT_MS)
 
   try {
+    // 이미지가 있는 경우 Vision 메시지 형식 사용
+    const messages = imageUrls.length > 0 
+      ? [
+          {
+            role: 'system' as const,
+            content: 'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
+          },
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: prompt,
+              },
+              ...imageUrls.map(url => ({
+                type: 'image_url' as const,
+                image_url: {
+                  url,
+                  detail: 'high' as const,
+                },
+              })),
+            ],
+          },
+        ]
+      : [
+          {
+            role: 'system' as const,
+            content: 'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
+          },
+          {
+            role: 'user' as const,
+            content: prompt,
+          },
+        ]
+
     const completion = await openrouter.chat.completions.create({
       model,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are an AI assistant for a developer community. Provide helpful and professional answers in Korean.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      messages,
       temperature: 0.7,
       max_tokens: AI_CONFIG.MAX_TOKENS,
       // @ts-expect-error - AbortController signal 지원
@@ -297,15 +348,38 @@ export async function generateAIResponse(
       return null
     }
 
-    const prompt = createPrompt(post)
+    // 게시글에서 이미지 URL 추출
+    const imageUrls = extractImageUrls(post.content)
+    const hasImages = imageUrls.length > 0
 
-    // 메인 사이트는 텍스트 전용 모델 사용 (파일 업로드 불가)
+    // 이미지가 있으면 비전 모델 사용, 없으면 텍스트 모델 사용
+    const prompt = hasImages 
+      ? createPromptWithImages(post, imageUrls)
+      : createPrompt(post)
+
     let completion
     try {
-      completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
-    } catch {
-      // 1순위 실패시 2순위 모델 시도
-      completion = await callAIModel(AI_MODELS.SECONDARY, prompt)
+      if (hasImages) {
+        // 이미지가 있는 경우 Vision 모델 사용
+        completion = await callAIModel(AI_MODELS.VISION, prompt, imageUrls)
+      } else {
+        // 텍스트만 있는 경우 기존 텍스트 모델 사용
+        completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
+      }
+    } catch (error) {
+      console.error('Primary model failed:', error)
+      try {
+        if (hasImages) {
+          // Vision 모델 실패시 텍스트 모델로 폴백 (이미지 정보 제외)
+          completion = await callAIModel(AI_MODELS.PRIMARY, createPrompt(post))
+        } else {
+          // 1순위 실패시 2순위 모델 시도
+          completion = await callAIModel(AI_MODELS.SECONDARY, prompt)
+        }
+      } catch (fallbackError) {
+        console.error('Fallback model also failed:', fallbackError)
+        return null
+      }
     }
 
     const response = completion.choices[0]?.message?.content

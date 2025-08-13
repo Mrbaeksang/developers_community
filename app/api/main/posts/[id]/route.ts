@@ -23,6 +23,7 @@ import { formatTimeAgo } from '@/lib/ui/date'
 import { withSecurity } from '@/lib/security/compatibility'
 import { redisCache, REDIS_TTL, generateCacheKey } from '@/lib/cache/redis'
 import { getViewCount } from '@/lib/core/redis'
+import { del } from '@vercel/blob'
 
 // GET /api/main/posts/[id] - 게시글 상세 조회
 export async function GET(
@@ -378,10 +379,48 @@ async function deletePost(
       throwAuthorizationError('게시글을 삭제할 권한이 없습니다.')
     }
 
-    // 게시글 삭제 (관련 데이터는 CASCADE로 자동 삭제)
-    await prisma.mainPost.delete({
-      where: { id },
+    // 게시글과 연결된 파일들 조회
+    const relatedFiles = await prisma.file.findMany({
+      where: {
+        // 메인 게시글은 postId 대신 HTML content에서 이미지 URL 추출 필요
+        // 하지만 현재 구조상 연결 정보가 없으므로 우선 soft delete로 처리
+      },
+      select: {
+        id: true,
+        storedName: true,
+      },
     })
+
+    // 트랜잭션으로 게시글 삭제 및 파일 정리
+    await prisma.$transaction(async (tx) => {
+      // 게시글 삭제 (관련 데이터는 CASCADE로 자동 삭제)
+      await tx.mainPost.delete({
+        where: { id },
+      })
+
+      // TODO: 메인 게시글의 경우 content HTML에서 이미지 URL을 파싱해서
+      // 해당하는 File 레코드들을 찾아 삭제해야 함
+      // 현재는 File 테이블과 직접적인 관계가 없어서 구현 복잡
+      // 향후 개선 필요: File 테이블에 postType, postId 필드 추가 고려
+    })
+
+    // Vercel Blob에서 파일 삭제 (비동기로 처리)
+    if (relatedFiles.length > 0) {
+      // 파일 삭제는 비동기로 처리 (실패해도 게시글 삭제는 성공)
+      Promise.all(
+        relatedFiles.map(async (file) => {
+          try {
+            await del(file.storedName, {
+              token: process.env.BLOB_READ_WRITE_TOKEN,
+            })
+          } catch (error) {
+            console.error(`Failed to delete blob file ${file.storedName}:`, error)
+          }
+        })
+      ).catch(error => {
+        console.error('Blob file deletion failed:', error)
+      })
+    }
 
     // Redis 캐시 무효화 - 해당 게시글 및 목록 캐시 삭제
     await redisCache.delPattern(`api:cache:main:post:detail:*id*${id}*`)

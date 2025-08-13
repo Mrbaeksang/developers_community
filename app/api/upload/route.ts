@@ -127,11 +127,11 @@ async function uploadFile(
     if (file.type.startsWith('image/')) {
       try {
         // 이미지 리사이징 (LARGE 프리셋 사용, WebP 변환)
+        // 썸네일 생성 비활성화 - 미사용으로 인한 저장공간 50% 절약
         const processed = await resizeImage(file, {
           ...IMAGE_PRESETS.LARGE,
           format: 'webp',
-          generateThumbnail: true,
-          thumbnailSize: 200,
+          generateThumbnail: false, // 썸네일 생성 안함
         })
 
         uploadBuffer = processed.buffer
@@ -148,17 +148,7 @@ async function uploadFile(
           ),
         }
 
-        // 썸네일 업로드
-        if (processed.thumbnail) {
-          const thumbName = safeName.replace(/\.[^.]+$/, '_thumb.webp')
-          const thumbBlob = await put(thumbName, processed.thumbnail, {
-            access: 'public',
-            token: process.env.BLOB_READ_WRITE_TOKEN,
-            addRandomSuffix: false,
-            contentType: 'image/webp',
-          })
-          imageMetadata.thumbnailUrl = thumbBlob.url
-        }
+        // 썸네일 업로드 비활성화 (generateThumbnail: false로 인해 processed.thumbnail은 undefined)
 
         // 파일명을 .webp로 변경
         safeName = safeName.replace(/\.[^.]+$/, '.webp')

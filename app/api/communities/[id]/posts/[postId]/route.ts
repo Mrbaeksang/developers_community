@@ -12,6 +12,7 @@ import {
   throwValidationError,
 } from '@/lib/api/errors'
 import { withSecurity } from '@/lib/security/compatibility'
+import { del } from '@vercel/blob'
 
 // GET: 커뮤니티 게시글 상세 조회
 export async function GET(
@@ -267,10 +268,18 @@ async function deleteCommunityPost(
       throwNotFoundError('커뮤니티를 찾을 수 없습니다')
     }
 
-    // 게시글 확인
+    // 게시글과 연결된 파일들 조회
     const post = await prisma.communityPost.findUnique({
       where: { id: postId, communityId: community.id },
-      select: { authorId: true },
+      select: { 
+        authorId: true,
+        files: {
+          select: {
+            id: true,
+            storedName: true,
+          }
+        }
+      },
     })
 
     if (!post) {
@@ -289,10 +298,42 @@ async function deleteCommunityPost(
       throwAuthorizationError('게시글을 삭제할 권한이 없습니다')
     }
 
-    // 게시글 하드 삭제
-    await prisma.communityPost.delete({
-      where: { id: postId },
+    // 트랜잭션으로 게시글 삭제 및 파일 정리
+    await prisma.$transaction(async (tx) => {
+      // 연결된 파일들 삭제
+      if (post.files.length > 0) {
+        await tx.file.deleteMany({
+          where: {
+            id: {
+              in: post.files.map(f => f.id)
+            }
+          }
+        })
+      }
+
+      // 게시글 하드 삭제
+      await tx.communityPost.delete({
+        where: { id: postId },
+      })
     })
+
+    // Vercel Blob에서 파일 삭제 (비동기로 처리)
+    if (post.files.length > 0) {
+      // 파일 삭제는 비동기로 처리 (실패해도 게시글 삭제는 성공)
+      Promise.all(
+        post.files.map(async (file) => {
+          try {
+            await del(file.storedName, {
+              token: process.env.BLOB_READ_WRITE_TOKEN,
+            })
+          } catch (error) {
+            console.error(`Failed to delete blob file ${file.storedName}:`, error)
+          }
+        })
+      ).catch(error => {
+        console.error('Blob file deletion failed:', error)
+      })
+    }
 
     // 커뮤니티 게시글 수 감소
     await prisma.community.update({
