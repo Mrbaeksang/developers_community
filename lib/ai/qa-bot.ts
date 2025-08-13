@@ -8,8 +8,8 @@ import type { ChatCompletion } from 'openai/resources/chat/completions'
 const AI_CONFIG = {
   BOT_USER_ID: process.env.AI_BOT_USER_ID || 'cmdri2tj90000u8vgtyir9upy',
   MAX_TOKENS: parseInt(process.env.AI_MAX_TOKENS || '8000'), // 대폭 증가: 8000 토큰 (약 6000~16000자)
-  TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '60000'), // 60초로 증가
-  API_WAIT_TIMEOUT_MS: 20000, // API 응답 대기 최대 20초로 증가
+  TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '180000'), // 3분으로 증가 (180초)
+  API_WAIT_TIMEOUT_MS: 180000, // API 응답 대기 최대 3분 (180초)
   BATCH_DELAY_MS: 2000, // 배치 처리 시 대기 시간
   MAX_BATCH_SIZE: 10, // 한 번에 처리할 최대 게시글 수
   MAX_COMMENT_LENGTH: 50000, // 댓글 최대 길이 50000자 (충분한 여유)
