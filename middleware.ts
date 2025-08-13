@@ -89,7 +89,7 @@ export async function middleware(request: NextRequest) {
   const nonce = nanoid()
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
+    script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://img1.kakaocdn.net https://t1.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
