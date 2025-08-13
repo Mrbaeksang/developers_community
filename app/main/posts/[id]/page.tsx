@@ -106,11 +106,13 @@ async function getPost(id: string) {
 
     // Q&A 카테고리 확인
     const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
-    const isQACategory = qaCategories.some(
-      (qa) =>
-        post.category.slug.toLowerCase().includes(qa) ||
-        post.category.name.toLowerCase().includes(qa)
-    )
+    const isQACategory = post.category
+      ? qaCategories.some(
+          (qa) =>
+            post.category.slug.toLowerCase().includes(qa) ||
+            post.category.name.toLowerCase().includes(qa)
+        )
+      : false
 
     // 날짜를 string으로 변환하고 마크다운 변환
     const htmlContent = await markdownToHtml(post.content)
