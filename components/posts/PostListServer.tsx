@@ -157,8 +157,35 @@ export async function PostListServer({
     return formatMainPostForResponse(postWithRedisViews) as MainPostFormatted
   })
 
-  // 카테고리 목록 (빈 배열로 처리)
-  const formattedCategories: never[] = []
+  // 카테고리 목록 조회
+  const categories = await prisma.mainCategory.findMany({
+    where: {
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      _count: {
+        select: {
+          posts: {
+            where: {
+              status: 'PUBLISHED',
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ order: 'asc' }, { name: 'asc' }],
+  })
+
+  // 카테고리 포맷팅
+  const formattedCategories = categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    postCount: category._count.posts,
+  }))
 
   // 총 페이지 수 계산
   const totalPages = Math.ceil(totalCount / pageSize)
