@@ -279,26 +279,55 @@ export function UnifiedPostDetail({
       // 낙관적 업데이트를 위한 준비
       setIsDeleting(true)
 
-      // 게시글 목록 캐시에서 제거 (낙관적)
-      await queryClient.cancelQueries({ queryKey: [postType + 'Posts'] })
+      // 정확한 queryKey로 캐시 무효화 (usePostQuery.ts의 postQueryKeys와 일치)
+      const queryKeyPattern = isCommunityPost
+        ? ['posts', 'community']
+        : ['posts', 'main']
 
-      const previousPosts = queryClient.getQueryData([postType + 'Posts'])
+      await queryClient.cancelQueries({
+        queryKey: queryKeyPattern,
+        exact: false,
+      })
 
-      // 목록에서 해당 게시글 즉시 제거
-      queryClient.setQueryData([postType + 'Posts'], (old: unknown) => {
-        if (!old) return old
-        if (Array.isArray(old)) {
-          return old.filter((p: { id: string }) => p.id !== post.id)
-        }
-        const oldData = old as { posts?: Array<{ id: string }>; total?: number }
-        if (oldData.posts) {
-          return {
-            ...oldData,
-            posts: oldData.posts.filter((p) => p.id !== post.id),
-            total: oldData.total ? oldData.total - 1 : 0,
+      // 모든 관련 쿼리의 이전 데이터 백업
+      const previousQueries = new Map()
+      const queries = queryClient.getQueryCache().findAll({
+        queryKey: queryKeyPattern,
+        exact: false,
+      })
+
+      queries.forEach((query) => {
+        previousQueries.set(query.queryKey, query.state.data)
+      })
+
+      // 모든 관련 쿼리에서 해당 게시글 즉시 제거
+      queries.forEach((query) => {
+        queryClient.setQueryData(query.queryKey, (old: unknown) => {
+          if (!old) return old
+
+          // API 응답 형태: { success: true, data: { items: [...], pageInfo: {...} } }
+          if (typeof old === 'object' && old !== null && 'data' in old) {
+            const apiResponse = old as {
+              data?: { items?: Array<{ id: string }> }
+            }
+            if (apiResponse.data?.items) {
+              return {
+                ...old,
+                data: {
+                  ...apiResponse.data,
+                  items: apiResponse.data.items.filter((p) => p.id !== post.id),
+                },
+              }
+            }
           }
-        }
-        return old
+
+          // 직접 배열인 경우
+          if (Array.isArray(old)) {
+            return old.filter((p: { id: string }) => p.id !== post.id)
+          }
+
+          return old
+        })
       })
 
       // 즉시 페이지 이동 (사용자 경험 개선)
@@ -314,22 +343,31 @@ export function UnifiedPostDetail({
         router.push(redirectUrl)
       }, 100)
 
-      return { previousPosts }
+      return { previousQueries }
     },
     onError: (error, variables, context) => {
       console.error('Failed to delete post:', error)
 
-      // 롤백
-      if (context?.previousPosts) {
-        queryClient.setQueryData([postType + 'Posts'], context.previousPosts)
+      // 롤백 - 모든 백업된 쿼리 복원
+      if (context?.previousQueries) {
+        context.previousQueries.forEach((data, queryKey) => {
+          queryClient.setQueryData(queryKey, data)
+        })
       }
 
       toast.error('게시글 삭제에 실패했습니다.')
       setIsDeleting(false)
     },
     onSuccess: () => {
-      // 백그라운드에서 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: [postType + 'Posts'] })
+      // 백그라운드에서 캐시 무효화 - 정확한 queryKey 패턴 사용
+      const queryKeyPattern = isCommunityPost
+        ? ['posts', 'community']
+        : ['posts', 'main']
+
+      queryClient.invalidateQueries({
+        queryKey: queryKeyPattern,
+        exact: false,
+      })
     },
     onSettled: () => {
       // 최종 정리
