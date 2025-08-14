@@ -19,11 +19,11 @@ export async function POST(request: Request) {
     const now = Date.now()
     const visitorKey = `visitor:${sessionId}`
     const activeVisitorsKey = 'active_visitors'
-    
-    // 방문자 정보 저장/업데이트 (1분 TTL - 하트비트가 30초마다 오므로)
+
+    // 방문자 정보 저장/업데이트 (90초 TTL - 하트비트가 60초마다 오므로 버퍼 추가)
     await client.setex(
       visitorKey,
-      60, // 1분으로 감소 (하트비트 더 자주)
+      90, // 90초 TTL (하트비트 60초 + 버퍼 30초)
       JSON.stringify({
         lastPath: pathname,
         timestamp: now,
@@ -33,12 +33,12 @@ export async function POST(request: Request) {
       })
     )
 
-    // 활성 방문자 집합에 추가 (각 멤버도 1분 TTL)
+    // 활성 방문자 집합에 추가
     await client.zadd(activeVisitorsKey, now, sessionId)
-    
-    // 1분 이상 오래된 방문자 제거
-    const oneMinuteAgo = now - 60000
-    await client.zremrangebyscore(activeVisitorsKey, '-inf', oneMinuteAgo)
+
+    // 90초 이상 오래된 방문자 제거
+    const ninetySecondsAgo = now - 90000
+    await client.zremrangebyscore(activeVisitorsKey, '-inf', ninetySecondsAgo)
 
     // 오늘 페이지뷰 카운트
     const today = new Date().toISOString().split('T')[0]

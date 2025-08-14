@@ -49,7 +49,7 @@ export async function GET() {
         }
 
         // 활성 방문자 수 (sorted set에서 직접 가져오기)
-        const activeUsers = await client.zcard('active_visitors') || 0
+        const activeUsers = (await client.zcard('active_visitors')) || 0
 
         // 현재 시간대 API 호출 통계
         const hour = new Date().getHours()
@@ -121,7 +121,7 @@ export async function GET() {
           },
         }
       },
-      300 // 5분 캐싱 (CPU 사용량 추가 절감)
+      600 // 10분 캐싱 (Vercel Function Invocations 50% 추가 절감)
     )
 
     return successResponse(data)

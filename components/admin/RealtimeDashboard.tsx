@@ -144,6 +144,7 @@ export function RealtimeDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [isPageVisible, setIsPageVisible] = useState(true)
+  const [lastInteraction, setLastInteraction] = useState(Date.now())
 
   useEffect(() => {
     const fetchData = async () => {
@@ -216,7 +217,7 @@ export function RealtimeDashboard() {
     // 초기 로드
     fetchData()
 
-    // 30초마다 업데이트 (페이지가 활성화되어 있을 때만)
+    // 적응형 폴링 인터벌 (Vercel 비용 최적화)
     let interval: NodeJS.Timeout | null = null
 
     const startPolling = () => {
@@ -225,7 +226,13 @@ export function RealtimeDashboard() {
 
       // 페이지가 보이는 상태일 때만 폴링 시작
       if (isPageVisible) {
-        interval = setInterval(fetchData, 120000) // 2분으로 증가 (CPU 사용량 75% 절감)
+        // 마지막 상호작용으로부터 경과 시간 계산
+        const timeSinceInteraction = Date.now() - lastInteraction
+        const isUserActive = timeSinceInteraction < 300000 // 5분 이내 활동
+
+        // 적응형 인터벌: 활성 상태면 3분, 비활성이면 5분
+        const pollInterval = isUserActive ? 180000 : 300000
+        interval = setInterval(fetchData, pollInterval)
       }
     }
 
@@ -250,8 +257,17 @@ export function RealtimeDashboard() {
       }
     }
 
+    // 사용자 상호작용 감지 (마우스 움직임, 클릭)
+    const handleUserInteraction = () => {
+      setLastInteraction(Date.now())
+      // 비활성 상태에서 활성 상태로 전환 시 폴링 재시작
+      startPolling()
+    }
+
     // 이벤트 리스너 등록
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('mousemove', handleUserInteraction)
+    document.addEventListener('click', handleUserInteraction)
 
     // 초기 폴링 시작
     startPolling()
@@ -259,9 +275,11 @@ export function RealtimeDashboard() {
     // 클린업
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('mousemove', handleUserInteraction)
+      document.removeEventListener('click', handleUserInteraction)
       stopPolling()
     }
-  }, [isPageVisible])
+  }, [isPageVisible, lastInteraction])
 
   return (
     <div className="space-y-6">

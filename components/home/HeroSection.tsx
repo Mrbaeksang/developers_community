@@ -17,34 +17,40 @@ export function HeroSection() {
     // 통계 데이터 가져오기
     const fetchStats = async () => {
       try {
-        const [mainRes, freeRes, qnaRes, communityRes] = await Promise.all([
-          fetch('/api/main/posts?limit=1'),
-          fetch('/api/main/posts?category=free&limit=1'),
-          fetch('/api/main/posts?category=qna&limit=1'),
-          fetch('/api/communities?limit=1'),
-        ])
+        const [mainRes, freeRes, qnaRes, communityRes, verifiedRes] =
+          await Promise.all([
+            fetch('/api/main/posts?limit=1'),
+            fetch('/api/main/posts?category=free&limit=1'),
+            fetch('/api/main/posts?category=qna&limit=1'),
+            fetch('/api/communities?limit=1'),
+            // 검증된 글: free와 qna를 제외한 모든 카테고리
+            fetch('/api/main/posts?limit=1&excludeCategories=free,qna'),
+          ])
 
-        const [mainData, freeData, qnaData, communityData] = await Promise.all([
-          mainRes.json(),
-          freeRes.json(),
-          qnaRes.json(),
-          communityRes.json(),
-        ])
+        const [mainData, freeData, qnaData, communityData, verifiedData] =
+          await Promise.all([
+            mainRes.json(),
+            freeRes.json(),
+            qnaRes.json(),
+            communityRes.json(),
+            verifiedRes.json(),
+          ])
 
-        const totalMainPosts = mainData.pagination?.total || 0
-        const totalFreePosts = freeData.pagination?.total || 0
-        const totalQnaPosts = qnaData.pagination?.total || 0
-
-        // 검증된 글 = 전체 메인 게시글 - (자유게시판 + Q&A)
-        const verifiedPostsCount =
+        const totalMainPosts = mainData.pagination?.total || mainData.total || 0
+        const totalFreePosts = freeData.pagination?.total || freeData.total || 0
+        const totalQnaPosts = qnaData.pagination?.total || qnaData.total || 0
+        const totalVerifiedPosts =
+          verifiedData.pagination?.total ||
+          verifiedData.total ||
           totalMainPosts - totalFreePosts - totalQnaPosts
 
         setStats({
           mainPosts: totalMainPosts,
           freePosts: totalFreePosts,
           qnaPosts: totalQnaPosts,
-          communities: communityData.pagination?.total || 0,
-          verifiedPosts: verifiedPostsCount > 0 ? verifiedPostsCount : 0,
+          communities:
+            communityData.pagination?.total || communityData.total || 0,
+          verifiedPosts: totalVerifiedPosts > 0 ? totalVerifiedPosts : 0,
         })
       } catch (error) {
         console.error('Failed to fetch stats:', error)
@@ -112,9 +118,9 @@ export function HeroSection() {
                 </p>
                 <div className="mt-3 text-xs text-gray-500">
                   <span className="font-bold text-yellow-600">
-                    {stats.freePosts || '1.2K'}+
+                    {stats.freePosts}개
                   </span>{' '}
-                  활발한 토론
+                  게시글
                 </div>
               </Link>
 
