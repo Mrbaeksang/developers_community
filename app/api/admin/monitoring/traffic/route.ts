@@ -48,9 +48,8 @@ export async function GET() {
           }
         }
 
-        // 활성 사용자 수 (keys 스캔은 CPU 집약적이므로 카운터 사용)
-        const activeUsers =
-          (await client.get('monitoring:active_users_count')) || 0
+        // 활성 방문자 수 (sorted set에서 직접 가져오기)
+        const activeUsers = await client.zcard('active_visitors') || 0
 
         // 현재 시간대 API 호출 통계
         const hour = new Date().getHours()

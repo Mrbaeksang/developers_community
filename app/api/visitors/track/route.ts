@@ -4,7 +4,7 @@ import { handleError, throwValidationError } from '@/lib/api/errors'
 
 export async function POST(request: Request) {
   try {
-    const { sessionId, pathname } = await request.json()
+    const { sessionId, pathname, userAgent, referrer } = await request.json()
 
     if (!sessionId) {
       throwValidationError('세션 ID는 필수입니다')
@@ -17,20 +17,28 @@ export async function POST(request: Request) {
     }
 
     const now = Date.now()
-
-    // 방문자 세션 정보 저장 (5분 TTL)
+    const visitorKey = `visitor:${sessionId}`
+    const activeVisitorsKey = 'active_visitors'
+    
+    // 방문자 정보 저장/업데이트 (1분 TTL - 하트비트가 30초마다 오므로)
     await client.setex(
-      `visitor:${sessionId}`,
-      300,
+      visitorKey,
+      60, // 1분으로 감소 (하트비트 더 자주)
       JSON.stringify({
         lastPath: pathname,
         timestamp: now,
+        userAgent,
+        referrer,
+        lastActive: new Date().toISOString(),
       })
     )
 
-    // 활성 방문자 집합에 추가
-    await client.sadd('active_visitors', sessionId)
-    await client.expire('active_visitors', 300)
+    // 활성 방문자 집합에 추가 (각 멤버도 1분 TTL)
+    await client.zadd(activeVisitorsKey, now, sessionId)
+    
+    // 1분 이상 오래된 방문자 제거
+    const oneMinuteAgo = now - 60000
+    await client.zremrangebyscore(activeVisitorsKey, '-inf', oneMinuteAgo)
 
     // 오늘 페이지뷰 카운트
     const today = new Date().toISOString().split('T')[0]

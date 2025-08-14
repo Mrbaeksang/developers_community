@@ -32,8 +32,8 @@ export async function GET() {
       if (!redisClient) {
         console.warn('Redis client not available for admin stats')
       } else {
-        // 활성 방문자 수
-        const activeVisitors = await redisClient.scard('active_visitors')
+        // 활성 방문자 수 (sorted set에서 가져오기)
+        const activeVisitors = await redisClient.zcard('active_visitors')
 
         // 오늘 조회수
         const today = new Date().toISOString().split('T')[0]
