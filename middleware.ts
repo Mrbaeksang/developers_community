@@ -31,7 +31,12 @@ const staticExtensions = [
 // Rate Limiting 미들웨어 초기화
 const rateLimiter = initRateLimitMiddleware({
   enabled: process.env.RATE_LIMIT_ENABLED !== 'false',
-  bypassPaths: [...excludedPaths, '/api/track', '/api/activities'], // 모니터링 API 제외
+  bypassPaths: [
+    ...excludedPaths,
+    '/api/track',
+    '/api/activities',
+    '/api/visitors',
+  ], // 모니터링 API 제외
   trustScoreBonus: true,
   enablePatternDetection: true,
   enableAbuseTracking: true,
