@@ -33,12 +33,12 @@ const nextConfig: NextConfig = {
                 : // Production: OAuth 지원 CSP
                   `
                   default-src 'self';
-                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com https://vercel.live https://*.vercel-scripts.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.googletagmanager.com https://adssettings.google.com;
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://accounts.google.com https://apis.google.com https://vercel.live https://*.vercel-scripts.com;
                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
                   img-src 'self' blob: data: https: https://*.public.blob.vercel-storage.com;
                   font-src 'self' https://fonts.gstatic.com data:;
-                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net;
-                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
+                  connect-src 'self' https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://vitals.vercel-insights.com https://region1.google-analytics.com https://*.vercel-scripts.com https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com;
+                  frame-src 'self' https://accounts.google.com https://kauth.kakao.com;
                   form-action 'self';
                   frame-ancestors 'none';
                   base-uri 'none';

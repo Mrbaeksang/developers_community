@@ -105,8 +105,13 @@ export function CommunityActions({
       // 성공 메시지 표시
       toast.success('커뮤니티에 가입되었습니다')
 
-      // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
+      // 커뮤니티 목록 쿼리도 무효화 (새로고침용) - 딜레이 추가
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['communities'],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 1000) // 1초 딜레이
     },
     onError: (error: Error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)
@@ -191,8 +196,13 @@ export function CommunityActions({
       // 성공 메시지 표시
       toast.success('커뮤니티에서 탈퇴했습니다')
 
-      // 커뮤니티 목록 쿼리도 무효화 (새로고침용)
-      queryClient.invalidateQueries({ queryKey: ['communities'] })
+      // 커뮤니티 목록 쿼리도 무효화 (새로고침용) - 딜레이 추가
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['communities'],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 1000) // 1초 딜레이
     },
     onError: (error: Error, variables, context) => {
       // ❌ 실패 시 상태 되돌리기 (Rollback)

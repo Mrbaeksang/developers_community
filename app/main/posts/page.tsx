@@ -120,7 +120,7 @@ async function getSidebarData() {
   }
 }
 
-export const revalidate = 60 // 1 minute revalidation for posts page
+export const revalidate = 0 // Dynamic rendering for posts page to prevent cache issues
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = await searchParams

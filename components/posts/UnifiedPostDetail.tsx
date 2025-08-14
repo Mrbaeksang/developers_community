@@ -165,9 +165,13 @@ export function UnifiedPostDetail({
       toast.error('좋아요 처리에 실패했습니다.')
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [postType + 'PostLike', post.id],
-      })
+      // 딜레이를 주어 낙관적 UI 유지
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: [postType + 'PostLike', post.id],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 500) // 500ms 딜레이 (좋아요는 빠른 피드백 필요)
     },
   })
 
@@ -234,12 +238,16 @@ export function UnifiedPostDetail({
       toast.error('북마크 처리에 실패했습니다.')
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [postType + 'PostBookmark', post.id],
-      })
       toast.success(
         !isBookmarked ? '북마크에 저장되었습니다.' : '북마크가 해제되었습니다.'
       )
+      // 딜레이를 주어 낙관적 UI 유지
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: [postType + 'PostBookmark', post.id],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 500) // 500ms 딜레이
     },
   })
 
@@ -341,6 +349,8 @@ export function UnifiedPostDetail({
       // 약간의 딜레이 후 리다이렉트 (토스트가 보이도록)
       setTimeout(() => {
         router.push(redirectUrl)
+        // 서버 컴포넌트 강제 새로고침
+        router.refresh()
       }, 100)
 
       return { previousQueries }
@@ -360,14 +370,18 @@ export function UnifiedPostDetail({
     },
     onSuccess: () => {
       // 백그라운드에서 캐시 무효화 - 정확한 queryKey 패턴 사용
-      const queryKeyPattern = isCommunityPost
-        ? ['posts', 'community']
-        : ['posts', 'main']
+      // 딜레이를 주어 서버 측 캐시가 업데이트될 시간을 확보
+      setTimeout(() => {
+        const queryKeyPattern = isCommunityPost
+          ? ['posts', 'community']
+          : ['posts', 'main']
 
-      queryClient.invalidateQueries({
-        queryKey: queryKeyPattern,
-        exact: false,
-      })
+        queryClient.invalidateQueries({
+          queryKey: queryKeyPattern,
+          exact: false,
+          refetchType: 'none', // 자동으로 refetch하지 않음
+        })
+      }, 1000) // 1초 딜레이
     },
     onSettled: () => {
       // 최종 정리

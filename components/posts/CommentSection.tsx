@@ -612,10 +612,13 @@ export default function CommentSection({
       })
     },
     onSettled: () => {
-      // 백그라운드에서 쿼리 무효화
-      queryClient.invalidateQueries({
-        queryKey: ['comments', postId, postType, communityId],
-      })
+      // 백그라운드에서 캐시 무효화 - 딜레이를 주어 낙관적 UI 유지
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['comments', postId, postType, communityId],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 1000) // 1초 딜레이
     },
   })
 

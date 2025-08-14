@@ -103,6 +103,8 @@ export function useMainPosts(
     queryKey: postQueryKeys.mainPosts(params),
     queryFn: () => fetchMainPosts(params),
     ...CACHE_CONFIG.FREQUENT,
+    refetchOnMount: true, // 마운트시 항상 refetch
+    refetchOnWindowFocus: false, // 포커스시 refetch 비활성화
     ...options,
   })
 }

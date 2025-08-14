@@ -97,8 +97,13 @@ export function PendingPostsManager({
       // 목록에서 제거
       setPosts(posts.filter((post) => post.id !== postId))
       toast.success('게시글이 승인되었습니다.')
-      // 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['pendingPosts'] })
+      // 관련 쿼리 무효화 - 딜레이 추가
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['pendingPosts'],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 1000) // 1초 딜레이
     },
     onError: (error: Error) => {
       console.error('승인 실패:', error)
@@ -136,8 +141,13 @@ export function PendingPostsManager({
       setRejectReason('')
       setSelectedPost(null)
       toast.success('게시글이 거부되었습니다.')
-      // 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['pendingPosts'] })
+      // 관련 쿼리 무효화 - 딜레이 추가
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['pendingPosts'],
+          refetchType: 'none', // 자동 refetch 방지
+        })
+      }, 1000) // 1초 딜레이
     },
     onError: (error: Error) => {
       console.error('거부 실패:', error)
