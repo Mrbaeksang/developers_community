@@ -11,7 +11,7 @@ interface AdUnitProps {
 
 declare global {
   interface Window {
-    adsbygoogle: unknown[]
+    adsbygoogle: Record<string, unknown>[]
   }
 }
 
