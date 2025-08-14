@@ -30,7 +30,9 @@ interface PostWithCalculatedFields extends CommonMainPost {
 
 // 최근 게시글 가져오기 함수
 const fetchRecentPosts = async (): Promise<PostWithCalculatedFields[]> => {
-  const response = await fetch('/api/main/posts?limit=10&sort=latest')
+  const response = await fetch(
+    '/api/main/posts?limit=10&sort=latest&excludeCategories=true'
+  )
   if (!response.ok) throw new Error('Failed to fetch recent posts')
   const result = await response.json()
 

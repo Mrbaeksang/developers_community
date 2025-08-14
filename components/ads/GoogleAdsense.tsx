@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import Script from 'next/script'
 
 interface GoogleAdsenseProps {
   adSlot?: string
@@ -46,11 +45,9 @@ export function GoogleAdsense({
   // 자동 광고 (헤드에 스크립트만 삽입)
   if (!adSlot) {
     return (
-      <Script
-        id="google-adsense-auto"
+      <script
         async
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`}
-        strategy="afterInteractive"
         crossOrigin="anonymous"
         nonce={nonce}
       />
@@ -60,11 +57,9 @@ export function GoogleAdsense({
   // 디스플레이 광고
   return (
     <>
-      <Script
-        id={`google-adsense-${adSlot}`}
+      <script
         async
         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`}
-        strategy="afterInteractive"
         crossOrigin="anonymous"
         nonce={nonce}
       />

@@ -93,7 +93,7 @@ export const postQueryKeys = {
  * 메인 게시글 목록 훅
  */
 export function useMainPosts(
-  params: PostPaginationParams = {},
+  params: PostPaginationParams & { excludeCategories?: boolean } = {},
   options?: Omit<
     UseQueryOptions<PostListResponse<MainPostFormatted>>,
     'queryKey' | 'queryFn'

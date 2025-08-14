@@ -147,9 +147,16 @@ function buildQueryParams(params: Record<string, unknown>): string {
  * 메인 게시글 목록 가져오기
  */
 export async function fetchMainPosts(
-  params: PostPaginationParams = {}
+  params: PostPaginationParams & { excludeCategories?: boolean } = {}
 ): Promise<PostListResponse<MainPostFormatted>> {
-  const { page = 1, limit = 10, sort = 'latest', category, tag } = params
+  const {
+    page = 1,
+    limit = 10,
+    sort = 'latest',
+    category,
+    tag,
+    excludeCategories,
+  } = params
 
   const queryParams = buildQueryParams({
     page,
@@ -157,6 +164,7 @@ export async function fetchMainPosts(
     sort,
     category,
     tag,
+    excludeCategories,
   })
 
   const response = await fetchWithRetry(`/api/main/posts${queryParams}`)

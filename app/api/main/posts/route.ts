@@ -86,7 +86,18 @@ async function getPosts(request: NextRequest) {
     const where: any = {
       status: 'PUBLISHED',
       ...(type && { type }),
-      ...categoryFilter,
+      // 카테고리 필터와 제외 로직 통합
+      ...(searchParams.get('excludeCategories') === 'true' &&
+      !category &&
+      !categoryId
+        ? {
+            category: {
+              slug: {
+                notIn: ['qna', 'free'],
+              },
+            },
+          }
+        : categoryFilter),
     }
 
     // 정렬 조건
