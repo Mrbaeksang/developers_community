@@ -85,27 +85,24 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next()
   const sessionId = request.cookies.get('visitor_session')?.value || nanoid()
 
-  // CSP 설정 (OAuth + Vercel 지원)
-  // Next.js와 호환성을 위해 nonce 제거, unsafe-inline 사용
+  // CSP nonce 생성 (Google AdSense용)
+  const nonce = nanoid(16)
+  response.headers.set('x-nonce', nonce)
+  
+  // CSP 헤더 설정 - Google AdSense 가이드라인 준수
   const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
-    font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://img1.kakaocdn.net https://t1.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
-    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live ws://localhost:* wss://ws-us3.pusher.com https://sockjs-us3.pusher.com;
-    frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://vercel.live;
+    object-src 'none';
+    script-src 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
     base-uri 'none';
-    form-action 'self' https://sharer.kakao.com;
     frame-ancestors 'none';
-    block-all-mixed-content;
-    upgrade-insecure-requests;
+    ${process.env.NODE_ENV === 'production' ? 'upgrade-insecure-requests;' : ''}
   `
     .replace(/\s{2,}/g, ' ')
     .trim()
-
-  // 보안 헤더 설정
+  
   response.headers.set('Content-Security-Policy', cspHeader)
+  
+  // 기타 보안 헤더
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-XSS-Protection', '1; mode=block')
@@ -152,7 +149,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('x-visitor-session', sessionId)
   response.headers.set('x-visitor-path', pathname)
 
-  // CSP nonce 사용 중단 (Next.js와 호환성 문제)
+  // CSP nonce 정보 전달 (SSR에서 사용)
 
   return response
 }

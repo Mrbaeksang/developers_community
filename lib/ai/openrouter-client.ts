@@ -6,7 +6,7 @@ export const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY || '',
   defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'HTTP-Referer': process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
     'X-Title': 'Developer Community', // 영어로 변경 (인코딩 문제 회피)
   },
 })

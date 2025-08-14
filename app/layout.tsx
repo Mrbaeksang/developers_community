@@ -16,6 +16,8 @@ import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
 import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
 import { StructuredData } from '@/components/seo/StructuredData'
+import { GoogleAdsense } from '@/components/ads/GoogleAdsense'
+import { headers } from 'next/headers'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -75,6 +77,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // CSP nonce 가져오기
+  const headersList = await headers()
+  const nonce = headersList.get('x-nonce') || undefined
+  
   return (
     <html lang="ko">
       <head>
@@ -82,7 +88,12 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
-        <script src="https://developers.kakao.com/sdk/js/kakao.js" defer />
+        {/* 카카오 SDK에도 nonce 적용 */}
+        <script 
+          src="https://developers.kakao.com/sdk/js/kakao.js" 
+          defer 
+          nonce={nonce}
+        />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <StructuredData type="website" />
@@ -100,6 +111,10 @@ export default async function RootLayout({
                   <Toaster richColors position="bottom-right" />
                   <SessionExpiryWarning />
                   <GoogleOneTapAuth />
+                  {/* Google AdSense 자동 광고 - body 안에 위치 */}
+                  {process.env.NODE_ENV === 'production' && (
+                    <GoogleAdsense nonce={nonce} />
+                  )}
                   <VisitorTracker />
                   <PageViewTracker />
                   <Analytics />
