@@ -16,7 +16,6 @@ import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
 import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
 import { StructuredData } from '@/components/seo/StructuredData'
-import { GoogleAdsense } from '@/components/ads/GoogleAdsense'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -86,7 +85,6 @@ export default async function RootLayout({
         <script src="https://developers.kakao.com/sdk/js/kakao.js" defer />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
-        <GoogleAdsense />
         <StructuredData type="website" />
         <StructuredData type="organization" />
         <AsyncErrorBoundary>
