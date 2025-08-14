@@ -26,6 +26,13 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
+interface BatchResponse {
+  id: string
+  success: boolean
+  data?: any
+  error?: string
+}
+
 interface Activity {
   id: string
   type:
@@ -143,72 +150,64 @@ export function RealtimeDashboard() {
     pageViews: { today: 0, topPages: [] },
   })
   const [loading, setLoading] = useState(true)
-  const [isPageVisible, setIsPageVisible] = useState(true)
-  const [lastInteraction, setLastInteraction] = useState(Date.now())
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 개별적으로 각 API 호출 (하나가 실패해도 다른 것들은 계속 진행)
+        // 배치 API를 사용하여 모든 데이터 한 번에 가져오기
+        const response = await fetch('/api/batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requests: [
+              { id: 'activities', endpoint: '/api/activities/realtime' },
+              { id: 'errors', endpoint: '/api/admin/monitoring/errors' },
+              { id: 'traffic', endpoint: '/api/admin/monitoring/traffic' },
+            ],
+          }),
+        })
 
-        // 실시간 활동
-        try {
-          const activitiesRes = await fetch('/api/activities/realtime')
-          if (activitiesRes.ok) {
-            const data = await activitiesRes.json()
-            if (data.success && data.data) {
-              setActivities(data.data.items || [])
-            }
-          } else {
-            console.warn('Activities API failed:', activitiesRes.status)
-            setActivities([])
-          }
-        } catch (err) {
-          console.error('Activities API error:', err)
-          setActivities([])
-        }
-
-        // 에러 모니터링
-        try {
-          const errorsRes = await fetch('/api/admin/monitoring/errors')
-          if (errorsRes.ok) {
-            const data = await errorsRes.json()
-            if (data.success && data.data) {
-              setErrors(data.data.errors || [])
-            }
-          } else {
-            console.warn('Errors API failed:', errorsRes.status)
-            setErrors([])
-          }
-        } catch (err) {
-          console.error('Errors API error:', err)
-          setErrors([])
-        }
-
-        // 트래픽 모니터링
-        try {
-          const trafficRes = await fetch('/api/admin/monitoring/traffic')
-          if (trafficRes.ok) {
-            const data = await trafficRes.json()
-            if (data.success && data.data) {
-              setTraffic(data.data)
-            }
-          } else {
-            console.warn('Traffic API failed:', trafficRes.status)
-            setTraffic({
-              activeUsers: 0,
-              apiCalls: { total: 0, topEndpoints: [] },
-              pageViews: { today: 0, topPages: [] },
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.responses) {
+            result.responses.forEach((res: BatchResponse) => {
+              if (res.success && res.data) {
+                switch (res.id) {
+                  case 'activities':
+                    setActivities(res.data.items || [])
+                    break
+                  case 'errors':
+                    setErrors(res.data.errors || [])
+                    break
+                  case 'traffic':
+                    setTraffic(res.data)
+                    break
+                }
+              }
             })
           }
-        } catch (err) {
-          console.error('Traffic API error:', err)
+        } else {
+          console.warn('Batch API failed:', response.status)
+          // 실패 시 기본값 설정
+          setActivities([])
+          setErrors([])
           setTraffic({
             activeUsers: 0,
             apiCalls: { total: 0, topEndpoints: [] },
             pageViews: { today: 0, topPages: [] },
           })
         }
+      } catch (err) {
+        console.error('Batch API error:', err)
+        setActivities([])
+        setErrors([])
+        setTraffic({
+          activeUsers: 0,
+          apiCalls: { total: 0, topEndpoints: [] },
+          pageViews: { today: 0, topPages: [] },
+        })
       } finally {
         setLoading(false)
       }
@@ -217,69 +216,29 @@ export function RealtimeDashboard() {
     // 초기 로드
     fetchData()
 
-    // 적응형 폴링 인터벌 (Vercel 비용 최적화)
-    let interval: NodeJS.Timeout | null = null
-
-    const startPolling = () => {
-      // 기존 인터벌 정리
-      if (interval) clearInterval(interval)
-
-      // 페이지가 보이는 상태일 때만 폴링 시작
-      if (isPageVisible) {
-        // 마지막 상호작용으로부터 경과 시간 계산
-        const timeSinceInteraction = Date.now() - lastInteraction
-        const isUserActive = timeSinceInteraction < 300000 // 5분 이내 활동
-
-        // 적응형 인터벌: 활성 상태면 3분, 비활성이면 5분
-        const pollInterval = isUserActive ? 180000 : 300000
-        interval = setInterval(fetchData, pollInterval)
+    // 폴링 인터벌 (5분마다)
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchData()
       }
-    }
-
-    const stopPolling = () => {
-      if (interval) {
-        clearInterval(interval)
-        interval = null
-      }
-    }
+    }, 300000) // 5분
 
     // 페이지 가시성 변경 감지
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // 페이지가 숨겨짐 (다른 탭으로 이동, 최소화 등)
-        setIsPageVisible(false)
-        stopPolling()
-      } else {
-        // 페이지가 다시 보임
-        setIsPageVisible(true)
-        fetchData() // 즉시 새 데이터 가져오기
-        startPolling() // 폴링 재시작
+      if (!document.hidden) {
+        // 페이지가 다시 보이면 데이터 새로고침
+        fetchData()
       }
     }
 
-    // 사용자 상호작용 감지 (마우스 움직임, 클릭)
-    const handleUserInteraction = () => {
-      setLastInteraction(Date.now())
-      // 비활성 상태에서 활성 상태로 전환 시 폴링 재시작
-      startPolling()
-    }
-
-    // 이벤트 리스너 등록
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    document.addEventListener('mousemove', handleUserInteraction)
-    document.addEventListener('click', handleUserInteraction)
-
-    // 초기 폴링 시작
-    startPolling()
 
     // 클린업
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      document.removeEventListener('mousemove', handleUserInteraction)
-      document.removeEventListener('click', handleUserInteraction)
-      stopPolling()
+      clearInterval(interval)
     }
-  }, [isPageVisible, lastInteraction])
+  }, []) // 빈 의존성 배열 - 마운트 시 한 번만 실행
 
   return (
     <div className="space-y-6">
