@@ -29,7 +29,27 @@ import { ko } from 'date-fns/locale'
 interface BatchResponse {
   id: string
   success: boolean
-  data?: any
+  data?: {
+    items?: Activity[]
+    errors?: MonitoringError[]
+    activeUsers?: number
+    apiCalls?: {
+      total: number
+      topEndpoints: Array<{
+        endpoint: string
+        count: number
+        percentage: number
+      }>
+    }
+    pageViews?: {
+      today: number
+      topPages: Array<{
+        page: string
+        count: number
+        percentage: number
+      }>
+    }
+  }
   error?: string
 }
 
@@ -172,19 +192,34 @@ export function RealtimeDashboard() {
         if (response.ok) {
           const result = await response.json()
           if (result.success && result.responses) {
+            // 부분 성공 처리 - 일부 API가 실패해도 나머지는 표시
             result.responses.forEach((res: BatchResponse) => {
-              if (res.success && res.data) {
-                switch (res.id) {
-                  case 'activities':
-                    setActivities(res.data.items || [])
-                    break
-                  case 'errors':
-                    setErrors(res.data.errors || [])
-                    break
-                  case 'traffic':
-                    setTraffic(res.data)
-                    break
-                }
+              switch (res.id) {
+                case 'activities':
+                  setActivities(
+                    res.success && res.data?.items ? res.data.items : []
+                  )
+                  break
+                case 'errors':
+                  setErrors(
+                    res.success && res.data?.errors ? res.data.errors : []
+                  )
+                  break
+                case 'traffic':
+                  if (res.success && res.data) {
+                    setTraffic({
+                      activeUsers: res.data.activeUsers || 0,
+                      apiCalls: res.data.apiCalls || {
+                        total: 0,
+                        topEndpoints: [],
+                      },
+                      pageViews: res.data.pageViews || {
+                        today: 0,
+                        topPages: [],
+                      },
+                    })
+                  }
+                  break
               }
             })
           }

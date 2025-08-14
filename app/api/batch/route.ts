@@ -17,6 +17,32 @@ export async function POST(request: NextRequest) {
 
     const { requests } = await request.json()
 
+    // 관리자 권한 확인 (관리자 전용 엔드포인트 접근 시)
+    const adminEndpoints = [
+      '/api/admin/monitoring/errors',
+      '/api/admin/monitoring/traffic',
+      '/api/admin/stats',
+    ]
+
+    const hasAdminEndpoint = requests.some((req: { endpoint: string }) =>
+      adminEndpoints.includes(req.endpoint)
+    )
+
+    if (hasAdminEndpoint) {
+      const { prisma } = await import('@/lib/core/prisma')
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { globalRole: true },
+      })
+
+      if (
+        !user ||
+        (user.globalRole !== 'ADMIN' && user.globalRole !== 'MANAGER')
+      ) {
+        return errorResponse('관리자 권한이 필요합니다', 403)
+      }
+    }
+
     if (!Array.isArray(requests) || requests.length === 0) {
       return errorResponse('유효하지 않은 요청입니다', 400)
     }
@@ -125,12 +151,31 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    return NextResponse.json({
-      success: true,
-      responses,
-      _optimization: 'batch_processing',
-      _saved_invocations: requests.length - 1,
-    })
+    // Vercel CDN 캐싱 헤더 추가 (관리자 전용이면 짧게, 일반이면 길게)
+    const headers = new Headers()
+    if (hasAdminEndpoint) {
+      // 관리자 데이터는 1분 캐싱
+      headers.set(
+        'Cache-Control',
+        'public, s-maxage=60, stale-while-revalidate=120'
+      )
+    } else {
+      // 일반 데이터는 5분 캐싱
+      headers.set(
+        'Cache-Control',
+        'public, s-maxage=300, stale-while-revalidate=600'
+      )
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        responses,
+        _optimization: 'batch_processing',
+        _saved_invocations: requests.length - 1,
+      },
+      { headers }
+    )
   } catch (error) {
     console.error('Batch API error:', error)
     return errorResponse('배치 처리 실패', 500)

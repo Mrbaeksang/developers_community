@@ -176,28 +176,20 @@ export async function GET(request: Request) {
           take: 5,
         })
 
-        // 좋아요가 있는 게시글 정보 가져오기
+        // 좋아요가 있는 게시글 정보 가져오기 (N+1 쿼리 최적화)
         if (likeGroups.length > 0) {
           const postIds = likeGroups.map((group) => group.postId)
-          const posts = await prisma.mainPost.findMany({
+
+          // 게시글 정보와 최근 좋아요를 한 번에 가져오기
+          const postsWithLikes = await prisma.mainPost.findMany({
             where: {
               id: { in: postIds },
             },
             select: {
               id: true,
               title: true,
-            },
-          })
-
-          const postMap = new Map(posts.map((p) => [p.id, p]))
-
-          for (const group of likeGroups) {
-            const post = postMap.get(group.postId)
-            if (post && group._count.postId > 0) {
-              // 해당 게시글의 최근 좋아요 중 하나의 사용자 이름 가져오기
-              const recentLike = await prisma.mainLike.findFirst({
+              likes: {
                 where: {
-                  postId: group.postId,
                   createdAt: {
                     gte: timeAgo,
                   },
@@ -209,25 +201,32 @@ export async function GET(request: Request) {
                   },
                 },
                 orderBy: { createdAt: 'desc' },
-              })
+                take: 1,
+              },
+            },
+          })
 
-              if (recentLike) {
-                activities.push({
-                  id: `like-group-${group.postId}`,
-                  type: 'like',
-                  title: '좋아요',
-                  description:
-                    group._count.postId === 1
-                      ? `"${post.title}" 글을 좋아합니다`
-                      : `${recentLike.user.name}님 외 ${group._count.postId - 1}명이 "${post.title}" 글을 좋아합니다`,
-                  userName: recentLike.user.name || '알 수 없음',
-                  timestamp: recentLike.createdAt,
-                  metadata: {
-                    postId: post.id,
-                    postTitle: post.title,
-                  },
-                })
-              }
+          const postMap = new Map(postsWithLikes.map((p) => [p.id, p]))
+
+          for (const group of likeGroups) {
+            const post = postMap.get(group.postId)
+            if (post && group._count.postId > 0 && post.likes[0]) {
+              const recentLike = post.likes[0]
+              activities.push({
+                id: `like-group-${group.postId}`,
+                type: 'like',
+                title: '좋아요',
+                description:
+                  group._count.postId === 1
+                    ? `"${post.title}" 글을 좋아합니다`
+                    : `${recentLike.user.name}님 외 ${group._count.postId - 1}명이 "${post.title}" 글을 좋아합니다`,
+                userName: recentLike.user.name || '알 수 없음',
+                timestamp: recentLike.createdAt,
+                metadata: {
+                  postId: post.id,
+                  postTitle: post.title,
+                },
+              })
             }
           }
         }
