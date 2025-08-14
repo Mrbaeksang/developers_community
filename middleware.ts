@@ -89,12 +89,12 @@ export async function middleware(request: NextRequest) {
   // Next.js와 호환성을 위해 nonce 제거, unsafe-inline 사용
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://t1.kakaocdn.net https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.googletagmanager.com https://adssettings.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://accounts.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
     img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://source.unsplash.com https://images.unsplash.com https://picsum.photos https://k.kakaocdn.net https://img1.kakaocdn.net https://t1.kakaocdn.net https://ssl.gstatic.com https://www.gstatic.com https://*.public.blob.vercel-storage.com;
-    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live ws://localhost:* wss://ws-us3.pusher.com https://sockjs-us3.pusher.com;
-    frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://vercel.live;
+    connect-src 'self' https://accounts.google.com https://kauth.kakao.com https://kapi.kakao.com https://vitals.vercel-insights.com https://www.google-analytics.com https://analytics.google.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://vercel.live ws://localhost:* wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net;
+    frame-src 'self' https://accounts.google.com https://kauth.kakao.com https://vercel.live https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
     base-uri 'none';
     form-action 'self' https://sharer.kakao.com;
     frame-ancestors 'none';
