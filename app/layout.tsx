@@ -80,7 +80,7 @@ export default async function RootLayout({
   // CSP nonce 가져오기
   const headersList = await headers()
   const nonce = headersList.get('x-nonce') || undefined
-  
+
   return (
     <html lang="ko">
       <head>
@@ -89,9 +89,9 @@ export default async function RootLayout({
           rel="stylesheet"
         />
         {/* 카카오 SDK에도 nonce 적용 */}
-        <script 
-          src="https://developers.kakao.com/sdk/js/kakao.js" 
-          defer 
+        <script
+          src="https://developers.kakao.com/sdk/js/kakao.js"
+          defer
           nonce={nonce}
         />
       </head>

@@ -18,12 +18,12 @@ declare global {
 }
 
 // Google AdSense 커포넌트 - CSP nonce 지원
-export function GoogleAdsense({ 
+export function GoogleAdsense({
   adSlot,
   adFormat = 'auto',
   style,
   className,
-  nonce
+  nonce,
 }: GoogleAdsenseProps = {}) {
   const adClient = 'ca-pub-8287266902600032' // 고정값
 
@@ -31,7 +31,7 @@ export function GoogleAdsense({
     // 디스플레이 광고일 경우만 push
     if (typeof window !== 'undefined' && adSlot) {
       try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({})
+        ;(window.adsbygoogle = window.adsbygoogle || []).push({})
       } catch (err) {
         console.error('AdSense push error:', err)
       }
@@ -80,7 +80,7 @@ export function GoogleAdsense({
       <script
         nonce={nonce}
         dangerouslySetInnerHTML={{
-          __html: `(adsbygoogle = window.adsbygoogle || []).push({});`
+          __html: `(adsbygoogle = window.adsbygoogle || []).push({});`,
         }}
       />
     </>

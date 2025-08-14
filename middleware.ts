@@ -88,7 +88,7 @@ export async function middleware(request: NextRequest) {
   // CSP nonce 생성 (Google AdSense용)
   const nonce = nanoid(16)
   response.headers.set('x-nonce', nonce)
-  
+
   // CSP 헤더 설정 - Google AdSense 가이드라인 준수
   const cspHeader = `
     object-src 'none';
@@ -99,9 +99,9 @@ export async function middleware(request: NextRequest) {
   `
     .replace(/\s{2,}/g, ' ')
     .trim()
-  
+
   response.headers.set('Content-Security-Policy', cspHeader)
-  
+
   // 기타 보안 헤더
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
