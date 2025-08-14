@@ -81,23 +81,29 @@ async function getPosts(request: NextRequest) {
       categoryFilter = { categoryId }
     }
 
+    // excludeCategories 파라미터 처리
+    const excludeCategories = searchParams.get('excludeCategories')
+    let excludeFilter = {}
+    if (excludeCategories && !category && !categoryId) {
+      const categoriesToExclude = excludeCategories
+        .split(',')
+        .map((c) => c.trim())
+      excludeFilter = {
+        category: {
+          slug: {
+            notIn: categoriesToExclude,
+          },
+        },
+      }
+    }
+
     // 필터 조건
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       status: 'PUBLISHED',
       ...(type && { type }),
       // 카테고리 필터와 제외 로직 통합
-      ...(searchParams.get('excludeCategories') === 'true' &&
-      !category &&
-      !categoryId
-        ? {
-            category: {
-              slug: {
-                notIn: ['qna', 'free'],
-              },
-            },
-          }
-        : categoryFilter),
+      ...(excludeCategories ? excludeFilter : categoryFilter),
     }
 
     // 정렬 조건
