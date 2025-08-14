@@ -137,6 +137,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Edge Runtime으로 실행 (더 빠르고 저렴)
-export const runtime = 'edge'
+// Node.js Runtime 사용 (Redis와 Prisma를 위해 필요)
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
