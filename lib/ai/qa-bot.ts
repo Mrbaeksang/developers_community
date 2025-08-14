@@ -282,6 +282,10 @@ async function callAIModel(
   prompt: string,
   imageUrls: string[] = []
 ): Promise<ChatCompletion> {
+  console.error(
+    `[AI Bot] AI 모델 호출 시작 - model: ${model}, hasImages: ${imageUrls.length > 0}`
+  )
+
   const controller = new AbortController()
   const timeout = setTimeout(() => {
     controller.abort()
@@ -335,9 +339,16 @@ async function callAIModel(
       signal: controller.signal,
     })
     clearTimeout(timeout)
+
+    console.error(`[AI Bot] AI 모델 응답 성공 - model: ${model}`)
+    console.error(
+      `[AI Bot] 응답 내용 길이: ${completion.choices[0]?.message?.content?.length || 0}자`
+    )
+
     return completion
   } catch (error) {
     clearTimeout(timeout)
+    console.error(`[AI Bot] AI 모델 호출 실패 - model: ${model}, error:`, error)
     throw error
   }
 }
@@ -346,11 +357,20 @@ async function callAIModel(
 export async function generateAIResponse(
   post: MainPost & { category: MainCategory | null }
 ): Promise<string | null> {
+  console.error(
+    `[AI Bot] generateAIResponse 시작 - postId: ${post.id}, title: ${post.title}`
+  )
+
   try {
     // Q&A 카테고리인지 확인
     if (!isQACategory(post.category)) {
+      console.error(
+        `[AI Bot] Q&A 카테고리 아님 - category: ${post.category?.name}`
+      )
       return null
     }
+
+    console.error(`[AI Bot] Q&A 카테고리 확인됨 - ${post.category?.name}`)
 
     // 게시글에서 이미지 URL 추출
     const imageUrls = extractImageUrls(post.content)
@@ -362,35 +382,79 @@ export async function generateAIResponse(
       : createPrompt(post)
 
     let completion
-    try {
-      if (hasImages) {
-        // 이미지가 있는 경우 Vision 모델 사용
-        completion = await callAIModel(AI_MODELS.VISION, prompt, imageUrls)
-      } else {
-        // 텍스트만 있는 경우 기존 텍스트 모델 사용
-        completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
-      }
-    } catch (error) {
-      console.error('Primary model failed:', error)
+    let retryCount = 0
+    const maxRetries = 2
+
+    while (retryCount <= maxRetries) {
       try {
-        if (hasImages) {
-          // Vision 모델 실패시 텍스트 모델로 폴백 (이미지 정보 제외)
-          completion = await callAIModel(AI_MODELS.PRIMARY, createPrompt(post))
+        if (retryCount === 0) {
+          // 첫 번째 시도
+          if (hasImages) {
+            console.error('[AI Bot] Vision 모델 사용 시도')
+            completion = await callAIModel(AI_MODELS.VISION, prompt, imageUrls)
+          } else {
+            console.error('[AI Bot] Primary 모델 사용 시도')
+            completion = await callAIModel(AI_MODELS.PRIMARY, prompt)
+          }
+        } else if (retryCount === 1) {
+          // 두 번째 시도 - 다른 모델로
+          console.error(`[AI Bot] ${retryCount}차 재시도 - 대체 모델 사용`)
+          if (hasImages) {
+            // Vision 실패시 텍스트 모델로
+            completion = await callAIModel(
+              AI_MODELS.PRIMARY,
+              createPrompt(post)
+            )
+          } else {
+            // Primary 실패시 Secondary로
+            completion = await callAIModel(AI_MODELS.SECONDARY, prompt)
+          }
         } else {
-          // 1순위 실패시 2순위 모델 시도
-          completion = await callAIModel(AI_MODELS.SECONDARY, prompt)
+          // 세 번째 시도 - 기본 모델로 한번 더
+          console.error(`[AI Bot] ${retryCount}차 재시도 - 기본 모델로 재시도`)
+          completion = await callAIModel(AI_MODELS.DEFAULT, prompt)
         }
-      } catch (fallbackError) {
-        console.error('Fallback model also failed:', fallbackError)
-        return null
+
+        // 성공하면 루프 탈출
+        if (completion?.choices?.[0]?.message?.content) {
+          console.error(
+            `[AI Bot] ${retryCount === 0 ? '첫' : retryCount + '차'} 시도 성공`
+          )
+          break
+        }
+      } catch (error) {
+        console.error(
+          `[AI Bot] ${retryCount === 0 ? '첫' : retryCount + '차'} 시도 실패:`,
+          error
+        )
+        retryCount++
+
+        if (retryCount > maxRetries) {
+          console.error('[AI Bot] 모든 재시도 실패')
+          return null
+        }
+
+        // 재시도 전 잠시 대기 (1초, 2초, 3초)
+        await new Promise((resolve) => setTimeout(resolve, retryCount * 1000))
       }
+    }
+
+    if (!completion) {
+      console.error('[AI Bot] completion이 null')
+      return null
     }
 
     const response = completion.choices[0]?.message?.content
 
     if (!response) {
+      console.error(
+        '[AI Bot] AI 응답이 비어있음 - completion:',
+        JSON.stringify(completion, null, 2)
+      )
       return null
     }
+
+    console.error(`[AI Bot] AI 응답 받음 - 길이: ${response.length}자`)
 
     // AI 봇 응답은 검열 건너뛰기 (AI는 안전한 응답 생성)
     // 검열 시스템이 과도하게 차단하는 문제 (class, hello 등도 차단)
@@ -432,6 +496,8 @@ export async function getAIBotUser(): Promise<User | null> {
 
 // Q&A 게시글에 AI 댓글 생성
 export async function createAIComment(postId: string): Promise<void> {
+  console.error(`[AI Bot] createAIComment 시작 - postId: ${postId}`)
+
   try {
     // 게시글 조회
     const post = await prisma.mainPost.findUnique({
@@ -440,11 +506,21 @@ export async function createAIComment(postId: string): Promise<void> {
     })
 
     if (!post || post.status !== 'PUBLISHED') {
+      console.error(
+        `[AI Bot] 게시글 없음 또는 PUBLISHED 아님 - status: ${post?.status}`
+      )
       return
     }
 
+    console.error(
+      `[AI Bot] 게시글 확인 - title: ${post.title}, category: ${post.category?.name}`
+    )
+
     // Q&A 카테고리 확인
     if (!isQACategory(post.category)) {
+      console.error(
+        `[AI Bot] Q&A 카테고리 아님 - category: ${post.category?.name} (${post.category?.slug})`
+      )
       return
     }
 
@@ -457,24 +533,36 @@ export async function createAIComment(postId: string): Promise<void> {
     })
 
     if (existingAIComment) {
+      console.error(
+        `[AI Bot] 이미 AI 댓글 존재 - commentId: ${existingAIComment.id}`
+      )
       return
     }
 
+    console.error('[AI Bot] AI 응답 생성 시작...')
     // AI 응답 생성 (메인 사이트는 텍스트 전용)
     const aiResponse = await generateAIResponse(post)
     if (!aiResponse) {
+      console.error('[AI Bot] AI 응답 생성 실패 - null 반환됨')
       return
     }
+
+    console.error(`[AI Bot] AI 응답 생성 성공 - 길이: ${aiResponse.length}자`)
 
     // AI 봇 사용자 확인
     const aiBot = await getAIBotUser()
     if (!aiBot) {
-      console.error('[AI Bot] AI 봇 사용자를 찾을 수 없습니다')
+      console.error(
+        `[AI Bot] AI 봇 사용자를 찾을 수 없음 - ID: ${AI_CONFIG.BOT_USER_ID}`
+      )
       return
     }
 
+    console.error(`[AI Bot] AI 봇 사용자 확인 - ${aiBot.name} (${aiBot.id})`)
+
+    console.error('[AI Bot] 댓글 생성 중...')
     // 댓글 생성
-    await prisma.mainComment.create({
+    const comment = await prisma.mainComment.create({
       data: {
         content: aiResponse,
         postId,
@@ -482,6 +570,8 @@ export async function createAIComment(postId: string): Promise<void> {
         authorRole: aiBot.globalRole, // 작성자 역할 저장
       },
     })
+
+    console.error(`[AI Bot] 댓글 생성 성공 - commentId: ${comment.id}`)
 
     // 게시글 댓글 수 업데이트
     await prisma.mainPost.update({
@@ -498,6 +588,7 @@ export async function createAIComment(postId: string): Promise<void> {
     await redisCache.del(generateCacheKey('main:post:comments', { postId }))
   } catch (error) {
     console.error('[AI Bot] AI 댓글 생성 중 오류:', error)
+    console.error('[AI Bot] 에러 스택:', (error as Error).stack)
   }
 }
 
