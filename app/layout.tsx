@@ -88,12 +88,8 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
-        {/* 카카오 SDK에도 nonce 적용 */}
-        <script
-          src="https://developers.kakao.com/sdk/js/kakao.js"
-          defer
-          nonce={nonce}
-        />
+        {/* 카카오 SDK - nonce 제거 (hydration 이슈) */}
+        <script src="https://developers.kakao.com/sdk/js/kakao.js" defer />
       </head>
       <body className={`${notoSansKr.variable} font-sans antialiased`}>
         <StructuredData type="website" />
