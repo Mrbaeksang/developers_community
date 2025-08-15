@@ -29,6 +29,14 @@ const notoSansKr = Noto_Sans_KR({
   fallback: ['system-ui', 'arial'],
 })
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5, // 접근성을 위해 확대 허용
+  userScalable: true, // 사용자 확대/축소 허용 (개발자 커뮤니티는 코드를 확대해서 봐야 할 수 있음)
+  viewportFit: 'cover', // iOS 노치 디스플레이 대응
+}
+
 export const metadata: Metadata = {
   title: '바이브 코딩 | 개발자 커뮤니티',
   description:
