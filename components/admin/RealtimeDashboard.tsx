@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -171,83 +171,69 @@ export function RealtimeDashboard() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 배치 API를 사용하여 모든 데이터 한 번에 가져오기
-        const response = await fetch('/api/batch', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requests: [
-              { id: 'activities', endpoint: '/api/activities/realtime' },
-              { id: 'errors', endpoint: '/api/admin/monitoring/errors' },
-              { id: 'traffic', endpoint: '/api/admin/monitoring/traffic' },
-            ],
-          }),
-        })
+  const fetchData = useCallback(async () => {
+    try {
+      // 배치 API 사용
+      const response = await fetch('/api/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [
+            { id: 'activities', endpoint: '/api/activities/realtime' },
+            { id: 'errors', endpoint: '/api/admin/monitoring/errors' },
+            { id: 'traffic', endpoint: '/api/admin/monitoring/traffic' },
+          ],
+        }),
+      })
 
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.responses) {
-            // 부분 성공 처리 - 일부 API가 실패해도 나머지는 표시
-            result.responses.forEach((res: BatchResponse) => {
-              switch (res.id) {
-                case 'activities':
-                  setActivities(
-                    res.success && res.data?.items ? res.data.items : []
-                  )
-                  break
-                case 'errors':
-                  setErrors(
-                    res.success && res.data?.errors ? res.data.errors : []
-                  )
-                  break
-                case 'traffic':
-                  if (res.success && res.data) {
-                    setTraffic({
-                      activeUsers: res.data.activeUsers || 0,
-                      apiCalls: res.data.apiCalls || {
-                        total: 0,
-                        topEndpoints: [],
-                      },
-                      pageViews: res.data.pageViews || {
-                        today: 0,
-                        topPages: [],
-                      },
-                    })
-                  }
-                  break
-              }
-            })
-          }
-        } else {
-          console.warn('Batch API failed:', response.status)
-          // 실패 시 기본값 설정
-          setActivities([])
-          setErrors([])
-          setTraffic({
-            activeUsers: 0,
-            apiCalls: { total: 0, topEndpoints: [] },
-            pageViews: { today: 0, topPages: [] },
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.responses) {
+          result.responses.forEach((res: BatchResponse) => {
+            switch (res.id) {
+              case 'activities':
+                setActivities(
+                  res.success && res.data?.items ? res.data.items : []
+                )
+                break
+              case 'errors':
+                setErrors(
+                  res.success && res.data?.errors ? res.data.errors : []
+                )
+                break
+              case 'traffic':
+                if (res.success && res.data) {
+                  setTraffic({
+                    activeUsers: res.data.activeUsers || 0,
+                    apiCalls: res.data.apiCalls || {
+                      total: 0,
+                      topEndpoints: [],
+                    },
+                    pageViews: res.data.pageViews || { today: 0, topPages: [] },
+                  })
+                }
+                break
+            }
           })
         }
-      } catch (err) {
-        console.error('Batch API error:', err)
-        setActivities([])
-        setErrors([])
-        setTraffic({
-          activeUsers: 0,
-          apiCalls: { total: 0, topEndpoints: [] },
-          pageViews: { today: 0, topPages: [] },
-        })
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error('Dashboard data fetch error:', err)
+      setActivities([])
+      setErrors([])
+      setTraffic({
+        activeUsers: 0,
+        apiCalls: { total: 0, topEndpoints: [] },
+        pageViews: { today: 0, topPages: [] },
+      })
+    } finally {
+      setLoading(false)
     }
+  }, [])
 
+  useEffect(() => {
     // 초기 로드
     fetchData()
 
@@ -261,7 +247,6 @@ export function RealtimeDashboard() {
     // 페이지 가시성 변경 감지
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // 페이지가 다시 보이면 데이터 새로고침
         fetchData()
       }
     }
@@ -273,7 +258,7 @@ export function RealtimeDashboard() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       clearInterval(interval)
     }
-  }, []) // 빈 의존성 배열 - 마운트 시 한 번만 실행
+  }, [fetchData])
 
   return (
     <div className="space-y-6">

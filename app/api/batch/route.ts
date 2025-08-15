@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { errorResponse } from '@/lib/api/response'
 
+// 메모리 캐시 (Edge Runtime 호환)
+const responseCache = new Map<string, { data: unknown; expires: number }>()
+
+// 캐시 키 생성
+function getCacheKey(endpoint: string, body?: unknown): string {
+  return `${endpoint}:${JSON.stringify(body || {})}`
+}
+
 /**
  * 배치 API 엔드포인트
  * 여러 API 요청을 하나의 Function Invocation으로 처리
  * Vercel 비용 최적화: Function Invocations 최대 80% 감소
+ * + 메모리 캐싱으로 DB 부하 감소
  */
 export async function POST(request: NextRequest) {
   try {
@@ -52,15 +61,45 @@ export async function POST(request: NextRequest) {
       return errorResponse('한 번에 최대 10개 요청만 가능합니다', 400)
     }
 
-    // 각 요청을 병렬로 처리
-    const responses = await Promise.all(
-      requests.map(async (req) => {
+    // 각 요청을 병렬로 처리 (중복 제거 및 캐싱)
+    const uniqueRequests = new Map<string, (typeof requests)[0]>()
+    const requestIdMapping = new Map<string, string[]>()
+
+    // 중복 요청 제거
+    requests.forEach(
+      (req: { id: string; endpoint: string; body?: unknown }) => {
+        const cacheKey = getCacheKey(req.endpoint, req.body)
+        if (!uniqueRequests.has(cacheKey)) {
+          uniqueRequests.set(cacheKey, req)
+          requestIdMapping.set(cacheKey, [req.id])
+        } else {
+          // 중복 요청인 경우 ID만 매핑에 추가
+          const ids = requestIdMapping.get(cacheKey) || []
+          ids.push(req.id)
+          requestIdMapping.set(cacheKey, ids)
+        }
+      }
+    )
+
+    // 고유한 요청들만 처리
+    const processedResponses = await Promise.all(
+      Array.from(uniqueRequests.values()).map(async (req) => {
+        const cacheKey = getCacheKey(req.endpoint, req.body)
+
         try {
-          // 내부 API 호출 시뮬레이션
-          // 실제로는 각 엔드포인트의 로직을 직접 호출
-          const endpoint = req.endpoint
+          // 캐시 확인
+          const cached = responseCache.get(cacheKey)
+          if (cached && cached.expires > Date.now()) {
+            return {
+              cacheKey,
+              success: true,
+              data: cached.data,
+              fromCache: true,
+            }
+          }
 
           // 엔드포인트별 처리 로직
+          const endpoint = req.endpoint
           let data = null
           let success = true
 
@@ -135,20 +174,58 @@ export async function POST(request: NextRequest) {
             data = { error: '지원하지 않는 엔드포인트입니다' }
           }
 
+          // 성공 시 캐시 저장 (30초)
+          if (success && data) {
+            responseCache.set(cacheKey, {
+              data: data.data,
+              expires: Date.now() + 30000, // 30초 캐시
+            })
+
+            // 캐시 크기 제한 (100개 이상이면 오래된 것 삭제)
+            if (responseCache.size > 100) {
+              const now = Date.now()
+              for (const [key, value] of responseCache.entries()) {
+                if (value.expires < now) {
+                  responseCache.delete(key)
+                }
+              }
+            }
+          }
+
           return {
-            id: req.id,
+            cacheKey,
             success,
             data: success ? data.data : undefined,
             error: success ? undefined : data.error,
+            fromCache: false,
           }
         } catch (error) {
           return {
-            id: req.id,
+            cacheKey,
             success: false,
             error: error instanceof Error ? error.message : '처리 중 오류 발생',
+            fromCache: false,
           }
         }
       })
+    )
+
+    // 중복 요청에 대한 응답 매핑
+    const responses = requests.map(
+      (originalReq: { id: string; endpoint: string; body?: unknown }) => {
+        const cacheKey = getCacheKey(originalReq.endpoint, originalReq.body)
+        const processedResponse = processedResponses.find(
+          (r) => r.cacheKey === cacheKey
+        )
+
+        return {
+          id: originalReq.id,
+          success: processedResponse?.success || false,
+          data: processedResponse?.data,
+          error: processedResponse?.error,
+          _cached: processedResponse?.fromCache || false,
+        }
+      }
     )
 
     // Vercel CDN 캐싱 헤더 추가 (관리자 전용이면 짧게, 일반이면 길게)
@@ -167,12 +244,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 최적화 통계
+    const cachedCount = responses.filter((r) => r._cached).length
+    const uniqueCount = uniqueRequests.size
+
     return NextResponse.json(
       {
         success: true,
         responses,
-        _optimization: 'batch_processing',
-        _saved_invocations: requests.length - 1,
+        _optimization: {
+          type: 'batch_processing',
+          saved_invocations: requests.length - 1,
+          duplicate_removed: requests.length - uniqueCount,
+          cache_hits: cachedCount,
+        },
       },
       { headers }
     )

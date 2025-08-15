@@ -59,7 +59,8 @@
       "mcp__vercel__list_teams",
       "mcp__vercel__get_deployment_events",
       "Bash(npm run:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(powershell:*)"
     ],
     "deny": []
   }
