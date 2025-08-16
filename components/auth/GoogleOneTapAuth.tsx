@@ -78,6 +78,11 @@ export function GoogleOneTapAuth({
       setIsInAppBrowser(true)
     }
 
+    // 이미 닫았으면 표시하지 않음 (sessionStorage 체크를 먼저!)
+    if (sessionStorage.getItem('google-one-tap-closed') === 'true') {
+      return
+    }
+
     // 로그인 페이지나 이미 로그인한 경우 표시하지 않음
     if (
       status === 'authenticated' ||
@@ -90,7 +95,10 @@ export function GoogleOneTapAuth({
 
     // 페이지 로드 후 1초 뒤에 표시 (dev.to처럼)
     const timer = setTimeout(() => {
-      if (status === 'unauthenticated') {
+      if (
+        status === 'unauthenticated' &&
+        sessionStorage.getItem('google-one-tap-closed') !== 'true'
+      ) {
         setShowPrompt(true)
         setIsVisible(true)
       }
@@ -166,13 +174,13 @@ export function GoogleOneTapAuth({
     sessionStorage.setItem('google-one-tap-closed', 'true')
   }
 
-  // 세션 스토리지 체크
-  useEffect(() => {
-    if (sessionStorage.getItem('google-one-tap-closed') === 'true') {
-      setShowPrompt(false)
-      setIsVisible(false)
-    }
-  }, [])
+  // 이 useEffect는 이제 필요 없음 (위에서 처리함)
+  // useEffect(() => {
+  //   if (sessionStorage.getItem('google-one-tap-closed') === 'true') {
+  //     setShowPrompt(false)
+  //     setIsVisible(false)
+  //   }
+  // }, [])
 
   // 인앱 브라우저에서는 외부 브라우저 안내 표시
   if (isInAppBrowser && isVisible && status === 'unauthenticated') {
