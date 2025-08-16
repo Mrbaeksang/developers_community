@@ -1,0 +1,798 @@
+openapi: 3.0.3
+info:
+  title: 개발자 커뮤니티 API
+  description: |
+    Next.js 15 기반 개발자 커뮤니티 플랫폼 REST API
+
+    ## 인증
+    - NextAuth v5 (Bearer Token)
+    - OAuth 2.0 (Google, GitHub, Kakao)
+
+    ## Rate Limiting
+    - 일반: 60 req/min
+    - 인증: 120 req/min
+    - AI Bot: 10 req/min
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api@devcom.kr
+
+servers:
+  - url: https://api.devcom.kr
+    description: Production
+  - url: http://localhost:3000
+    description: Development
+
+tags:
+  - name: Auth
+    description: 인증 관련
+  - name: Main Posts
+    description: 메인 사이트 게시글
+  - name: Communities
+    description: 커뮤니티 관리
+  - name: Chat
+    description: 실시간 채팅
+  - name: AI
+    description: AI 자동 답변
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'cuid123'
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        image:
+          type: string
+          nullable: true
+        globalRole:
+          type: string
+          enum: [USER, MANAGER, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+
+    MainPost:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        content:
+          type: string
+        slug:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PENDING, PUBLISHED, REJECTED, ARCHIVED, DELETED]
+        viewCount:
+          type: integer
+        author:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/Category'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        createdAt:
+          type: string
+          format: date-time
+        _count:
+          type: object
+          properties:
+            comments:
+              type: integer
+            likes:
+              type: integer
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        postCount:
+          type: integer
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+        parentId:
+          type: string
+          nullable: true
+
+    Community:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          enum: [PUBLIC, PRIVATE]
+        owner:
+          $ref: '#/components/schemas/User'
+        _count:
+          type: object
+          properties:
+            members:
+              type: integer
+            posts:
+              type: integer
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        channelId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+  responses:
+    UnauthorizedError:
+      description: 인증 필요
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ForbiddenError:
+      description: 권한 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: 리소스 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  # ========== Auth ==========
+  /api/auth/session:
+    get:
+      tags: [Auth]
+      summary: 현재 세션 조회
+      responses:
+        '200':
+          description: 세션 정보
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  # ========== Main Posts ==========
+  /api/main/posts:
+    get:
+      tags: [Main Posts]
+      summary: 게시글 목록
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PUBLISHED, PENDING, DRAFT]
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 게시글 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      posts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MainPost'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags: [Main Posts]
+      summary: 게시글 작성
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content, categoryId]
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                content:
+                  type: string
+                categoryId:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  type: string
+                  enum: [DRAFT, PENDING]
+      responses:
+        '201':
+          description: 게시글 생성됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      post:
+                        $ref: '#/components/schemas/MainPost'
+        '400':
+          description: 잘못된 요청
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/main/posts/{id}:
+    get:
+      tags: [Main Posts]
+      summary: 게시글 상세
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 상세
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      post:
+                        $ref: '#/components/schemas/MainPost'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Main Posts]
+      summary: 게시글 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                categoryId:
+                  type: string
+                status:
+                  type: string
+      responses:
+        '200':
+          description: 수정 성공
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    delete:
+      tags: [Main Posts]
+      summary: 게시글 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  # ========== Comments ==========
+  /api/main/posts/{postId}/comments:
+    get:
+      tags: [Main Posts]
+      summary: 댓글 목록
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 댓글 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      comments:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comment'
+
+    post:
+      tags: [Main Posts]
+      summary: 댓글 작성
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: 댓글 생성됨
+
+  # ========== Likes ==========
+  /api/main/posts/{postId}/like:
+    post:
+      tags: [Main Posts]
+      summary: 좋아요 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 좋아요 상태 변경
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      liked:
+                        type: boolean
+                      likeCount:
+                        type: integer
+
+  # ========== Communities ==========
+  /api/communities:
+    get:
+      tags: [Communities]
+      summary: 커뮤니티 목록
+      parameters:
+        - name: visibility
+          in: query
+          schema:
+            type: string
+            enum: [PUBLIC, PRIVATE]
+      responses:
+        '200':
+          description: 커뮤니티 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      communities:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Community'
+
+    post:
+      tags: [Communities]
+      summary: 커뮤니티 생성
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                  pattern: '^[a-z0-9-]+$'
+                description:
+                  type: string
+                visibility:
+                  type: string
+                  enum: [PUBLIC, PRIVATE]
+      responses:
+        '201':
+          description: 커뮤니티 생성됨
+
+  /api/communities/{slug}:
+    get:
+      tags: [Communities]
+      summary: 커뮤니티 상세
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 커뮤니티 정보
+
+  /api/communities/{slug}/join:
+    post:
+      tags: [Communities]
+      summary: 커뮤니티 가입
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 가입 성공
+
+  # ========== Chat ==========
+  /api/chat/{channelId}/messages:
+    get:
+      tags: [Chat]
+      summary: 채팅 메시지 조회 (Polling)
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: after
+          in: query
+          schema:
+            type: string
+          description: 이 ID 이후 메시지만
+      responses:
+        '200':
+          description: 메시지 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+                  activeUsers:
+                    type: integer
+
+    post:
+      tags: [Chat]
+      summary: 메시지 전송
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: 메시지 전송됨
+
+  # ========== AI ==========
+  /api/ai/qa-bot:
+    post:
+      tags: [AI]
+      summary: AI 자동 답변 생성
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postId]
+              properties:
+                postId:
+                  type: string
+                  description: Q&A 게시글 ID
+      responses:
+        '200':
+          description: AI 답변 생성됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      commentId:
+                        type: string
+                      content:
+                        type: string
+        '400':
+          description: Q&A 카테고리가 아님
+        '429':
+          description: Rate limit 초과
+
+  # ========== User ==========
+  /api/user/profile:
+    get:
+      tags: [User]
+      summary: 내 프로필
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 프로필 정보
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      stats:
+                        type: object
+                        properties:
+                          posts:
+                            type: integer
+                          comments:
+                            type: integer
+                          likes:
+                            type: integer
+
+    patch:
+      tags: [User]
+      summary: 프로필 수정
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 프로필 수정됨
+
+  # ========== Notifications ==========
+  /api/notifications/unread:
+    get:
+      tags: [Notifications]
+      summary: 미읽은 알림
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 알림 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        link:
+                          type: string
+                        read:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+
+  /api/notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: 알림 읽음 처리
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 읽음 처리됨
