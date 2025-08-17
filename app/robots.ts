@@ -13,15 +13,8 @@ export default function robots(): MetadataRoute.Robots {
           '/auth/',
           '/_next/',
           '/static/',
-          '/profile/edit',
-          '/communities/create',
-          '/main/posts/create',
-          '/main/posts/*/edit',
-          '/communities/*/posts/create',
-          '/communities/*/posts/*/edit',
-          '/communities/*/settings',
-          '/notifications',
-          '/chat',
+          '/dashboard/',
+          '/users/bookmarks',
         ],
       },
       {
@@ -34,15 +27,8 @@ export default function robots(): MetadataRoute.Robots {
           '/auth/',
           '/_next/',
           '/static/',
-          '/profile/edit',
-          '/communities/create',
-          '/main/posts/create',
-          '/main/posts/*/edit',
-          '/communities/*/posts/create',
-          '/communities/*/posts/*/edit',
-          '/communities/*/settings',
-          '/notifications',
-          '/chat',
+          '/dashboard/',
+          '/users/bookmarks',
         ],
       },
       {
@@ -57,42 +43,16 @@ export default function robots(): MetadataRoute.Robots {
           '/static/',
         ],
       },
-      // 한국 검색엔진들
+      // 한국 검색엔진들 (콘텐츠 접근 최대화)
       {
         userAgent: 'Yeti', // 네이버 봇
         allow: '/',
-        disallow: [
-          '/api/',
-          '/admin/',
-          '/settings/',
-          '/auth/',
-          '/_next/',
-          '/static/',
-        ],
+        disallow: ['/api/', '/admin/', '/_next/'],
       },
       {
         userAgent: 'Daumoa', // 다음 봇
         allow: '/',
-        disallow: [
-          '/api/',
-          '/admin/',
-          '/settings/',
-          '/auth/',
-          '/_next/',
-          '/static/',
-        ],
-      },
-      {
-        userAgent: 'NaverBot', // 네이버 봇 (추가)
-        allow: '/',
-        disallow: [
-          '/api/',
-          '/admin/',
-          '/settings/',
-          '/auth/',
-          '/_next/',
-          '/static/',
-        ],
+        disallow: ['/api/', '/admin/', '/_next/'],
       },
     ],
     sitemap: `${process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr'}/sitemap.xml`,
