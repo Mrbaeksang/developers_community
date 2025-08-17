@@ -52,12 +52,22 @@ export async function GET() {
       )
       .slice(0, 30) // 최신 30개만
 
+    // XML 특수문자 이스케이프 함수
+    const escapeXml = (str: string) => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;')
+    }
+
     const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>DevCom - 개발자 커뮤니티</title>
+    <title><![CDATA[DevCom - 개발자 커뮤니티]]></title>
     <link>https://devcom.kr</link>
-    <description>개발자들을 위한 Q&A 및 커뮤니티 플랫폼</description>
+    <description><![CDATA[개발자들을 위한 Q&A 및 커뮤니티 플랫폼]]></description>
     <language>ko-KR</language>
     <lastBuildDate>${new Date().toISOString()}</lastBuildDate>
     <atom:link href="https://devcom.kr/rss.xml" rel="self" type="application/rss+xml"/>
@@ -66,12 +76,12 @@ export async function GET() {
         (post) => `
     <item>
       <title><![CDATA[${post.title}]]></title>
-      <link>${post.link}</link>
+      <link>${escapeXml(post.link)}</link>
       <description><![CDATA[${post.description}]]></description>
       <pubDate>${new Date(post.pubDate).toUTCString()}</pubDate>
       <author><![CDATA[${post.author}]]></author>
       <category><![CDATA[${post.category}]]></category>
-      <guid isPermaLink="true">${post.link}</guid>
+      <guid isPermaLink="true">${escapeXml(post.link)}</guid>
     </item>`
       )
       .join('')}
