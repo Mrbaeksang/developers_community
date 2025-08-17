@@ -536,6 +536,34 @@ components:
           nullable: true
           description: JSON string containing related resource IDs
 
+    NotificationType:
+      type: string
+      enum:
+        - POST_LIKE
+        - POST_COMMENT
+        - POST_MENTION
+        - POST_APPROVED
+        - POST_REJECTED
+        - COMMENT_REPLY
+        - COMMENT_LIKE
+        - COMMENT_MENTION
+        - COMMUNITY_INVITE
+        - COMMUNITY_JOIN
+        - COMMUNITY_ROLE
+        - COMMUNITY_BAN
+      description: 알림 타입
+
+    FileType:
+      type: string
+      enum:
+        - IMAGE
+        - DOCUMENT
+        - VIDEO
+        - AUDIO
+        - ARCHIVE
+        - OTHER
+      description: 파일 타입
+
     Error:
       type: object
       properties:
@@ -1104,9 +1132,74 @@ paths:
       summary: 알림 목록
       security:
         - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationType'
+          description: 알림 타입 필터
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: 미읽은 알림만 조회
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: 페이지 크기
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 커서 기반 페이지네이션
       responses:
         '200':
           description: 알림 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      notifications:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notification'
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          nextCursor:
+                            type: string
+                            nullable: true
+                          hasMore:
+                            type: boolean
+                      unreadCount:
+                        type: integer
+                        description: 총 미읽은 알림 수
 
   /api/notifications/unread:
     get:
@@ -1182,13 +1275,73 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - file
               properties:
                 file:
                   type: string
                   format: binary
+                  description: 업로드할 파일 (최대 10MB)
+                communityId:
+                  type: string
+                  description: 커뮤니티 ID (커뮤니티 게시글의 경우)
+                postId:
+                  type: string
+                  description: 게시글 ID (기존 게시글에 첨부하는 경우)
       responses:
         '201':
           description: 파일 업로드 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: 파일 ID
+                      filename:
+                        type: string
+                        description: 원본 파일명
+                      url:
+                        type: string
+                        description: 파일 URL
+                      downloadUrl:
+                        type: string
+                        description: 다운로드 URL
+                      mimeType:
+                        type: string
+                        description: MIME 타입
+                      size:
+                        type: integer
+                        description: 파일 크기 (바이트)
+                      type:
+                        $ref: '#/components/schemas/FileType'
+                      width:
+                        type: integer
+                        nullable: true
+                        description: 이미지 가로 크기
+                      height:
+                        type: integer
+                        nullable: true
+                        description: 이미지 세로 크기
+                      uploadedAt:
+                        type: string
+                        format: date-time
+                        description: 업로드 시간
+                      uploader:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: 잘못된 요청 (파일 크기 초과, 지원되지 않는 형식 등)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 권한 없음 (커뮤니티 멤버가 아니거나 파일 업로드 권한 없음)
 
   /api/files/{id}:
     get:
@@ -1253,29 +1406,6 @@ paths:
           description: 파일 다운로드
 
   # ========== Search ==========
-  /api/search:
-    get:
-      tags: [Search]
-      summary: 통합 검색
-      parameters:
-        - name: q
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [posts, communities, users]
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-      responses:
-        '200':
-          description: 검색 결과
 
   # ========== Admin ==========
   /api/admin/posts/main:
@@ -1380,6 +1510,48 @@ paths:
       responses:
         '200':
           description: 통계 데이터
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: integer
+                        description: 총 사용자 수
+                      mainPosts:
+                        type: integer
+                        description: 메인 게시글 수
+                      mainComments:
+                        type: integer
+                        description: 메인 댓글 수
+                      communities:
+                        type: integer
+                        description: 커뮤니티 수
+                      communityPosts:
+                        type: integer
+                        description: 커뮤니티 게시글 수
+                      tags:
+                        type: integer
+                        description: 태그 수
+                      realtime:
+                        type: object
+                        properties:
+                          activeVisitors:
+                            type: integer
+                            description: 활성 방문자 수
+                          todayViews:
+                            type: integer
+                            description: 오늘 조회수
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   # ========== Stats ==========
   /api/stats/post-trends:
