@@ -202,7 +202,13 @@ function markdownToHTML(markdown: string): string {
 function isQACategory(category: MainCategory | null): boolean {
   if (!category) return false
 
-  // Q&A 관련 카테고리 슬러그들
+  // Q&A 카테고리 ID로 직접 확인 (가장 정확)
+  const QA_CATEGORY_ID = 'cmdrfyblq0003u8fsdxrl27g9'
+  if (category.id === QA_CATEGORY_ID) {
+    return true
+  }
+
+  // 백업: Q&A 관련 카테고리 슬러그들
   const qaCategories = ['qa', 'qna', 'question', 'help', '질문답변', '문의']
   return qaCategories.some(
     (qa) =>
@@ -595,10 +601,12 @@ export async function createAIComment(postId: string): Promise<void> {
 // 배치로 여러 Q&A 게시글에 AI 댓글 생성
 export async function processQAPosts(): Promise<void> {
   try {
-    // Q&A 카테고리 조회
+    // Q&A 카테고리 조회 (ID로 직접 확인)
+    const QA_CATEGORY_ID = 'cmdrfyblq0003u8fsdxrl27g9'
     const qaCategories = await prisma.mainCategory.findMany({
       where: {
         OR: [
+          { id: QA_CATEGORY_ID }, // 메인 Q&A 카테고리
           { slug: { contains: 'qa' } },
           { slug: { contains: 'question' } },
           { name: { contains: '질문' } },
