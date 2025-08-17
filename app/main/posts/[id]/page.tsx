@@ -104,15 +104,23 @@ async function getPost(id: string) {
       },
     })
 
-    // Q&A 카테고리 확인
-    const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
-    const isQACategory = post.category
-      ? qaCategories.some(
+    // Q&A 카테고리 확인 (AI 봇과 동일한 로직)
+    let isQACategory = false
+    if (post.category) {
+      // Q&A 카테고리 ID로 직접 확인 (가장 정확)
+      const QA_CATEGORY_ID = 'cmdrfyblq0003u8fsdxrl27g9'
+      isQACategory = post.category.id === QA_CATEGORY_ID
+
+      // 백업: 기존 슬러그/이름 기반 확인
+      if (!isQACategory) {
+        const qaCategories = ['qa', 'qna', 'question', 'help', '질문', '문의']
+        isQACategory = qaCategories.some(
           (qa) =>
             post.category.slug.toLowerCase().includes(qa) ||
             post.category.name.toLowerCase().includes(qa)
         )
-      : false
+      }
+    }
 
     // 날짜를 string으로 변환하고 마크다운 변환
     const htmlContent = await markdownToHtml(post.content)
