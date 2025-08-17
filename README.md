@@ -22,8 +22,7 @@
 - 🧪 [테스트 전략](docs/TESTING.md) - Vitest 3.2.4 + Playwright
 - 🔄 [실시간 기능](docs/REAL_TIME.md) - Vercel 최적화 Polling
 - 🤖 [AI 기능](docs/AI_FEATURES.md) - Q&A 자동 답변 시스템
-- 📡 [API 명세](docs/api/specification.yaml) - OpenAPI 3.0
-  - 🌐 [API 문서 (Swagger UI)](https://mrbaeksang.github.io/developers_community/docs/api/)
+- 📡 [API 문서 (Swagger UI)](https://mrbaeksang.github.io/developers_community/) - OpenAPI 3.0
 - 🚀 [Vercel 배포](docs/deployment/VERCEL.md) - 배포 최적화
 - 🔄 [CI/CD](docs/deployment/CI_CD.md) - GitHub Actions 자동화
 
