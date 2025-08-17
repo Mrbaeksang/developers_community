@@ -168,6 +168,12 @@ const nextConfig: NextConfig = {
         hostname: '*.public.blob.vercel-storage.com',
         pathname: '/**',
       },
+      // Kakao CDN 추가 (모든 서브도메인)
+      {
+        protocol: 'https',
+        hostname: '*.kakaocdn.net',
+        pathname: '/**',
+      },
     ],
   },
   // webpack 설정 추가

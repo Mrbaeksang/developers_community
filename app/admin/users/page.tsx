@@ -510,7 +510,7 @@ export default function AdminUsersPage() {
                       {user.image ? (
                         <div className="relative w-10 h-10 rounded-full overflow-hidden">
                           <Image
-                            src={user.image}
+                            src={user.image.replace('http://', 'https://')}
                             alt={user.name || user.email || 'User avatar'}
                             fill
                             className="object-cover"

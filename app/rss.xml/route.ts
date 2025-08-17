@@ -9,44 +9,47 @@ export async function GET() {
         where: { status: 'PUBLISHED' },
         include: {
           author: { select: { name: true, email: true } },
-          category: { select: { name: true } }
+          category: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 20
+        take: 20,
       }),
       prisma.communityPost.findMany({
         where: { status: 'PUBLISHED' },
         include: {
           author: { select: { name: true, email: true } },
           community: { select: { name: true, slug: true } },
-          category: { select: { name: true } }
+          category: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 20
-      })
+        take: 20,
+      }),
     ])
 
     // 모든 게시글을 날짜순으로 정렬
     const allPosts = [
-      ...mainPosts.map(post => ({
+      ...mainPosts.map((post) => ({
         title: post.title,
         link: `https://devcom.kr/main/posts/${post.id}`,
         description: post.excerpt || post.content.substring(0, 200) + '...',
         pubDate: post.createdAt.toISOString(),
         author: post.author.name || post.author.email || 'Anonymous',
         category: post.category?.name || 'Uncategorized',
-        type: 'main'
+        type: 'main',
       })),
-      ...communityPosts.map(post => ({
+      ...communityPosts.map((post) => ({
         title: post.title,
         link: `https://devcom.kr/communities/${post.community.slug}/posts/${post.id}`,
         description: post.content.substring(0, 200) + '...',
         pubDate: post.createdAt.toISOString(),
         author: post.author.name || post.author.email || 'Anonymous',
         category: post.category?.name || post.community.name,
-        type: 'community'
-      }))
-    ].sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+        type: 'community',
+      })),
+    ]
+      .sort(
+        (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+      )
       .slice(0, 30) // 최신 30개만
 
     const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -58,7 +61,9 @@ export async function GET() {
     <language>ko-KR</language>
     <lastBuildDate>${new Date().toISOString()}</lastBuildDate>
     <atom:link href="https://devcom.kr/rss.xml" rel="self" type="application/rss+xml"/>
-    ${allPosts.map(post => `
+    ${allPosts
+      .map(
+        (post) => `
     <item>
       <title><![CDATA[${post.title}]]></title>
       <link>${post.link}</link>
@@ -67,18 +72,23 @@ export async function GET() {
       <author><![CDATA[${post.author}]]></author>
       <category><![CDATA[${post.category}]]></category>
       <guid isPermaLink="true">${post.link}</guid>
-    </item>`).join('')}
+    </item>`
+      )
+      .join('')}
   </channel>
 </rss>`
 
     return new NextResponse(rssXml, {
       headers: {
         'Content-Type': 'application/xml',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600'
-      }
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
     })
   } catch (error) {
     console.error('RSS generation error:', error)
-    return NextResponse.json({ error: 'Failed to generate RSS feed' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to generate RSS feed' },
+      { status: 500 }
+    )
   }
 }

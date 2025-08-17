@@ -54,6 +54,10 @@ tags:
     description: 통계 및 분석
   - name: AI
     description: AI 자동 답변
+  - name: Analytics
+    description: 추적 및 분석
+  - name: System
+    description: 시스템 유틸리티
 
 components:
   securitySchemes:
@@ -72,15 +76,43 @@ components:
         email:
           type: string
           format: email
+          nullable: true
         name:
           type: string
+          nullable: true
+        username:
+          type: string
+          nullable: true
         image:
+          type: string
+          nullable: true
+        bio:
           type: string
           nullable: true
         globalRole:
           type: string
           enum: [USER, MANAGER, ADMIN]
+        emailVerified:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+        isBanned:
+          type: boolean
+        banReason:
+          type: string
+          nullable: true
+        banUntil:
+          type: string
+          format: date-time
+          nullable: true
+        showEmail:
+          type: boolean
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -95,24 +127,55 @@ components:
           maxLength: 200
         content:
           type: string
+        excerpt:
+          type: string
+          nullable: true
         slug:
           type: string
         status:
           type: string
           enum: [DRAFT, PENDING, PUBLISHED, REJECTED, ARCHIVED, DELETED]
+        isPinned:
+          type: boolean
         viewCount:
           type: integer
-        author:
-          $ref: '#/components/schemas/User'
-        category:
-          $ref: '#/components/schemas/Category'
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
+        likeCount:
+          type: integer
+        commentCount:
+          type: integer
+        metaTitle:
+          type: string
+          nullable: true
+        metaDescription:
+          type: string
+          nullable: true
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        approvedById:
+          type: string
+          nullable: true
+        rejectedReason:
+          type: string
+          nullable: true
+        authorRole:
+          type: string
+          enum: [USER, MANAGER, ADMIN]
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/User'
+        category:
+          $ref: '#/components/schemas/MainCategory'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/MainTag'
         _count:
           type: object
           properties:
@@ -120,8 +183,10 @@ components:
               type: integer
             likes:
               type: integer
+            bookmarks:
+              type: integer
 
-    Category:
+    MainCategory:
       type: object
       properties:
         id:
@@ -133,8 +198,19 @@ components:
         description:
           type: string
           nullable: true
+        color:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        order:
+          type: integer
+        isActive:
+          type: boolean
+        requiresApproval:
+          type: boolean
 
-    Tag:
+    MainTag:
       type: object
       properties:
         id:
@@ -143,24 +219,41 @@ components:
           type: string
         slug:
           type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
         postCount:
           type: integer
 
-    Comment:
+    MainComment:
       type: object
       properties:
         id:
           type: string
         content:
           type: string
-        author:
-          $ref: '#/components/schemas/User'
+        isEdited:
+          type: boolean
+        authorRole:
+          type: string
+          enum: [USER, MANAGER, ADMIN]
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/User'
         parentId:
           type: string
           nullable: true
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/MainComment'
 
     Community:
       type: object
@@ -173,12 +266,33 @@ components:
           type: string
         description:
           type: string
-        image:
+          nullable: true
+        rules:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        banner:
           type: string
           nullable: true
         visibility:
           type: string
           enum: [PUBLIC, PRIVATE]
+        memberCount:
+          type: integer
+        postCount:
+          type: integer
+        allowFileUpload:
+          type: boolean
+        maxFileSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
         owner:
           $ref: '#/components/schemas/User'
         _count:
@@ -188,21 +302,239 @@ components:
               type: integer
             posts:
               type: integer
+            categories:
+              type: integer
 
-    ChatMessage:
+    CommunityMember:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: [MEMBER, MODERATOR, ADMIN, OWNER]
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, BANNED, LEFT]
+        joinedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        bannedAt:
+          type: string
+          format: date-time
+          nullable: true
+        bannedReason:
+          type: string
+          nullable: true
+        bannedUntil:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          $ref: '#/components/schemas/User'
+
+    CommunityCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        order:
+          type: integer
+        isActive:
+          type: boolean
+
+    CommunityPost:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED, DELETED]
+        isPinned:
+          type: boolean
+        viewCount:
+          type: integer
+        likeCount:
+          type: integer
+        commentCount:
+          type: integer
+        authorRole:
+          type: string
+          enum: [MEMBER, MODERATOR, ADMIN, OWNER]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/User'
+        community:
+          $ref: '#/components/schemas/Community'
+        category:
+          $ref: '#/components/schemas/CommunityCategory'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommunityTag'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+
+    CommunityComment:
       type: object
       properties:
         id:
           type: string
         content:
           type: string
-        author:
-          $ref: '#/components/schemas/User'
-        channelId:
+        isEdited:
+          type: boolean
+        authorRole:
           type: string
+          enum: [MEMBER, MODERATOR, ADMIN, OWNER]
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/User'
+        parentId:
+          type: string
+          nullable: true
+
+    CommunityTag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        postCount:
+          type: integer
+
+    CommunityAnnouncement:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        isPinned:
+          type: boolean
+        authorRole:
+          type: string
+          enum: [MODERATOR, ADMIN, OWNER]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/User'
+
+    File:
+      type: object
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        storedName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        type:
+          type: string
+          enum: [IMAGE, DOCUMENT, VIDEO, AUDIO, ARCHIVE, OTHER]
+        url:
+          type: string
+        downloadUrl:
+          type: string
+          nullable: true
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        hash:
+          type: string
+          nullable: true
+        isTemporary:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [POST_LIKE, POST_COMMENT, POST_MENTION, POST_APPROVED, POST_REJECTED, COMMENT_REPLY, COMMENT_LIKE, COMMENT_MENTION, COMMUNITY_INVITE, COMMUNITY_JOIN, COMMUNITY_ROLE, COMMUNITY_BAN]
+        title:
+          type: string
+        message:
+          type: string
+          nullable: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+        sender:
+          $ref: '#/components/schemas/User'
+        resourceIds:
+          type: string
+          nullable: true
+          description: JSON string containing related resource IDs
 
     Error:
       type: object
@@ -1140,3 +1472,2159 @@ paths:
       responses:
         '200':
           description: 멤버 목록
+
+  # ========== Admin Data Viewer ==========
+  /api/admin/data-viewer/{table}:
+    get:
+      tags: [Admin]
+      summary: 관리자 데이터 뷰어 (동적 테이블 조회)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [users, posts, communities, comments, notifications]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 테이블 데이터
+
+  # ========== Admin Community Management ==========
+  /api/admin/communities:
+    get:
+      tags: [Admin]
+      summary: 전체 커뮤니티 관리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 커뮤니티 목록
+
+  /api/admin/communities/{communityId}:
+    get:
+      tags: [Admin]
+      summary: 특정 커뮤니티 관리 상세
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 커뮤니티 상세
+
+    put:
+      tags: [Admin]
+      summary: 커뮤니티 정보 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                visibility:
+                  type: string
+                  enum: [PUBLIC, PRIVATE]
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Admin]
+      summary: 커뮤니티 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  # ========== Admin Categories ==========
+  /api/admin/categories:
+    get:
+      tags: [Admin]
+      summary: 전체 카테고리 관리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 카테고리 목록
+
+    post:
+      tags: [Admin]
+      summary: 새 카테고리 생성
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: 카테고리 생성됨
+
+  /api/admin/categories/{id}:
+    get:
+      tags: [Admin]
+      summary: 특정 카테고리 상세
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 카테고리 상세
+
+    put:
+      tags: [Admin]
+      summary: 카테고리 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Admin]
+      summary: 카테고리 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  # ========== Admin User Management ==========
+  /api/admin/users/{userId}/ban:
+    post:
+      tags: [Admin]
+      summary: 사용자 차단
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                duration:
+                  type: string
+                  description: "기간 (예: '7d', '30d', 'permanent')"
+      responses:
+        '200':
+          description: 사용자 차단됨
+
+  /api/admin/users/{userId}/unban:
+    post:
+      tags: [Admin]
+      summary: 사용자 차단 해제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 차단 해제됨
+
+  /api/admin/users/{userId}/active:
+    post:
+      tags: [Admin]
+      summary: 사용자 활성화 상태 변경
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: 상태 변경됨
+
+  # ========== Community Advanced Features ==========
+  /api/communities/active:
+    get:
+      tags: [Communities]
+      summary: 활성 커뮤니티 목록
+      responses:
+        '200':
+          description: 활성 커뮤니티 목록
+
+  /api/communities/check-duplicate:
+    post:
+      tags: [Communities]
+      summary: 중복 커뮤니티명/slug 체크
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+      responses:
+        '200':
+          description: 중복 체크 결과
+
+  /api/communities/check-slug:
+    get:
+      tags: [Communities]
+      summary: Slug 사용 가능 여부 체크
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Slug 사용 가능 여부
+
+  /api/communities/{id}/announcements:
+    get:
+      tags: [Communities]
+      summary: 커뮤니티 공지사항 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 공지사항 목록
+
+    post:
+      tags: [Communities]
+      summary: 공지사항 작성
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                pinned:
+                  type: boolean
+      responses:
+        '201':
+          description: 공지사항 작성됨
+
+  /api/communities/{id}/announcements/{announcementId}:
+    get:
+      tags: [Communities]
+      summary: 특정 공지사항 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 공지사항 상세
+
+    put:
+      tags: [Communities]
+      summary: 공지사항 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                pinned:
+                  type: boolean
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Communities]
+      summary: 공지사항 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  # ========== Main Posts Advanced ==========
+  /api/main/posts/pending:
+    get:
+      tags: [Main Posts]
+      summary: 승인 대기 게시글 목록 (관리자용)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 승인 대기 게시글 목록
+
+  /api/main/posts/{id}/approve:
+    post:
+      tags: [Main Posts]
+      summary: 게시글 승인/거부
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [approve, reject]
+                reason:
+                  type: string
+                  description: "거부 시 사유"
+      responses:
+        '200':
+          description: 승인/거부 처리됨
+
+  /api/main/posts/check-slug:
+    get:
+      tags: [Main Posts]
+      summary: 게시글 Slug 중복 체크
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Slug 사용 가능 여부
+
+  /api/main/posts/weekly-trending:
+    get:
+      tags: [Main Posts]
+      summary: 주간 인기 게시글
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 주간 인기 게시글 목록
+
+  # ========== User Management ==========
+  /api/users/me:
+    get:
+      tags: [Users]
+      summary: 내 정보 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 사용자 정보
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+
+    put:
+      tags: [Users]
+      summary: 내 정보 수정
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: 수정 성공
+
+  /api/users/bookmarks:
+    get:
+      tags: [Users]
+      summary: 사용자 북마크 목록
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 북마크 목록
+
+  /api/users/stats:
+    get:
+      tags: [Users]
+      summary: 사용자 통계
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 사용자 통계
+
+  /api/users/{id}/communities:
+    get:
+      tags: [Users]
+      summary: 사용자 참여 커뮤니티
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 참여 커뮤니티 목록
+
+  /api/users/{id}/posts:
+    get:
+      tags: [Users]
+      summary: 사용자 게시글 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 게시글 목록
+
+  # ========== Community Posts Advanced ==========
+  /api/communities/{id}/posts/{postId}:
+    get:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 상세
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 상세
+
+    put:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                categoryId:
+                  type: string
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  /api/communities/{id}/posts/{postId}/view:
+    post:
+      tags: [Community Posts]
+      summary: 게시글 조회수 증가
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 조회수 증가됨
+
+  /api/communities/{id}/posts/{postId}/like:
+    post:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 좋아요 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 좋아요 상태 변경
+
+  /api/communities/{id}/posts/{postId}/bookmark:
+    post:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 북마크 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 북마크 상태 변경
+
+  /api/communities/{id}/posts/{postId}/comments:
+    get:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 댓글 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 댓글 목록
+
+    post:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 댓글 작성
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: 댓글 작성됨
+
+  /api/communities/{id}/comments/{commentId}:
+    get:
+      tags: [Community Posts]
+      summary: 커뮤니티 댓글 상세
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 댓글 상세
+
+    put:
+      tags: [Community Posts]
+      summary: 커뮤니티 댓글 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Community Posts]
+      summary: 커뮤니티 댓글 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  # ========== AI & Automation ==========
+  /api/ai/qa-bot:
+    get:
+      tags: [AI]
+      summary: AI 봇 상태 조회
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: AI 봇 상태
+
+    post:
+      tags: [AI]
+      summary: AI 자동 답변 생성
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postId]
+              properties:
+                postId:
+                  type: string
+                  description: Q&A 게시글 ID
+                customPrompt:
+                  type: string
+                  description: 커스텀 프롬프트 (선택사항)
+      responses:
+        '200':
+          description: AI 답변 생성됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      commentId:
+                        type: string
+                      content:
+                        type: string
+                      confidence:
+                        type: number
+                        description: AI 답변 신뢰도 (0-1)
+        '400':
+          description: Q&A 카테고리가 아님
+        '429':
+          description: Rate limit 초과
+
+  # ========== Main Posts Additional Features ==========
+  /api/main/posts/{id}/view:
+    post:
+      tags: [Main Posts]
+      summary: 메인 게시글 조회수 증가
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 조회수 증가됨
+
+  /api/main/posts/{id}/bookmark:
+    post:
+      tags: [Main Posts]
+      summary: 메인 게시글 북마크 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 북마크 상태 변경
+
+  /api/main/posts/{id}/related:
+    get:
+      tags: [Main Posts]
+      summary: 관련 게시글 추천
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: 관련 게시글 목록
+
+  /api/main/posts/search:
+    get:
+      tags: [Main Posts]
+      summary: 메인 게시글 검색
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 검색 결과
+
+  # ========== Tags Advanced ==========
+  /api/main/tags/by-slug:
+    get:
+      tags: [Main Tags]
+      summary: Slug로 태그 조회
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 태그 정보
+
+  /api/main/tags/trending:
+    get:
+      tags: [Main Tags]
+      summary: 인기 태그 목록
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+      responses:
+        '200':
+          description: 인기 태그 목록
+
+  # ========== Community Member Management ==========
+  /api/communities/{id}/members/approve:
+    post:
+      tags: [Community Members]
+      summary: 멤버 가입 승인
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: 승인 처리됨
+
+  /api/communities/{id}/members/{memberId}/request:
+    post:
+      tags: [Community Members]
+      summary: 멤버십 가입 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: 가입 요청 메시지
+      responses:
+        '200':
+          description: 요청 전송됨
+
+  /api/communities/{id}/members/{memberId}/role:
+    put:
+      tags: [Community Members]
+      summary: 멤버 역할 변경
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [MEMBER, MODERATOR, ADMIN]
+      responses:
+        '200':
+          description: 역할 변경됨
+
+  /api/communities/{id}/transfer-ownership:
+    post:
+      tags: [Communities]
+      summary: 커뮤니티 소유권 이전
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newOwnerId]
+              properties:
+                newOwnerId:
+                  type: string
+                confirmationCode:
+                  type: string
+                  description: 이전 확인 코드
+      responses:
+        '200':
+          description: 소유권 이전됨
+
+  # ========== File Management Advanced ==========
+  /api/files/cleanup:
+    post:
+      tags: [Files]
+      summary: 미사용 파일 정리
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dryRun:
+                  type: boolean
+                  default: false
+                  description: 실제 삭제 없이 확인만
+                maxAge:
+                  type: string
+                  default: "30d"
+                  description: 파일 최대 보관 기간
+      responses:
+        '200':
+          description: 정리 완료
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cleaned:
+                    type: integer
+                  totalSize:
+                    type: string
+
+  /api/image-proxy:
+    get:
+      tags: [Files]
+      summary: 이미지 프록시 (외부 이미지 캐싱)
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: w
+          in: query
+          schema:
+            type: integer
+            description: 너비
+        - name: h
+          in: query
+          schema:
+            type: integer
+            description: 높이
+        - name: q
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 75
+            description: 품질
+      responses:
+        '200':
+          description: 프록시된 이미지
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+
+  # ========== Admin Advanced Features ==========
+  /api/admin/posts/community:
+    get:
+      tags: [Admin]
+      summary: 커뮤니티 게시글 관리
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PUBLISHED, ARCHIVED, DELETED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 커뮤니티 게시글 목록
+
+  /api/admin/posts/community/{id}:
+    get:
+      tags: [Admin]
+      summary: 특정 커뮤니티 게시글 관리
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 상세
+
+    put:
+      tags: [Admin]
+      summary: 커뮤니티 게시글 수정 (관리자)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                status:
+                  type: string
+                  enum: [PUBLISHED, ARCHIVED, DELETED]
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Admin]
+      summary: 커뮤니티 게시글 삭제 (관리자)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  /api/admin/tags/stats:
+    get:
+      tags: [Admin]
+      summary: 태그 사용 통계
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: month
+      responses:
+        '200':
+          description: 태그 통계
+
+  /api/admin/monitoring/errors:
+    get:
+      tags: [Admin]
+      summary: 에러 로그 모니터링
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [error, warning, info]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: 에러 로그 목록
+
+  /api/admin/monitoring/traffic:
+    get:
+      tags: [Admin]
+      summary: 트래픽 모니터링
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [requests, users, errors, response_time]
+            default: requests
+      responses:
+        '200':
+          description: 트래픽 데이터
+
+  /api/admin/cleanup-images:
+    post:
+      tags: [Admin]
+      summary: 관리자 이미지 정리
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: 정리 완료
+
+  # ========== Tracking & Analytics ==========
+  /api/track/page-view:
+    post:
+      tags: [Analytics]
+      summary: 페이지뷰 추적
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+                  description: 페이지 경로
+                referrer:
+                  type: string
+                  description: 참조 페이지
+                userAgent:
+                  type: string
+                  description: 사용자 에이전트
+                sessionId:
+                  type: string
+                  description: 세션 ID
+      responses:
+        '200':
+          description: 추적 완료
+
+  /api/errors:
+    post:
+      tags: [Analytics]
+      summary: 클라이언트 에러 리포팅
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, stack]
+              properties:
+                message:
+                  type: string
+                  description: 에러 메시지
+                stack:
+                  type: string
+                  description: 스택 트레이스
+                url:
+                  type: string
+                  description: 에러 발생 URL
+                userAgent:
+                  type: string
+                  description: 사용자 에이전트
+                userId:
+                  type: string
+                  description: 사용자 ID (선택사항)
+                timestamp:
+                  type: string
+                  format: date-time
+                  description: 에러 발생 시간
+      responses:
+        '200':
+          description: 에러 리포트 저장됨
+        '429':
+          description: Rate limit 초과
+
+  # ========== User Advanced Features ==========
+  /api/main/users/active:
+    get:
+      tags: [Users]
+      summary: 활성 사용자 목록
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: 활성 사용자 목록
+
+  /api/main/users/weekly-mvp:
+    get:
+      tags: [Users]
+      summary: 주간 MVP 사용자
+      responses:
+        '200':
+          description: 주간 MVP 사용자 정보
+
+  /api/main/categories/admin:
+    get:
+      tags: [Main Categories]
+      summary: 관리자용 카테고리 목록
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 관리자용 카테고리 목록
+
+  # ========== Community Categories ==========
+  /api/communities/{id}/categories/reorder:
+    post:
+      tags: [Communities]
+      summary: 커뮤니티 카테고리 순서 변경
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoryOrders]
+              properties:
+                categoryOrders:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      order:
+                        type: integer
+      responses:
+        '200':
+          description: 순서 변경됨
+
+  /api/communities/{id}/categories/{categoryId}:
+    get:
+      tags: [Communities]
+      summary: 커뮤니티 특정 카테고리 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 카테고리 상세
+
+    put:
+      tags: [Communities]
+      summary: 커뮤니티 카테고리 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                order:
+                  type: integer
+      responses:
+        '200':
+          description: 수정 성공
+
+    delete:
+      tags: [Communities]
+      summary: 커뮤니티 카테고리 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 삭제 성공
+
+  # ========== System & Utilities ==========
+  /api/csrf-token:
+    get:
+      tags: [System]
+      summary: CSRF 토큰 발급
+      responses:
+        '200':
+          description: CSRF 토큰
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /api/test-monitoring:
+    get:
+      tags: [System]
+      summary: 시스템 모니터링 테스트
+      responses:
+        '200':
+          description: 시스템 상태
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, down]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                      redis:
+                        type: string
+                      storage:
+                        type: string
+
+  # ========== Cron Jobs ==========
+  /api/cron/sync-views:
+    get:
+      tags: [System]
+      summary: 조회수 동기화 (크론잡)
+      responses:
+        '200':
+          description: 동기화 완료
+
+  /api/cron/cleanup-images:
+    get:
+      tags: [System]
+      summary: 이미지 정리 (크론잡)
+      responses:
+        '200':
+          description: 정리 완료
+
+  # ========== Search ==========
+  /api/search:
+    get:
+      tags: [Search]
+      summary: 통합 검색 (게시글, 사용자, 커뮤니티)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          description: 검색어
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, posts, users, communities]
+            default: all
+          description: 검색 유형
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: 결과 개수 제한
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 커서 기반 페이지네이션
+      responses:
+        '200':
+          description: 검색 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                      type:
+                        type: string
+                      totalResults:
+                        type: integer
+                      results:
+                        type: object
+                        properties:
+                          posts:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                title:
+                                  type: string
+                                content:
+                                  type: string
+                                excerpt:
+                                  type: string
+                                  nullable: true
+                                createdAt:
+                                  type: string
+                                  format: date-time
+                                viewCount:
+                                  type: integer
+                                type:
+                                  type: string
+                                  enum: [main, community]
+                                url:
+                                  type: string
+                                author:
+                                  $ref: '#/components/schemas/PostAuthor'
+                                category:
+                                  $ref: '#/components/schemas/Category'
+                                community:
+                                  $ref: '#/components/schemas/CommunityBasic'
+                                _count:
+                                  type: object
+                                  properties:
+                                    comments:
+                                      type: integer
+                                    likes:
+                                      type: integer
+                          users:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                  nullable: true
+                                username:
+                                  type: string
+                                  nullable: true
+                                email:
+                                  type: string
+                                  nullable: true
+                                image:
+                                  type: string
+                                  nullable: true
+                                bio:
+                                  type: string
+                                  nullable: true
+                                url:
+                                  type: string
+                                postCount:
+                                  type: integer
+                                _count:
+                                  type: object
+                                  properties:
+                                    mainPosts:
+                                      type: integer
+                                    communityPosts:
+                                      type: integer
+                          communities:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                slug:
+                                  type: string
+                                description:
+                                  type: string
+                                  nullable: true
+                                avatar:
+                                  type: string
+                                  nullable: true
+                                visibility:
+                                  type: string
+                                memberCount:
+                                  type: integer
+                                postCount:
+                                  type: integer
+                                url:
+                                  type: string
+                      pagination:
+                        type: object
+                        properties:
+                          nextCursor:
+                            type: string
+                            nullable: true
+                          hasMore:
+                            type: boolean
+
+  # ========== Weekly MVP ==========
+  /api/main/users/weekly-mvp:
+    get:
+      tags: [Main Posts]
+      summary: 주간 MVP 사용자 조회
+      responses:
+        '200':
+          description: 주간 MVP 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      stats:
+                        type: object
+                        properties:
+                          weeklyPosts:
+                            type: integer
+                          weeklyLikes:
+                            type: integer
+                          weeklyComments:
+                            type: integer
+
+  # ========== Weekly Trending ==========
+  /api/main/posts/weekly-trending:
+    get:
+      tags: [Main Posts]
+      summary: 주간 인기 게시글 조회
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: 결과 개수 제한
+      responses:
+        '200':
+          description: 주간 인기 게시글 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MainPost'
+
+  # ========== Trending Tags ==========
+  /api/main/tags/trending:
+    get:
+      tags: [Main Tags]
+      summary: 인기 태그 조회
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: 결과 개수 제한
+      responses:
+        '200':
+          description: 인기 태그 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MainTag'
+
+  # ========== Main Tags by Slug ==========
+  /api/main/tags/by-slug:
+    get:
+      tags: [Main Tags]
+      summary: 슬러그로 태그 조회
+      parameters:
+        - name: slug
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 태그 슬러그
+      responses:
+        '200':
+          description: 태그 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MainTag'
+
+  # ========== Image Proxy ==========
+  /api/image-proxy:
+    get:
+      tags: [Utilities]
+      summary: 이미지 프록시 (CORS 우회)
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: 원본 이미지 URL
+        - name: width
+          in: query
+          schema:
+            type: integer
+          description: 이미지 너비
+        - name: height
+          in: query
+          schema:
+            type: integer
+          description: 이미지 높이
+      responses:
+        '200':
+          description: 이미지 프록시 성공
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+
+  # ========== AI QA Bot ==========
+  /api/ai/qa-bot:
+    post:
+      tags: [AI]
+      summary: AI 질답 봇 댓글 생성
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                postId:
+                  type: string
+                force:
+                  type: boolean
+                  default: false
+              required:
+                - postId
+      responses:
+        '200':
+          description: AI 댓글 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/MainComment'
+
+  # ========== Page View Tracking ==========
+  /api/track/page-view:
+    post:
+      tags: [Analytics]
+      summary: 페이지 뷰 추적
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                referrer:
+                  type: string
+                userAgent:
+                  type: string
+              required:
+                - path
+      responses:
+        '200':
+          description: 페이지 뷰 추적 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ========== Community Transfer Ownership ==========
+  /api/communities/{id}/transfer-ownership:
+    post:
+      tags: [Communities]
+      summary: 커뮤니티 소유권 이전
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 커뮤니티 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newOwnerId:
+                  type: string
+              required:
+                - newOwnerId
+      responses:
+        '200':
+          description: 소유권 이전 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Community'
+
+  # ========== Upload Alternative Route ==========
+  /api/upload:
+    post:
+      tags: [Files]
+      summary: 파일 업로드 (대체 라우트)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                communityId:
+                  type: string
+                postId:
+                  type: string
+              required:
+                - file
+      responses:
+        '201':
+          description: 파일 업로드 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/File'
+
+  # ========== Files Cleanup ==========
+  /api/files/cleanup:
+    post:
+      tags: [Files]
+      summary: 미사용 파일 정리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 파일 정리 완료
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      deletedCount:
+                        type: integer
+                      savedSpace:
+                        type: integer
+
+  # ========== Download Route ==========
+  /api/download:
+    get:
+      tags: [Files]
+      summary: 파일 다운로드
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: 다운로드할 파일 URL
+        - name: filename
+          in: query
+          schema:
+            type: string
+          description: 다운로드 파일명
+      responses:
+        '200':
+          description: 파일 다운로드 성공
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
