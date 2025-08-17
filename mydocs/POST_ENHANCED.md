@@ -150,6 +150,9 @@ AI 에이전트가 **남녀노소 누구나 쉽게 읽을 수 있는 고품질 �
 **모든 스크립트에서 사용할 상수 (복사해서 사용):**
 
 ```typescript
+import { prisma } from '@/lib/core/prisma'
+
+// 관리자 정보 및 상수
 const ADMIN_USER_ID = 'cmdri2tj90000u8vgtyir9upy'  // 관리자 ID
 const ADMIN_ROLE = 'ADMIN'                         // GlobalRole.ADMIN
 
@@ -387,6 +390,292 @@ const content = `# [흥미로운 제목 - 독자의 호기심 자극]
 3. **독립적 가치**: 각 편이 단독으로도 가치 있어야 함
 4. **적절한 분량**: 각 편 5-10분 읽기 분량
 5. **시각적 일관성**: 동일한 이모지, 섹션 구조 사용
+
+## 🛠️ 완전한 스크립트 생성 가이드
+
+### ⚠️ 절대 실패하지 않는 3단계 프로세스
+
+**AI 에이전트는 다음 순서를 반드시 따르세요:**
+
+#### 1️⃣ 필수 준비 작업
+
+```bash
+# 1. 스키마 정보 파악 (필수!)
+Read prisma/schema.prisma  # MainPost 모델 필드 확인
+
+# 2. 현재 오류 상태 점검
+npm run lint              # ESLint 확인
+npm run type-check         # TypeScript 확인
+```
+
+#### 2️⃣ 실제 이미지 URL 찾기 (중요!)
+
+**절대 가짜/404 이미지 사용 금지! 다음 중 하나 사용:**
+
+1. **웹 검색으로 실제 이미지 찾기:**
+```typescript
+// MCP 웹 검색 도구 사용하여:
+// 1. "[주제 키워드] images" 검색
+// 2. Unsplash, Pexels, 실제 사이트에서 이미지 URL 추출
+// 3. curl로 URL 유효성 확인: curl -I [URL]
+```
+
+2. **확실한 플레이스홀더 사용:**
+```typescript
+// Lorem Picsum (항상 작동)
+https://picsum.photos/1200/600?random=1
+https://picsum.photos/1200/600?random=2
+// random 숫자만 바꿔서 서로 다른 이미지 사용
+```
+
+#### 3️⃣ 완전한 스크립트 템플릿
+
+```typescript
+import { prisma } from '@/lib/core/prisma'
+
+// 관리자 정보 및 상수
+const ADMIN_USER_ID = 'cmdri2tj90000u8vgtyir9upy'
+const ADMIN_ROLE = 'ADMIN'
+
+// 카테고리 ID - 아래에서 선택
+const AI_NEWS_CATEGORY_ID = 'cme5a3ysr0002u8wwwmcbgc7z'  // AI뉴스
+// const FRONTEND_CATEGORY_ID = 'cmdrfyb5f0000u8fsih05gxfk'  // Frontend
+// const BACKEND_CATEGORY_ID = 'cmdrfybll0002u8fseh2edmgf'   // Backend
+
+// 랜덤 조회수 생성
+const getRandomViewCount = (min: number, max: number) => 
+  Math.floor(Math.random() * (max - min + 1)) + min
+
+async function createPost() {
+  const content = `# 🎯 [매력적인 제목]
+
+## 🎯 한 줄 요약
+**[핵심 내용을 한 문장으로]**
+
+![메인 이미지](https://picsum.photos/1200/600?random=1)
+
+## 🤔 [독자가 공감할 만한 질문]
+
+여러분, 혹시 이런 경험 있으신가요?
+
+- **[공감 포인트 1]** 
+- **[공감 포인트 2]**
+- **[공감 포인트 3]**
+
+![상황 설명 이미지](https://picsum.photos/1200/600?random=2)
+
+## 💡 [핵심 솔루션/내용]
+
+### 🔥 [주요 특징 1]
+
+**이렇게 동작합니다:**
+- [간단한 설명 1]
+- [간단한 설명 2]
+- [간단한 설명 3]
+
+![기능 설명 이미지](https://picsum.photos/1200/600?random=3)
+
+### ⚡ [주요 특징 2]
+
+기존 방식과 비교해보세요:
+
+**Before (기존 방식):**
+> "[기존 방식의 불편함]"
+
+**After ([새로운 방식]):**
+> "[개선된 결과]"
+
+![비교 이미지](https://picsum.photos/1200/600?random=4)
+
+## 🎯 실제 활용 사례
+
+### 사례 1: [구체적인 예시]
+
+**[실제 사용자의 경험담]:**
+"[구체적인 경험과 결과를 인용문 형식으로]"
+
+![실제 사례 이미지](https://picsum.photos/1200/600?random=5)
+
+### 사례 2: [또 다른 예시]
+
+**[수치화된 개선 효과]:**
+- **[지표 1]**: 기존 대비 [수치]% 향상
+- **[지표 2]**: [구체적인 수치] 단축
+- **[지표 3]**: [만족도] 증가
+
+## ⚡ 장단점 정리
+
+### ✅ [솔루션명]의 압도적 장점
+
+| 기능 | [솔루션명] | [경쟁사1] | [경쟁사2] |
+|------|------------|----------|----------|
+| **[기능1]** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+| **[기능2]** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| **[기능3]** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+### ⚠️ 아직 개선이 필요한 부분
+
+- **[제한사항 1]**: [구체적인 설명]
+- **[제한사항 2]**: [구체적인 설명]
+- **[제한사항 3]**: [구체적인 설명]
+
+## 🚀 [솔루션] 시작하는 방법
+
+### Step 1: [첫 번째 단계]
+[구체적인 방법 설명]
+
+### Step 2: [두 번째 단계]
+[구체적인 방법 설명]
+
+### Step 3: [세 번째 단계]
+[구체적인 방법 설명]
+
+![시작 가이드 이미지](https://picsum.photos/1200/600?random=6)
+
+## 💭 마무리 생각
+
+**[솔루션명]은 단순한 [도구/기술]이 아닙니다.** 
+
+[미래 전망과 개인적인 의견을 2-3문장으로]
+
+**여러분의 [경험/의견]을 댓글로 들려주세요!** 🙌
+
+---
+
+*이 글이 도움이 되셨다면 좋아요와 공유 부탁드립니다!* ❤️`
+
+  try {
+    console.log('🎯 게시글 생성 시작...')
+
+    // 게시글 생성 (MainPost 스키마에 맞는 필드만 사용!)
+    const post = await prisma.mainPost.create({
+      data: {
+        title: '[🎯 매력적인 제목 - 독자의 호기심을 자극하는 제목]',
+        slug: 'unique-url-slug-for-seo', // SEO용 고유 URL
+        content,
+        excerpt: '[게시글의 핵심 내용을 2-3문장으로 요약한 excerpt]',
+        status: 'PUBLISHED',
+        authorId: ADMIN_USER_ID,
+        authorRole: ADMIN_ROLE,
+        categoryId: AI_NEWS_CATEGORY_ID, // 적절한 카테고리 선택
+        viewCount: getRandomViewCount(300, 500), // AI뉴스는 300-500
+        metaTitle: '[SEO 최적화된 메타 제목]',
+        metaDescription: '[SEO 최적화된 메타 설명 - 160자 이내]',
+      },
+    })
+
+    console.log(`✅ 게시글 생성 완료!`)
+    console.log(`📝 게시글 ID: ${post.id}`)
+    console.log(`🔗 URL: /main/posts/${post.id}`)
+
+    // 태그 생성 및 연결
+    const tagNames = ['[태그1]', '[태그2]', '[태그3]', '[태그4]']
+    console.log('🏷️ 태그 처리 중...')
+    
+    for (const tagName of tagNames) {
+      // 태그가 이미 존재하는지 확인
+      let tag = await prisma.mainTag.findUnique({
+        where: { name: tagName }
+      })
+
+      // 태그가 없으면 생성
+      if (!tag) {
+        tag = await prisma.mainTag.create({
+          data: {
+            name: tagName,
+            slug: tagName.toLowerCase().replace(/[^a-z0-9가-힣]/g, '-'),
+            postCount: 1,
+          }
+        })
+      } else {
+        // 기존 태그의 postCount 증가
+        await prisma.mainTag.update({
+          where: { id: tag.id },
+          data: { postCount: { increment: 1 } }
+        })
+      }
+
+      // 게시글-태그 연결
+      await prisma.mainPostTag.create({
+        data: {
+          postId: post.id,
+          tagId: tag.id,
+        }
+      })
+    }
+
+    console.log(`🏷️ 태그 처리 완료: ${tagNames.join(', ')}`)
+
+    // 사이트 통계 업데이트
+    await prisma.siteStats.upsert({
+      where: { id: 'main' },
+      update: {
+        totalPosts: { increment: 1 },
+      },
+      create: {
+        id: 'main',
+        totalUsers: 0,
+        totalPosts: 1,
+        totalComments: 0,
+        totalCommunities: 0,
+        dailyActiveUsers: 0,
+      },
+    })
+
+    console.log('📈 사이트 통계 업데이트 완료')
+
+  } catch (error) {
+    console.error('❌ 게시글 생성 중 오류 발생:', error)
+    throw error
+  }
+}
+
+// 스크립트 실행
+if (require.main === module) {
+  createPost()
+    .then(() => {
+      console.log('🎉 게시글 생성 스크립트 실행 완료!')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('💥 스크립트 실행 실패:', error)
+      process.exit(1)
+    })
+}
+
+export { createPost }
+```
+
+### 🚨 절대 실패하지 않는 체크리스트
+
+**스크립트 실행 전 반드시 확인:**
+
+#### ✅ 필수 확인사항
+- [ ] `prisma/schema.prisma` 읽고 MainPost 필드 확인함
+- [ ] 실제 이미지 URL 사용 (curl로 검증) 또는 picsum 사용
+- [ ] 카테고리 ID가 정확함 (위 목록에서 복사)
+- [ ] slug가 고유함 (중복되지 않는 URL용)
+- [ ] 태그명이 게시글 주제와 일치함
+
+#### ✅ 실행 후 확인
+- [ ] `npm run lint` 통과
+- [ ] `npm run type-check` 통과  
+- [ ] 브라우저에서 게시글 확인
+- [ ] 카카오톡 공유 시 이미지 미리보기 작동
+
+### 🎯 자주 하는 실수와 해결책
+
+**❌ 자주 하는 실수:**
+1. 존재하지 않는 스키마 필드 사용 (`featured`, `seoTitle` 등)
+2. 404 이미지 URL 사용 
+3. 중복된 slug 사용
+4. 잘못된 카테고리 ID
+
+**✅ 해결 방법:**
+1. 반드시 `prisma/schema.prisma` 먼저 읽기
+2. 이미지는 picsum 또는 웹 검색으로 검증된 URL만 사용
+3. slug는 `게시글-주제-unique-identifier` 형식
+4. 위의 카테고리 ID 목록에서 정확히 복사
 
 ---
 

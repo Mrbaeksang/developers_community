@@ -9,6 +9,25 @@ import { StructuredData } from '@/components/seo/StructuredData'
 import { prisma } from '@/lib/core/prisma'
 import { auth } from '@/auth'
 
+// 게시글 내용에서 첫 번째 이미지 URL 추출
+function extractFirstImage(content: string): string | null {
+  // 마크다운 이미지 패턴: ![alt](url)
+  const markdownImageRegex = /!\[.*?\]\((.*?)\)/
+  const markdownMatch = content.match(markdownImageRegex)
+  if (markdownMatch && markdownMatch[1]) {
+    return markdownMatch[1]
+  }
+
+  // HTML img 태그 패턴: <img src="url">
+  const htmlImageRegex = /<img[^>]+src=["']([^"']+)["']/i
+  const htmlMatch = content.match(htmlImageRegex)
+  if (htmlMatch && htmlMatch[1]) {
+    return htmlMatch[1]
+  }
+
+  return null
+}
+
 // 레이지 로딩으로 RelatedPosts 최적화
 const RelatedPosts = lazy(() => import('@/components/posts/RelatedPosts'))
 
@@ -165,6 +184,10 @@ export async function generateMetadata({
     }
   }
 
+  // 게시글 내용에서 첫 번째 이미지 추출
+  const firstImage = extractFirstImage(post.content)
+  const ogImage = firstImage || 'https://devcom.kr/og-image.png'
+
   return {
     title: post.title,
     description: post.excerpt || post.metaDescription || undefined,
@@ -175,6 +198,20 @@ export async function generateMetadata({
       publishedTime: post.createdAt,
       authors: [post.author?.name || 'Unknown'],
       tags: post.tags?.map((tag: { name: string }) => tag.name) || [],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt || post.metaDescription || undefined,
+      images: [ogImage],
     },
   }
 }
@@ -186,6 +223,10 @@ export default async function PostDetailPage({ params }: PageProps) {
   if (!post) {
     notFound()
   }
+
+  // 게시글의 첫 번째 이미지 추출 (StructuredData용)
+  const firstImage = extractFirstImage(post.content)
+  const ogImage = firstImage || 'https://devcom.kr/og-image.png'
 
   return (
     <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -200,7 +241,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           },
           publishedAt: post.createdAt,
           updatedAt: post.updatedAt,
-          image: 'https://devcom.kr/og-image.png',
+          image: ogImage,
           url: `https://devcom.kr/main/posts/${post.id}`,
         }}
       />
