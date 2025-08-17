@@ -133,6 +133,22 @@ export default function CommentSection({
     gcTime: 5 * 60 * 1000, // 5분간 캐시
   })
 
+  // AI 댓글 존재 여부 확인
+  const hasAIComment = comments.some(
+    (comment: Comment) => comment.author.id === AI_BOT_USER_ID
+  )
+
+  // Q&A 게시글에서 AI 댓글이 없으면 10초마다 폴링
+  useEffect(() => {
+    if (!isQAPost || hasAIComment) return
+
+    const interval = setInterval(() => {
+      refetch()
+    }, 10000) // 10초마다 폴링
+
+    return () => clearInterval(interval)
+  }, [isQAPost, hasAIComment, refetch])
+
   // Q&A 게시글 초기화 및 AI 댓글 확인
   useEffect(() => {
     // 이미 AI 댓글이 있는지 먼저 확인
