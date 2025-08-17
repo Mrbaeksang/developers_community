@@ -9,7 +9,15 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Camera, Save, X, AlertTriangle, UserX } from 'lucide-react'
+import {
+  Camera,
+  Save,
+  X,
+  AlertTriangle,
+  UserX,
+  Shuffle,
+  Link2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api/client'
 import {
@@ -26,6 +34,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { signOut } from 'next-auth/react'
 
 interface ProfileEditFormProps {
@@ -45,6 +61,11 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [showAvatarDialog, setShowAvatarDialog] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [dicebearStyle, setDicebearStyle] = useState('avataaars')
+  const [robohashSet, setRobohashSet] = useState('set4')
   const [formData, setFormData] = useState({
     name: user.name || '',
     username: user.username || '',
@@ -158,6 +179,289 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     }
   }
 
+  // 아바타 업데이트 mutation
+  const updateAvatarMutation = useMutation<
+    { id: string; image: string | null; name: string | null },
+    Error,
+    string | null
+  >({
+    mutationFn: async (imageUrl) => {
+      const response = await apiClient('/api/user/profile/avatar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl }),
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || '프로필 사진 업데이트 실패')
+      }
+
+      return response.data as {
+        id: string
+        image: string | null
+        name: string | null
+      }
+    },
+    onSuccess: (data) => {
+      setFormData((prev) => ({ ...prev, image: data.image || '' }))
+      setShowAvatarDialog(false)
+      setAvatarUrl('')
+      setAvatarPreview('')
+      toast.success('프로필 사진이 업데이트되었습니다')
+      router.refresh()
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : '프로필 사진 업데이트 실패'
+      )
+    },
+  })
+
+  // DiceBear 스타일 옵션 (더 많은 스타일 추가)
+  const dicebearStyles = [
+    {
+      value: 'adventurer',
+      label: 'Adventurer',
+      preview: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix',
+    },
+    {
+      value: 'adventurer-neutral',
+      label: 'Neutral',
+      preview: 'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'avataaars',
+      label: 'Avataaars',
+      preview: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    },
+    {
+      value: 'avataaars-neutral',
+      label: 'Avataaars N',
+      preview: 'https://api.dicebear.com/7.x/avataaars-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'big-ears',
+      label: 'Big Ears',
+      preview: 'https://api.dicebear.com/7.x/big-ears/svg?seed=Felix',
+    },
+    {
+      value: 'big-ears-neutral',
+      label: 'Big Ears N',
+      preview: 'https://api.dicebear.com/7.x/big-ears-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'big-smile',
+      label: 'Big Smile',
+      preview: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Felix',
+    },
+    {
+      value: 'bottts',
+      label: 'Bottts',
+      preview: 'https://api.dicebear.com/7.x/bottts/svg?seed=Felix',
+    },
+    {
+      value: 'bottts-neutral',
+      label: 'Bottts N',
+      preview: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'croodles',
+      label: 'Croodles',
+      preview: 'https://api.dicebear.com/7.x/croodles/svg?seed=Felix',
+    },
+    {
+      value: 'croodles-neutral',
+      label: 'Croodles N',
+      preview: 'https://api.dicebear.com/7.x/croodles-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'fun-emoji',
+      label: 'Fun Emoji',
+      preview: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Felix',
+    },
+    {
+      value: 'icons',
+      label: 'Icons',
+      preview: 'https://api.dicebear.com/7.x/icons/svg?seed=Felix',
+    },
+    {
+      value: 'identicon',
+      label: 'Identicon',
+      preview: 'https://api.dicebear.com/7.x/identicon/svg?seed=Felix',
+    },
+    {
+      value: 'initials',
+      label: 'Initials',
+      preview: 'https://api.dicebear.com/7.x/initials/svg?seed=AB',
+    },
+    {
+      value: 'lorelei',
+      label: 'Lorelei',
+      preview: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Felix',
+    },
+    {
+      value: 'lorelei-neutral',
+      label: 'Lorelei N',
+      preview: 'https://api.dicebear.com/7.x/lorelei-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'micah',
+      label: 'Micah',
+      preview: 'https://api.dicebear.com/7.x/micah/svg?seed=Felix',
+    },
+    {
+      value: 'miniavs',
+      label: 'Miniavs',
+      preview: 'https://api.dicebear.com/7.x/miniavs/svg?seed=Felix',
+    },
+    {
+      value: 'notionists',
+      label: 'Notionists',
+      preview: 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix',
+    },
+    {
+      value: 'notionists-neutral',
+      label: 'Notionists N',
+      preview: 'https://api.dicebear.com/7.x/notionists-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'open-peeps',
+      label: 'Open Peeps',
+      preview: 'https://api.dicebear.com/7.x/open-peeps/svg?seed=Felix',
+    },
+    {
+      value: 'personas',
+      label: 'Personas',
+      preview: 'https://api.dicebear.com/7.x/personas/svg?seed=Felix',
+    },
+    {
+      value: 'pixel-art',
+      label: 'Pixel Art',
+      preview: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix',
+    },
+    {
+      value: 'pixel-art-neutral',
+      label: 'Pixel Art N',
+      preview: 'https://api.dicebear.com/7.x/pixel-art-neutral/svg?seed=Felix',
+    },
+    {
+      value: 'rings',
+      label: 'Rings',
+      preview: 'https://api.dicebear.com/7.x/rings/svg?seed=Felix',
+    },
+    {
+      value: 'shapes',
+      label: 'Shapes',
+      preview: 'https://api.dicebear.com/7.x/shapes/svg?seed=Felix',
+    },
+    {
+      value: 'thumbs',
+      label: 'Thumbs',
+      preview: 'https://api.dicebear.com/7.x/thumbs/svg?seed=Felix',
+    },
+  ]
+
+  // RoboHash 세트 옵션 (배경 옵션 추가)
+  const robohashSets = [
+    {
+      value: 'set1',
+      label: '로봇 1',
+      preview: 'https://robohash.org/preview1?set=set1&size=100x100',
+    },
+    {
+      value: 'set2',
+      label: '몬스터',
+      preview: 'https://robohash.org/preview2?set=set2&size=100x100',
+    },
+    {
+      value: 'set3',
+      label: '로봇 헤드',
+      preview: 'https://robohash.org/preview3?set=set3&size=100x100',
+    },
+    {
+      value: 'set4',
+      label: '고양이',
+      preview: 'https://robohash.org/preview4?set=set4&size=100x100',
+    },
+    {
+      value: 'set5',
+      label: '인간',
+      preview: 'https://robohash.org/preview5?set=set5&size=100x100',
+    },
+    {
+      value: 'set1-bg1',
+      label: '로봇+배경1',
+      preview: 'https://robohash.org/preview6?set=set1&bgset=bg1&size=100x100',
+    },
+    {
+      value: 'set1-bg2',
+      label: '로봇+배경2',
+      preview: 'https://robohash.org/preview7?set=set1&bgset=bg2&size=100x100',
+    },
+    {
+      value: 'set2-bg1',
+      label: '몬스터+배경',
+      preview: 'https://robohash.org/preview8?set=set2&bgset=bg1&size=100x100',
+    },
+    {
+      value: 'set4-bg1',
+      label: '고양이+배경',
+      preview: 'https://robohash.org/preview9?set=set4&bgset=bg1&size=100x100',
+    },
+    {
+      value: 'any',
+      label: '랜덤 믹스',
+      preview: 'https://robohash.org/preview10?set=any&size=100x100',
+    },
+  ]
+
+  // DiceBear 아바타 생성
+  const generateDiceBearAvatar = (style: string) => {
+    const seed = Math.random().toString(36).substring(7)
+    const url = `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`
+    setAvatarPreview(url)
+    setAvatarUrl(url)
+    setDicebearStyle(style)
+  }
+
+  // UI Avatars 생성
+  const generateUIAvatar = () => {
+    const name = formData.name || user.email?.split('@')[0] || 'User'
+    const backgrounds = ['264653', '2a9d8f', 'e76f51', 'f4a261', 'e9c46a']
+    const bg = backgrounds[Math.floor(Math.random() * backgrounds.length)]
+    const url = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff&size=200`
+    setAvatarPreview(url)
+    setAvatarUrl(url)
+  }
+
+  // RoboHash 생성
+  const generateRoboHash = (setOption: string) => {
+    const identifier = formData.username || user.email || 'user'
+    const seed = Math.random().toString(36).substring(7)
+    let url = ''
+
+    if (setOption.includes('-bg')) {
+      const [set, bg] = setOption.split('-')
+      url = `https://robohash.org/${identifier}-${seed}?set=${set}&bgset=${bg}&size=200x200`
+    } else {
+      url = `https://robohash.org/${identifier}-${seed}?set=${setOption}&size=200x200`
+    }
+
+    setAvatarPreview(url)
+    setAvatarUrl(url)
+    setRobohashSet(setOption)
+  }
+
+  const handleAvatarSubmit = () => {
+    if (avatarUrl || avatarPreview) {
+      updateAvatarMutation.mutate(avatarUrl || avatarPreview)
+    }
+  }
+
+  const handleRemoveAvatar = () => {
+    updateAvatarMutation.mutate(null)
+  }
+
   const cardClasses =
     'border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white'
   const inputClasses =
@@ -191,7 +495,12 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           {/* 프로필 이미지 */}
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="h-32 w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <AvatarImage src={formData.image} alt={formData.name} />
+              {formData.image && (
+                <AvatarImage
+                  src={formData.image}
+                  alt={formData.name || undefined}
+                />
+              )}
               <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-3xl font-black">
                 {formData.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
@@ -200,10 +509,13 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               type="button"
               variant="outline"
               className={buttonClasses}
-              disabled
+              onClick={() => {
+                setAvatarPreview(formData.image || '')
+                setShowAvatarDialog(true)
+              }}
             >
               <Camera className="h-4 w-4 mr-2" />
-              사진 변경 (준비중)
+              사진 변경
             </Button>
           </div>
 
@@ -394,6 +706,208 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 프로필 사진 변경 다이얼로그 */}
+      <Dialog open={showAvatarDialog} onOpenChange={setShowAvatarDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>프로필 사진 변경</DialogTitle>
+            <DialogDescription>
+              외부 이미지 URL을 사용하여 프로필 사진을 설정합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* 미리보기 */}
+            <div className="flex justify-center">
+              <Avatar className="h-24 w-24 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                {(avatarPreview || formData.image) && (
+                  <AvatarImage src={avatarPreview || formData.image} />
+                )}
+                <AvatarFallback className="text-2xl font-bold">
+                  {formData.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            {/* URL 입력 */}
+            <div className="space-y-2">
+              <Label htmlFor="avatar-url">이미지 URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="avatar-url"
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={avatarUrl}
+                  onChange={(e) => {
+                    setAvatarUrl(e.target.value)
+                    if (e.target.value) {
+                      setAvatarPreview(e.target.value)
+                    }
+                  }}
+                  className={inputClasses}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (avatarUrl) setAvatarPreview(avatarUrl)
+                  }}
+                  disabled={!avatarUrl}
+                >
+                  <Link2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* 아바타 생성 옵션들 */}
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {/* DiceBear */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between sticky top-0 bg-white z-10 pb-2">
+                  <Label className="text-sm font-medium">
+                    DiceBear 스타일 (28개)
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateDiceBearAvatar(dicebearStyle)}
+                    className="h-7 px-2"
+                  >
+                    <Shuffle className="h-3 w-3 mr-1" />
+                    새로고침
+                  </Button>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2">
+                  {dicebearStyles.map((style) => (
+                    <button
+                      key={style.value}
+                      type="button"
+                      onClick={() => generateDiceBearAvatar(style.value)}
+                      className={`relative group rounded-lg border-2 p-2 transition-all hover:shadow-md ${
+                        dicebearStyle === style.value
+                          ? 'border-primary shadow-md bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="aspect-square w-full overflow-hidden rounded">
+                        <img
+                          src={style.preview}
+                          alt={style.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-[10px] mt-1 block text-center truncate">
+                        {style.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* RoboHash */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between sticky top-0 bg-white z-10 pt-4 pb-2">
+                  <Label className="text-sm font-medium">
+                    RoboHash 세트 (10개)
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateRoboHash(robohashSet)}
+                    className="h-7 px-2"
+                  >
+                    <Shuffle className="h-3 w-3 mr-1" />
+                    새로고침
+                  </Button>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  {robohashSets.map((set) => (
+                    <button
+                      key={set.value}
+                      type="button"
+                      onClick={() => generateRoboHash(set.value)}
+                      className={`relative group rounded-lg border-2 p-2 transition-all hover:shadow-md ${
+                        robohashSet === set.value
+                          ? 'border-primary shadow-md bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="aspect-square w-full overflow-hidden rounded bg-gray-50">
+                        <img
+                          src={set.preview}
+                          alt={set.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-[10px] mt-1 block text-center">
+                        {set.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* UI Avatars */}
+              <div className="space-y-2">
+                <div className="sticky top-0 bg-white z-10 pt-4 pb-2">
+                  <Label className="text-sm font-medium">이니셜 아바타</Label>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateUIAvatar}
+                  className="w-full"
+                >
+                  <Shuffle className="mr-2 h-4 w-4" />
+                  랜덤 색상으로 이니셜 아바타 생성
+                </Button>
+              </div>
+
+              {/* 프로필 사진 제거 */}
+              {formData.image && (
+                <div className="pt-2 border-t">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveAvatar}
+                    className="w-full text-red-600 hover:bg-red-50"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    현재 프로필 사진 제거
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAvatarDialog(false)
+                setAvatarUrl('')
+                setAvatarPreview('')
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleAvatarSubmit}
+              disabled={
+                updateAvatarMutation.isPending || (!avatarUrl && !avatarPreview)
+              }
+            >
+              {updateAvatarMutation.isPending ? '업데이트 중...' : '적용'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

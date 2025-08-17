@@ -34,23 +34,29 @@ AI 에이전트가 **남녀노소 누구나 쉽게 읽을 수 있는 고품질 �
 
 ### 이미지 소스별 활용법:
 
-**1. Unsplash API (주제별 검색):**
-```typescript
-// AI 에이전트가 수행할 작업:
-// 1. 웹 검색으로 주제 관련 Unsplash 이미지 찾기
-// 2. curl로 URL 유효성 확인
-// 3. 게시글에 삽입
+**🔴 중요: 이미지 선택 우선순위**
+1. **Unsplash 직접 URL** (가장 안정적)
+2. **Dribbble CDN URL** (디자인 관련)
+3. **Lorem Picsum** (임시 플레이스홀더)
+4. ❌ **절대 사용 금지**: LinkedIn, 개인 블로그, 소규모 사이트
 
-// 예시: "kotlin programming" 검색
-// https://unsplash.com/s/photos/kotlin-programming 에서 이미지 찾기
-// 실제 이미지 URL 추출 후 사용
+**1. Unsplash (권장 - 가장 안정적):**
+```typescript
+// ✅ 올바른 Unsplash 이미지 URL 형식:
+https://images.unsplash.com/photo-[ID]?w=1200&h=600&fit=crop
+https://images.unsplash.com/file-[ID]?w=1200&dpr=2&auto=format&fit=crop&q=60
+
+// 예시:
+https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=600&fit=crop
 ```
 
-**2. Pexels (API 없이 직접 URL):**
+**2. Dribbble (디자인 관련 이미지):**
 ```typescript
-// Pexels에서 주제 검색 후 직접 URL 가져오기
-// 예: https://www.pexels.com/search/artificial%20intelligence/
-// 이미지 우클릭 → 이미지 주소 복사
+// ✅ Dribbble CDN URL 형식:
+https://cdn.dribbble.com/userupload/[ID]/file/original-[hash].png?resize=1200x853
+
+// 예시:
+https://cdn.dribbble.com/userupload/12868664/file/original-c74947f595a439ef558e488f6a935a02.png?resize=1200x853
 ```
 
 **3. Lorem Picsum (플레이스홀더용):**
@@ -60,7 +66,19 @@ AI 에이전트가 **남녀노소 누구나 쉽게 읽을 수 있는 고품질 �
 // random 파라미터로 매번 다른 이미지
 ```
 
-**⚠️ 중요: 절대 하드코딩된 같은 이미지 반복 사용 금지!**
+**❌ 사용하면 안 되는 이미지 소스:**
+- LinkedIn (403 Forbidden 빈번)
+- 개인 블로그 (불안정)
+- 작은 회사 사이트 (CORS 문제)
+- Base64 인코딩 이미지 (너무 큼)
+
+**⚠️ 이미지 검증 필수 단계:**
+```bash
+# 반드시 curl로 200 OK 확인
+curl -I [이미지URL]
+
+# 403, 404, 500 등의 에러가 나오면 절대 사용 금지!
+```
 
 ### 📍 이미지 배치 전략
 
@@ -161,37 +179,54 @@ const getRandomViewCount = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1)) + min
 ```
 
-**카테고리별 ID 매핑:**
+**카테고리별 ID 매핑 (전체 목록):**
 
 ```typescript
 const CATEGORIES = {
+  '자유게시판': {
+    id: 'cmdrfyblf0001u8fseet3uxau',
+    slug: 'free',
+    viewRange: { min: 200, max: 400 }
+  },
+  'Q&A': {
+    id: 'cmdrfyblq0003u8fsdxrl27g9',
+    slug: 'qna',
+    viewRange: { min: 200, max: 400 }
+  },
   '바이브코딩': {
     id: 'cme5a5vyt0003u8ww9aoazx9f',
+    slug: 'vibecoding',
     viewRange: { min: 300, max: 500 }
   },
   'AI뉴스': {
     id: 'cme5a3ysr0002u8wwwmcbgc7z',
+    slug: 'ai_news',
     viewRange: { min: 300, max: 500 }
   },
   'Frontend': {
     id: 'cmdrfyb5f0000u8fsih05gxfk',
-    viewRange: { min: 100, max: 250 }
-  },
-  '오픈소스': {
-    id: 'cme5a7but0004u8ww8neir3k3',
+    slug: 'frontend',
     viewRange: { min: 100, max: 250 }
   },
   'Backend': {
     id: 'cmdrfybll0002u8fseh2edmgf',
+    slug: 'backend',
     viewRange: { min: 100, max: 250 }
   },
   'DevOps': {
     id: 'cme5a1b510000u8ww82cxvzzv',
+    slug: 'devOps',
     viewRange: { min: 50, max: 150 }
   },
   'Database': {
     id: 'cme5a2cf40001u8wwtm4yvrw0',
+    slug: 'database',
     viewRange: { min: 50, max: 150 }
+  },
+  '오픈소스': {
+    id: 'cme5a7but0004u8ww8neir3k3',
+    slug: 'opensource',
+    viewRange: { min: 100, max: 250 }
   }
 }
 ```
@@ -410,22 +445,45 @@ npm run type-check         # TypeScript 확인
 
 #### 2️⃣ 실제 이미지 URL 찾기 (중요!)
 
-**절대 가짜/404 이미지 사용 금지! 다음 중 하나 사용:**
+**🔴 이미지 선택 체크리스트 (순서대로 시도):**
 
-1. **웹 검색으로 실제 이미지 찾기:**
+1. **Unsplash 직접 URL 사용 (최우선):**
 ```typescript
-// MCP 웹 검색 도구 사용하여:
-// 1. "[주제 키워드] images" 검색
-// 2. Unsplash, Pexels, 실제 사이트에서 이미지 URL 추출
-// 3. curl로 URL 유효성 확인: curl -I [URL]
+// ✅ 안정적인 Unsplash 이미지 예시:
+const mainImage = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=600&fit=crop"
+const sectionImage = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=600"
+
+// 주제별 추천 검색어:
+// - UI/UX: "web design", "user interface", "mobile app"
+// - 프로그래밍: "coding", "programming", "developer"
+// - AI: "artificial intelligence", "machine learning", "robot"
 ```
 
-2. **확실한 플레이스홀더 사용:**
+2. **Dribbble CDN (디자인 관련만):**
 ```typescript
-// Lorem Picsum (항상 작동)
-https://picsum.photos/1200/600?random=1
-https://picsum.photos/1200/600?random=2
-// random 숫자만 바꿔서 서로 다른 이미지 사용
+// ✅ 디자인 관련 게시글에만 사용
+const designImage = "https://cdn.dribbble.com/userupload/[ID]/file/original-[hash].png?resize=1200x853"
+```
+
+3. **Lorem Picsum (마지막 수단):**
+```typescript
+// ⚠️ 실제 이미지를 찾을 수 없을 때만 사용
+https://picsum.photos/1200/600?random=1  // 각 이미지마다 random 숫자 변경
+```
+
+**❌ 절대 사용 금지 리스트:**
+- LinkedIn 이미지 (403 에러)
+- 개인 블로그 이미지 (불안정)
+- 소규모 사이트 (CORS/Hotlink 방지)
+- CDN 없는 직접 서버 이미지
+
+**🔍 이미지 검증 프로세스:**
+```bash
+# 1. curl로 HTTP 상태 확인 (필수!)
+curl -I [이미지URL]
+
+# 2. 200 OK만 사용, 다른 응답은 즉시 교체
+# 3. 브라우저에서도 확인 가능한지 테스트
 ```
 
 #### 3️⃣ 완전한 스크립트 템플릿
@@ -668,14 +726,27 @@ export { createPost }
 **❌ 자주 하는 실수:**
 1. 존재하지 않는 스키마 필드 사용 (`featured`, `seoTitle` 등)
 2. 404 이미지 URL 사용 
-3. 중복된 slug 사용
-4. 잘못된 카테고리 ID
+3. LinkedIn, 개인 블로그 등 불안정한 이미지 소스 사용
+4. 중복된 slug 사용
+5. 잘못된 카테고리 ID
 
 **✅ 해결 방법:**
 1. 반드시 `prisma/schema.prisma` 먼저 읽기
-2. 이미지는 picsum 또는 웹 검색으로 검증된 URL만 사용
-3. slug는 `게시글-주제-unique-identifier` 형식
-4. 위의 카테고리 ID 목록에서 정확히 복사
+2. **Unsplash 이미지 우선 사용** (가장 안정적)
+3. 모든 이미지 URL은 **curl -I로 200 OK 확인 필수**
+4. slug는 `게시글-주제-unique-identifier` 형식
+5. 위의 카테고리 ID 목록에서 정확히 복사
+
+**🔴 이미지 문제 즉시 해결법:**
+```typescript
+// 이미지가 안 뜰 때 즉시 교체할 안전한 URL들:
+const safeImages = {
+  main: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=600&fit=crop",
+  section1: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=600",
+  section2: "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=1200&h=600",
+  fallback: "https://picsum.photos/1200/600?random="
+}
+```
 
 ---
 
