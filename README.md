@@ -40,6 +40,7 @@ npm run dev
 - 🔄 [실시간 기능](docs/REAL_TIME.md) - Vercel 최적화 Polling
 - 🤖 [AI 기능](docs/AI_FEATURES.md) - Q&A 자동 답변 시스템
 - 📡 [API 명세](docs/api/specification.yaml) - OpenAPI 3.0
+  - 🌐 [API 문서 (Swagger UI)](https://htmlpreview.github.io/?https://github.com/yourusername/project/blob/main/docs/api/index.html)
 - 🚀 [Vercel 배포](docs/deployment/VERCEL.md) - 배포 최적화
 - 🔄 [CI/CD](docs/deployment/CI_CD.md) - GitHub Actions 자동화
 
