@@ -516,7 +516,21 @@ components:
           type: string
         type:
           type: string
-          enum: [POST_LIKE, POST_COMMENT, POST_MENTION, POST_APPROVED, POST_REJECTED, COMMENT_REPLY, COMMENT_LIKE, COMMENT_MENTION, COMMUNITY_INVITE, COMMUNITY_JOIN, COMMUNITY_ROLE, COMMUNITY_BAN]
+          enum:
+            [
+              POST_LIKE,
+              POST_COMMENT,
+              POST_MENTION,
+              POST_APPROVED,
+              POST_REJECTED,
+              COMMENT_REPLY,
+              COMMENT_LIKE,
+              COMMENT_MENTION,
+              COMMUNITY_INVITE,
+              COMMUNITY_JOIN,
+              COMMUNITY_ROLE,
+              COMMUNITY_BAN,
+            ]
         title:
           type: string
         message:
@@ -2025,7 +2039,7 @@ paths:
                   enum: [approve, reject]
                 reason:
                   type: string
-                  description: "거부 시 사유"
+                  description: '거부 시 사유'
       responses:
         '200':
           description: 승인/거부 처리됨
@@ -2043,20 +2057,6 @@ paths:
       responses:
         '200':
           description: Slug 사용 가능 여부
-
-  /api/main/posts/weekly-trending:
-    get:
-      tags: [Main Posts]
-      summary: 주간 인기 게시글
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 10
-      responses:
-        '200':
-          description: 주간 인기 게시글 목록
 
   # ========== User Management ==========
   /api/users/me:
@@ -2558,40 +2558,6 @@ paths:
           description: 검색 결과
 
   # ========== Tags Advanced ==========
-  /api/main/tags/by-slug:
-    get:
-      tags: [Main Tags]
-      summary: Slug로 태그 조회
-      parameters:
-        - name: slug
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 태그 정보
-
-  /api/main/tags/trending:
-    get:
-      tags: [Main Tags]
-      summary: 인기 태그 목록
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 10
-        - name: period
-          in: query
-          schema:
-            type: string
-            enum: [day, week, month]
-            default: week
-      responses:
-        '200':
-          description: 인기 태그 목록
-
   # ========== Community Member Management ==========
   /api/communities/{id}/members/approve:
     post:
@@ -2728,7 +2694,7 @@ paths:
                   description: 실제 삭제 없이 확인만
                 maxAge:
                   type: string
-                  default: "30d"
+                  default: '30d'
                   description: 파일 최대 보관 기간
       responses:
         '200':
@@ -2742,44 +2708,6 @@ paths:
                     type: integer
                   totalSize:
                     type: string
-
-  /api/image-proxy:
-    get:
-      tags: [Files]
-      summary: 이미지 프록시 (외부 이미지 캐싱)
-      parameters:
-        - name: url
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uri
-        - name: w
-          in: query
-          schema:
-            type: integer
-            description: 너비
-        - name: h
-          in: query
-          schema:
-            type: integer
-            description: 높이
-        - name: q
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 75
-            description: 품질
-      responses:
-        '200':
-          description: 프록시된 이미지
-          content:
-            image/*:
-              schema:
-                type: string
-                format: binary
 
   # ========== Admin Advanced Features ==========
   /api/admin/posts/community:
@@ -3050,14 +2978,6 @@ paths:
       responses:
         '200':
           description: 활성 사용자 목록
-
-  /api/main/users/weekly-mvp:
-    get:
-      tags: [Users]
-      summary: 주간 MVP 사용자
-      responses:
-        '200':
-          description: 주간 MVP 사용자 정보
 
   /api/main/categories/admin:
     get:
@@ -3534,4 +3454,3 @@ paths:
               schema:
                 type: string
                 format: binary
-
