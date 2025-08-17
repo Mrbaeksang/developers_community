@@ -28,10 +28,30 @@ tags:
     description: 인증 관련
   - name: Main Posts
     description: 메인 사이트 게시글
+  - name: Main Categories
+    description: 메인 카테고리
+  - name: Main Tags
+    description: 메인 태그
   - name: Communities
     description: 커뮤니티 관리
+  - name: Community Posts
+    description: 커뮤니티 게시글
+  - name: Community Members
+    description: 커뮤니티 멤버십
   - name: Chat
     description: 실시간 채팅
+  - name: Files
+    description: 파일 업로드/관리
+  - name: Users
+    description: 사용자 관리
+  - name: Admin
+    description: 관리자 전용 API
+  - name: Notifications
+    description: 알림 시스템
+  - name: Search
+    description: 검색 기능
+  - name: Stats
+    description: 통계 및 분석
   - name: AI
     description: AI 자동 답변
 
@@ -746,6 +766,16 @@ paths:
           description: 프로필 수정됨
 
   # ========== Notifications ==========
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: 알림 목록
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 알림 목록
+
   /api/notifications/unread:
     get:
       tags: [Notifications]
@@ -755,31 +785,22 @@ paths:
       responses:
         '200':
           description: 알림 목록
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  notifications:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        type:
-                          type: string
-                        title:
-                          type: string
-                        content:
-                          type: string
-                        link:
-                          type: string
-                        read:
-                          type: boolean
-                        createdAt:
-                          type: string
-                          format: date-time
+
+  /api/notifications/{id}:
+    get:
+      tags: [Notifications]
+      summary: 알림 상세
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 알림 상세
 
   /api/notifications/{id}/read:
     patch:
@@ -796,3 +817,326 @@ paths:
       responses:
         '200':
           description: 읽음 처리됨
+
+  /api/notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: 모든 알림 읽음 처리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 모든 알림 읽음 처리됨
+
+  /api/notifications/sse:
+    get:
+      tags: [Notifications]
+      summary: 실시간 알림 (SSE)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 실시간 알림 스트림
+
+  # ========== Files ==========
+  /api/files/upload:
+    post:
+      tags: [Files]
+      summary: 파일 업로드
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 파일 업로드 성공
+
+  /api/files/{id}:
+    get:
+      tags: [Files]
+      summary: 파일 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 파일 정보
+
+    delete:
+      tags: [Files]
+      summary: 파일 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 파일 삭제됨
+
+  /api/upload:
+    post:
+      tags: [Files]
+      summary: 이미지 업로드
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 이미지 업로드 성공
+
+  /api/download:
+    get:
+      tags: [Files]
+      summary: 파일 다운로드
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 파일 다운로드
+
+  # ========== Search ==========
+  /api/search:
+    get:
+      tags: [Search]
+      summary: 통합 검색
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [posts, communities, users]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: 검색 결과
+
+  # ========== Admin ==========
+  /api/admin/posts/main:
+    get:
+      tags: [Admin]
+      summary: 메인 게시글 관리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 메인 게시글 목록
+
+  /api/admin/posts/main/{id}:
+    patch:
+      tags: [Admin]
+      summary: 메인 게시글 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 수정됨
+
+  /api/admin/posts/main/{id}/pin:
+    post:
+      tags: [Admin]
+      summary: 게시글 고정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 고정됨
+
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: 사용자 관리
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 사용자 목록
+
+  /api/admin/users/{userId}/ban:
+    post:
+      tags: [Admin]
+      summary: 사용자 차단
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 사용자 차단됨
+
+  /api/admin/users/{userId}/role:
+    patch:
+      tags: [Admin]
+      summary: 사용자 권한 변경
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [USER, MANAGER, ADMIN]
+      responses:
+        '200':
+          description: 권한 변경됨
+
+  /api/admin/stats:
+    get:
+      tags: [Admin]
+      summary: 전체 통계
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 통계 데이터
+
+  # ========== Stats ==========
+  /api/stats/post-trends:
+    get:
+      tags: [Stats]
+      summary: 게시글 트렌드 분석
+      responses:
+        '200':
+          description: 트렌드 데이터
+
+  /api/stats/user-activity:
+    get:
+      tags: [Stats]
+      summary: 사용자 활동 통계
+      responses:
+        '200':
+          description: 활동 통계
+
+  # ========== Community Posts ==========
+  /api/communities/{id}/posts:
+    get:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 목록
+
+    post:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 작성
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                categoryId:
+                  type: string
+      responses:
+        '201':
+          description: 게시글 작성됨
+
+  /api/communities/{id}/posts/{postId}:
+    get:
+      tags: [Community Posts]
+      summary: 커뮤니티 게시글 상세
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 게시글 상세
+
+  /api/communities/{id}/members:
+    get:
+      tags: [Community Members]
+      summary: 커뮤니티 멤버 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 멤버 목록
