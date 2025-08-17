@@ -19,29 +19,44 @@
   </head>
   <body>
     <div id="swagger-ui"></div>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
+    <script
+      src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"
+      crossorigin
+    ></script>
     <script>
-      window.onload = function () {
-        window.ui = SwaggerUIBundle({
-          url: './specification.yaml',
-          dom_id: '#swagger-ui',
-          deepLinking: true,
-          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-          plugins: [SwaggerUIBundle.plugins.DownloadUrl],
-          layout: 'StandaloneLayout',
-          validatorUrl: null,
-          supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
-          tryItOutEnabled: true,
-          filter: true,
-          docExpansion: 'none',
-          tagsSorter: 'alpha',
-          operationsSorter: 'alpha',
-          showRequestHeaders: true,
-          showCommonExtensions: true,
-          showExtensions: true,
-        })
+      function initSwagger() {
+        if (
+          typeof SwaggerUIBundle !== 'undefined' &&
+          typeof SwaggerUIStandalonePreset !== 'undefined'
+        ) {
+          window.ui = SwaggerUIBundle({
+            url: 'https://raw.githubusercontent.com/Mrbaeksang/developers_community/main/docs/api/specification.yaml',
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+            plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+            layout: 'StandaloneLayout',
+            validatorUrl: null,
+            supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+            tryItOutEnabled: true,
+            filter: true,
+            docExpansion: 'none',
+            tagsSorter: 'alpha',
+            operationsSorter: 'alpha',
+            showRequestHeaders: true,
+            showCommonExtensions: true,
+            showExtensions: true,
+          })
+        } else {
+          setTimeout(initSwagger, 100)
+        }
       }
+
+      window.onload = initSwagger
     </script>
   </body>
 </html>
