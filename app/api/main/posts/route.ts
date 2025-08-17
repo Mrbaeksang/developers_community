@@ -481,14 +481,21 @@ async function createPost(
     await redisCache.delPattern('api:cache:main:posts:*')
 
     // Q&A 카테고리이고 PUBLISHED 상태인 경우 AI 댓글 생성
-    // Q&A 카테고리 확인
+    // Q&A 카테고리 확인 (ID 기반 + 백업)
     let isQACategory = false
     if (finalStatus === 'PUBLISHED' && category) {
-      isQACategory = ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
-        (qa) =>
-          category.slug.toLowerCase().includes(qa) ||
-          category.name.toLowerCase().includes(qa)
-      )
+      // Q&A 카테고리 ID로 직접 확인 (가장 정확)
+      const QA_CATEGORY_ID = 'cmdrfyblq0003u8fsdxrl27g9'
+      isQACategory = category.id === QA_CATEGORY_ID
+
+      // 백업: 기존 슬러그/이름 기반 확인
+      if (!isQACategory) {
+        isQACategory = ['qa', 'qna', 'question', 'help', '질문', '문의'].some(
+          (qa) =>
+            category.slug.toLowerCase().includes(qa) ||
+            category.name.toLowerCase().includes(qa)
+        )
+      }
 
       if (isQACategory) {
         // 비동기로 AI 댓글 생성 (응답 대기하지 않음)
