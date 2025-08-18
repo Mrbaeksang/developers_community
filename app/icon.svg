@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- 배경 그라데이션 정의 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+    <!-- 글자 그림자 효과 -->
+    <filter id="shadow">
+      <feDropShadow dx="0.5" dy="0.5" stdDeviation="0.5" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- 둥근 사각형 배경 -->
+  <rect width="32" height="32" rx="7" fill="url(#bgGradient)"/>
+  
+  <!-- 코드 브라켓 < /> -->
+  <g transform="translate(16, 16)">
+    <!-- 왼쪽 브라켓 < -->
+    <text x="-10" y="3" fill="white" font-family="Consolas, Monaco, monospace" font-size="14" font-weight="bold" filter="url(#shadow)">&lt;</text>
+    <!-- 슬래시 / -->
+    <text x="-2" y="3" fill="#fbbf24" font-family="Consolas, Monaco, monospace" font-size="14" font-weight="bold" filter="url(#shadow)">/</text>
+    <!-- 오른쪽 브라켓 > -->
+    <text x="4" y="3" fill="white" font-family="Consolas, Monaco, monospace" font-size="14" font-weight="bold" filter="url(#shadow)">&gt;</text>
+  </g>
+</svg>
