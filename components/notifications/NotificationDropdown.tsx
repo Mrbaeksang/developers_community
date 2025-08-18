@@ -206,9 +206,12 @@ export default function NotificationDropdown() {
                         <p className="font-bold text-sm">
                           {notification.title}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {notification.message}
-                        </p>
+                        <div
+                          className="text-sm text-muted-foreground"
+                          dangerouslySetInnerHTML={{
+                            __html: notification.message || '',
+                          }}
+                        />
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(
                             new Date(notification.createdAt),

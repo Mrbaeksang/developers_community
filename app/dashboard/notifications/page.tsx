@@ -483,9 +483,12 @@ export default function NotificationsPage() {
                       )}
                     </div>
 
-                    <p className="text-muted-foreground mb-2">
-                      {notification.message}
-                    </p>
+                    <div
+                      className="text-muted-foreground mb-2 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: notification.message || '',
+                      }}
+                    />
 
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground">

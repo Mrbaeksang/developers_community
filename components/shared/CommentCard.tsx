@@ -97,9 +97,10 @@ export const CommentCard = memo(function CommentCard({
                 <span className="text-xs text-muted-foreground">(수정됨)</span>
               )}
             </div>
-            <p className="text-sm text-gray-700 break-words overflow-wrap-anywhere">
-              {comment.content}
-            </p>
+            <div
+              className="text-sm text-gray-700 break-words overflow-wrap-anywhere"
+              dangerouslySetInnerHTML={{ __html: comment.content }}
+            />
           </div>
         </div>
       </div>
@@ -154,9 +155,10 @@ export const CommentCard = memo(function CommentCard({
             )}
 
             {/* 댓글 내용 */}
-            <p className="text-sm line-clamp-2 break-words">
-              {comment.content}
-            </p>
+            <div
+              className="text-sm line-clamp-2 break-words"
+              dangerouslySetInnerHTML={{ __html: comment.content }}
+            />
 
             {/* 하단 정보 */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -325,14 +327,13 @@ export const CommentCard = memo(function CommentCard({
         {/* 댓글 내용 */}
         <div
           className={cn(
-            'text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere',
+            'text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere prose prose-sm max-w-none',
             comment.depth &&
               comment.depth > 0 &&
               'pl-3 sm:pl-4 border-l-2 border-gray-200'
           )}
-        >
-          {comment.content}
-        </div>
+          dangerouslySetInnerHTML={{ __html: comment.content }}
+        />
       </CardContent>
 
       {/* 액션 버튼들 */}
