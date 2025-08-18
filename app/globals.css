@@ -2,21 +2,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* 모바일 가로 스크롤 방지 */
+/* 모바일 반응형 최적화 - 뷰포트 스케일링 허용 */
 html {
-  overflow-x: hidden;
+  /* overflow-x 제거 - 뷰포트가 콘텐츠에 맞게 자동 조정되도록 */
   width: 100%;
 }
 
 body {
-  overflow-x: hidden;
+  /* overflow-x 제거 - 뷰포트가 콘텐츠에 맞게 자동 조정되도록 */
   width: 100%;
   min-width: 320px; /* 최소 모바일 너비 */
 }
 
-/* 모바일에서 컨테이너 오버플로우 방지 */
+/* 모바일에서 컨테이너 최대 너비 제한 */
 .container {
-  width: 100%;
+  /* width: 100% 제거 - 자연스러운 레이아웃 허용 */
   max-width: 100%;
 }
 
