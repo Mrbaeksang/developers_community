@@ -140,25 +140,15 @@ export default function CommentSection({
 
   // Q&A 게시글에서 AI 댓글이 없으면 10초마다 폴링
   useEffect(() => {
-    console.error(
-      `[Q&A Polling] isQAPost: ${isQAPost}, hasAIComment: ${hasAIComment}`
-    )
-
     if (!isQAPost || hasAIComment) {
-      console.error(
-        `[Q&A Polling] 폴링 중지 - isQAPost: ${isQAPost}, hasAIComment: ${hasAIComment}`
-      )
       return
     }
 
-    console.error('[Q&A Polling] 10초 폴링 시작')
     const interval = setInterval(() => {
-      console.error('[Q&A Polling] refetch 실행')
       refetch()
     }, 10000) // 10초마다 폴링
 
     return () => {
-      console.error('[Q&A Polling] 폴링 정리')
       clearInterval(interval)
     }
   }, [isQAPost, hasAIComment, refetch])

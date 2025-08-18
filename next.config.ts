@@ -174,6 +174,27 @@ const nextConfig: NextConfig = {
         hostname: '*.kakaocdn.net',
         pathname: '/**',
       },
+      // Avatar services
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'robohash.org',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'freesvg.org',
+        pathname: '/**',
+      },
     ],
   },
   // webpack 설정 추가

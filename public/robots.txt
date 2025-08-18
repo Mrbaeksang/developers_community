@@ -3,10 +3,12 @@
 
 User-agent: *
 Allow: /
+Allow: /main/
+Allow: /communities/
+Allow: /profile/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /settings/
-Disallow: /auth/
 Disallow: /_next/
 Disallow: /static/
 Disallow: /profile/edit
@@ -18,53 +20,53 @@ Disallow: /communities/*/posts/*/edit
 Disallow: /communities/*/settings
 Disallow: /notifications
 Disallow: /chat
+Crawl-delay: 1
 
 # Googlebot
 User-agent: Googlebot
 Allow: /
+Allow: /main/
+Allow: /communities/
+Allow: /profile/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /settings/
-Disallow: /auth/
 Disallow: /_next/
 Disallow: /static/
 
 # Bingbot
 User-agent: Bingbot
 Allow: /
+Allow: /main/
+Allow: /communities/
+Allow: /profile/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /settings/
-Disallow: /auth/
 Disallow: /_next/
 Disallow: /static/
 
-# Naver Bot
+# Naver Bot (Yeti가 공식 봇)
 User-agent: Yeti
 Allow: /
+Allow: /main/
+Allow: /communities/
+Allow: /profile/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /settings/
-Disallow: /auth/
-Disallow: /_next/
-Disallow: /static/
-
-User-agent: NaverBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-Disallow: /settings/
-Disallow: /auth/
 Disallow: /_next/
 Disallow: /static/
 
 # Daum Bot
 User-agent: Daumoa
 Allow: /
+Allow: /main/
+Allow: /communities/
+Allow: /profile/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /settings/
-Disallow: /auth/
 Disallow: /_next/
 Disallow: /static/
 

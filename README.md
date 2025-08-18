@@ -9,6 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com)
 [![Vitest](https://img.shields.io/badge/Vitest-3.2.4-729B1B?style=flat-square&logo=vitest)](https://vitest.dev)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Mrbaeksang/developers_community)
 
 ## 📚 문서
 
