@@ -51,7 +51,6 @@ import {
   XCircle,
   AlertCircle,
   UserCog,
-  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/core/utils'
 import { GlobalRole } from '@prisma/client'

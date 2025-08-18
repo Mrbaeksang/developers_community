@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Instagram, Mail } from 'lucide-react'
-import { RiKakaoTalkFill } from 'react-icons/ri'
+// import { RiKakaoTalkFill } from 'react-icons/ri'
 
 export function Footer() {
   return (
