@@ -172,14 +172,11 @@ export function NotificationProvider({
           unreadCount: number
         }>('/api/notifications?limit=10')
 
-        if (result.success) {
-          const successResult = result as typeof result & {
-            notifications: Notification[]
-            unreadCount: number
-          }
+        if (result.success && result.data) {
+          // successResponse로 감싸진 데이터 추출
           return {
-            notifications: successResult.notifications || [],
-            unreadCount: successResult.unreadCount || 0,
+            notifications: result.data.notifications || [],
+            unreadCount: result.data.unreadCount || 0,
           }
         }
       } catch (error) {
