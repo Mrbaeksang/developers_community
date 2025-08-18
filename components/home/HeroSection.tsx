@@ -36,20 +36,17 @@ export function HeroSection() {
             verifiedRes.json(),
           ])
 
-        const totalMainPosts = mainData.pagination?.total || mainData.total || 0
-        const totalFreePosts = freeData.pagination?.total || freeData.total || 0
-        const totalQnaPosts = qnaData.pagination?.total || qnaData.total || 0
-        const totalVerifiedPosts =
-          verifiedData.pagination?.total ||
-          verifiedData.total ||
-          totalMainPosts - totalFreePosts - totalQnaPosts
+        const totalMainPosts = mainData?.pagination?.total || 0
+        const totalFreePosts = freeData?.pagination?.total || 0
+        const totalQnaPosts = qnaData?.pagination?.total || 0
+        const totalCommunities = communityData?.pagination?.total || 0
+        const totalVerifiedPosts = verifiedData?.pagination?.total || 0
 
         setStats({
           mainPosts: totalMainPosts,
           freePosts: totalFreePosts,
           qnaPosts: totalQnaPosts,
-          communities:
-            communityData.pagination?.total || communityData.total || 0,
+          communities: totalCommunities,
           verifiedPosts: totalVerifiedPosts > 0 ? totalVerifiedPosts : 0,
         })
       } catch (error) {

@@ -278,12 +278,60 @@ export async function compressedPaginatedResponse<T>(
   message?: string,
   options: CompressionOptions = {}
 ): Promise<NextResponse> {
+  const config = { ...DEFAULT_COMPRESSION, ...options }
+
+  // BigInt 직렬화 처리
+  const serializedData = JSON.parse(
+    JSON.stringify(data, (key, val) =>
+      typeof val === 'bigint' ? val.toString() : val
+    )
+  )
+
   const responseData = {
     success: true,
-    data,
+    data: serializedData,
     pagination: createPaginationMeta(page, limit, total),
     ...(message && { message }),
   } as PaginatedResponse<T>
 
-  return compressedSuccessResponse(responseData, undefined, 200, options)
+  const jsonString = JSON.stringify(responseData)
+  const bodySize = Buffer.byteLength(jsonString, 'utf8')
+
+  // 임계값 미만이면 압축하지 않음
+  if (bodySize < config.threshold) {
+    return NextResponse.json(responseData, { status: 200 })
+  }
+
+  try {
+    const compressedBody = await deflateAsync(jsonString, {
+      level: config.level,
+    })
+
+    // 압축 효과가 없으면 원본 반환
+    if (compressedBody.length >= bodySize) {
+      return NextResponse.json(responseData, { status: 200 })
+    }
+
+    const headers = new Headers()
+    headers.set('Content-Type', 'application/json')
+    headers.set('Content-Encoding', 'deflate')
+    headers.set('Content-Length', compressedBody.length.toString())
+    headers.set('Vary', 'Accept-Encoding')
+
+    // 압축률 정보 (성능 모니터링용)
+    const compressionRatio = (
+      (1 - compressedBody.length / bodySize) *
+      100
+    ).toFixed(1)
+    headers.set('X-Compression-Ratio', `${compressionRatio}%`)
+    headers.set('X-Original-Size', bodySize.toString())
+
+    return new NextResponse(compressedBody as BodyInit, {
+      status: 200,
+      headers,
+    })
+  } catch (error) {
+    console.error('응답 압축 실패:', error)
+    return NextResponse.json(responseData, { status: 200 })
+  }
 }
