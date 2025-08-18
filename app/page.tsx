@@ -328,4 +328,4 @@ export default async function Home() {
     </div>
   )
 }
-// test
+// Supabase migration fixed
