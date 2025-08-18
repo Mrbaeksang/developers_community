@@ -173,10 +173,20 @@ export class RedisCache {
     factory: () => Promise<T>,
     ttl?: number
   ): Promise<T> {
-    // 캐시에서 먼저 조회
-    const cached = await this.get<T>(key)
-    if (cached !== null) {
-      return cached
+    // Redis가 없으면 바로 factory 실행
+    if (!this.client) {
+      return factory()
+    }
+
+    try {
+      // 캐시에서 먼저 조회
+      const cached = await this.get<T>(key)
+      if (cached !== null) {
+        return cached
+      }
+    } catch (error) {
+      // Redis 오류 시 로그만 남기고 계속 진행
+      console.error('Redis getOrSet error (get phase):', error)
     }
 
     // 이미 진행 중인 동일한 요청이 있는지 확인
@@ -188,11 +198,13 @@ export class RedisCache {
     // 새로운 Promise 생성
     const promise = factory()
       .then(async (value) => {
-        // 캐시에 저장
-        await this.set(key, value, ttl).catch(() => {
-          // 로그만 남기고 에러는 던지지 않음 - 캐시 실패가 앱을 중단시키면 안됨
-          console.error(`Failed to cache value for key: ${key}`)
-        })
+        // 캐시에 저장 시도 (실패해도 무시)
+        try {
+          await this.set(key, value, ttl)
+        } catch (error) {
+          // 로그만 남기고 에러는 던지지 않음
+          console.error(`Failed to cache value for key: ${key}`, error)
+        }
 
         // 진행 중 요청 추적 정리
         this.inFlightRequests.delete(key)

@@ -7,63 +7,68 @@ let redisClient: Redis | null = null
 function createRedisClient() {
   // 프로덕션 환경 변수 체크
   if (!process.env['REDIS_URL']) {
-    // 빌드 타임이나 개발 환경에서는 더미 클라이언트 반환
-    console.warn('REDIS_URL not found, using dummy Redis client')
-    return null as unknown as Redis
+    // 빌드 타임이나 개발 환경에서는 null 반환
+    console.warn('REDIS_URL not found, Redis caching disabled')
+    return null
   }
 
-  const client = new Redis(process.env['REDIS_URL'], {
-    // 프로덕션 최적화 설정
-    maxRetriesPerRequest: 3,
-    enableReadyCheck: true,
-    enableOfflineQueue: true,
+  try {
+    const client = new Redis(process.env['REDIS_URL'], {
+      // 프로덕션 최적화 설정
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      enableOfflineQueue: true,
 
-    // 연결 타임아웃 설정
-    connectTimeout: 10000,
+      // 연결 타임아웃 설정
+      connectTimeout: 10000,
 
-    // 재연결 전략
-    retryStrategy(times) {
-      const delay = Math.min(times * 50, 2000)
-      return delay
-    },
+      // 재연결 전략
+      retryStrategy(times) {
+        const delay = Math.min(times * 50, 2000)
+        return delay
+      },
 
-    // 에러 핸들링
-    reconnectOnError(err) {
-      const targetError = 'READONLY'
-      if (err.message.includes(targetError)) {
-        // Redis가 읽기 전용 모드일 때만 재연결
-        return true
-      }
-      return false
-    },
-  })
+      // 에러 핸들링
+      reconnectOnError(err) {
+        const targetError = 'READONLY'
+        if (err.message.includes(targetError)) {
+          // Redis가 읽기 전용 모드일 때만 재연결
+          return true
+        }
+        return false
+      },
+    })
 
-  // 연결 이벤트 핸들링
-  client.on('connect', () => {
-    // console.log('Redis 연결 성공')
-  })
+    // 연결 이벤트 핸들링
+    client.on('connect', () => {
+      // console.log('Redis 연결 성공')
+    })
 
-  client.on('error', (err) => {
-    console.error('Redis 연결 에러:', err)
-  })
+    client.on('error', (err) => {
+      console.error('Redis 연결 에러:', err)
+    })
 
-  client.on('ready', () => {
-    // console.log('Redis 준비 완료')
-  })
+    client.on('ready', () => {
+      // console.log('Redis 준비 완료')
+    })
 
-  // 개발 환경에서 Redis 연결 상태 확인용
-  if (process.env.NODE_ENV === 'development') {
-    client
-      .ping()
-      .then(() => {
-        // console.log('Redis PING 성공')
-      })
-      .catch((err) => {
-        console.error('Redis PING 실패:', err)
-      })
+    // 개발 환경에서 Redis 연결 상태 확인용
+    if (process.env.NODE_ENV === 'development') {
+      client
+        .ping()
+        .then(() => {
+          // console.log('Redis PING 성공')
+        })
+        .catch((err) => {
+          console.error('Redis PING 실패:', err)
+        })
+    }
+
+    return client
+  } catch (error) {
+    console.error('Failed to create Redis client:', error)
+    return null
   }
-
-  return client
 }
 
 // Redis 클라이언트 getter
