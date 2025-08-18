@@ -19,6 +19,7 @@ import {
 } from '@/lib/ui/banner'
 import { getDefaultBlurPlaceholder } from '@/lib/ui/images'
 import { prisma } from '@/lib/core/prisma'
+import { DEFAULT_AVATARS } from '@/lib/community/utils'
 
 interface Category {
   id: string
@@ -288,16 +289,40 @@ export default async function CommunityDetailPage({
         <div className="bg-white rounded-lg border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-6">
             <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -mt-16 md:-mt-20 bg-white">
-              <AvatarImage
-                src={
-                  community.avatar?.startsWith('default:')
-                    ? undefined
-                    : community.avatar || undefined
+              {(() => {
+                // 기본 아이콘 처리
+                if (community.avatar?.startsWith('default:')) {
+                  const avatarName = community.avatar.replace('default:', '')
+                  const defaultAvatar = DEFAULT_AVATARS.find(
+                    (a) => a.name === avatarName
+                  )
+                  if (defaultAvatar) {
+                    return (
+                      <AvatarFallback
+                        className="text-4xl md:text-5xl"
+                        style={{ backgroundColor: defaultAvatar.color }}
+                      >
+                        {defaultAvatar.emoji}
+                      </AvatarFallback>
+                    )
+                  }
                 }
-              />
-              <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
-                {community.name?.[0]?.toUpperCase() || 'C'}
-              </AvatarFallback>
+
+                // 일반 이미지 URL
+                if (
+                  community.avatar &&
+                  !community.avatar.startsWith('default:')
+                ) {
+                  return <AvatarImage src={community.avatar} />
+                }
+
+                // 기본 폴백
+                return (
+                  <AvatarFallback className="text-2xl md:text-3xl font-black bg-primary/20">
+                    {community.name?.[0]?.toUpperCase() || 'C'}
+                  </AvatarFallback>
+                )
+              })()}
             </Avatar>
 
             <div className="flex-1">

@@ -100,6 +100,8 @@ export function NotificationProvider({
       if (response.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
         setUnreadCount(0)
+      } else {
+        console.error('Failed to mark all notifications as read')
       }
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error)

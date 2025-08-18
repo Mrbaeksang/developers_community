@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Bell, CheckCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ButtonSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { useMutation } from '@tanstack/react-query'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,34 +30,37 @@ export default function NotificationDropdown() {
   } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
 
-  // 알림 삭제 mutation
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const res = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) throw new Error('알림 삭제에 실패했습니다.')
-      return res.json()
-    },
-    onSuccess: () => {
-      // 알림 목록 새로고침
-      refreshNotifications()
-      toast.success('알림이 삭제되었습니다.')
-    },
-    onError: () => {
-      toast.error('알림 삭제에 실패했습니다.')
-    },
-  })
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
-  // 알림 삭제 핸들러
-  const deleteNotification = async (
+  // 알림 삭제 핸들러 - 낙관적 UI 적용
+  const handleDeleteNotification = async (
     e: React.MouseEvent,
     notificationId: string
   ) => {
-    e.stopPropagation() // 부모 클릭 이벤트 전파 방지
-    e.preventDefault() // 링크 이동 방지
+    e.stopPropagation()
+    e.preventDefault()
 
-    deleteNotificationMutation.mutate(notificationId)
+    // 즉시 UI에서 제거
+    setDeletingIds((prev) => new Set(prev).add(notificationId))
+
+    try {
+      const res = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) throw new Error('알림 삭제 실패')
+
+      // 성공 시 알림 목록 새로고침
+      refreshNotifications()
+    } catch {
+      // 실패 시 복구
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(notificationId)
+        return newSet
+      })
+      toast.error('알림 삭제에 실패했습니다.')
+    }
   }
 
   // 알림 링크 생성
@@ -157,7 +158,12 @@ export default function NotificationDropdown() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={markAllAsRead}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                markAllAsRead()
+                toast.success('모든 알림을 읽음으로 표시했습니다.')
+              }}
               className="text-xs"
             >
               <CheckCheck className="h-3 w-3 mr-1" />
@@ -180,79 +186,78 @@ export default function NotificationDropdown() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notifications.map((notification) => {
-                const link = getNotificationLink(notification)
-                const content = (
-                  <div
-                    className={`p-4 transition-colors hover:bg-muted/50 cursor-pointer ${
-                      !notification.isRead ? 'bg-blue-50' : ''
-                    }`}
-                    onClick={() => {
-                      if (!notification.isRead) {
-                        markAsRead(notification.id)
-                      }
-                    }}
-                  >
-                    <div className="flex gap-3">
-                      <div
-                        className={`h-10 w-10 rounded-full flex items-center justify-center ${getNotificationColor(
-                          notification.type
-                        )}`}
-                      >
-                        <Bell className="h-5 w-5" />
-                      </div>
-
-                      <div className="flex-1 space-y-1">
-                        <p className="font-bold text-sm">
-                          {notification.title}
-                        </p>
+              {notifications
+                .filter((notification) => !deletingIds.has(notification.id))
+                .map((notification) => {
+                  const link = getNotificationLink(notification)
+                  const content = (
+                    <div
+                      className={`p-4 transition-colors hover:bg-muted/50 cursor-pointer ${
+                        !notification.isRead ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          markAsRead(notification.id)
+                        }
+                      }}
+                    >
+                      <div className="flex gap-3">
                         <div
-                          className="text-sm text-muted-foreground"
-                          dangerouslySetInnerHTML={{
-                            __html: notification.message || '',
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(
-                            new Date(notification.createdAt),
-                            {
-                              addSuffix: true,
-                              locale: ko,
-                            }
-                          )}
-                        </p>
-                      </div>
+                          className={`h-10 w-10 rounded-full flex items-center justify-center ${getNotificationColor(
+                            notification.type
+                          )}`}
+                        >
+                          <Bell className="h-5 w-5" />
+                        </div>
 
-                      {!notification.isRead && (
-                        <div className="h-2 w-2 bg-blue-500 rounded-full mt-2" />
-                      )}
+                        <div className="flex-1 space-y-1">
+                          <p className="font-bold text-sm">
+                            {notification.title}
+                          </p>
+                          <div
+                            className="text-sm text-muted-foreground"
+                            dangerouslySetInnerHTML={{
+                              __html: notification.message || '',
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(
+                              new Date(notification.createdAt),
+                              {
+                                addSuffix: true,
+                                locale: ko,
+                              }
+                            )}
+                          </p>
+                        </div>
 
-                      {/* 삭제 버튼 */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
-                        onClick={(e) => deleteNotification(e, notification.id)}
-                        disabled={deleteNotificationMutation.isPending}
-                      >
-                        {deleteNotificationMutation.isPending ? (
-                          <ButtonSpinner />
-                        ) : (
-                          <X className="h-4 w-4" />
+                        {!notification.isRead && (
+                          <div className="h-2 w-2 bg-blue-500 rounded-full mt-2" />
                         )}
-                      </Button>
-                    </div>
-                  </div>
-                )
 
-                return link ? (
-                  <Link key={notification.id} href={link}>
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={notification.id}>{content}</div>
-                )
-              })}
+                        {/* 삭제 버튼 */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                          onClick={(e) =>
+                            handleDeleteNotification(e, notification.id)
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+
+                  return link ? (
+                    <Link key={notification.id} href={link}>
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={notification.id}>{content}</div>
+                  )
+                })}
             </div>
           )}
         </ScrollArea>

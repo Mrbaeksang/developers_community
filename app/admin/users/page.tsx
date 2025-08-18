@@ -51,6 +51,7 @@ import {
   XCircle,
   AlertCircle,
   UserCog,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/core/utils'
 import { GlobalRole } from '@prisma/client'
@@ -69,6 +70,9 @@ interface User {
   banUntil: string | null
   emailVerified: string | null
   createdAt: string
+  accounts: {
+    provider: string
+  }[]
   _count: {
     mainPosts: number
     communityPosts: number
@@ -414,6 +418,35 @@ export default function AdminUsersPage() {
     return <Badge variant="default">정상</Badge>
   }
 
+  const getOAuthProviderBadge = (provider: string) => {
+    const providers = {
+      google: {
+        label: 'Google',
+        className: 'bg-blue-100 text-blue-800',
+        icon: '🔵',
+      },
+      github: {
+        label: 'GitHub',
+        className: 'bg-gray-100 text-gray-800',
+        icon: '⚫',
+      },
+      kakao: {
+        label: 'Kakao',
+        className: 'bg-yellow-100 text-yellow-800',
+        icon: '🟡',
+      },
+    } as const
+
+    const providerInfo = providers[provider as keyof typeof providers]
+    if (!providerInfo) return null
+
+    return (
+      <Badge className={cn('font-medium text-xs', providerInfo.className)}>
+        {providerInfo.icon} {providerInfo.label}
+      </Badge>
+    )
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="mb-8">
@@ -531,6 +564,15 @@ export default function AdminUsersPage() {
                         <div className="text-sm text-muted-foreground">
                           {user.email}
                         </div>
+                        {user.accounts && user.accounts.length > 0 && (
+                          <div className="flex gap-1 mt-1">
+                            {user.accounts.map((account, idx) => (
+                              <span key={idx}>
+                                {getOAuthProviderBadge(account.provider)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TableCell>

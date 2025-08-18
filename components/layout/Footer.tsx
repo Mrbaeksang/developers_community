@@ -47,7 +47,8 @@ export function Footer() {
             >
               <Instagram className="h-5 w-5" />
             </a>
-            <a
+            {/* 카카오톡 단톡방 링크 임시 숨김 */}
+            {/* <a
               href="https://open.kakao.com/o/gUWOh3Lh"
               target="_blank"
               rel="noopener noreferrer"
@@ -55,7 +56,7 @@ export function Footer() {
               aria-label="카카오톡 오픈채팅"
             >
               <RiKakaoTalkFill className="h-5 w-5 text-black" />
-            </a>
+            </a> */}
           </div>
         </div>
       </div>

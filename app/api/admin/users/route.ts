@@ -10,7 +10,7 @@ export async function GET() {
       return session
     }
 
-    // 모든 사용자 조회
+    // 모든 사용자 조회 (OAuth 제공자 정보 포함)
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -24,6 +24,11 @@ export async function GET() {
         banUntil: true,
         emailVerified: true,
         createdAt: true,
+        accounts: {
+          select: {
+            provider: true,
+          },
+        },
         _count: {
           select: {
             mainPosts: true,
