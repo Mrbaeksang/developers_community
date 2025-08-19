@@ -126,28 +126,31 @@ async function getSidebarData() {
     ])
 
     // Map the API response to the expected format for Sidebar
-    const mappedTags = ((tagsData.data || []) as TrendingTag[]).map((tag) => ({
+    // 안전한 데이터 처리 - 배열이 아닌 경우 빈 배열로 처리
+    const tagsArray = Array.isArray(tagsData?.data) ? tagsData.data : []
+    const mappedTags = tagsArray.map((tag: TrendingTag) => ({
       id: tag.id,
       name: tag.name,
       count: tag.postCount || tag.weeklyPosts || 0,
       color: tag.color || '#3B82F6',
     }))
 
-    const mappedUsers = ((usersData.data || []) as WeeklyMVPUser[]).map(
-      (user) => ({
-        id: user.id,
-        name: user.name || user.username || 'Unknown',
-        image: user.image || undefined,
-        postCount: user.weeklyStats?.postCount || 0,
-      })
-    )
+    const usersArray = Array.isArray(usersData?.data) ? usersData.data : []
+    const mappedUsers = usersArray.map((user: WeeklyMVPUser) => ({
+      id: user.id,
+      name: user.name || user.username || 'Unknown',
+      image: user.image || undefined,
+      postCount: user.weeklyStats?.postCount || 0,
+    }))
 
     // For trending posts, map the weekly trending response
-    const mappedPosts = (
-      (trendingData.data?.items ||
-        trendingData.data ||
-        []) as WeeklyTrendingPost[]
-    ).map((post) => ({
+    // API 응답 구조에 따라 적절히 처리
+    const postsArray = Array.isArray(trendingData?.data?.items)
+      ? trendingData.data.items
+      : Array.isArray(trendingData?.data)
+        ? trendingData.data
+        : []
+    const mappedPosts = postsArray.map((post: WeeklyTrendingPost) => ({
       id: post.id,
       title: post.title,
       viewCount: post.viewCount || 0,
