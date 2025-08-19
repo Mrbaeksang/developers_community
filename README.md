@@ -19,7 +19,7 @@
 - 🛠 [기술 스택](docs/TECH_STACK.md) - 최신 기술 상세 (Next.js 15, React 19)
 - ⚡ [성능 최적화](docs/PERFORMANCE.md) - 1,276x 성능 개선 사례
 - 🔒 [보안 구현](docs/SECURITY.md) - 엔터프라이즈급 보안 시스템
-- 🗄 [데이터베이스](docs/DATABASE.md) - Prisma 6.13 + PostgreSQL 16
+- 🗄 [데이터베이스](docs/DATABASE.md) - Supabase (PostgreSQL) + Prisma 6.13
 - 🧪 [테스트 전략](docs/TESTING.md) - Vitest 3.2.4 + Playwright
 - 🔄 [실시간 기능](docs/REAL_TIME.md) - Vercel 최적화 Polling
 - 🤖 [AI 기능](docs/AI_FEATURES.md) - Q&A 자동 답변 시스템
@@ -41,8 +41,10 @@
 ### 핵심 기술
 - **Frontend**: Next.js 15.4.4, React 19.1.0, TypeScript 5.8
 - **Styling**: Tailwind CSS v4, Radix UI
-- **Database**: Prisma 6.13.0, PostgreSQL 16
-- **Auth**: NextAuth v5 beta
+- **Database**: Supabase (PostgreSQL), Prisma 6.13.0
+- **Storage**: Vercel Blob Storage
+- **Cache**: Redis Cloud
+- **Auth**: NextAuth v5 beta (Google, GitHub, Kakao OAuth)
 - **Testing**: Vitest 3.2.4, Playwright 1.54.1
 - **Real-time**: TanStack Query v5 (Polling)
 - **AI**: OpenRouter (GPT-4, Claude 3)

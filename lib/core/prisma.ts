@@ -33,7 +33,7 @@ const createPrismaClient = () => {
         url: databaseUrl,
       },
     },
-    log: isDevelopment ? ['query', 'error', 'warn'] : ['error'],
+    log: isDevelopment ? ['error', 'warn'] : ['error'],
   })
 }
 
