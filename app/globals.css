@@ -4,9 +4,10 @@
 
 /* 모바일 반응형 최적화 - 뷰포트 스케일링 방지 */
 html {
-  /* 가로 스크롤 방지 */
+  /* 가로 스크롤 완전 방지 */
   overflow-x: hidden;
   width: 100%;
+  position: relative;
 }
 
 body {
@@ -14,16 +15,38 @@ body {
   overflow-x: hidden;
   width: 100%;
   min-width: 320px; /* 최소 모바일 너비 */
+  position: relative;
+}
+
+/* 메인 컨텐츠 영역 오버플로우 방지 */
+main {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* 모바일에서 컨테이너 최대 너비 제한 */
 .container {
   width: 100%;
   max-width: 100%;
+  overflow-x: hidden;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 /* 모든 요소가 뷰포트를 넘지 않도록 */
 * {
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* 이미지와 비디오 반응형 처리 */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 절대 위치 요소들 제한 */
+[class*="absolute"], [class*="fixed"] {
   max-width: 100vw;
 }
 
@@ -36,8 +59,9 @@ body {
   }
 
   /* 긴 텍스트 줄바꿈 */
-  .prose {
+  .prose, p, h1, h2, h3, h4, h5, h6, span, div {
     word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   /* 테이블 스크롤 가능하게 */
@@ -45,12 +69,32 @@ body {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+    max-width: 100%;
   }
 
   /* 코드 블록 스크롤 */
-  pre {
+  pre, code {
     overflow-x: auto;
     max-width: 100%;
+    word-break: break-all;
+  }
+  
+  /* 버튼과 링크 터치 영역 확보 */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 가로 스크롤 유발 요소 제거 */
+  .shadow-\[4px_4px_0px_0px_rgba\(0\,0\,0\,1\)\],
+  .shadow-\[3px_3px_0px_0px_rgba\(0\,0\,0\,1\)\],
+  .shadow-\[6px_6px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+    box-shadow: 2px 2px 0px 0px rgba(0,0,0,1) !important;
+  }
+  
+  /* 드롭다운과 모달 너비 제한 */
+  [role="menu"], [role="dialog"] {
+    max-width: calc(100vw - 2rem);
   }
 }
 

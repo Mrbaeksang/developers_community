@@ -32,10 +32,10 @@ const notoSansKr = Noto_Sans_KR({
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  minimumScale: 1, // 최소 축소 비율을 1로 고정하여 자동 축소 방지
-  maximumScale: 5, // 접근성을 위해 확대 허용
-  userScalable: true, // 사용자 확대/축소 허용 (개발자 커뮤니티는 코드를 확대해서 봐야 할 수 있음)
-  viewportFit: 'cover', // iOS 노치 디스플레이 대응
+  minimumScale: 1,
+  maximumScale: 1, // 확대 방지로 가로 스크롤 문제 해결
+  userScalable: false, // 모바일에서 자동 확대 방지
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
@@ -108,9 +108,9 @@ export default async function RootLayout({
             <SessionProvider>
               <NotificationProvider>
                 <KakaoProvider>
-                  <div className="flex min-h-screen flex-col">
+                  <div className="flex min-h-screen flex-col overflow-x-hidden">
                     <Header />
-                    <main className="flex-1">{children}</main>
+                    <main className="flex-1 overflow-x-hidden w-full">{children}</main>
                     <Footer />
                   </div>
                   <Toaster richColors position="bottom-right" />
