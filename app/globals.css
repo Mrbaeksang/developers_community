@@ -29,8 +29,6 @@ main {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
-  padding-left: 1rem;
-  padding-right: 1rem;
 }
 
 /* 모든 요소가 뷰포트를 넘지 않도록 */

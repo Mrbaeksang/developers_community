@@ -33,8 +33,8 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
-  maximumScale: 1, // 확대 방지로 가로 스크롤 문제 해결
-  userScalable: false, // 모바일에서 자동 확대 방지
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: 'cover',
 }
 
