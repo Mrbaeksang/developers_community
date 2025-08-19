@@ -291,7 +291,7 @@ export default async function Home() {
       <HeroSection />
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           {/* Main Content Area */}
           <main className="space-y-8">

@@ -77,7 +77,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b-4 border-black bg-white text-black shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto flex h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
         {/* Logo */}
         <Link
           href="/"
@@ -133,22 +133,24 @@ export function Header() {
         </nav>
 
         {/* Search */}
-        <div className="flex-1 max-w-xs lg:max-w-sm xl:max-w-md mx-2 lg:mx-4">
+        <div className="flex-1 max-w-[150px] sm:max-w-xs lg:max-w-sm xl:max-w-md mx-2 lg:mx-4">
           <Button
             variant="outline"
-            className="w-full justify-start font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] bg-white"
+            className="w-full justify-start font-bold border-2 border-black shadow-brutal hover:shadow-brutal-sm hover:translate-x-[2px] hover:translate-y-[2px] bg-white"
             onClick={() => setIsSearchOpen(true)}
           >
-            <Search className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
-            <span className="text-muted-foreground truncate">검색하기...</span>
-            <kbd className="pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border-2 border-black bg-muted px-1.5 font-mono text-[10px] font-bold text-muted-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hidden sm:flex">
+            <Search className="h-4 w-4 mr-1 sm:mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground truncate text-xs sm:text-sm">
+              검색...
+            </span>
+            <kbd className="pointer-events-none ml-auto h-5 select-none items-center gap-1 rounded border-2 border-black bg-muted px-1.5 font-mono text-[10px] font-bold text-muted-foreground shadow-brutal-sm hidden lg:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </Button>
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {status === 'loading' ? (
             <div className="h-8 w-8 animate-pulse bg-muted rounded-full" />
           ) : session ? (
@@ -257,7 +259,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px]"
+            className="lg:hidden border-2 border-black shadow-brutal-sm hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Menu className="h-5 w-5" />
@@ -268,7 +270,7 @@ export function Header() {
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t-4 border-black bg-white">
-          <nav className="container py-4 space-y-2">
+          <nav className="container mx-auto px-3 sm:px-4 py-4 space-y-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}

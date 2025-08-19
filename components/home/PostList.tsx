@@ -173,9 +173,9 @@ export function PostList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* 브레드크럼 네비게이션 */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-x-auto scrollbar-hide">
         <button
           onClick={() => router.push('/')}
           className="hover:text-foreground transition-colors"
@@ -195,15 +195,15 @@ export function PostList({
       </div>
 
       {/* 헤더 섹션 - 톤다운 버전 */}
-      <div className="relative border rounded-lg p-6 bg-white shadow-sm border-border">
-        <div className="flex items-start justify-between mb-4">
-          <div className="space-y-2">
+      <div className="relative border rounded-lg p-4 sm:p-6 bg-white shadow-sm border-border">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+          <div className="space-y-2 flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
+              <div className="p-2 rounded-lg bg-muted flex-shrink-0">
                 <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                   {getCategoryName(categoryFromUrl)} 게시물
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -218,7 +218,7 @@ export function PostList({
           </div>
 
           {/* 뷰 모드 토글 */}
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg flex-shrink-0">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
@@ -247,13 +247,13 @@ export function PostList({
         </div>
 
         {/* 필터 섹션 */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
             {/* 카테고리 선택 */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
                 <Filter className="h-4 w-4" />
-                카테고리
+                <span className="hidden sm:inline">카테고리</span>
               </div>
               <Select
                 value={categoryFromUrl}
@@ -261,7 +261,7 @@ export function PostList({
                   updateURL({ category: value })
                 }}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -287,10 +287,10 @@ export function PostList({
             </div>
 
             {/* 정렬 선택 */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
                 <SortAsc className="h-4 w-4" />
-                정렬
+                <span className="hidden sm:inline">정렬</span>
               </div>
               <Select
                 value={sortFromUrl}
@@ -298,7 +298,7 @@ export function PostList({
                   updateURL({ sort: value })
                 }}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +333,7 @@ export function PostList({
                 `/main/write${category ? `?category=${category}` : ''}`
               )
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <PenSquare className="h-4 w-4" />
             글쓰기
@@ -342,7 +342,7 @@ export function PostList({
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <TabsList className="grid w-full grid-cols-3 mb-6 border-2 border-black shadow-brutal overflow-x-auto">
           <TabsTrigger
             value="all"
             className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold"

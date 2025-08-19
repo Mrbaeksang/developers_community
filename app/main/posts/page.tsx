@@ -123,16 +123,16 @@ async function getSidebarData() {
 export const revalidate = 0 // Dynamic rendering for posts page to prevent cache issues
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
-  const params = await searchParams
-  const category = params.category
+  const params = (await searchParams) || {}
+  const category = params.category || undefined
   const sort = params.sort || 'latest'
   const page = params.page || '1'
 
   const sidebarData = await getSidebarData()
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full overflow-x-hidden">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         {/* 페이지 헤더 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">게시글</h1>
@@ -143,7 +143,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
         {/* 메인 컨텐츠 */}
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-          <div>
+          <div className="min-w-0">
             <Suspense
               fallback={
                 <div className="space-y-4">
@@ -163,7 +163,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           </div>
 
           {/* 사이드바 */}
-          <aside className="space-y-6">
+          <aside className="hidden lg:block space-y-6">
             <Suspense
               fallback={
                 <div className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg p-6">

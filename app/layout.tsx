@@ -19,6 +19,8 @@ import { GoogleOneTapAuth } from '@/components/auth/GoogleOneTapAuth'
 import { StructuredData } from '@/components/seo/StructuredData'
 import { GoogleAdsense } from '@/components/ads/GoogleAdsense'
 import { headers } from 'next/headers'
+import { ViewportProvider } from '@/components/providers/ViewportProvider'
+import { MobileLayoutFix } from '@/components/layouts/MobileLayoutFix'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -99,31 +101,37 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${notoSansKr.variable} font-sans antialiased`}>
+      <body
+        className={`${notoSansKr.variable} font-sans antialiased`}
+        data-hydrating="true"
+      >
         <KakaoScriptLoader />
         <StructuredData type="website" />
         <StructuredData type="organization" />
+        <MobileLayoutFix />
         <AsyncErrorBoundary>
           <QueryProvider>
             <SessionProvider>
               <NotificationProvider>
                 <KakaoProvider>
-                  <div className="flex min-h-screen flex-col overflow-x-hidden">
-                    <Header />
-                    <main className="flex-1 overflow-x-hidden w-full">{children}</main>
-                    <Footer />
-                  </div>
-                  <Toaster richColors position="bottom-right" />
-                  <SessionExpiryWarning />
-                  <GoogleOneTapAuth />
-                  {/* Google AdSense 자동 광고 - body 안에 위치 */}
-                  {process.env.NODE_ENV === 'production' && (
-                    <GoogleAdsense nonce={nonce} />
-                  )}
-                  <VisitorTracker />
-                  <PageViewTracker />
-                  <Analytics />
-                  <SpeedInsights />
+                  <ViewportProvider>
+                    <div className="flex min-h-screen flex-col">
+                      <Header />
+                      <main className="flex-1 w-full">{children}</main>
+                      <Footer />
+                    </div>
+                    <Toaster richColors position="bottom-right" />
+                    <SessionExpiryWarning />
+                    <GoogleOneTapAuth />
+                    {/* Google AdSense 자동 광고 - body 안에 위치 */}
+                    {process.env.NODE_ENV === 'production' && (
+                      <GoogleAdsense nonce={nonce} />
+                    )}
+                    <VisitorTracker />
+                    <PageViewTracker />
+                    <Analytics />
+                    <SpeedInsights />
+                  </ViewportProvider>
                 </KakaoProvider>
               </NotificationProvider>
             </SessionProvider>

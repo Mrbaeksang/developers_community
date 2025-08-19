@@ -229,7 +229,7 @@ export default async function PostDetailPage({ params }: PageProps) {
   const ogImage = firstImage || 'https://devcom.kr/og-image.png'
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
       <StructuredData
         type="article"
         data={{
@@ -245,7 +245,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           url: `https://devcom.kr/main/posts/${post.id}`,
         }}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6 lg:gap-8 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6 lg:gap-8">
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           <UnifiedPostDetail
             post={post}
