@@ -498,10 +498,37 @@ async function createPost(
       }
 
       if (isQACategory) {
-        // 비동기로 AI 댓글 생성 (응답 대기하지 않음)
-        createAIComment(post.id).catch((error) => {
-          console.error('[AI Bot] AI 댓글 생성 실패:', error)
-        })
+        console.error(
+          `[AI Bot] Q&A 게시글 감지 - postId: ${post.id}, title: ${post.title}`
+        )
+
+        // 방법 1: waitUntil 사용 (Vercel Edge Runtime)
+        const globalWithWaitUntil = globalThis as typeof globalThis & {
+          waitUntil?: (promise: Promise<unknown>) => void
+        }
+
+        if (typeof globalWithWaitUntil.waitUntil === 'function') {
+          // Vercel Edge Runtime에서 백그라운드 작업 보장
+          globalWithWaitUntil.waitUntil(
+            createAIComment(post.id).catch((error) => {
+              console.error('[AI Bot] AI 댓글 생성 실패:', error)
+            })
+          )
+          console.error('[AI Bot] waitUntil로 AI 댓글 생성 예약')
+        } else {
+          // 방법 2: 일반 Node.js 환경 - 최소한의 대기
+          const aiCommentPromise = createAIComment(post.id)
+
+          // 1초만 대기하여 함수 시작 보장
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+
+          // 에러 핸들링만 설정
+          aiCommentPromise.catch((error) => {
+            console.error('[AI Bot] AI 댓글 생성 실패:', error)
+          })
+
+          console.error('[AI Bot] AI 댓글 생성 백그라운드 시작')
+        }
       }
     }
 

@@ -37,15 +37,14 @@ async function createPost() {
 
 **LINE**에서 만든 Kotlin JDSL은 QueryDSL의 모든 장점을 가지면서도 더 간단합니다!
 
-**QueryDSL의 문제점:**
-- Q클래스 생성 필요 (빌드 시간 증가)
-- 원작자 유지보수 중단 (2024년~)
-- Gradle 설정 복잡
+**QueryDSL vs JDSL 비교:**
 
-**JDSL의 해결책:**
-- **메타모델 생성 불필요** ✨
-- 활발한 업데이트 (LINE 공식 지원)
-- Spring Boot Starter 제공
+| 특징 | QueryDSL | Kotlin JDSL |
+|------|----------|-------------|
+| **메타모델** | Q클래스 생성 필요 | KProperty 직접 사용 |
+| **설정** | 복잡한 Gradle 설정 | Spring Boot Starter |
+| **유지보수** | 커뮤니티 의존 | LINE 공식 지원 |
+| **코틀린 친화성** | Java 우선 설계 | Kotlin Native 설계 |
 
 ### 💻 실제 사용법
 
@@ -61,7 +60,7 @@ dependencies {
 @Repository
 interface UserRepository : JpaRepository<User, Long>, KotlinJdslJpqlExecutor {
     
-    // 기존 QueryDSL
+    // QueryDSL 방식
     // fun findActiveUsers(): List<User> {
     //     return queryFactory
     //         .selectFrom(QUser.user)
@@ -69,7 +68,7 @@ interface UserRepository : JpaRepository<User, Long>, KotlinJdslJpqlExecutor {
     //         .fetch()
     // }
     
-    // JDSL - 더 간결!
+    // JDSL 방식 - 메타모델 불필요
     fun findActiveUsers() = findAll {
         select(entity(User::class))
         from(entity(User::class))
@@ -91,10 +90,10 @@ interface UserRepository : JpaRepository<User, Long>, KotlinJdslJpqlExecutor {
 }
 \`\`\`
 
-### 🏢 실제 채택 기업
-- **카카오페이**: 결제 시스템 전체 마이그레이션
-- **네이버 웹툰**: 추천 시스템
-- **29CM**: 상품 검색 시스템
+### 🏢 실제 도입 사례
+- **Spoqa**: QueryDSL → JDSL 마이그레이션 (2024년 공식 발표)
+- **LINE 내부**: 다수 서비스에서 활용
+- **오픈소스 커뮤니티**: 점진적 도입 확산
 
 ## 2️⃣ Komapper - 컴파일 타임 SQL 검증의 혁명
 
@@ -160,12 +159,11 @@ class UserRepository(private val db: Database) {
 }
 \`\`\`
 
-### 📊 성능 비교
-| 작업 | Hibernate | Komapper | 차이 |
-|------|-----------|----------|------|
-| 단건 조회 | 1.2ms | 0.9ms | 25% 빠름 |
-| 배치 INSERT (1000건) | 450ms | 360ms | 20% 빠름 |
-| 복잡한 JOIN | 5.3ms | 4.1ms | 23% 빠름 |
+### 🎯 Komapper 주요 특징
+- **컴파일 타임 검증**: 런타임 에러 방지
+- **R2DBC 지원**: 비동기 데이터베이스 연결
+- **배치 최적화**: 대용량 데이터 처리에 유리
+- **Spring Boot 3**: 완벽한 통합 지원
 
 ## 3️⃣ Kotest - JUnit은 이제 안녕
 
@@ -175,15 +173,14 @@ class UserRepository(private val db: Database) {
 
 **JUnit의 한계를 뛰어넘는 코틀린 네이티브 테스팅!**
 
-**JUnit의 문제점:**
-- 코루틴 테스트 복잡함
-- 중첩 테스트 가독성 떨어짐
-- 프로퍼티 기반 테스팅 불가
+**JUnit vs Kotest 비교:**
 
-**Kotest의 해결책:**
-- suspend 함수 네이티브 지원
-- 10가지 이상의 스펙 스타일
-- 프로퍼티 기반 테스팅 내장
+| 기능 | JUnit 5 | Kotest |
+|------|---------|--------|
+| **코루틴** | 별도 설정 필요 | 네이티브 지원 |
+| **스펙 스타일** | 1가지 (@Test) | 10가지 스타일 |
+| **프로퍼티 테스팅** | 외부 라이브러리 | 내장 지원 |
+| **DSL** | 어노테이션 기반 | 함수형 DSL |
 
 ### 💻 실제 사용법
 
@@ -302,15 +299,14 @@ class PropertyTest : FunSpec({
 
 **코틀린을 위해 처음부터 설계된 모킹 라이브러리!**
 
-**Mockito의 한계:**
-- final 클래스/메서드 모킹 복잡
-- suspend 함수 모킹 불가
-- DSL 스타일 아님
+**Mockito vs MockK 비교:**
 
-**MockK의 강점:**
-- 모든 코틀린 기능 지원
-- 직관적인 DSL
-- 코루틴 완벽 지원
+| 기능 | Mockito | MockK |
+|------|---------|-------|
+| **Final 클래스** | inline mock 필요 | 기본 지원 |
+| **Suspend 함수** | 지원 불가 | coEvery/coVerify |
+| **DSL** | Java 스타일 | Kotlin DSL |
+| **언어 친화성** | Java 우선 | Kotlin 전용 |
 
 ### 💻 실제 사용법
 
@@ -431,30 +427,27 @@ class UserService {
 }
 \`\`\`
 
-## 🏢 한국 기업들의 선택
+## 🏢 실제 도입 현황
 
-### 카카오페이
-- **Kotlin JDSL** + **Exposed** 조합
-- MockK + Kotest 테스팅
-- 개발 생산성 40% 향상
+### 검증된 도입 사례
+- **Spoqa**: Kotlin JDSL 마이그레이션 성공 사례
+- **LINE**: 자체 개발 라이브러리 내부 활용
+- **JetBrains**: Exposed를 다수 프로젝트에 사용
 
-### 네이버 금융
-- **Komapper** + R2DBC
-- 코루틴 기반 비동기 처리
-- 응답 속도 35% 개선
+### 커뮤니티 동향
+- **오픈소스**: GitHub에서 1,000+ 프로젝트 사용
+- **스타트업**: Spring Boot + Kotlin 조합으로 확산
+- **개발자**: QueryDSL 대안으로 관심 증가
 
-### 토스
-- **Exposed** + JOOQ 하이브리드
-- 전체 테스트 MockK 전환
-- 테스트 작성 시간 50% 단축
+## 📊 라이브러리 특성 비교
 
-## 📊 2025년 벤치마크 결과
-
-| 라이브러리 | vs QueryDSL | vs JPA | 학습 곡선 |
-|-----------|------------|--------|----------|
-| **JDSL** | 동등 | 10% 빠름 | ⭐⭐⭐ |
-| **Komapper** | 20% 빠름 | 30% 빠름 | ⭐⭐⭐⭐ |
-| **Exposed** | 15% 빠름 | 25% 빠름 | ⭐⭐ |
+| 라이브러리 | 주요 강점 | 러닝 커브 | 생태계 |
+|-----------|----------|----------|--------|
+| **JDSL** | 메타모델 불필요 | ⭐⭐⭐ | LINE 지원 |
+| **Komapper** | 컴파일 타임 검증 | ⭐⭐⭐⭐ | 활발한 개발 |
+| **Exposed** | JetBrains 품질 | ⭐⭐ | 안정적 |
+| **Kotest** | 다양한 스펙 | ⭐⭐⭐ | 큰 커뮤니티 |
+| **MockK** | 코틀린 네이티브 | ⭐⭐ | 표준 도구 |
 
 ## 🚀 마이그레이션 가이드
 
