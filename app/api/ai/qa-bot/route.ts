@@ -8,14 +8,18 @@ import {
 } from '@/lib/api/errors'
 import { successResponse } from '@/lib/api/response'
 
-// POST: 특정 게시글에 AI 댓글 생성 (관리자 전용)
+// POST: 특정 게시글에 AI 댓글 생성 (관리자 전용 또는 내부 호출)
 export async function POST(req: Request) {
   try {
-    const session = await auth()
+    // 내부 호출 확인
+    const isInternalCall = req.headers.get('x-internal-call') === 'true'
 
-    // 관리자 권한 확인
-    if (session?.user?.role !== 'ADMIN') {
-      throw throwAuthorizationError('관리자 권한이 필요합니다')
+    if (!isInternalCall) {
+      // 외부 호출인 경우 관리자 권한 확인
+      const session = await auth()
+      if (session?.user?.role !== 'ADMIN') {
+        throw throwAuthorizationError('관리자 권한이 필요합니다')
+      }
     }
 
     const { postId } = await req.json()
