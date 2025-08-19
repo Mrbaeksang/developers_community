@@ -133,7 +133,7 @@ export default async function CommunitiesPage({
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="container max-w-7xl mx-auto px-4 py-8">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         {/* Modern Hero Header */}
         <div className="mb-8">
           <div className="bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 backdrop-blur-sm">

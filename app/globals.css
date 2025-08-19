@@ -2,22 +2,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* 모바일 반응형 최적화 - 뷰포트 스케일링 허용 */
+/* 모바일 반응형 최적화 - 뷰포트 스케일링 방지 */
 html {
-  /* overflow-x 제거 - 뷰포트가 콘텐츠에 맞게 자동 조정되도록 */
+  /* 가로 스크롤 방지 */
+  overflow-x: hidden;
   width: 100%;
 }
 
 body {
-  /* overflow-x 제거 - 뷰포트가 콘텐츠에 맞게 자동 조정되도록 */
+  /* 가로 스크롤 방지 및 뷰포트 크기에 맞춤 */
+  overflow-x: hidden;
   width: 100%;
   min-width: 320px; /* 최소 모바일 너비 */
 }
 
 /* 모바일에서 컨테이너 최대 너비 제한 */
 .container {
-  /* width: 100% 제거 - 자연스러운 레이아웃 허용 */
+  width: 100%;
   max-width: 100%;
+}
+
+/* 모든 요소가 뷰포트를 넘지 않도록 */
+* {
+  max-width: 100vw;
 }
 
 /* 모바일 반응형 유틸리티 */

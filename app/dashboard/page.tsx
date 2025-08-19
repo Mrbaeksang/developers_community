@@ -249,7 +249,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-8">
       {/* 헤더 섹션 */}
       <DashboardHeader user={user} />
 
