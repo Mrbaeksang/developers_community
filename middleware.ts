@@ -36,6 +36,7 @@ const rateLimiter = initRateLimitMiddleware({
     '/api/track',
     '/api/activities',
     '/api/visitors',
+    '/api/notifications/read-all', // 알림 읽음 처리 제외
   ], // 모니터링 API 제외
   trustScoreBonus: true,
   enablePatternDetection: true,
