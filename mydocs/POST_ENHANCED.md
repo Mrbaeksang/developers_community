@@ -179,6 +179,99 @@ const getRandomViewCount = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1)) + min
 ```
 
+## 🏷️ 태그 색상 가이드
+
+**AI 에이전트는 태그 생성 시 반드시 색상을 포함해야 합니다!**
+
+### 🎨 기본 색상 팔레트
+
+```typescript
+// 주제별 추천 색상 (복사해서 사용)
+const TAG_COLORS = {
+  // AI/ML 관련
+  AI: '#8b5cf6',          // 보라색 - AI, 머신러닝, 딥러닝
+  ChatGPT: '#10a37f',     // 초록색 - ChatGPT, OpenAI
+  Claude: '#d97706',      // 주황색 - Claude, Anthropic
+  
+  // 프로그래밍 언어
+  JavaScript: '#f59e0b',  // 황색 - JavaScript, Node.js
+  TypeScript: '#3b82f6',  // 파란색 - TypeScript
+  Python: '#059669',      // 녹색 - Python, Django
+  Kotlin: '#8b5cf6',      // 보라색 - Kotlin, Android
+  Java: '#dc2626',        // 빨간색 - Java, Spring
+  
+  // 프레임워크/라이브러리
+  React: '#06b6d4',       // 청록색 - React, Next.js
+  Vue: '#059669',         // 녹색 - Vue.js, Nuxt
+  Angular: '#dc2626',     // 빨간색 - Angular
+  SpringBoot: '#059669',  // 녹색 - Spring Boot
+  
+  // 개발 도구/플랫폼
+  Docker: '#0ea5e9',      // 하늘색 - Docker, 컨테이너
+  Kubernetes: '#3b82f6',  // 파란색 - K8s, 오케스트레이션
+  AWS: '#f59e0b',         // 황색 - AWS, 클라우드
+  Vercel: '#000000',      // 검정색 - Vercel, 배포
+  
+  // 개발 방법론/테스팅
+  TDD: '#dc2626',         // 빨간색 - TDD, 테스트
+  BDD: '#059669',         // 녹색 - BDD, 행동 주도
+  Agile: '#8b5cf6',       // 보라색 - 애자일, 스크럼
+  
+  // 데이터베이스
+  MySQL: '#0ea5e9',       // 하늘색 - MySQL
+  PostgreSQL: '#3b82f6',  // 파란색 - PostgreSQL
+  MongoDB: '#059669',     // 녹색 - MongoDB, NoSQL
+  Redis: '#dc2626',       // 빨간색 - Redis, 캐시
+  
+  // 카테고리별
+  트렌드: '#f59e0b',       // 황색 - 트렌드, 뉴스
+  '바이브 코딩': '#06b6d4', // 청록색 - 바이브 코딩
+  튜토리얼: '#8b5cf6',     // 보라색 - 튜토리얼, 가이드
+  리뷰: '#059669',        // 녹색 - 리뷰, 분석
+  성능: '#dc2626',        // 빨간색 - 성능, 최적화
+  보안: '#7c2d12',        // 갈색 - 보안, 인증
+  
+  // 기본 색상
+  기본: '#6b7280',        // 회색 - 기타, 일반
+}
+```
+
+### 🎨 카테고리별 추천 태그 조합
+
+```typescript
+// 예시: AI뉴스 카테고리
+const AI_NEWS_TAGS = [
+  { name: 'AI', slug: 'ai', color: '#8b5cf6' },
+  { name: 'ChatGPT', slug: 'chatgpt', color: '#10a37f' },
+  { name: '트렌드', slug: 'trend', color: '#f59e0b' },
+  { name: '딥러닝', slug: 'deep-learning', color: '#8b5cf6' },
+]
+
+// 예시: Backend 카테고리  
+const BACKEND_TAGS = [
+  { name: 'SpringBoot', slug: 'springboot', color: '#059669' },
+  { name: 'Kotlin', slug: 'kotlin', color: '#8b5cf6' },
+  { name: 'MySQL', slug: 'mysql', color: '#0ea5e9' },
+  { name: 'Docker', slug: 'docker', color: '#0ea5e9' },
+]
+
+// 예시: Frontend 카테고리
+const FRONTEND_TAGS = [
+  { name: 'React', slug: 'react', color: '#06b6d4' },
+  { name: 'TypeScript', slug: 'typescript', color: '#3b82f6' },
+  { name: 'Next.js', slug: 'nextjs', color: '#000000' },
+  { name: 'Tailwind', slug: 'tailwind', color: '#06b6d4' },
+]
+```
+
+### ⚠️ 태그 색상 필수 규칙
+
+1. **모든 태그에 색상 필수**: `color` 필드 누락 시 UI에서 색상 표시 안됨
+2. **일관성 유지**: 동일한 주제는 동일한 색상 사용
+3. **가독성 고려**: 배경과 대비되는 색상 선택
+4. **HEX 코드 사용**: `#rrggbb` 형식 (예: `#8b5cf6`)
+5. **최대 5개 제한**: 게시글당 태그는 최대 5개까지
+
 **카테고리별 ID 매핑 (전체 목록):**
 
 ```typescript
@@ -626,22 +719,28 @@ async function createPost() {
     console.log(`📝 게시글 ID: ${post.id}`)
     console.log(`🔗 URL: /main/posts/${post.id}`)
 
-    // 태그 생성 및 연결
-    const tagNames = ['[태그1]', '[태그2]', '[태그3]', '[태그4]']
+    // 태그 생성 및 연결 (색상 포함)
+    const tags = [
+      { name: '[태그1]', slug: '[태그1]', color: '#8b5cf6' },
+      { name: '[태그2]', slug: '[태그2]', color: '#10a37f' },
+      { name: '[태그3]', slug: '[태그3]', color: '#f59e0b' },
+      { name: '[태그4]', slug: '[태그4]', color: '#06b6d4' },
+    ]
     console.log('🏷️ 태그 처리 중...')
     
-    for (const tagName of tagNames) {
+    for (const tagData of tags) {
       // 태그가 이미 존재하는지 확인
       let tag = await prisma.mainTag.findUnique({
-        where: { name: tagName }
+        where: { name: tagData.name }
       })
 
-      // 태그가 없으면 생성
+      // 태그가 없으면 생성 (색상 포함)
       if (!tag) {
         tag = await prisma.mainTag.create({
           data: {
-            name: tagName,
-            slug: tagName.toLowerCase().replace(/[^a-z0-9가-힣]/g, '-'),
+            name: tagData.name,
+            slug: tagData.slug.toLowerCase().replace(/[^a-z0-9가-힣]/g, '-'),
+            color: tagData.color,
             postCount: 1,
           }
         })
@@ -662,7 +761,7 @@ async function createPost() {
       })
     }
 
-    console.log(`🏷️ 태그 처리 완료: ${tagNames.join(', ')}`)
+    console.log(`🏷️ 태그 처리 완료: ${tags.map(t => t.name).join(', ')}`)
 
     // 사이트 통계 업데이트
     await prisma.siteStats.upsert({

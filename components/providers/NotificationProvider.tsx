@@ -95,16 +95,27 @@ export function NotificationProvider({
     try {
       const response = await apiClient('/api/notifications/read-all', {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
       if (response.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
         setUnreadCount(0)
+        return true
       } else {
-        console.error('Failed to mark all notifications as read')
+        console.error(
+          'Failed to mark all notifications as read:',
+          response.error
+        )
+        throw new Error(
+          response.error || 'Failed to mark all notifications as read'
+        )
       }
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error)
+      throw error
     }
   }, [])
 

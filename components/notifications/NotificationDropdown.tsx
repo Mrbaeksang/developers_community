@@ -158,11 +158,18 @@ export default function NotificationDropdown() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                markAllAsRead()
-                toast.success('모든 알림을 읽음으로 표시했습니다.')
+                try {
+                  await markAllAsRead()
+                  toast.success('모든 알림을 읽음으로 표시했습니다.')
+                } catch (error) {
+                  console.error('알림 읽음 처리 실패:', error)
+                  toast.error(
+                    '알림 읽음 처리에 실패했습니다. 다시 시도해주세요.'
+                  )
+                }
               }}
               className="text-xs"
             >
