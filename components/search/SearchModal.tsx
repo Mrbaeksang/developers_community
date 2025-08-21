@@ -145,7 +145,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <DialogContent className="max-w-2xl p-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white dark:bg-gray-900">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="sr-only">검색</DialogTitle>
         </DialogHeader>
@@ -205,7 +205,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </div>
 
         {/* Search Results */}
-        <ScrollArea className="max-h-[500px] bg-gray-50">
+        <ScrollArea className="max-h-[500px] bg-gray-50 dark:bg-gray-800">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
@@ -216,10 +216,10 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <button
                   key={result.id}
                   onClick={() => handleResultClick(result.id)}
-                  className="w-full text-left bg-white border-2 border-black rounded-xl p-5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 group"
+                  className="w-full text-left bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-700 rounded-xl p-5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.1)] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all duration-200 group"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2 bg-gray-100 border-2 border-black rounded-lg group-hover:bg-gray-200 transition-colors">
+                    <div className="p-2 bg-gray-100 dark:bg-gray-700 border-2 border-black dark:border-gray-600 rounded-lg group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -330,17 +330,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t-2 border-black px-6 py-4 bg-gray-100 flex items-center justify-between">
+        <div className="border-t-2 border-black dark:border-gray-700 px-6 py-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-2">
-              <kbd className="px-2 py-1 bg-white border-2 border-black rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-600 rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                 ESC
               </kbd>
               <span className="font-medium">닫기</span>
             </span>
             <span className="text-gray-400">|</span>
             <span className="flex items-center gap-2">
-              <kbd className="px-2 py-1 bg-white border-2 border-black rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-600 rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">
                 Enter
               </kbd>
               <span className="font-medium">선택</span>
