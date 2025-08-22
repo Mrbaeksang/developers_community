@@ -105,9 +105,12 @@ async function getPost(id: string) {
       })
       .catch(console.error) // 에러 무시 (조회수는 중요하지 않음)
 
-    // 댓글 조회
+    // 댓글 조회 - 계층 구조로 가져오기 (parentId가 null인 최상위 댓글만)
     const comments = await prisma.mainComment.findMany({
-      where: { postId: id },
+      where: {
+        postId: id,
+        parentId: null, // 최상위 댓글만 조회
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
@@ -119,7 +122,21 @@ async function getPost(id: string) {
             globalRole: true,
           },
         },
-        // MainComment에는 likes 관계가 없음
+        // 답글들도 함께 가져오기
+        replies: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                globalRole: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' }, // 답글은 오래된 것부터
+        },
       },
     })
 
@@ -163,6 +180,18 @@ async function getPost(id: string) {
         author: comment.author,
         isEdited: comment.isEdited,
         parentId: comment.parentId,
+        // replies 배열 추가 - 계층 구조 유지
+        replies:
+          comment.replies?.map((reply) => ({
+            id: reply.id,
+            content: reply.content,
+            createdAt: reply.createdAt,
+            updatedAt: reply.updatedAt,
+            userId: reply.authorId,
+            author: reply.author,
+            isEdited: reply.isEdited,
+            parentId: reply.parentId,
+          })) || [],
       })),
       isQACategory,
     }
