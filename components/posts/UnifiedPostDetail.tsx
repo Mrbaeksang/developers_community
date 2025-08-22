@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -61,6 +61,18 @@ export function UnifiedPostDetail({
   const [isProcessingBookmark, setIsProcessingBookmark] = useState(false)
   const likeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const bookmarkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (likeTimeoutRef.current) {
+        clearTimeout(likeTimeoutRef.current)
+      }
+      if (bookmarkTimeoutRef.current) {
+        clearTimeout(bookmarkTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const effectiveUserId = currentUserId || session?.user?.id
   const isAuthor = effectiveUserId === post.author.id
@@ -287,11 +299,14 @@ export function UnifiedPostDetail({
       // 낙관적 업데이트를 위한 준비
       setIsDeleting(true)
 
-      // 정확한 queryKey로 캐시 무효화 (usePostQuery.ts의 postQueryKeys와 일치)
+      // usePostQuery.ts의 정확한 쿼리 키 패턴 사용
+      // mainPosts는 ['posts', 'main', params] 형태
+      // communityPosts는 ['posts', 'community', communityId, params] 형태
       const queryKeyPattern = isCommunityPost
         ? ['posts', 'community']
         : ['posts', 'main']
 
+      // 모든 관련 쿼리 취소
       await queryClient.cancelQueries({
         queryKey: queryKeyPattern,
         exact: false,
@@ -308,28 +323,50 @@ export function UnifiedPostDetail({
         previousQueries.set(query.queryKey, query.state.data)
       })
 
-      // 모든 관련 쿼리에서 해당 게시글 즉시 제거
+      // 모든 관련 쿼리에서 해당 게시글 즉시 제거 (낙관적 UI)
       queries.forEach((query) => {
         queryClient.setQueryData(query.queryKey, (old: unknown) => {
           if (!old) return old
 
-          // API 응답 형태: { success: true, data: { items: [...], pageInfo: {...} } }
-          if (typeof old === 'object' && old !== null && 'data' in old) {
-            const apiResponse = old as {
-              data?: { items?: Array<{ id: string }> }
+          // useMainPosts/useCommunityPosts의 응답 형태
+          // PostListResponse: { success: true, data: { items: [...], pageInfo: {...} } }
+          if (typeof old === 'object' && old !== null) {
+            const response = old as {
+              data?: {
+                items?: Array<{ id: string }>
+                pageInfo?: { total?: number }
+              }
+              items?: Array<{ id: string }>
             }
-            if (apiResponse.data?.items) {
+
+            // data.items 구조인 경우 (목록 페이지)
+            if (response.data?.items && Array.isArray(response.data.items)) {
               return {
-                ...old,
+                ...response,
                 data: {
-                  ...apiResponse.data,
-                  items: apiResponse.data.items.filter((p) => p.id !== post.id),
+                  ...response.data,
+                  items: response.data.items.filter((p) => p.id !== post.id),
+                  pageInfo: {
+                    ...response.data.pageInfo,
+                    total: Math.max(
+                      0,
+                      (response.data.pageInfo?.total || 0) - 1
+                    ),
+                  },
                 },
+              }
+            }
+
+            // 직접 items 배열인 경우
+            if (response.items && Array.isArray(response.items)) {
+              return {
+                ...response,
+                items: response.items.filter((p) => p.id !== post.id),
               }
             }
           }
 
-          // 직접 배열인 경우
+          // 직접 배열인 경우 (트렌딩, 최근 게시글 등)
           if (Array.isArray(old)) {
             return old.filter((p: { id: string }) => p.id !== post.id)
           }
@@ -338,20 +375,16 @@ export function UnifiedPostDetail({
         })
       })
 
-      // 즉시 페이지 이동 (사용자 경험 개선)
+      // 리다이렉트 URL 준비
       const redirectUrl = post.community
         ? `/communities/${post.community.id}/posts`
         : '/main/posts'
 
-      // 토스트 메시지 먼저 표시
+      // 토스트 메시지 표시
       toast.success('게시글이 삭제되었습니다.')
 
-      // 약간의 딜레이 후 리다이렉트 (토스트가 보이도록)
-      setTimeout(() => {
-        router.push(redirectUrl)
-        // 서버 컴포넌트 강제 새로고침
-        router.refresh()
-      }, 100)
+      // 즉시 리다이렉트 (낙관적 UI가 이미 적용됨)
+      router.push(redirectUrl)
 
       return { previousQueries }
     },
@@ -369,8 +402,8 @@ export function UnifiedPostDetail({
       setIsDeleting(false)
     },
     onSuccess: () => {
-      // 백그라운드에서 캐시 무효화 - 정확한 queryKey 패턴 사용
-      // 딜레이를 주어 서버 측 캐시가 업데이트될 시간을 확보
+      // 백그라운드에서 캐시 새로고침 (사용자가 목록 페이지에 있을 때를 위해)
+      // refetchType: 'active'로 현재 보이는 쿼리만 새로고침
       setTimeout(() => {
         const queryKeyPattern = isCommunityPost
           ? ['posts', 'community']
@@ -379,9 +412,9 @@ export function UnifiedPostDetail({
         queryClient.invalidateQueries({
           queryKey: queryKeyPattern,
           exact: false,
-          refetchType: 'none', // 자동으로 refetch하지 않음
+          refetchType: 'active', // 현재 활성화된 쿼리만 refetch
         })
-      }, 1000) // 1초 딜레이
+      }, 500) // 500ms 딜레이
     },
     onSettled: () => {
       // 최종 정리
@@ -466,10 +499,14 @@ export function UnifiedPostDetail({
                 <div>
                   <p className="font-bold">{post.author.name || 'Unknown'}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(post.createdAt), {
-                      addSuffix: true,
-                      locale: ko,
-                    })}
+                    {useMemo(
+                      () =>
+                        formatDistanceToNow(new Date(post.createdAt), {
+                          addSuffix: true,
+                          locale: ko,
+                        }),
+                      [post.createdAt]
+                    )}
                   </p>
                 </div>
               </div>
@@ -553,7 +590,7 @@ export function UnifiedPostDetail({
 
           {/* Content */}
           <div
-            className="prose prose-sm max-w-none [&_p]:my-4 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-6 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-5 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-4 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-4 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-4 [&_li]:my-1 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4 [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-4 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800"
+            className="prose prose-sm max-w-none [&_p]:my-6 [&_p]:leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-8 [&_h1]:leading-tight [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-6 [&_h2]:leading-tight [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-5 [&_h3]:leading-tight [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-6 [&_li]:my-2 [&_li]:leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6 [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-6 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_table]:w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:overflow-x-auto [&_thead]:bg-gray-50 [&_thead]:border-b-2 [&_thead]:border-gray-200 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:border [&_th]:border-gray-200 [&_td]:px-4 [&_td]:py-3 [&_td]:border [&_td]:border-gray-200 [&_tbody_tr]:bg-white [&_tbody_tr:hover]:bg-gray-50 [&_tbody_tr]:transition-colors"
             dangerouslySetInnerHTML={{
               __html: optimizeImagesInContent(post.content),
             }}
