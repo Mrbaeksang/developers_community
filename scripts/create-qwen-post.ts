@@ -144,11 +144,15 @@ AI가 알아서 편집해줘요!
   try {
     console.log('🎯 Qwen-Image-Edit 일반인용 게시글 생성 시작...')
 
+    // 타임스탬프를 포함한 고유한 슬러그 생성
+    const timestamp = new Date().getTime()
+    const uniqueSlug = `qwen-image-edit-easy-guide-${timestamp}`
+
     // 게시글 생성
     const post = await prisma.mainPost.create({
       data: {
         title: '🎨 알리바바에서 만든 신기한 AI, 말로만 해도 사진이 바뀐다고?',
-        slug: 'qwen-image-edit-easy-guide-for-everyone-2025',
+        slug: uniqueSlug,
         content,
         excerpt:
           '중국 알리바바에서 만든 Qwen-Image-Edit는 말로만 해도 사진을 편집해주는 신기한 AI예요. "배경을 바다로 바꿔줘"라고 하면 정말로 바뀝니다! 13가지 기능을 무료로 체험해보세요.',

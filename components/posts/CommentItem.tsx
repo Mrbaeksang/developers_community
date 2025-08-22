@@ -40,7 +40,7 @@ interface CommentItemProps {
   editContent: string
   onReplyClick: (commentId: string) => void
   onReplyChange: (commentId: string, content: string) => void
-  onReplySubmit: (parentId: string) => void
+  onReplySubmit: (parentId: string, content?: string) => void
   onReplyCancel: (commentId: string) => void
   onEditClick: (commentId: string, content: string) => void
   onEditChange: (content: string) => void
@@ -205,9 +205,8 @@ export default function CommentItem({
                 parentId={comment.id}
                 mode="reply"
                 onSubmit={async (content) => {
-                  // onReplySubmit이 Promise를 반환하도록 수정 필요
-                  onReplyChange(comment.id, content)
-                  await onReplySubmit(comment.id)
+                  // content를 직접 전달하여 낙관적 UI 즉시 실행
+                  await onReplySubmit(comment.id, content)
                 }}
                 onCancel={() => onReplyCancel(comment.id)}
                 placeholder="답글을 작성해주세요..."

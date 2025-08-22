@@ -409,13 +409,22 @@ export default function CommentSection({
             return comment
           })
       )
+
+      // 성공 토스트
       toast({
         title: '답글이 작성되었습니다',
       })
+
+      // 서버에서 최신 댓글 목록 가져오기 (계층형 구조 확실히 반영)
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['comments', postId, postType, communityId],
+        })
+      }, 500)
     },
   })
 
-  const handleReplySubmit = async (parentId: string) => {
+  const handleReplySubmit = async (parentId: string, content?: string) => {
     if (status === 'unauthenticated') {
       toast({
         title: '로그인이 필요합니다',
@@ -426,8 +435,9 @@ export default function CommentSection({
       throw new Error('Unauthenticated')
     }
 
-    const content = replyContents[parentId] || ''
-    if (!content.trim()) {
+    // content가 직접 전달되지 않으면 state에서 읽기 (fallback)
+    const replyContent = content || replyContents[parentId] || ''
+    if (!replyContent.trim()) {
       toast({
         title: '답글 내용을 입력해주세요',
         variant: 'destructive',
@@ -437,7 +447,7 @@ export default function CommentSection({
 
     // mutateAsync를 사용하여 Promise 반환
     await createReplyMutation.mutateAsync({
-      content: content.trim(),
+      content: replyContent.trim(),
       parentId,
     })
   }
