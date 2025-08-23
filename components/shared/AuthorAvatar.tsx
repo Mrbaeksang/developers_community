@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/core/utils'
@@ -16,7 +17,7 @@ interface AuthorAvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg'
   showName?: boolean
   showDate?: boolean
-  date?: string | Date
+  date?: string | Date | React.ReactNode
   className?: string
   avatarClassName?: string
   textClassName?: string
@@ -132,8 +133,15 @@ export function AuthorAvatar({
                 'text-muted-foreground font-medium',
                 textClassName
               )}
+              suppressHydrationWarning
             >
-              {typeof date === 'string' ? date : date.toLocaleDateString()}
+              {React.isValidElement(date)
+                ? date
+                : typeof date === 'string'
+                  ? date
+                  : date instanceof Date
+                    ? date.toLocaleDateString()
+                    : date}
             </time>
           )}
         </div>

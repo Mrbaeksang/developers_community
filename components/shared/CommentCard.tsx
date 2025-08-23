@@ -90,7 +90,10 @@ export const CommentCard = memo(function CommentCard({
                   {comment.author.name || '익명'}
                 </span>
               )}
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
+              <span
+                className="text-xs text-muted-foreground whitespace-nowrap"
+                suppressHydrationWarning
+              >
                 {formattedDate}
               </span>
               {comment.isEdited && (
@@ -175,7 +178,9 @@ export const CommentCard = memo(function CommentCard({
                     </span>
                   </>
                 )}
-                <span className="whitespace-nowrap">{formattedDate}</span>
+                <span className="whitespace-nowrap" suppressHydrationWarning>
+                  {formattedDate}
+                </span>
               </div>
 
               {comment.stats && (

@@ -98,7 +98,10 @@ export function PostStats({
             )}
           >
             <Icon className={cn(sizes.icon, iconColor)} />
-            <span className={cn(sizes.text, 'font-medium', textColor)}>
+            <span
+              className={cn(sizes.text, 'font-medium', textColor)}
+              suppressHydrationWarning
+            >
               {formatCount(count)}
             </span>
           </div>
