@@ -8,6 +8,7 @@ import { NotificationProvider } from '@/components/providers/NotificationProvide
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { Header } from '@/components/layouts/Header'
 import { Footer } from '@/components/layout/Footer'
+import { MobileBottomNav } from '@/components/layouts/MobileBottomNav'
 import { Toaster } from '@/components/ui/sonner'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -122,8 +123,11 @@ export default async function RootLayout({
                       <ViewportProvider>
                         <div className="flex min-h-screen flex-col">
                           <Header />
-                          <main className="flex-1 w-full">{children}</main>
+                          <main className="flex-1 w-full pb-16 lg:pb-0">
+                            {children}
+                          </main>
                           <Footer />
+                          <MobileBottomNav />
                         </div>
                         <Toaster richColors position="bottom-right" />
                         <SessionExpiryWarning />
@@ -172,8 +176,11 @@ export default async function RootLayout({
                   <ViewportProvider>
                     <div className="flex min-h-screen flex-col">
                       <Header />
-                      <main className="flex-1 w-full">{children}</main>
+                      <main className="flex-1 w-full pb-16 lg:pb-0">
+                        {children}
+                      </main>
                       <Footer />
+                      <MobileBottomNav />
                     </div>
                     <Toaster richColors position="bottom-right" />
                     <SessionExpiryWarning />
