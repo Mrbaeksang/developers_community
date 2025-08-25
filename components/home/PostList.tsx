@@ -25,6 +25,8 @@ import {
   LayoutGrid,
   LayoutList,
   PenSquare,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import type { MainPostFormatted } from '@/lib/post/types'
 import { useMainPosts } from '@/lib/hooks/usePostQuery'
@@ -59,6 +61,7 @@ export function PostList({
 
   // 로컬 상태는 UI 컨트롤용으로만 사용 - 기본값을 list로 변경
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [isFilterOpen, setIsFilterOpen] = useState(false) // 모바일 필터 토글 상태
 
   // React Query로 데이터 가져오기 - URL 파라미터 직접 사용
   const { data, isLoading } = useMainPosts(
@@ -194,9 +197,104 @@ export function PostList({
         )}
       </div>
 
-      {/* 헤더 섹션 - 톤다운 버전 */}
-      <div className="relative border rounded-lg p-4 sm:p-6 bg-white shadow-sm border-border">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+      {/* 헤더 섹션 - 모바일에서 더 컴팩트하게 */}
+      <div className="relative border rounded-lg p-3 sm:p-6 bg-white shadow-sm border-border">
+        {/* 모바일 컴팩트 헤더 */}
+        <div className="sm:hidden space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold">
+              {getCategoryName(categoryFromUrl)} ({filteredPosts.length})
+            </h2>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('list')}
+                className="h-7 w-7"
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="icon"
+                onClick={() => setViewMode('grid')}
+                className="h-7 w-7"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* 모바일 필터 토글 버튼 - 더 작게 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="w-full h-8 text-xs flex items-center justify-between border border-border"
+          >
+            <span className="font-medium">
+              {categoryFromUrl === 'all'
+                ? '전체'
+                : getCategoryName(categoryFromUrl)}{' '}
+              ·{' '}
+              {sortFromUrl === 'latest'
+                ? '최신순'
+                : sortFromUrl === 'popular'
+                  ? '인기순'
+                  : '댓글순'}
+            </span>
+            {isFilterOpen ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </Button>
+
+          {/* 모바일 필터 드롭다운 */}
+          {isFilterOpen && (
+            <div className="flex gap-2 pt-2 border-t">
+              <Select
+                value={categoryFromUrl}
+                onValueChange={(value) => {
+                  updateURL({ category: value })
+                  setIsFilterOpen(false)
+                }}
+              >
+                <SelectTrigger className="flex-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {categories.map((category: Category) => (
+                    <SelectItem key={category.id} value={category.slug}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sortFromUrl}
+                onValueChange={(value) => {
+                  updateURL({ sort: value })
+                  setIsFilterOpen(false)
+                }}
+              >
+                <SelectTrigger className="flex-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">최신순</SelectItem>
+                  <SelectItem value="popular">인기순</SelectItem>
+                  <SelectItem value="discussed">댓글순</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {/* 데스크톱 헤더 - 기존 유지 */}
+        <div className="hidden sm:flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="space-y-2 flex-1 min-w-0">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-muted flex-shrink-0">
@@ -246,128 +344,129 @@ export function PostList({
           </div>
         </div>
 
-        {/* 필터 섹션 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-            {/* 카테고리 선택 */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">카테고리</span>
-              </div>
-              <Select
-                value={categoryFromUrl}
-                onValueChange={(value) => {
-                  updateURL({ category: value })
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-primary"></div>
-                      모든 카테고리
-                    </div>
-                  </SelectItem>
-                  {categories.map((category: Category) => (
-                    <SelectItem key={category.id} value={category.slug}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
-                        {category.name}{' '}
-                        <span className="text-xs text-muted-foreground">
-                          ({category.postCount})
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* 데스크톱 필터 섹션 */}
+        <div className="hidden sm:flex items-center gap-3 mt-4">
+          {/* 카테고리 선택 - 데스크톱 */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
+              <Filter className="h-4 w-4" />
+              <span>카테고리</span>
             </div>
-
-            {/* 정렬 선택 */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
-                <SortAsc className="h-4 w-4" />
-                <span className="hidden sm:inline">정렬</span>
-              </div>
-              <Select
-                value={sortFromUrl}
-                onValueChange={(value) => {
-                  updateURL({ sort: value })
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="latest">
+            <Select
+              value={categoryFromUrl}
+              onValueChange={(value) => {
+                updateURL({ category: value })
+              }}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    모든 카테고리
+                  </div>
+                </SelectItem>
+                {categories.map((category: Category) => (
+                  <SelectItem key={category.id} value={category.slug}>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-blue-500" />
-                      최신순
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground"></div>
+                      {category.name}{' '}
+                      <span className="text-xs text-muted-foreground">
+                        ({category.postCount})
+                      </span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="popular">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-orange-500" />
-                      인기순
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="discussed">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-purple-500" />
-                      댓글 많은 순
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* 글쓰기 버튼 */}
-          <Button
-            onClick={() => {
-              const category = categoryFromUrl !== 'all' ? categoryFromUrl : ''
-              router.push(
-                `/main/write${category ? `?category=${category}` : ''}`
-              )
-            }}
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <PenSquare className="h-4 w-4" />
-            글쓰기
-          </Button>
+          {/* 정렬 선택 - 데스크톱 */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground flex-shrink-0">
+              <SortAsc className="h-4 w-4" />
+              <span>정렬</span>
+            </div>
+            <Select
+              value={sortFromUrl}
+              onValueChange={(value) => {
+                updateURL({ sort: value })
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="latest">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-500" />
+                    최신순
+                  </div>
+                </SelectItem>
+                <SelectItem value="popular">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    인기순
+                  </div>
+                </SelectItem>
+                <SelectItem value="discussed">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    댓글 많은 순
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 글쓰기 버튼 - 데스크톱에서만 */}
+          <div className="ml-auto">
+            <Button
+              onClick={() => {
+                const category =
+                  categoryFromUrl !== 'all' ? categoryFromUrl : ''
+                router.push(
+                  `/main/write${category ? `?category=${category}` : ''}`
+                )
+              }}
+              className="flex items-center gap-2"
+            >
+              <PenSquare className="h-4 w-4" />
+              글쓰기
+            </Button>
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 border-2 border-black shadow-brutal overflow-x-auto">
+        <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 border sm:border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-brutal h-9 sm:h-10">
           <TabsTrigger
             value="all"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-bold text-xs sm:text-sm"
           >
             <span className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+              <FileText className="hidden sm:block h-4 w-4" />
               <span>전체</span>
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="trending"
-            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-bold"
+            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-bold text-xs sm:text-sm"
           >
             <span className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>트렌딩</span>
+              <TrendingUp className="hidden sm:block h-4 w-4" />
+              <span>인기</span>
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="recent"
-            className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-bold"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-bold text-xs sm:text-sm"
           >
             <span className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>최근 24시간</span>
+              <Clock className="hidden sm:block h-4 w-4" />
+              <span>24시간</span>
             </span>
           </TabsTrigger>
         </TabsList>

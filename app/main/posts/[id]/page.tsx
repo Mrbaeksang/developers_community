@@ -258,8 +258,8 @@ export default async function PostDetailPage({ params }: PageProps) {
   const ogImage = firstImage || 'https://devcom.kr/og-image.png'
 
   return (
-    <div className="overflow-x-hidden">
-      <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+    <div className="w-full overflow-x-hidden">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <StructuredData
           type="article"
           data={{

@@ -97,14 +97,14 @@ export default function MobileRelatedSection({
   })
 
   return (
-    <div className="space-y-6 mt-8">
+    <div className="space-y-6 mt-8 w-full overflow-x-hidden">
       {/* CTA 버튼들 - 가로 스크롤 */}
-      <div className="overflow-x-auto scrollbar-hide">
+      <div className="overflow-x-auto scrollbar-hide -mx-3 px-3">
         <div className="flex gap-3 pb-2">
           {/* 모든 게시글 보러가기 */}
           <Link
             href="/main/posts"
-            className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 border-2 border-black"
+            className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 border-2 border-black"
           >
             <BookOpen className="h-5 w-5" />
             <span>모든 게시글 보러가기</span>
@@ -112,8 +112,8 @@ export default function MobileRelatedSection({
 
           {/* Q&A GPT-5 답변받기 */}
           <Link
-            href="/main/categories/qa"
-            className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 border-2 border-black"
+            href="/main/write?category=qna"
+            className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 border-2 border-black"
           >
             <Bot className="h-5 w-5" />
             <span>Q&A 질문하고 GPT-5 답변받기</span>
@@ -128,7 +128,10 @@ export default function MobileRelatedSection({
             <Flame className="h-5 w-5 text-orange-500" />
             주간 인기 게시글
           </h3>
-          <div ref={weeklyScrollRef} className="overflow-x-auto scrollbar-hide">
+          <div
+            ref={weeklyScrollRef}
+            className="overflow-x-auto scrollbar-hide -mx-3 px-3"
+          >
             <div className="flex gap-3 pb-2">
               {weeklyPosts.map((post, index) => (
                 <Link
@@ -136,7 +139,7 @@ export default function MobileRelatedSection({
                   href={`/main/posts/${post.id}`}
                   className="flex-shrink-0 w-[280px]"
                 >
-                  <article className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 h-full">
+                  <article className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 h-full">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-2xl">
                         {index === 0
@@ -194,7 +197,7 @@ export default function MobileRelatedSection({
           </h3>
           <div
             ref={relatedScrollRef}
-            className="overflow-x-auto scrollbar-hide"
+            className="overflow-x-auto scrollbar-hide -mx-3 px-3"
           >
             <div className="flex gap-3 pb-2">
               {relatedPosts.map((post) => (
@@ -203,7 +206,7 @@ export default function MobileRelatedSection({
                   href={`/main/posts/${post.id}`}
                   className="flex-shrink-0 w-[280px]"
                 >
-                  <article className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 h-full">
+                  <article className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 h-full">
                     <Badge
                       className="mb-2 border-2 font-bold text-xs"
                       style={{

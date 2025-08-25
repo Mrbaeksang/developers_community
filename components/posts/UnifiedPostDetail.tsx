@@ -471,8 +471,8 @@ export function UnifiedPostDetail({
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+    <div className="space-y-6 w-full overflow-x-hidden">
+      <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardContent className="p-6 md:p-8">
           {/* Header */}
           <div className="space-y-4">
