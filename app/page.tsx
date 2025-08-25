@@ -4,13 +4,14 @@ import { HeroSection } from '@/components/home/HeroSection'
 import { StructuredData } from '@/components/seo/StructuredData'
 import { getApiUrl } from '@/lib/api/client'
 
-// Dynamic imports for heavy components
+// Dynamic imports for heavy components with SSR disabled for Samsung Internet compatibility
 const WeeklyPopularPosts = dynamic(
   () =>
     import('@/components/home/WeeklyPopularPosts').then((mod) => ({
       default: mod.WeeklyPopularPosts,
     })),
   {
+    ssr: false,
     loading: () => (
       <div className="animate-pulse bg-gray-100 h-96 rounded-lg" />
     ),
@@ -23,6 +24,7 @@ const RecentPosts = dynamic(
       default: mod.RecentPosts,
     })),
   {
+    ssr: false,
     loading: () => (
       <div className="animate-pulse bg-gray-100 h-96 rounded-lg" />
     ),
@@ -35,6 +37,7 @@ const CategoryGrid = dynamic(
       default: mod.CategoryGrid,
     })),
   {
+    ssr: false,
     loading: () => (
       <div className="animate-pulse bg-gray-100 h-64 rounded-lg" />
     ),
@@ -47,6 +50,7 @@ const ActiveCommunities = dynamic(
       default: mod.ActiveCommunities,
     })),
   {
+    ssr: false,
     loading: () => (
       <div className="animate-pulse bg-gray-100 h-48 rounded-lg" />
     ),
@@ -59,6 +63,7 @@ const SidebarContainer = dynamic(
       default: mod.SidebarContainer,
     })),
   {
+    ssr: false,
     loading: () => (
       <div className="animate-pulse bg-gray-100 h-64 rounded-lg" />
     ),
