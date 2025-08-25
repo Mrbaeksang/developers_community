@@ -472,8 +472,8 @@ export function UnifiedPostDetail({
 
   return (
     <div className="space-y-6 w-full overflow-x-hidden">
-      <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <CardContent className="p-6 md:p-8">
+      <Card className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] lg:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] !py-0">
+        <CardContent className="p-4 sm:p-6 md:p-8">
           {/* Header */}
           <div className="space-y-4">
             {/* Category and Title */}
@@ -603,7 +603,7 @@ export function UnifiedPostDetail({
 
           {/* Content */}
           <div
-            className="prose prose-sm max-w-none [&_p]:my-6 [&_p]:leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-8 [&_h1]:leading-tight [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-6 [&_h2]:leading-tight [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-5 [&_h3]:leading-tight [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-6 [&_li]:my-2 [&_li]:leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6 [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-6 [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_table]:w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:overflow-x-auto [&_thead]:bg-gray-50 [&_thead]:border-b-2 [&_thead]:border-gray-200 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:border [&_th]:border-gray-200 [&_td]:px-4 [&_td]:py-3 [&_td]:border [&_td]:border-gray-200 [&_tbody_tr]:bg-white [&_tbody_tr:hover]:bg-gray-50 [&_tbody_tr]:transition-colors"
+            className="prose prose-sm max-w-none overflow-x-hidden [&_p]:my-6 [&_p]:leading-relaxed [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-8 [&_h1]:leading-tight [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-6 [&_h2]:leading-tight [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-5 [&_h3]:leading-tight [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-6 [&_li]:my-2 [&_li]:leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6 [&_code]:px-1 [&_code]:py-0.5 [&_code]:bg-gray-100 [&_code]:text-red-600 [&_code]:rounded [&_code]:text-sm [&_code]:break-words [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-6 [&_pre]:max-w-full [&_pre_code]:bg-transparent [&_pre_code]:text-gray-100 [&_pre_code]:p-0 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline [&_a]:break-all [&_a:hover]:text-blue-800 [&_table]:w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_thead]:bg-gray-50 [&_thead]:border-b-2 [&_thead]:border-gray-200 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:border [&_th]:border-gray-200 [&_td]:px-4 [&_td]:py-3 [&_td]:border [&_td]:border-gray-200 [&_tbody_tr]:bg-white [&_tbody_tr:hover]:bg-gray-50 [&_tbody_tr]:transition-colors"
             dangerouslySetInnerHTML={{
               __html: optimizeImagesInContent(post.content),
             }}

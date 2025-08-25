@@ -714,7 +714,7 @@ export default function CommentSection({
 
   return (
     <section className="mt-8">
-      <div className="bg-white border-2 border-black rounded-lg p-4 sm:p-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="bg-white border-2 border-black rounded-lg p-4 lg:p-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] lg:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
           댓글 {comments.length}개

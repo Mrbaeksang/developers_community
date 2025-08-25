@@ -89,7 +89,7 @@ export default function CommentItem({
           />
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
-          <div className="bg-white border-2 border-black rounded-lg p-3 sm:p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 overflow-hidden">
+          <div className="bg-white border-2 border-black rounded-lg p-3 lg:p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm">

@@ -259,7 +259,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   return (
     <div className="w-full overflow-x-hidden">
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         <StructuredData
           type="article"
           data={{
@@ -276,7 +276,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           }}
         />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6 lg:gap-8">
-          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8 min-w-0">
             <UnifiedPostDetail
               post={post}
               postType="main"
