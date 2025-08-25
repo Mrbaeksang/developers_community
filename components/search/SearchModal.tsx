@@ -145,13 +145,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white dark:bg-gray-900">
-        <DialogHeader className="px-6 pt-6 pb-0">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl p-0 border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white dark:bg-gray-900">
+        <DialogHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-0">
           <DialogTitle className="sr-only">검색</DialogTitle>
         </DialogHeader>
 
         {/* Search Input */}
-        <div className="border-b-2 border-black px-6 pb-6">
+        <div className="border-b-2 border-black px-3 sm:px-6 pb-4 sm:pb-6">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
             <Input
@@ -172,31 +172,31 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           </div>
 
           {/* Search Type Filters */}
-          <div className="mt-4 flex gap-3">
+          <div className="mt-3 sm:mt-4 flex gap-2 sm:gap-3 flex-wrap">
             <Badge
               variant={searchType === 'all' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.all}`}
+              className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold border-2 transition-all ${searchTypeClassNames.all}`}
               onClick={() => setSearchType('all')}
             >
               🔍 전체
             </Badge>
             <Badge
               variant={searchType === 'title' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.title}`}
+              className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold border-2 transition-all ${searchTypeClassNames.title}`}
               onClick={() => setSearchType('title')}
             >
               📝 제목
             </Badge>
             <Badge
               variant={searchType === 'content' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.content}`}
+              className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold border-2 transition-all ${searchTypeClassNames.content}`}
               onClick={() => setSearchType('content')}
             >
               📄 내용
             </Badge>
             <Badge
               variant={searchType === 'tag' ? 'default' : 'outline'}
-              className={`cursor-pointer px-4 py-2 text-sm font-bold border-2 transition-all ${searchTypeClassNames.tag}`}
+              className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold border-2 transition-all ${searchTypeClassNames.tag}`}
               onClick={() => setSearchType('tag')}
             >
               #️⃣ 태그
@@ -330,7 +330,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t-2 border-black dark:border-gray-700 px-6 py-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-between">
+        <div className="border-t-2 border-black dark:border-gray-700 px-3 sm:px-6 py-3 sm:py-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-2">
               <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-600 rounded-lg font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]">

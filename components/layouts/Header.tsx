@@ -184,7 +184,7 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-56 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  className="w-56 max-w-[calc(100vw-2rem)] border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                   align="end"
                   forceMount
                 >
