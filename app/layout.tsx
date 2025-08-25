@@ -21,6 +21,7 @@ import { GoogleAdsense } from '@/components/ads/GoogleAdsense'
 import { headers } from 'next/headers'
 import { ViewportProvider } from '@/components/providers/ViewportProvider'
 import { MobileLayoutFix } from '@/components/layouts/MobileLayoutFix'
+import { ClientOnlyWrapper } from '@/components/providers/ClientOnlyWrapper'
 
 const notoSansKr = Noto_Sans_KR({
   weight: ['400', '500', '700', '900'],
@@ -92,7 +93,61 @@ export default async function RootLayout({
   // CSP nonce 가져오기
   const headersList = await headers()
   const nonce = headersList.get('x-nonce') || undefined
+  const renderMode = headersList.get('x-render-mode')
 
+  // 모바일 CSR 모드
+  if (renderMode === 'csr') {
+    return (
+      <html lang="ko" suppressHydrationWarning>
+        <head>
+          <link
+            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+            rel="stylesheet"
+          />
+        </head>
+        <body
+          className={`${notoSansKr.variable} font-sans antialiased`}
+          suppressHydrationWarning
+        >
+          <ClientOnlyWrapper>
+            <KakaoScriptLoader />
+            <StructuredData type="website" />
+            <StructuredData type="organization" />
+            <MobileLayoutFix />
+            <AsyncErrorBoundary>
+              <QueryProvider>
+                <SessionProvider>
+                  <NotificationProvider>
+                    <KakaoProvider>
+                      <ViewportProvider>
+                        <div className="flex min-h-screen flex-col">
+                          <Header />
+                          <main className="flex-1 w-full">{children}</main>
+                          <Footer />
+                        </div>
+                        <Toaster richColors position="bottom-right" />
+                        <SessionExpiryWarning />
+                        <GoogleOneTapAuth />
+                        {process.env.NODE_ENV === 'production' && (
+                          <GoogleAdsense nonce={nonce} />
+                        )}
+                        <VisitorTracker />
+                        <PageViewTracker />
+                        <Analytics />
+                        <SpeedInsights />
+                      </ViewportProvider>
+                    </KakaoProvider>
+                  </NotificationProvider>
+                </SessionProvider>
+              </QueryProvider>
+            </AsyncErrorBoundary>
+          </ClientOnlyWrapper>
+        </body>
+      </html>
+    )
+  }
+
+  // PC용 기존 SSR 유지
   return (
     <html lang="ko">
       <head>

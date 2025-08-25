@@ -69,6 +69,10 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isApiRoute = pathname.startsWith('/api/')
 
+  // 모바일 브라우저 감지
+  const userAgent = request.headers.get('user-agent') || ''
+  const isMobile = /Mobile|Android|iPhone|iPad|Samsung/i.test(userAgent)
+
   // 제외 경로 체크 (API 경로는 제외하지 않음)
   if (
     !isApiRoute &&
@@ -90,6 +94,11 @@ export async function middleware(request: NextRequest) {
   // 방문자 세션 ID 생성 또는 가져오기
   const response = NextResponse.next()
   const sessionId = request.cookies.get('visitor_session')?.value || nanoid()
+
+  // 모바일 브라우저인 경우 CSR 모드 설정
+  if (isMobile && !isApiRoute) {
+    response.headers.set('x-render-mode', 'csr')
+  }
 
   // CSP nonce 생성 (Google AdSense용)
   const nonce = nanoid(16)
