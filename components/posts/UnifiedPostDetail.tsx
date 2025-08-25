@@ -1,6 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  lazy,
+  Suspense,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -38,6 +46,11 @@ import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import type { UnifiedPostDetail as UnifiedPostDetailType } from '@/lib/post/display'
 import { apiClient } from '@/lib/api/client'
+
+// Lazy load MobileRelatedSection for better performance
+const MobileRelatedSection = lazy(
+  () => import('@/components/posts/MobileRelatedSection')
+)
 
 interface UnifiedPostDetailProps {
   post: UnifiedPostDetailType
@@ -673,6 +686,22 @@ export function UnifiedPostDetail({
         url={currentUrl}
         title={post.title}
       />
+
+      {/* Mobile Related Section - Only show on mobile for main posts */}
+      {postType === 'main' && (
+        <div className="lg:hidden">
+          <Suspense
+            fallback={
+              <div className="mt-8 space-y-4">
+                <div className="h-12 bg-gray-200 rounded animate-pulse" />
+                <div className="h-32 bg-gray-200 rounded animate-pulse" />
+              </div>
+            }
+          >
+            <MobileRelatedSection postId={post.id} />
+          </Suspense>
+        </div>
+      )}
     </div>
   )
 }

@@ -107,7 +107,12 @@ async function getWeeklyTrending(request: NextRequest) {
       3600 // 1시간 캐싱 (주간 트렌딩은 자주 변하지 않으므로 Active CPU 절감)
     )
 
-    return successResponse(cachedData)
+    // 새로운 응답 형식에 맞춰서 반환
+    return successResponse({
+      posts: cachedData.items,
+      hasMore: cachedData.hasMore,
+      nextCursor: cachedData.nextCursor,
+    })
   } catch (error) {
     return handleError(error)
   }
