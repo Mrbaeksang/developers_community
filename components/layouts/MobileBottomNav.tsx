@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   const { data: session } = useSession()
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // 네비게이션 아이템 정의
   const navItems: NavItem[] = [
