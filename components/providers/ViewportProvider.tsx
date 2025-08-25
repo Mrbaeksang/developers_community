@@ -8,6 +8,7 @@ interface ViewportContextType {
   isDesktop: boolean
   width: number
   height: number
+  isHydrated: boolean
 }
 
 const ViewportContext = createContext<ViewportContextType>({
@@ -16,6 +17,7 @@ const ViewportContext = createContext<ViewportContextType>({
   isDesktop: true,
   width: 1024,
   height: 768,
+  isHydrated: false,
 })
 
 export function ViewportProvider({ children }: { children: React.ReactNode }) {
@@ -26,6 +28,7 @@ export function ViewportProvider({ children }: { children: React.ReactNode }) {
     isDesktop: true,
     width: 1024,
     height: 768,
+    isHydrated: false,
   })
 
   useEffect(() => {
@@ -39,10 +42,11 @@ export function ViewportProvider({ children }: { children: React.ReactNode }) {
         isMobile: width < 640,
         isTablet: width >= 640 && width < 1024,
         isDesktop: width >= 1024,
+        isHydrated: true,
       })
     }
 
-    // 초기 실행
+    // 초기 실행 (hydration 완료 표시)
     handleResize()
 
     // 리사이즈 이벤트 리스너

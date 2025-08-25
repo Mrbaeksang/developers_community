@@ -62,8 +62,12 @@ export function GoogleOneTapAuth({
   const [showPrompt, setShowPrompt] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
+    // Hydration 완료 표시
+    setIsHydrated(true)
+
     // 인앱 브라우저 감지
     const userAgent = navigator.userAgent.toLowerCase()
     const isKakao = userAgent.includes('kakaotalk')
@@ -78,37 +82,38 @@ export function GoogleOneTapAuth({
       setIsInAppBrowser(true)
     }
 
-    // 이미 닫았으면 표시하지 않음 (sessionStorage 체크를 먼저!)
-    if (sessionStorage.getItem('google-one-tap-closed') === 'true') {
-      return
+    // 조건 검사 후 timer 설정 (early return 제거)
+    const shouldShowPrompt =
+      sessionStorage.getItem('google-one-tap-closed') !== 'true' &&
+      status !== 'authenticated' &&
+      !pathname.includes('/login') &&
+      !pathname.includes('/register') &&
+      !pathname.includes('/auth')
+
+    let timer: NodeJS.Timeout | undefined
+
+    if (shouldShowPrompt) {
+      // 페이지 로드 후 1초 뒤에 표시 (dev.to처럼)
+      timer = setTimeout(() => {
+        if (
+          status === 'unauthenticated' &&
+          sessionStorage.getItem('google-one-tap-closed') !== 'true'
+        ) {
+          setShowPrompt(true)
+          setIsVisible(true)
+        }
+      }, 1000)
     }
 
-    // 로그인 페이지나 이미 로그인한 경우 표시하지 않음
-    if (
-      status === 'authenticated' ||
-      pathname.includes('/login') ||
-      pathname.includes('/register') ||
-      pathname.includes('/auth')
-    ) {
-      return
-    }
-
-    // 페이지 로드 후 1초 뒤에 표시 (dev.to처럼)
-    const timer = setTimeout(() => {
-      if (
-        status === 'unauthenticated' &&
-        sessionStorage.getItem('google-one-tap-closed') !== 'true'
-      ) {
-        setShowPrompt(true)
-        setIsVisible(true)
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
       }
-    }, 1000)
-
-    return () => clearTimeout(timer)
+    }
   }, [status, pathname])
 
   useEffect(() => {
-    if (!showPrompt || !clientId) return
+    if (!isHydrated || !showPrompt || !clientId) return
 
     const loadGoogleScript = () => {
       const script = document.createElement('script')
@@ -162,7 +167,12 @@ export function GoogleOneTapAuth({
       // Cleanup
       window.google?.accounts.id.cancel()
     }
-  }, [showPrompt, clientId])
+  }, [isHydrated, showPrompt, clientId])
+
+  // Hydration 완료 전에는 아무것도 렌더링하지 않음
+  if (!isHydrated) {
+    return null
+  }
 
   // 사용자가 X 버튼을 눌렀을 때
   const handleClose = () => {
