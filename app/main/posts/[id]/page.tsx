@@ -258,41 +258,43 @@ export default async function PostDetailPage({ params }: PageProps) {
   const ogImage = firstImage || 'https://devcom.kr/og-image.png'
 
   return (
-    <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
-      <StructuredData
-        type="article"
-        data={{
-          title: post.title,
-          description: post.excerpt || post.metaDescription || post.title,
-          author: {
-            name: post.author?.name || 'Unknown',
-            url: `https://devcom.kr/profile/${post.author?.id}`,
-          },
-          publishedAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          image: ogImage,
-          url: `https://devcom.kr/main/posts/${post.id}`,
-        }}
-      />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6 lg:gap-8">
-        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-          <UnifiedPostDetail
-            post={post}
-            postType="main"
-            currentUserId={session?.user?.id}
-          />
-          <CommentSection
-            postId={post.id}
-            postType="main"
-            initialComments={post.comments || []}
-            isQAPost={post.isQACategory || false}
-          />
+    <div className="overflow-x-hidden">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+        <StructuredData
+          type="article"
+          data={{
+            title: post.title,
+            description: post.excerpt || post.metaDescription || post.title,
+            author: {
+              name: post.author?.name || 'Unknown',
+              url: `https://devcom.kr/profile/${post.author?.id}`,
+            },
+            publishedAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            image: ogImage,
+            url: `https://devcom.kr/main/posts/${post.id}`,
+          }}
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6 lg:gap-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+            <UnifiedPostDetail
+              post={post}
+              postType="main"
+              currentUserId={session?.user?.id}
+            />
+            <CommentSection
+              postId={post.id}
+              postType="main"
+              initialComments={post.comments || []}
+              isQAPost={post.isQACategory || false}
+            />
+          </div>
+          <aside className="hidden lg:block space-y-6">
+            <Suspense fallback={<RelatedPostsSkeleton />}>
+              <RelatedPosts postId={post.id} />
+            </Suspense>
+          </aside>
         </div>
-        <aside className="hidden lg:block space-y-6">
-          <Suspense fallback={<RelatedPostsSkeleton />}>
-            <RelatedPosts postId={post.id} />
-          </Suspense>
-        </aside>
       </div>
     </div>
   )
