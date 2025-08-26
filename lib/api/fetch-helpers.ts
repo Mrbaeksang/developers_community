@@ -191,9 +191,15 @@ export async function fetchWeeklyTrending(
   const response = await fetchWithRetry(
     `/api/main/posts/weekly-trending${queryParams}`
   )
-  const result =
-    await handleAPIResponse<PostListResponse<MainPostFormatted>>(response)
-  return result.data?.items || []
+  const result = await handleAPIResponse<{
+    success: boolean
+    data: {
+      posts: MainPostFormatted[]
+      hasMore?: boolean
+      nextCursor?: string | null
+    }
+  }>(response)
+  return result.data?.posts || []
 }
 
 /**

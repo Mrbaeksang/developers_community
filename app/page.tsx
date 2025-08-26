@@ -145,8 +145,8 @@ async function getSidebarData() {
 
     // For trending posts, map the weekly trending response
     // API 응답 구조에 따라 적절히 처리
-    const postsArray = Array.isArray(trendingData?.data?.items)
-      ? trendingData.data.items
+    const postsArray = Array.isArray(trendingData?.data?.posts)
+      ? trendingData.data.posts
       : Array.isArray(trendingData?.data)
         ? trendingData.data
         : []
