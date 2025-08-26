@@ -153,7 +153,7 @@ export default async function RootLayout({
 
   // PC용 기존 SSR 유지
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
@@ -162,7 +162,7 @@ export default async function RootLayout({
       </head>
       <body
         className={`${notoSansKr.variable} font-sans antialiased`}
-        data-hydrating="true"
+        suppressHydrationWarning
       >
         <KakaoScriptLoader />
         <StructuredData type="website" />

@@ -17,9 +17,9 @@ interface ViewportContextType {
   isHydrated: boolean
 }
 
-// Safari를 포함한 모든 브라우저에서 일관된 초기값
+// SSR과 CSR에서 동일한 초기값 사용 (hydration mismatch 방지)
 const getInitialViewport = (): ViewportContextType => {
-  // SSR 및 초기 hydration 시 사용할 기본값
+  // 항상 동일한 기본값 사용 (SSR과 초기 CSR이 일치하도록)
   return {
     isMobile: false,
     isTablet: false,
