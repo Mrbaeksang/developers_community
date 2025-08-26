@@ -68,23 +68,37 @@ export function GoogleOneTapAuth({
     // Hydration 완료 표시
     setIsHydrated(true)
 
-    // 인앱 브라우저 감지
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isKakao = userAgent.includes('kakaotalk')
-    const isFacebook =
-      userAgent.includes('facebookexternalhit') ||
-      userAgent.includes('fban') ||
-      userAgent.includes('fbav')
-    const isInstagram = userAgent.includes('instagram')
-    const isLine = userAgent.includes('line')
+    // 브라우저 환경에서만 User Agent 접근
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      // 인앱 브라우저 감지
+      const userAgent = navigator.userAgent?.toLowerCase() || ''
+      const isKakao = userAgent.includes('kakaotalk')
+      const isFacebook =
+        userAgent.includes('facebookexternalhit') ||
+        userAgent.includes('fban') ||
+        userAgent.includes('fbav')
+      const isInstagram = userAgent.includes('instagram')
+      const isLine = userAgent.includes('line')
+      // Safari 인앱 브라우저 감지 추가
+      const isSafariInApp =
+        userAgent.includes('safari') &&
+        !userAgent.includes('chrome') &&
+        !userAgent.includes('crios') &&
+        (userAgent.includes('facebook') || userAgent.includes('twitter'))
 
-    if (isKakao || isFacebook || isInstagram || isLine) {
-      setIsInAppBrowser(true)
+      if (isKakao || isFacebook || isInstagram || isLine || isSafariInApp) {
+        setIsInAppBrowser(true)
+      }
     }
 
     // 조건 검사 후 timer 설정 (early return 제거)
+    // sessionStorage는 클라이언트에서만 안전하게 접근
+    const isClosedInSession =
+      typeof window !== 'undefined' &&
+      sessionStorage.getItem('google-one-tap-closed') === 'true'
+
     const shouldShowPrompt =
-      sessionStorage.getItem('google-one-tap-closed') !== 'true' &&
+      !isClosedInSession &&
       status !== 'authenticated' &&
       !pathname.includes('/login') &&
       !pathname.includes('/register') &&
@@ -92,7 +106,7 @@ export function GoogleOneTapAuth({
 
     let timer: NodeJS.Timeout | undefined
 
-    if (shouldShowPrompt) {
+    if (shouldShowPrompt && typeof window !== 'undefined') {
       // 페이지 로드 후 1초 뒤에 표시 (dev.to처럼)
       timer = setTimeout(() => {
         if (
@@ -178,10 +192,12 @@ export function GoogleOneTapAuth({
   const handleClose = () => {
     setIsVisible(false)
     setShowPrompt(false)
-    window.google?.accounts.id.cancel()
 
-    // 세션 동안 다시 표시하지 않음
-    sessionStorage.setItem('google-one-tap-closed', 'true')
+    if (typeof window !== 'undefined') {
+      window.google?.accounts.id.cancel()
+      // 세션 동안 다시 표시하지 않음
+      sessionStorage.setItem('google-one-tap-closed', 'true')
+    }
   }
 
   // 이 useEffect는 이제 필요 없음 (위에서 처리함)

@@ -69,9 +69,13 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isApiRoute = pathname.startsWith('/api/')
 
-  // 모바일 브라우저 감지
+  // 모바일 브라우저 감지 (Safari 호환성 개선)
   const userAgent = request.headers.get('user-agent') || ''
-  const isMobile = /Mobile|Android|iPhone|iPad|Samsung/i.test(userAgent)
+  // Safari on Mac은 모바일로 감지하지 않도록 수정
+  const isMobile =
+    /Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      userAgent
+    ) && !/Macintosh.*Safari/i.test(userAgent) // Mac Safari는 제외
 
   // 제외 경로 체크 (API 경로는 제외하지 않음)
   if (
