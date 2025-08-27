@@ -46,6 +46,7 @@ import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import type { UnifiedPostDetail as UnifiedPostDetailType } from '@/lib/post/display'
 import { apiClient } from '@/lib/api/client'
+import { ImageModal } from './ImageModal'
 
 // Lazy load MobileRelatedSection for better performance
 const MobileRelatedSection = lazy(
@@ -72,6 +73,10 @@ export function UnifiedPostDetail({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isProcessingLike, setIsProcessingLike] = useState(false)
   const [isProcessingBookmark, setIsProcessingBookmark] = useState(false)
+  const [modalImage, setModalImage] = useState<{
+    src: string
+    alt?: string
+  } | null>(null)
   const likeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const bookmarkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -461,14 +466,45 @@ export function UnifiedPostDetail({
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
-  // HTML 내 이미지를 최적화 (lazy loading, WebP 포맷 힌트 추가)
+  // HTML 내 이미지를 최적화 및 클릭 이벤트 처리
   const optimizeImagesInContent = (html: string) => {
-    // img 태그에 loading="lazy" 추가
-    return html.replace(
-      /<img([^>]*?)(?<!loading=["'][^"']*["'])([^>]*?)>/gi,
-      '<img$1 loading="lazy"$2>'
-    )
+    // img 태그에 loading="lazy"와 클릭 가능한 클래스 추가
+    return html
+      .replace(
+        /<img([^>]*?)(?<!loading=["'][^"']*["'])([^>]*?)>/gi,
+        '<img$1 loading="lazy"$2>'
+      )
+      .replace(
+        /<img([^>]*?)>/gi,
+        '<img$1 class="cursor-zoom-in hover:opacity-95 transition-opacity clickable-image">'
+      )
   }
+
+  // 이미지 클릭 핸들러
+  const handleImageClick = useCallback((src: string, alt?: string) => {
+    setModalImage({ src, alt })
+  }, [])
+
+  const handleCloseModal = useCallback(() => {
+    setModalImage(null)
+  }, [])
+
+  // 이미지 클릭 이벤트 등록
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'IMG' &&
+        target.classList.contains('clickable-image')
+      ) {
+        const img = target as HTMLImageElement
+        handleImageClick(img.src, img.alt)
+      }
+    }
+
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [handleImageClick])
 
   return (
     <div className="space-y-6 w-full overflow-x-hidden">
@@ -701,6 +737,16 @@ export function UnifiedPostDetail({
             <MobileRelatedSection postId={post.id} />
           </Suspense>
         </div>
+      )}
+
+      {/* Image Modal */}
+      {modalImage && (
+        <ImageModal
+          isOpen={!!modalImage}
+          onClose={handleCloseModal}
+          src={modalImage.src}
+          alt={modalImage.alt}
+        />
       )}
     </div>
   )
