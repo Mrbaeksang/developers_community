@@ -44,8 +44,7 @@ export const viewport = {
 
 export const metadata: Metadata = {
   title: 'DevCom | 개발자 커뮤니티',
-  description:
-    '코딩 공부부터 취업까지! React, JavaScript 오류 해결과 실무 팁을 공유하는 개발자 커뮤니티',
+  description: '코딩 공부부터 취업까지! 최신 AI뉴스와 각종 개발 정보',
   keywords:
     '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 개발자 되려면, 신입 개발자 취업, 코딩 배우기 무료, 자바스크립트 오류, React 오류 해결, 포트폴리오 만들기, ChatGPT 활용법, 개발자 로드맵, 코딩테스트 준비, 부트캠프 후기',
   authors: [{ name: 'Dev Community' }],
