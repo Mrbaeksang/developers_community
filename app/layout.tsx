@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     siteName: 'DevCom',
     images: [
       {
-        url: '/og-image.png',
+        url: 'https://devcom.kr/og-image.png',
         width: 1200,
         height: 630,
         alt: 'DevCom - 개발자 커뮤니티',
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'DevCom | 개발자 커뮤니티',
     description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
-    images: ['/og-image.png'],
+    images: ['https://devcom.kr/og-image.png'],
   },
   verification: {
     google: 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',
