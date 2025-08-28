@@ -43,7 +43,7 @@ export const viewport = {
 }
 
 export const metadata: Metadata = {
-  title: '바이브 코딩 | 개발자 커뮤니티',
+  title: 'DevCom | 개발자 커뮤니티',
   description:
     '코딩 공부부터 취업까지! React, JavaScript 오류 해결과 실무 팁을 공유하는 개발자 커뮤니티',
   keywords:
@@ -66,14 +66,23 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ko_KR',
     url: process.env.NEXT_PUBLIC_API_URL || 'https://devcom.kr',
-    title: '바이브 코딩 | 개발자 커뮤니티',
+    title: 'DevCom | 개발자 커뮤니티',
     description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
-    siteName: '바이브 코딩',
+    siteName: 'DevCom',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'DevCom - 개발자 커뮤니티',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '바이브 코딩 | 개발자 커뮤니티',
+    title: 'DevCom | 개발자 커뮤니티',
     description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
+    images: ['/og-image.png'],
   },
   verification: {
     google: 'pSiQxASSNku0ts2bPM68Zn7pSH62w-uADUfbhK_0i_g',
