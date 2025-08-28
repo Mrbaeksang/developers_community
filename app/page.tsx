@@ -181,14 +181,13 @@ export const revalidate = 60
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: '바이브 코딩 | 개발자 커뮤니티',
-    description:
-      '코딩 공부부터 취업까지! React, JavaScript 오류 해결과 실무 팁을 공유하는 개발자 커뮤니티',
+    title: 'DevCom | 개발자 커뮤니티',
+    description: '코딩 공부부터 취업까지! 최신 AI뉴스와 각종 개발 정보',
     keywords:
       '코딩 공부 어디서 시작, 프로그래밍 언어 추천, 자바스크립트 오류, React 오류 해결, 신입 개발자 취업, 포트폴리오 만들기, ChatGPT 활용법, 코딩 배우기 무료, 개발자 공부 순서, 코딩테스트 준비, 부트캠프 후기, CSS 가운데 정렬',
     openGraph: {
-      title: '바이브 코딩 | 개발자 커뮤니티',
-      description: '코딩 공부부터 취업까지! React, JS 오류 해결과 실무 팁 공유',
+      title: 'DevCom | 개발자 커뮤니티',
+      description: '코딩 공부부터 취업까지! 최신 AI뉴스와 각종 개발 정보',
       type: 'website',
       locale: 'ko_KR',
     },
@@ -204,7 +203,7 @@ export default async function Home() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: '바이브 코딩 | Dev Community',
+    name: 'DevCom | Dev Community',
     alternateName: [
       '코딩 공부 가이드',
       '프로그래밍 언어 추천 사이트',

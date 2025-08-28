@@ -45,11 +45,10 @@ export function StructuredData({
         return {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
-          name: '바이브 코딩',
+          name: 'DevCom',
           alternateName: 'Dev Community',
           url: baseUrl,
-          description:
-            '코딩 공부 어디서 시작할지 모르겠다면? 프로그래밍 언어 추천부터 신입 개발자 취업까지!',
+          description: '코딩 공부부터 취업까지! 최신 AI뉴스와 각종 개발 정보',
           potentialAction: {
             '@type': 'SearchAction',
             target: {

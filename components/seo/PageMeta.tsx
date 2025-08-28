@@ -24,7 +24,7 @@ export function generatePageMetadata({
   const ogImage = image || `${baseUrl}/og-image.png`
 
   const metadata: Metadata = {
-    title: `${title} | 바이브 코딩`,
+    title: `${title} | DevCom`,
     description,
     keywords:
       keywords ||
@@ -33,7 +33,7 @@ export function generatePageMetadata({
       title,
       description,
       url: fullUrl,
-      siteName: '바이브 코딩',
+      siteName: 'DevCom',
       images: [
         {
           url: ogImage,
