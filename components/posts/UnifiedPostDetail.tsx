@@ -143,22 +143,36 @@ export function UnifiedPostDetail({
     staleTime: Infinity,
   })
 
-  // 조회수 증가
-  useEffect(() => {
-    const incrementView = async () => {
-      // CSRF 토큰 가져오기
-      const csrfToken = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('csrf-token='))
-        ?.split('=')[1]
+  // 조회수 증가 (중복 호출 방지)
+  const viewIncrementedRef = useRef(false)
 
-      await fetch(`${apiBasePath}/view`, {
-        method: 'POST',
-        headers: {
-          'X-CSRF-Token': csrfToken || '',
-        },
-      })
+  useEffect(() => {
+    // 이미 조회수를 증가시켰으면 스킵
+    if (viewIncrementedRef.current) return
+
+    const incrementView = async () => {
+      try {
+        // 중복 호출 방지 플래그 설정
+        viewIncrementedRef.current = true
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.cookie
+          .split('; ')
+          .find((row) => row.startsWith('csrf-token='))
+          ?.split('=')[1]
+
+        await fetch(`${apiBasePath}/view`, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken || '',
+          },
+        })
+      } catch {
+        // 에러 발생 시 플래그 리셋 (재시도 가능하도록)
+        viewIncrementedRef.current = false
+      }
     }
+
     incrementView()
   }, [apiBasePath])
 
