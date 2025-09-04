@@ -114,13 +114,14 @@ export async function PostListServer({
   // 고정 게시글과 일반 게시글 합치기 (고정이 항상 먼저)
   const allPosts = [...pinnedPosts, ...regularPosts]
 
-  // Redis에서 실시간 조회수 가져오기
+  // Redis에서 실시간 조회수 가져오기 (하이드레이션 안전)
   const postIds = allPosts.map((post) => post.id)
   const redisViewCounts = new Map<string, number>()
 
   try {
     const redisClient = redis()
-    if (redisClient) {
+    if (redisClient && typeof window === 'undefined') {
+      // 서버 사이드에서만 Redis 조회
       const pipeline = redisClient.pipeline()
 
       // 각 게시글의 Redis 조회수 조회
@@ -134,14 +135,18 @@ export async function PostListServer({
         results.forEach((result, index) => {
           const [err, value] = result
           if (!err && value) {
-            redisViewCounts.set(postIds[index], parseInt(value as string))
+            const redisCount = parseInt(value as string)
+            // Redis 값이 DB 값보다 큰 경우만 사용 (일관성 보장)
+            if (redisCount > allPosts[index].viewCount) {
+              redisViewCounts.set(postIds[index], redisCount)
+            }
           }
         })
       }
     }
   } catch (error) {
     console.error('Redis 조회수 조회 실패:', error)
-    // Redis 오류 시 빈 Map 사용 (DB 조회수만 표시)
+    // Redis 오류 시 DB 조회수만 사용하여 일관성 보장
   }
 
   // 타입 변환 - formatMainPostForResponse 사용
