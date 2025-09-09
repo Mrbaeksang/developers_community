@@ -97,13 +97,8 @@ async function getPost(id: string) {
       return null
     }
 
-    // 조회수 증가 (비동기로 처리)
-    prisma.mainPost
-      .update({
-        where: { id },
-        data: { viewCount: { increment: 1 } },
-      })
-      .catch(console.error) // 에러 무시 (조회수는 중요하지 않음)
+    // 조회수 증가는 클라이언트 사이드에서 처리 (중복 방지를 위해)
+    // API 라우트(/api/main/posts/[id]/view)에서 Redis를 통한 중복 체크 후 증가
 
     // 댓글 조회 - 계층 구조로 가져오기 (parentId가 null인 최상위 댓글만)
     const comments = await prisma.mainComment.findMany({
