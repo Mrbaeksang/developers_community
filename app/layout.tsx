@@ -12,7 +12,6 @@ import { MobileBottomNav } from '@/components/layouts/MobileBottomNav'
 import { Toaster } from '@/components/ui/sonner'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { VisitorTracker } from '@/components/shared/VisitorTracker'
 import { PageViewTracker } from '@/components/shared/PageViewTracker'
 import { AsyncErrorBoundary } from '@/components/error-boundary'
 import { SessionExpiryWarning } from '@/components/auth/session-expiry-warning'
@@ -143,7 +142,6 @@ export default async function RootLayout({
                         {process.env.NODE_ENV === 'production' && (
                           <GoogleAdsense nonce={nonce} />
                         )}
-                        <VisitorTracker />
                         <PageViewTracker />
                         <Analytics />
                         <SpeedInsights />
@@ -197,7 +195,6 @@ export default async function RootLayout({
                     {process.env.NODE_ENV === 'production' && (
                       <GoogleAdsense nonce={nonce} />
                     )}
-                    <VisitorTracker />
                     <PageViewTracker />
                     <Analytics />
                     <SpeedInsights />
